@@ -90,6 +90,43 @@ CLASS_DEFS = {
         ),
     },
 }
+
+GAME_LORE_ARTICLE = """Echoes of Aethelgard: The Lore
+
+
+The world of Aethelgard is a fractured tapestry, woven with threads of ancient glory and catastrophic ruin. Once a vibrant kingdom, renowned for its mastery of magic and scholarly pursuits, Aethelgard thrived under the guidance of powerful mages who tapped into the world's latent magical energies. Its capital, Silverwood, was a beacon of knowledge, its libraries filled with secrets of the cosmos.
+
+
+The Great Sundering: A Cataclysm of Ambition
+The peace shattered approximately 500 years ago, not by invasion, but by an act of profound hubris. At the very heart of Aethelgard's magical power, the Ley Line Conflux (now known as the Heartstone Depths), a cabal of Rival Mages embarked on a forbidden ritual. Their ambition was not merely to enhance Aethelgard's magic, but to transcend its natural limits - to command time itself, to unravel and reweave the very fabric of reality. Their research, often recorded in sinister Dark Spellbooks (tomes that slowly corrupted their judgment and ethics, much like the player experiences a cost to vitality when reading them), blinded them to the true dangers. The ritual went catastrophically wrong, tearing open a fundamental wound in reality: the Temporal Breach. This wasn't just a magical explosion; it was a cascading temporal collapse that shattered Aethelgard, twisting its lands, corrupting its magic, and scattering its people. Silverwood became the Whispering Ruins, a testament to a glory irrevocably lost.
+
+
+A Fractured World, Lingering Echoes
+In the wake of the Sundering, Aethelgard became a patchwork of isolated settlements, dangerous wilderness, and ancient, magic-infused ruins. Wild magic surges unpredictably, creating strange creatures and phenomena, and the very air shimmers with residual energies. Three primary factions have emerged from the chaos, each with their own vision for the future or understanding of the past:
+
+
+The Remnants of Aethelgard: Descendants of the original kingdom, these scholars and historians, led by figures like Ilyra, strive to preserve what little history and order remains. They believe understanding the past is the key to healing the present. They seek ancient relics and lore, hoping to uncover the true cause of the Sundering and perhaps find a way to restore what was lost, or at least prevent further catastrophe.
+The Shadow Weavers: A cult of individuals who believe the Sundering was not a tragedy, but an opportunity. They embrace the corrupted magic and chaos, seeking to harness its raw power. Led by enigmatic figures like Nyx, they delve into forbidden knowledge, viewing the Temporal Breach as a source of ultimate power, believing they can bend time and reality to their will. They collect Void Shards, which they understand to be tears from the Breach itself.
+The Ironclad Nomads: A practical, survivalist people who distrust magic, relying instead on steel, grit, and their own strength. Led by warriors like Brak, they roam the fractured lands, focused on protecting their own and carving out a harsh existence. They are wary of magical anomalies and seek to clear threats that endanger their way of life, though they acknowledge the increasingly unnatural changes in the world.
+
+
+The Wayfinder's Journey: Unraveling the Truth
+You are a Wayfinder, a rare individual born with an innate connection to the fractured magical ley lines, capable of sensing echoes of the past and navigating the unstable magical currents that others cannot. Your journey begins near the edge of the Whispering Ruins, drawn by an inexplicable pull.
+
+
+As you progress through the game, you will:
+
+
+Discover the true nature of the Sundering: Through quests for the Remnants, you learn that the mages sought to command time, and their ambition tore open the Temporal Breach, a wound in reality that the Sundering was merely an echo of. You discover that the Breach was never truly closed, only contained.
+Uncover the Shadow Weavers' ambitions: Through quests for Nyx, you learn that the Shadow Weavers see the Breach as an opportunity, collecting its raw energy in the form of Void Shards, and seek to unleash and control its chaos for ultimate power.
+Witness the world's unraveling: As you venture into the Aether-Kissed Highlands and the Chronos Nexus, you experience the direct effects of the Temporal Breach, where time flows erratically and reality itself is thin.
+Confront the Chronos Tyrant: At the heart of the Temporal Breach Apex, you face the Chronos Tyrant, a powerful entity born from or guarding the Breach, feeding on fractured timelines and barely containing the full unraveling.
+Trigger the Final Cataclysm: Upon defeating the Chronos Tyrant, its fragile containment shatters. The Temporal Breach fully unravels, unleashing the Horde - not just creatures, but a cascading temporal collapse that spreads across Aethelgard, actively consuming and erasing stable reality. The land itself is being devoured by the very forces that broke it centuries ago.
+The Desperate Escape: With Aethelgard succumbing to the unraveling, you are forced to flee. Brak makes a heroic last stand to buy you time, while Ilyra, using all her Remnant power, struggles to hold open a portal in the Shattered Library - a tear through the Temporal Breach itself. You must escape Aethelgard, carrying the truth of its folly to whatever lies beyond.
+
+
+Your journey is one of survival, discovery, and ultimately, bearing witness to the final, tragic end of a world consumed by its own ambition."""
+
 UI_RULE = "-" * 60
 COMBAT_LOG_LIMIT = 8
 CANTRIP_ACTIVE = True
@@ -368,11 +405,6 @@ class Player:
         self.damage_done = 0
         self.damage_received = 0
         self.total_xp_earned = 0
-        self.faction_affinity = {
-            "Remnants of Aethelgard": 0,
-            "Shadow Weavers": 0,
-            "Ironclad Nomads": 0,
-        }
         self.visited_locations = set()
 
     def attack_power(self):
@@ -700,28 +732,20 @@ __/_______\________\__\_/________\_ _/_____/_________
         slow_print([title_art], delay=0.1)
 
     def show_lore(self):
-        """Display the game lore introduction."""
+        """Display the game lore article."""
         clear_screen()
-        self.print_section_header("Lore")
-        slow_print(
-            [
-                "You are a Wayfinder, born with the rare ability to sense residual magic.",
-                "Aethelgard lies shattered, its history fractured like the land itself.",
-                "Will you restore balance... or exploit the chaos?",
-                "",
-            ],
-            delay=0.35,
-        )
+        print(GAME_LORE_ARTICLE)
         safe_input("Press Enter to return to the menu...")
+        clear_screen()
 
     def choose_class(self):
         """Prompt the player to choose a class."""
         while True:
             clear_screen()
             self.print_section_header("Choose Your Class")
-            print("1) Ranger (+2 Strength, Common Rusty Dagger)")
-            print("2) Wizard (+2 Magic, Common Apprentice Staff)")
-            print("3) Elf (+2 Agility, Common Primitive Bow)")
+            print("1) Ranger (+2 Strength - Rusty Dagger)")
+            print("2) Wizard (+2 Magic - Apprentice Staff)")
+            print("3) Elf (+2 Agility - Primitive Bow)")
             choice = safe_input("Class (1-3 or name): ").strip().lower()
             mapping = {
                 "1": "Ranger",
@@ -744,7 +768,7 @@ __/_______\________\__\_/________\_ _/_____/_________
             print("1) New Game")
             print("2) Continue Game")
             print("3) View Scores")
-            print("4) Read Lore")
+            print("4) Read Lore (warning - spoilers)")
             print("5) Quit")
             choice = safe_input("Choose an option: ").strip().lower()
             mapping = {
@@ -850,11 +874,20 @@ __/_______\________\__\_/________\_ _/_____/_________
         self.print_divider()
         description = location.description
         if location.name == "Shattered Library" and self.horde_active:
-            base_description = self.base_location_descriptions.get(location.name, location.description)
-            description = (
-                f"{base_description} A swirling, unstable portal now pulses between the shelves, "
-                "casting long shadows across the fractured stacks."
-            )
+            if self.player.flags.get("ilyra_at_portal"):
+                description = (
+                    "The Shattered Library. The air here crackles with raw magic, and at its heart, "
+                    "a shimmering, unstable portal tears at the air. Ilyra stands before it, her hands "
+                    "glowing with an intense, straining light, her face etched with fierce concentration "
+                    "as she pours her energy into keeping the portal open. The whispers of the horde grow "
+                    "closer, echoing through the crumbling shelves."
+                )
+            else:
+                base_description = self.base_location_descriptions.get(location.name, location.description)
+                description = (
+                    f"{base_description} A swirling, unstable portal now pulses between the shelves, "
+                    "casting long shadows across the fractured stacks."
+                )
         elif location.name == "The Temporal Breach Apex" and self.horde_active:
             description = danger(
                 "The Apex is collapsing into violent rifts. The air screams with tearing time, and "
@@ -864,9 +897,19 @@ __/_______\________\__\_/________\_ _/_____/_________
         if location.name == "Shattered Library" and self.horde_active:
             print(
                 good(
-                    "The portal in the library is the only escape. Enter it before the horde reaches the stacks."
+                    "The portal in the library is the only escape from the unraveling. Enter it before the collapse reaches the stacks."
                 )
             )
+        if (
+            location.name == "Shattered Library"
+            and self.horde_active
+            and self.player.flags.get("ilyra_at_portal")
+            and not self.player.flags.get("ilyra_portal_briefed")
+        ):
+            self.player.flags["ilyra_portal_briefed"] = True
+            self.handle_ilyra()
+            if not self.running:
+                return
         self.trigger_events(location)
         if self.pending_encounter_message:
             print(danger(self.pending_encounter_message))
@@ -1486,16 +1529,50 @@ __/_______\________\__\_/________\_ _/_____/_________
         elif verb == "equip" and args:
             self.equip_item(" ".join(args))
         elif verb == "equip":
-            print("Equip what?")
+            options = [
+                item
+                for item in self.player.inventory
+                if item.item_type in ("weapon", "armor")
+                and item is not self.player.equipped_weapon
+                and item is not self.player.equipped_armor
+            ]
+            if not options:
+                print("You have no unequipped weapons or armor.")
+            else:
+                print("Equip what?")
+                for index, item in enumerate(options, 1):
+                    print(f"{index}) {self.format_item_name(item)}")
+                    stats_tag = self.format_merchant_item_stats(item)
+                    if stats_tag:
+                        print(f"        {stats_tag}")
+                choice = safe_input("Choose (number/name or 'back'): ").strip().lower()
+                if not choice or choice == "back":
+                    return
+                if choice.isdigit():
+                    selection = int(choice)
+                    if 1 <= selection <= len(options):
+                        self.equip_item(options[selection - 1].name, direct_item=options[selection - 1])
+                        return
+                self.equip_item(choice)
         elif verb == "use" and args:
             self.use_item(" ".join(args))
         elif verb == "use":
-            print("Use what?")
-            options = self.format_consumable_options()
-            if options:
-                print(options)
-            else:
+            options = [item for item in self.player.inventory if item.item_type == "consumable"]
+            if not options:
                 print("You have no consumables.")
+            else:
+                print("Use what?")
+                for index, item in enumerate(options, 1):
+                    print(f"{index}) {self.format_item_name(item)}")
+                choice = safe_input("Choose (number/name or 'back'): ").strip().lower()
+                if not choice or choice == "back":
+                    return
+                if choice.isdigit():
+                    selection = int(choice)
+                    if 1 <= selection <= len(options):
+                        self.use_item(options[selection - 1].name)
+                        return
+                self.use_item(choice)
         elif verb == "talk" and args:
             if args[0].lower() == "to":
                 args = args[1:]
@@ -1661,8 +1738,8 @@ __/_______\________\__\_/________\_ _/_____/_________
                 damage = max(1, int(math.ceil(self.player.max_health / 3)))
                 self.player.health = max(0, self.player.health - damage)
                 message = (
-                    "The horde lashes out as you push through. Claws rake your skin, leaving "
-                    f"bloody lacerations. You take {damage} damage."
+                    "The temporal collapse lashes out as you push through. Reality frays around you, and "
+                    f"claws rake your skin, leaving bloody lacerations. You take {damage} damage."
                 )
                 if self.player.health <= 0:
                     print(danger(message))
@@ -1690,7 +1767,7 @@ __/_______\________\__\_/________\_ _/_____/_________
             if self.horde_active and self.previous_location == "The Temporal Breach Apex":
                 self.pending_post_redraw_messages.append(
                     good(
-                        "Brak gave me a chance to get out of there and make it to the portal before the horde "
+                        "Brak gave me a chance to get out of there and make it to the portal before the unraveling "
                         "swallows Aethelgard. His sacrifice will not be forgotten."
                     )
                 )
@@ -1702,7 +1779,7 @@ __/_______\________\__\_/________\_ _/_____/_________
                 escape_message = good(
                     "A new pulse blooms in the Shattered Library, a raw portal clawing at the air. "
                     "Its light flickers like a heartbeat on the verge of collapse. Reach it before "
-                    "the horde swallows the path and the last escape seals."
+                    "the unraveling swallows the path and the last escape seals."
                 )
                 if self.world[destination].enemies:
                     self.pending_post_combat_messages.append(escape_message)
@@ -1815,7 +1892,11 @@ __/_______\________\__\_/________\_ _/_____/_________
 
     def drop_item(self, item_name):
         """Drop an item into the current location."""
-        item, matches = self.resolve_item(item_name, self.player.inventory)
+        if direct_item:
+            item = direct_item
+            matches = []
+        else:
+            item, matches = self.resolve_item(item_name, self.player.inventory)
         if item:
             if self.player.equipped_weapon == item:
                 self.player.equipped_weapon = None
@@ -1880,9 +1961,13 @@ __/_______\________\__\_/________\_ _/_____/_________
             if stats_tag:
                 print(f"        {stats_tag}")
 
-    def equip_item(self, item_name):
+    def equip_item(self, item_name, direct_item=None):
         """Equip a weapon or armor from the inventory."""
-        item, matches = self.resolve_item(item_name, self.player.inventory)
+        if direct_item:
+            item = direct_item
+            matches = []
+        else:
+            item, matches = self.resolve_item(item_name, self.player.inventory)
         if item:
             if item.item_type == "weapon":
                 self.player.equipped_weapon = item
@@ -2083,13 +2168,49 @@ __/_______\________\__\_/________\_ _/_____/_________
     # NPCs and quests
     # -----------------------------
 
+    def move_ilyra_to_portal(self):
+        """Relocate Ilyra to the Shattered Library during the horde."""
+        ruins = self.world.get("Whispering Ruins")
+        library = self.world.get("Shattered Library")
+        if not ruins or not library:
+            return
+        ilyra = None
+        for npc in list(ruins.npcs):
+            if npc.name == "Ilyra":
+                ilyra = npc
+                ruins.npcs.remove(npc)
+                break
+        if ilyra is None:
+            for npc in library.npcs:
+                if npc.name == "Ilyra":
+                    ilyra = npc
+                    break
+        if ilyra and all(npc.name != "Ilyra" for npc in library.npcs):
+            library.npcs.append(ilyra)
+
     def talk_to_npc(self, npc_query):
         """Initiate dialogue and handle quest interactions."""
+        if (
+            self.player.flags.get("ilyra_at_portal")
+            and self.player.current_location == "Whispering Ruins"
+            and "ilyra" in normalize_name(npc_query)
+        ):
+            print(
+                "Ilyra is nowhere to be found. A sense of urgency compels you towards the Shattered Library."
+            )
+            return
         location = self.world[self.player.current_location]
         npc, matches = self.resolve_npc(npc_query, location.npcs)
         if npc:
             if self.horde_active:
-                print(npc_name(f"{npc.name}: Go, Wayfinder! The horde approaches!"))
+                if (
+                    npc.name == "Ilyra"
+                    and self.player.current_location == "Shattered Library"
+                    and self.player.flags.get("ilyra_at_portal")
+                ):
+                    self.handle_ilyra()
+                else:
+                    print(npc_name(f"{npc.name}: Go, Wayfinder! The horde approaches!"))
                 return
             print(npc_name(f"{npc.name}: {npc.dialogue}"))
             if npc.name == "Ilyra":
@@ -2119,6 +2240,41 @@ __/_______\________\__\_/________\_ _/_____/_________
 
     def handle_ilyra(self):
         """Handle Remnant scholar quest and choices."""
+        if (
+            self.horde_active
+            and self.player.flags.get("ilyra_at_portal")
+            and self.player.current_location == "Shattered Library"
+        ):
+            if self.player.spellbooks_read_count >= 6 and not self.player.flags.get("ilyra_spellbook_lore"):
+                print(
+                    npc_name(
+                        "Ilyra: Wayfinder, I've been studying the fragments of lore we've gathered. The mages who caused the Sundering... they didn't just seek power, they sought to command time itself. But their research notes, their rituals... many of them were recorded in tomes much like the 'Dark Spellbooks' you carry. They delved deeper and deeper, believing they were mastering time, but the books, the forbidden knowledge, slowly mastered them. It warped their judgment, consumed their ethics, and blinded them to the true danger of tearing at the fabric of existence. The cost to your vitality when you read them... it's a small echo of the price they paid, and the price Aethelgard is still paying."
+                    )
+                )
+                self.player.flags["ilyra_spellbook_lore"] = True
+            print(
+                npc_name(
+                    "Ilyra: Wayfinder! You made it! This portal... it's not just a way from Aethelgard, it's a tear through the Temporal Breach itself! I can't hold it much longer! The unraveling... it's consuming everything! You must step through! Carry the truth of Aethelgard's folly, the knowledge of this collapsing reality, to wherever it leads! Go! Escape... and remember!"
+                )
+            )
+            choice = safe_input("Enter the portal? (yes/no): ").strip().lower()
+            if choice in ("yes", "y"):
+                self.enter_portal()
+            return
+        if self.player.spellbooks_read_count >= 6 and not self.player.flags.get("ilyra_spellbook_lore"):
+            print(
+                npc_name(
+                    "Ilyra: Wayfinder, I've been studying the fragments of lore we've gathered. The mages who caused the Sundering... they didn't just seek power, they sought to command time itself. But their research notes, their rituals... many of them were recorded in tomes much like the 'Dark Spellbooks' you carry. They delved deeper and deeper, believing they were mastering time, but the books, the forbidden knowledge, slowly mastered them. It warped their judgment, consumed their ethics, and blinded them to the true danger of tearing at the fabric of existence. The cost to your vitality when you read them... it's a small echo of the price they paid, and the price Aethelgard is still paying."
+                )
+            )
+            self.player.flags["ilyra_spellbook_lore"] = True
+        if "Shimmering Pass" in self.player.visited_locations and random.random() < 0.5:
+            print(
+                npc_name(
+                    "Ilyra: The veil between moments feels thinner, especially towards the east. "
+                    "The whispers carry not just the past, but fragments of what might have been... or what is yet to come. It's unsettling."
+                )
+            )
         quest = self.get_quest("echo_crystal")
         if not quest:
             choice = safe_input("Accept her request to recover an Echo Crystal? (yes/no): ").strip().lower()
@@ -2126,7 +2282,7 @@ __/_______\________\__\_/________\_ _/_____/_________
                 new_quest = Quest(
                     "echo_crystal",
                     "Echoes in the Library",
-                    "Retrieve the Echo Crystal from the Shattered Library.",
+                    "Retrieve the Echo Crystal from the Shattered Library to the north of Whispering Ruins.",
                     {"item": "Echo Crystal"},
                     {"exp": 60, "gold": 20},
                 )
@@ -2146,7 +2302,6 @@ __/_______\________\__\_/________\_ _/_____/_________
                 if choice == "1":
                     self.remove_item_from_inventory("Echo Crystal")
                     quest.status = "completed"
-                    self.player.faction_affinity["Remnants of Aethelgard"] += 1
                     self.player.gain_experience(quest.rewards["exp"])
                     self.add_gold(quest.rewards["gold"])
                     print(good("Ilyra cradles the crystal, whispering a prayer."))
@@ -2154,7 +2309,6 @@ __/_______\________\__\_/________\_ _/_____/_________
                     self.check_heartstone_unlock()
                 elif choice == "2":
                     quest.status = "completed"
-                    self.player.faction_affinity["Shadow Weavers"] += 1
                     self.player.gain_experience(quest.rewards["exp"] // 2)
                     self.player.flags["kept_echo_crystal"] = True
                     print(danger("You tuck the crystal away, its whispers now yours alone."))
@@ -2195,15 +2349,18 @@ __/_______\________\__\_/________\_ _/_____/_________
             self.remove_item_from_inventory("Scholar's Lost Scroll")
             scroll_quest.status = "completed"
             self.player.magic += 1
-            self.player.faction_affinity["Remnants of Aethelgard"] += 1
             reward_item = self.clone_item("Mana Bloom")
             self.player.inventory.append(reward_item)
             if reward_item.major:
                 self.show_item_art(reward_item)
-            print(good("Ilyra unseals the scroll, eyes widening as the ink stirs."))
+            print(good("Ilyra: The Ley Line Conflux will no longer hide from us. Thank you, Wayfinder."))
             print(
                 good(
-                    "It speaks of the Ley Line Conflux, a nexus bound by rival mages whose ritual sparked the Sundering."
+                    "Ilyra unseals the scroll, her eyes widening with a mix of awe and terror as the ancient ink stirs and shifts. "
+                    "'It speaks of a desperate ritual at the Conflux,' she whispers, her voice trembling. "
+                    "'Rival mages, not merely seeking power, but to command time itself, to transcend the natural order. "
+                    "Their ambition tore a hole in reality, a Temporal Breach, and the Sundering was merely its catastrophic echo. "
+                    "This scroll... it warns that the Breach was never truly closed, only contained by something ancient and terrible.'"
                 )
             )
             print(good("You gain insight and the Remnants' deeper trust."))
@@ -2213,6 +2370,13 @@ __/_______\________\__\_/________\_ _/_____/_________
 
     def handle_brak(self):
         """Handle Ironclad scout quest and rewards."""
+        if "Shimmering Pass" in self.player.visited_locations and random.random() < 0.5:
+            print(
+                npc_name(
+                    "Brak: The air feels wrong in the east, Wayfinder. Not just magic, but... time itself feels twisted. "
+                    "Creatures appear and disappear. Something unnatural is stirring, something that even steel might not hold back."
+                )
+            )
         quest = self.get_quest("clear_path")
         if not quest:
             choice = safe_input(
@@ -2236,7 +2400,6 @@ __/_______\________\__\_/________\_ _/_____/_________
         if quest.status != "completed":
             if self.player.flags.get("defeated_wildling"):
                 quest.status = "completed"
-                self.player.faction_affinity["Ironclad Nomads"] += 1
                 self.player.gain_experience(quest.rewards["exp"])
                 reward_item = self.clone_item(quest.rewards["item"])
                 self.player.inventory.append(reward_item)
@@ -2277,7 +2440,6 @@ __/_______\________\__\_/________\_ _/_____/_________
 
         if not self.location_has_enemy("Blighted Outpost", "Stone-Hide Golem"):
             outpost_quest.status = "completed"
-            self.player.faction_affinity["Ironclad Nomads"] += 1
             self.player.gain_experience(outpost_quest.rewards["exp"])
             reward_item = self.clone_item(outpost_quest.rewards["item"])
             self.player.inventory.append(reward_item)
@@ -2296,6 +2458,13 @@ __/_______\________\__\_/________\_ _/_____/_________
 
     def handle_nyx(self):
         """Handle Shadow Weaver quest and rewards."""
+        if "Shimmering Pass" in self.player.visited_locations and random.random() < 0.5:
+            print(
+                npc_name(
+                    "Nyx: The eastern lands grow... vibrant. The fabric of existence thins, and the whispers grow louder. "
+                    "A powerful presence stirs there, drawing the very essence of the Breach closer. A grand unraveling awaits."
+                )
+            )
         quest = self.get_quest("void_shards")
         if not quest:
             if self.player.flags.get("kept_echo_crystal"):
@@ -2334,14 +2503,19 @@ __/_______\________\__\_/________\_ _/_____/_________
                 return
             self.remove_items_from_inventory("Void Shard", 3)
             quest.status = "completed"
-            self.player.faction_affinity["Shadow Weavers"] += 1
             self.player.gain_experience(quest.rewards["exp"])
             reward_item = self.clone_item(quest.rewards["item"])
             self.player.inventory.append(reward_item)
             if reward_item.major:
                 self.show_item_art(reward_item)
-            print(danger("Nyx smiles, voice like smoke: 'The Sundering was an opportunity, not a tragedy.'"))
-            print(danger("She promises the Shadow Weavers will seize its chaos for ultimate power."))
+            print(danger("Nyx: The void sings through you now. Do not waste its favor."))
+            print(
+                danger(
+                    "Nyx smiles, her voice like smoke: 'These Void Shards... they are tears from the Temporal Breach itself, Wayfinder. "
+                    "Fragments of raw, unmaking energy. The Sundering was not a tragedy, but an opportunity - a glimpse into the true chaos that lies beyond. "
+                    "The Shadow Weavers will not merely seize its chaos, we will become its ultimate power, bending time and reality to our will!'"
+                )
+            )
             self.check_heartstone_unlock()
         else:
             print("Nyx: The void still hungers. The shards are to the east.")
@@ -2711,14 +2885,22 @@ __/_______\________\__\_/________\_ _/_____/_________
                 "A tide of grotesque creatures, their eyes burning with hunger, surges towards you."
             )
         )
+        print(
+            danger(
+                "The Temporal Breach spills outward in a cascading collapse. The creatures surge forth, tearing at the fabric of stable reality."
+            )
+        )
         camp = self.world.get("Ironclad Camp")
         if camp:
             camp.npcs = [npc for npc in camp.npcs if npc.name != "Brak"]
+        self.player.flags["ilyra_at_portal"] = True
+        self.player.flags.pop("ilyra_portal_briefed", None)
+        self.move_ilyra_to_portal()
         print(
             npc_name(
-                "Brak: Wayfinder! There's no time! The Tyrant's death has torn open the veil completely! "
-                "A raw portal has just bloomed in the Shattered Library – it's your only way out! You "
-                "must reach it before these things swallow the path and seal your last escape!"
+                "Brak: Wayfinder! There's no time! The Tyrant's defeat has shattered its hold, and the Temporal Breach is fully unraveling! Reality itself is collapsing! "
+                "A raw portal has just bloomed in the Shattered Library - Ilyra is there, Wayfinder, using all her Remnant power to hold it open! It's your only way out! You "
+                "must reach it before this unraveling chaos, the true horrors of the Sundering, swallows the path and seals your last escape!"
             )
         )
         print(npc_name("Brak: Go! I'll hold them back as long as I can! Don't look back, Wayfinder! Run!"))
@@ -2770,10 +2952,12 @@ __/_______\________\__\_/________\_ _/_____/_________
         clear_screen()
         print(headline("The Last Threshold"))
         print(
-            "You dive through the unstable portal as the horde howls behind you. Light fractures, "
-            "time stutters, and the shattered world fades into a single, breathless silence."
+            "You plunge through the shimmering portal, the screams of Aethelgard's final moments echoing behind you. "
+            "The journey through the Temporal Breach is disorienting, a maelstrom of fractured realities. "
+            "When you finally emerge, the air is still, the world unfamiliar. Aethelgard is lost, consumed by the unraveling it wrought upon itself. "
+            "But you, the Wayfinder, carry its truth. The knowledge of the mages' hubris, the danger of the Dark Spellbooks, and the terrifying power of the Temporal Breach now rests with you. "
+            "Your path is uncertain, but the echoes of a lost world demand that you remember, and perhaps, warn others. The Wayfinder's true journey has just begun..."
         )
-        print("For now, the echoes of Aethelgard are behind you.")
         print(WIN_ENDGAME_ART)
         self.print_endgame_summary("ESCAPE", accent="1;32")
         self.running = False
@@ -3162,9 +3346,6 @@ __/_______\________\__\_/________\_ _/_____/_________
         armor_bonus = self.player.equipped_armor.effect.get("defense", 0) if self.player.equipped_armor else 0
         print(f"Weapon Damage Bonus: +{weapon_bonus} | Armor Defense Bonus: +{armor_bonus}")
         print(f"Gold: {self.player.gold}")
-        print("Faction Affinity:")
-        for faction, score in self.player.faction_affinity.items():
-            print(f"- {faction}: {score}")
 
     def player_has_item(self, item_name):
         """Check if the player has an item in their inventory."""
@@ -3444,7 +3625,6 @@ __/_______\________\__\_/________\_ _/_____/_________
                 "damage_done": self.player.damage_done,
                 "damage_received": self.player.damage_received,
                 "total_xp_earned": self.player.total_xp_earned,
-                "faction_affinity": self.player.faction_affinity,
                 "visited_locations": list(self.player.visited_locations),
                 "quests": [
                     {
@@ -3539,12 +3719,6 @@ __/_______\________\__\_/________\_ _/_____/_________
             base_xp = (level - 1) * level * 50
             saved_total_xp = base_xp + self.player.experience
         self.player.total_xp_earned = saved_total_xp
-        self.player.faction_affinity = {
-            "Remnants of Aethelgard": 0,
-            "Shadow Weavers": 0,
-            "Ironclad Nomads": 0,
-        }
-        self.player.faction_affinity.update(player_data.get("faction_affinity", {}))
         visited_locations = set(player_data.get("visited_locations", []))
         event_lookup = {}
         for name, loc in self.world.items():
@@ -3640,6 +3814,10 @@ __/_______\________\__\_/________\_ _/_____/_________
         self.horde_pending = data.get("horde_pending", {})
         if self.horde_active and not self.infected_locations:
             self.infected_locations = {"The Temporal Breach Apex"}
+        if self.horde_active:
+            if not self.player.flags.get("ilyra_at_portal"):
+                self.player.flags["ilyra_at_portal"] = True
+            self.move_ilyra_to_portal()
         self.previous_location = self.player.current_location
         self.needs_redraw = True
         self.check_heartstone_unlock(announce=False)

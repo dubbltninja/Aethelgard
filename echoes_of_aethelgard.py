@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
 """Echoes of Aethelgard - a text-based RPG."""
 
+import argparse
+import builtins
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import math
 import os
+import queue
 import random
+import re
 import sys
+import threading
 import time
 from copy import deepcopy
 from datetime import datetime
+from functools import partial
+from urllib.parse import urlparse
+import webbrowser
 
 from aethelgard_data import ENEMY_DEFS, ITEM_DEFS, LOCATION_DEFS, WIN_ENDGAME_ART
 
@@ -18,11 +27,15 @@ from aethelgard_data import ENEMY_DEFS, ITEM_DEFS, LOCATION_DEFS, WIN_ENDGAME_AR
 
 USE_COLOR = sys.stdout.isatty()
 SAVE_DIR = os.path.dirname(os.path.abspath(__file__))
+WEB_UI_DIR = os.path.join(SAVE_DIR, "web_ui")
 LEGACY_SAVE_FILE = os.path.join(SAVE_DIR, "savegame.json")
 SAVE_SLOT_TEMPLATE = os.path.join(SAVE_DIR, "savegame_slot{}.json")
 SCORES_FILE = os.path.join(SAVE_DIR, "scores.json")
 MAX_SAVE_SLOTS = 3
 TOTAL_QUESTS = 6
+FAST_OUTPUT = False
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+CLEAR_SCREEN_CODE = "\033[2J\033[H"
 
 MINIMAP_LABEL_WIDTH = 4
 RETURN_ENCOUNTER_CHANCE = 0.20
@@ -186,6 +199,8 @@ def clear_screen():
 
 def pause(seconds=0.6):
     """Small pacing delay to avoid overwhelming the player with text."""
+    if FAST_OUTPUT:
+        return
     time.sleep(seconds)
 
 
@@ -1136,6 +1151,8 @@ __/_______\________\__\_/________\_ _/_____/_________
 
     def is_exit_locked(self, destination, current_location=None):
         """Return True if an exit is not yet available."""
+        if not self.player:
+            return False
         if destination == "Heartstone Depths":
             return not self.player.flags.get("heartstone_unlocked")
         if destination == "Barren Peaks" and current_location == "Ironclad Camp":
@@ -1890,7 +1907,7 @@ __/_______\________\__\_/________\_ _/_____/_________
             f"You put on the {self.format_item_name(item)}, gaining {defense} defense points."
         )
 
-    def drop_item(self, item_name):
+    def drop_item(self, item_name, direct_item=None):
         """Drop an item into the current location."""
         if direct_item:
             item = direct_item
@@ -1914,22 +1931,14 @@ __/_______\________\__\_/________\_ _/_____/_________
                 key = self.item_key(match)
                 count_tag = f" (x{counts[key]})" if counts[key] > 1 else ""
                 print(f"{index}) {self.format_item_name(match)}{count_tag}")
-            choice = safe_input("Equip which item? (number or 'back'): ").strip().lower()
+            choice = safe_input("Drop which item? (number or 'back'): ").strip().lower()
             if not choice or choice == "back":
                 return
             if choice.isdigit():
                 selection = int(choice)
                 if 1 <= selection <= len(order):
                     item = order[selection - 1]
-                    if item.item_type == "weapon":
-                        self.player.equipped_weapon = item
-                        print(good(f"You equip the {self.format_item_name(item)}."))
-                        return
-                    if item.item_type == "armor":
-                        self.player.equipped_armor = item
-                        print(good(f"You equip the {self.format_item_name(item)}."))
-                        return
-                    print("You can only equip weapons or armor.")
+                    self.drop_item(item.name, direct_item=item)
                     return
             print("Please choose a valid number.")
             return
@@ -3862,12 +3871,647 @@ __/_______\________\__\_/________\_ _/_____/_________
 
 
 # -----------------------------
+# Browser session and API
+# -----------------------------
+
+
+class WebSessionStopped(SystemExit):
+    """Raised inside the web game thread when the browser session restarts."""
+
+
+class WebGameOutput:
+    """File-like stdout target that captures game output for the browser."""
+
+    def __init__(self, session):
+        self.session = session
+
+    def write(self, text):
+        self.session.capture_output(text)
+        return len(text)
+
+    def flush(self):
+        return None
+
+    def isatty(self):
+        return False
+
+
+class WebGameSession:
+    """Run the existing synchronous game loop behind a browser-facing queue."""
+
+    STOP_INPUT = object()
+    TRANSCRIPT_LIMIT = 800
+    SCREEN_LIMIT = 240
+
+    def __init__(self):
+        self.game = None
+        self.thread = None
+        self.input_queue = queue.Queue()
+        self.lock = threading.RLock()
+        self.transcript = []
+        self.screen_lines = []
+        self.partial_line = ""
+        self.event_id = 0
+        self.prompt = ""
+        self.waiting_for_input = False
+        self.started_at = datetime.now().isoformat(timespec="seconds")
+        self.finished = False
+        self.error = None
+
+    def start(self):
+        """Start the game thread."""
+        self.thread = threading.Thread(target=self._run_game, name="aethelgard-web-game", daemon=True)
+        self.thread.start()
+
+    def stop(self):
+        """Stop the game thread if it is still alive."""
+        game = self.game
+        if game:
+            game.running = False
+        self.input_queue.put(self.STOP_INPUT)
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=2.0)
+
+    def submit(self, value):
+        """Submit browser input to the currently active game prompt."""
+        if value is None:
+            value = ""
+        self.input_queue.put(str(value))
+
+    def wait_until_ready(self, timeout=1.5):
+        """Wait briefly until the game reaches its first prompt."""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            with self.lock:
+                if self.waiting_for_input or self.finished or self.error:
+                    return
+            time.sleep(0.02)
+
+    def _run_game(self):
+        global USE_COLOR, FAST_OUTPUT
+
+        original_stdout = sys.stdout
+        original_input = builtins.input
+        original_use_color = USE_COLOR
+        original_fast_output = FAST_OUTPUT
+
+        try:
+            sys.stdout = WebGameOutput(self)
+            builtins.input = self.web_input
+            USE_COLOR = False
+            FAST_OUTPUT = True
+
+            game = Game()
+            with self.lock:
+                self.game = game
+            self._run_game_menu(game)
+        except WebSessionStopped:
+            pass
+        except SystemExit:
+            pass
+        except BaseException as exc:
+            with self.lock:
+                self.error = f"{type(exc).__name__}: {exc}"
+            self._append_event("error", f"Browser session error: {type(exc).__name__}: {exc}")
+        finally:
+            with self.lock:
+                self.finished = True
+                self.waiting_for_input = False
+                self.prompt = ""
+            sys.stdout = original_stdout
+            builtins.input = original_input
+            USE_COLOR = original_use_color
+            FAST_OUTPUT = original_fast_output
+
+    def _run_game_menu(self, game):
+        """Run the same top-level flow as the terminal game."""
+        while True:
+            selection = game.start_menu()
+            if selection == "new":
+                if game.start_new_game_flow():
+                    break
+                continue
+            if selection == "continue":
+                if game.continue_game_flow():
+                    break
+                continue
+            if selection == "scores":
+                game.show_scores()
+                continue
+            if selection == "lore":
+                game.show_lore()
+                continue
+            if selection == "quit":
+                game.running = False
+                return
+        game.main_loop()
+
+    def web_input(self, prompt=""):
+        """Replacement for input() used by the game thread in browser mode."""
+        prompt_text = self.clean_text(prompt).strip()
+        with self.lock:
+            self.prompt = prompt_text
+            self.waiting_for_input = True
+            if prompt_text:
+                self._append_event_locked("prompt", prompt_text)
+        value = self.input_queue.get()
+        if value is self.STOP_INPUT:
+            raise WebSessionStopped()
+        with self.lock:
+            self.waiting_for_input = False
+            self.prompt = ""
+            self._append_event_locked("input", f"> {value}")
+        return value
+
+    def clean_text(self, text):
+        """Strip terminal control codes for browser rendering."""
+        if not text:
+            return ""
+        text = text.replace(CLEAR_SCREEN_CODE, "")
+        return ANSI_RE.sub("", text)
+
+    def capture_output(self, text):
+        """Capture stdout writes as transcript and current screen lines."""
+        if not text:
+            return
+        with self.lock:
+            if CLEAR_SCREEN_CODE in text:
+                self.screen_lines = []
+                text = text.replace(CLEAR_SCREEN_CODE, "")
+            text = self.clean_text(text)
+            if not text:
+                return
+            self.partial_line += text
+            while "\n" in self.partial_line:
+                line, self.partial_line = self.partial_line.split("\n", 1)
+                self._append_event_locked("output", line.rstrip())
+
+    def _append_event(self, kind, text):
+        with self.lock:
+            self._append_event_locked(kind, text)
+
+    def _append_event_locked(self, kind, text):
+        self.event_id += 1
+        entry = {"id": self.event_id, "kind": kind, "text": text}
+        self.transcript.append(entry)
+        if len(self.transcript) > self.TRANSCRIPT_LIMIT:
+            self.transcript = self.transcript[-self.TRANSCRIPT_LIMIT:]
+        if kind != "input":
+            self.screen_lines.append(entry)
+            if len(self.screen_lines) > self.SCREEN_LIMIT:
+                self.screen_lines = self.screen_lines[-self.SCREEN_LIMIT:]
+
+    def snapshot(self):
+        """Return a JSON-serializable browser state snapshot."""
+        game = self.game
+        with self.lock:
+            base = {
+                "started_at": self.started_at,
+                "finished": self.finished,
+                "error": self.error,
+                "waiting_for_input": self.waiting_for_input,
+                "prompt": self.prompt,
+                "transcript": list(self.transcript),
+                "screen": list(self.screen_lines),
+            }
+
+        if not game:
+            base.update(
+                {
+                    "mode": "starting",
+                    "running": False,
+                    "player": None,
+                    "location": None,
+                    "actions": [],
+                    "save_slots": [],
+                    "scores": [],
+                }
+            )
+            return base
+
+        player = game.player
+        base["running"] = bool(getattr(game, "running", False))
+        base["mode"] = "menu" if player is None else ("game" if game.running else "ended")
+        base["save_slots"] = self.save_slots_snapshot(game)
+        base["scores"] = game.load_scores()
+        base["actions"] = self.action_suggestions(game)
+        base["merchant_inventory"] = [self.item_to_dict(item) for item in game.merchant_inventory]
+        base["horde"] = {
+            "active": bool(game.horde_active),
+            "infected_locations": sorted(game.infected_locations),
+            "pending": dict(game.horde_pending),
+        }
+
+        if not player:
+            base.update({"player": None, "location": None, "map": self.map_snapshot(game, None)})
+            return base
+
+        location = game.world.get(player.current_location)
+        base["player"] = self.player_snapshot(game, player)
+        base["location"] = self.location_snapshot(game, player, location)
+        base["map"] = self.map_snapshot(game, player)
+        base["quests"] = [self.quest_to_dict(quest) for quest in player.quests]
+        base["inventory"] = [
+            self.item_to_dict(
+                item,
+                equipped_weapon=item is player.equipped_weapon,
+                equipped_armor=item is player.equipped_armor,
+            )
+            for item in player.inventory
+        ]
+        base["equipment"] = {
+            "weapon": self.item_to_dict(player.equipped_weapon) if player.equipped_weapon else None,
+            "armor": self.item_to_dict(player.equipped_armor) if player.equipped_armor else None,
+        }
+        base["combat_enemy"] = None
+        if location and location.enemies:
+            enemy = location.enemies[0]
+            base["combat_enemy"] = self.enemy_to_dict(enemy)
+        return base
+
+    def save_slots_snapshot(self, game):
+        """Return compact save slot data for web rendering."""
+        slots = []
+        for slot_info in game.list_save_slots():
+            slots.append(
+                {
+                    "slot": slot_info["slot"],
+                    "empty": slot_info["summary"] is None,
+                    "summary": slot_info["summary"],
+                    "label": game.format_slot_line(slot_info),
+                }
+            )
+        return slots
+
+    def player_snapshot(self, game, player):
+        """Serialize player state for the UI."""
+        return {
+            "name": player.name,
+            "class_name": player.class_name,
+            "level": player.level,
+            "experience": player.experience,
+            "experience_required": player.level * 100,
+            "health": player.health,
+            "max_health": player.max_health,
+            "mana": player.mana,
+            "max_mana": player.max_mana,
+            "strength": player.strength,
+            "magic": player.magic,
+            "agility": player.agility,
+            "gold": player.gold,
+            "attribute_points": player.attribute_points,
+            "current_spell": player.current_active_spell,
+            "spellbooks_read_count": player.spellbooks_read_count,
+            "current_location": player.current_location,
+            "visited_locations": sorted(player.visited_locations),
+            "stats": {
+                "enemies_killed": player.enemies_killed,
+                "damage_done": player.damage_done,
+                "damage_received": player.damage_received,
+                "total_gold_earned": player.total_gold_earned,
+                "total_xp_earned": player.total_xp_earned,
+            },
+            "score": game.compute_score() if player else 0,
+        }
+
+    def location_snapshot(self, game, player, location):
+        """Serialize the current location and local interactables."""
+        if not location:
+            return None
+        exits = []
+        for direction, destination in location.exits.items():
+            locked = game.is_exit_locked(destination, location.name)
+            exits.append(
+                {
+                    "direction": direction,
+                    "destination": destination,
+                    "locked": locked,
+                    "command": direction,
+                }
+            )
+        return {
+            "name": location.name,
+            "description": location.description,
+            "art": location.art,
+            "items": [self.item_to_dict(item) for item in location.items],
+            "enemies": [self.enemy_to_dict(enemy) for enemy in location.enemies],
+            "npcs": [self.npc_to_dict(npc) for npc in location.npcs],
+            "exits": exits,
+            "events": list(location.events),
+        }
+
+    def map_snapshot(self, game, player):
+        """Serialize minimap nodes and edges."""
+        visited, adjacent = (set(), set())
+        ready = set()
+        if player:
+            visited, adjacent = game.get_minimap_visibility()
+            ready = game.get_quest_ready_locations()
+        infected = set(game.infected_locations) if game.horde_active else set()
+        visible = visited | adjacent | infected
+        nodes = []
+        for name, data in MINIMAP_LAYOUT.items():
+            status = "hidden"
+            if player and name == player.current_location:
+                status = "current"
+            elif name in infected:
+                status = "infected"
+            elif name in ready:
+                status = "ready"
+            elif name in visited:
+                status = "visited"
+            elif name in adjacent:
+                status = "adjacent"
+            nodes.append(
+                {
+                    "name": name,
+                    "abbr": data["abbr"],
+                    "x": data["pos"][0],
+                    "y": data["pos"][1],
+                    "status": status,
+                    "visible": name in visible or status == "current",
+                }
+            )
+        edges = []
+        for start, end in MINIMAP_EDGES:
+            visible_edge = start in visible and end in visible
+            locked = False
+            start_loc = game.world.get(start)
+            if start_loc:
+                for destination in start_loc.exits.values():
+                    if destination == end and game.is_exit_locked(destination, start):
+                        locked = True
+                        break
+            edges.append({"start": start, "end": end, "visible": visible_edge, "locked": locked})
+        return {"nodes": nodes, "edges": edges}
+
+    def item_to_dict(self, item, equipped_weapon=False, equipped_armor=False):
+        """Serialize an item."""
+        if item is None:
+            return None
+        return {
+            "name": item.name,
+            "command_name": self.command_item_name(item),
+            "description": item.description,
+            "type": item.item_type,
+            "weapon_type": item.weapon_type,
+            "effect": dict(item.effect),
+            "rarity": item.rarity,
+            "gold_value": item.gold_value,
+            "major": item.major,
+            "equipped_weapon": equipped_weapon,
+            "equipped_armor": equipped_armor,
+        }
+
+    def command_item_name(self, item):
+        """Return a command-safe item name, including rarity where useful."""
+        if item.rarity:
+            return f"[{item.rarity}] {item.name}"
+        return item.name
+
+    def enemy_to_dict(self, enemy):
+        """Serialize an enemy."""
+        return {
+            "name": enemy.name,
+            "description": enemy.description,
+            "level": enemy.level,
+            "health": enemy.health,
+            "max_health": enemy.max_health,
+            "damage": enemy.damage,
+            "defense": enemy.defense,
+            "agility": enemy.agility,
+            "magic_resistance": enemy.magic_resistance,
+        }
+
+    def npc_to_dict(self, npc):
+        """Serialize an NPC."""
+        return {
+            "name": npc.name,
+            "description": npc.description,
+            "faction": npc.faction,
+            "dialogue": npc.dialogue,
+        }
+
+    def quest_to_dict(self, quest):
+        """Serialize a quest."""
+        return {
+            "quest_id": quest.quest_id,
+            "name": quest.name,
+            "description": quest.description,
+            "requirements": quest.requirements,
+            "rewards": quest.rewards,
+            "status": quest.status,
+        }
+
+    def action_suggestions(self, game):
+        """Build contextual actions for buttons in the browser UI."""
+        prompt = self.prompt.lower()
+        player = game.player
+
+        def action(label, value, category="Action", danger_action=False):
+            return {
+                "label": label,
+                "value": value,
+                "category": category,
+                "danger": danger_action,
+            }
+
+        if self.waiting_for_input:
+            if "choose an option" in prompt:
+                return [
+                    action("New Game", "1", "Menu"),
+                    action("Continue", "2", "Menu"),
+                    action("Scores", "3", "Menu"),
+                    action("Lore", "4", "Menu"),
+                    action("Quit", "5", "Menu", True),
+                ]
+            if "class" in prompt:
+                return [
+                    action("Ranger", "1", "Class"),
+                    action("Wizard", "2", "Class"),
+                    action("Elf", "3", "Class"),
+                ]
+            if "press enter" in prompt:
+                return [action("Continue", "", "Prompt")]
+            if "action (attack" in prompt:
+                return [
+                    action("Attack", "attack", "Combat"),
+                    action("Cast", "cast", "Combat"),
+                    action("Use Item", "use item", "Combat"),
+                    action("Flee", "flee", "Combat", True),
+                    action("Stats", "stats", "Combat"),
+                ]
+            if "spend on" in prompt:
+                return [
+                    action("Strength", "strength", "Level Up"),
+                    action("Magic", "magic", "Level Up"),
+                    action("Agility", "agility", "Level Up"),
+                    action("Skip", "skip", "Level Up"),
+                ]
+            if "trade" in prompt:
+                return [
+                    action("Buy", "buy", "Trade"),
+                    action("Sell", "sell", "Trade"),
+                    action("Leave", "leave", "Trade"),
+                ]
+            if "forge" in prompt:
+                return [action("Upgrade", "upgrade", "Forge"), action("Leave", "leave", "Forge")]
+            if "use which item" in prompt and player:
+                consumables = [item for item in player.inventory if item.item_type == "consumable"]
+                return [action(item.name, item.name, "Use") for item in consumables] + [
+                    action("Back", "", "Use")
+                ]
+            if "buy which item" in prompt:
+                return [
+                    action(item.name, self.command_item_name(item), "Buy")
+                    for item in game.merchant_inventory
+                ] + [action("Back", "back", "Buy")]
+            if "sell which item" in prompt and player:
+                saleable = [item for item in player.inventory if item.item_type != "quest_item"]
+                return [action(item.name, self.command_item_name(item), "Sell") for item in saleable] + [
+                    action("Back", "back", "Sell")
+                ]
+            if "upgrade which item" in prompt and player:
+                eligible = [item for item in player.inventory if game.is_upgradeable_item(item)]
+                return [action(item.name, self.command_item_name(item), "Upgrade") for item in eligible] + [
+                    action("Back", "back", "Upgrade")
+                ]
+            if "save to slot" in prompt or "load which slot" in prompt or "delete which slot" in prompt:
+                return [
+                    action("Slot 1", "1", "Slots"),
+                    action("Slot 2", "2", "Slots"),
+                    action("Slot 3", "3", "Slots"),
+                    action("Back", "back", "Slots"),
+                ]
+            if "choose 1, 2, or 3" in prompt:
+                return [
+                    action("Option 1", "1", "Choice"),
+                    action("Option 2", "2", "Choice"),
+                    action("Option 3", "3", "Choice"),
+                    action("Wait", "", "Choice"),
+                ]
+            if "choose 1 or 2" in prompt:
+                return [action("Option 1", "1", "Choice"), action("Option 2", "2", "Choice")]
+            if "yes/no" in prompt or "overwrite slot" in prompt or "delete slot" in prompt:
+                return [action("Yes", "yes", "Prompt"), action("No", "no", "Prompt", True)]
+            return []
+
+        if not player:
+            return []
+
+        location = game.world.get(player.current_location)
+        if not location:
+            return []
+        actions = [action("Look", "look", "Explore")]
+        for direction, destination in game.available_exits(location).items():
+            actions.append(action(direction.capitalize(), direction, "Move"))
+        if location.items:
+            actions.append(action("Take All", "take all", "Items"))
+            for item in location.items[:8]:
+                actions.append(action(f"Take {item.name}", f"take {self.command_item_name(item)}", "Items"))
+        for npc in location.npcs:
+            actions.append(action(f"Talk {npc.name}", f"talk {npc.name}", "NPC"))
+        if game.horde_active and player.current_location == "Shattered Library":
+            actions.append(action("Enter Portal", "enter portal", "Escape"))
+        actions.extend(
+            [
+                action("Inventory", "inventory", "Status"),
+                action("Quests", "quests", "Status"),
+                action("Stats", "stats", "Status"),
+                action("Map", "map", "Status"),
+                action("Save", "save", "System"),
+                action("Load", "load", "System"),
+                action("Help", "help", "System"),
+                action("Quit", "quit", "System", True),
+            ]
+        )
+        return actions
+
+
+class AethelgardWebServer(ThreadingHTTPServer):
+    """Threading HTTP server that owns a single browser game session."""
+
+    daemon_threads = True
+
+    def __init__(self, server_address, handler_class):
+        super().__init__(server_address, handler_class)
+        self.session_lock = threading.RLock()
+        self.session = WebGameSession()
+        self.session.start()
+        self.session.wait_until_ready()
+
+    def restart_session(self):
+        """Replace the current browser game session."""
+        with self.session_lock:
+            self.session.stop()
+            self.session = WebGameSession()
+            self.session.start()
+            self.session.wait_until_ready()
+            return self.session
+
+
+class AethelgardRequestHandler(SimpleHTTPRequestHandler):
+    """Serve static UI assets and JSON endpoints for browser mode."""
+
+    server_version = "AethelgardHTTP/1.0"
+
+    def log_message(self, format, *args):
+        return
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/state":
+            self.send_json(self.server.session.snapshot())
+            return
+        if parsed.path == "/":
+            self.path = "/index.html"
+        return super().do_GET()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/input":
+            payload = self.read_json_body()
+            value = payload.get("input", "")
+            self.server.session.submit(value)
+            time.sleep(0.05)
+            self.send_json(self.server.session.snapshot())
+            return
+        if parsed.path == "/api/restart":
+            session = self.server.restart_session()
+            self.send_json(session.snapshot())
+            return
+        self.send_error(404, "Unknown endpoint")
+
+    def read_json_body(self):
+        length = int(self.headers.get("Content-Length", "0") or "0")
+        if length <= 0:
+            return {}
+        raw = self.rfile.read(length)
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return {}
+        if isinstance(payload, dict):
+            return payload
+        return {}
+
+    def send_json(self, payload, status=200):
+        raw = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(raw)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(raw)
+
+
+# -----------------------------
 # Entry point
 # -----------------------------
 
 
-def main():
-    """Run the game."""
+def run_cli_game():
+    """Run the original terminal game."""
     game = Game()
     try:
         while True:
@@ -3893,6 +4537,87 @@ def main():
     except KeyboardInterrupt:
         print("\nExiting Echoes of Aethelgard.")
         sys.exit(0)
+
+
+def build_web_server(host, port):
+    """Create a web server, trying nearby ports if the requested one is busy."""
+    handler = partial(AethelgardRequestHandler, directory=WEB_UI_DIR)
+    last_error = None
+    candidates = [port] if port == 0 else range(port, port + 20)
+    for candidate in candidates:
+        try:
+            return AethelgardWebServer((host, candidate), handler)
+        except OSError as exc:
+            last_error = exc
+            if port == 0:
+                break
+    raise OSError(f"Could not bind web server on {host}:{port}: {last_error}")
+
+
+def run_web_game(host="127.0.0.1", port=8000, open_browser=True):
+    """Run the browser interface for the game."""
+    if not os.path.isdir(WEB_UI_DIR):
+        raise SystemExit(f"Missing browser UI directory: {WEB_UI_DIR}")
+    console = sys.stdout
+    server = build_web_server(host, port)
+    actual_host, actual_port = server.server_address
+    display_host = host if host not in ("0.0.0.0", "::") else "127.0.0.1"
+    url = f"http://{display_host}:{actual_port}/"
+    console.write(f"Echoes of Aethelgard browser UI running at {url}\n")
+    console.write("Press Ctrl-C to stop the server.\n")
+    console.flush()
+    if open_browser:
+        webbrowser.open(url)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        console.write("\nStopping Echoes of Aethelgard web server.\n")
+        console.flush()
+    finally:
+        server.session.stop()
+        server.server_close()
+
+
+def choose_launch_mode():
+    """Prompt for the preferred launch mode when no explicit flag is provided."""
+    while True:
+        print("Echoes of Aethelgard")
+        print("1) Play in terminal")
+        print("2) Play in web browser [Beta]")
+        print("3) Quit")
+        choice = safe_input("Choose launch mode: ").strip().lower()
+        if choice in ("1", "terminal", "cli", "text"):
+            return "cli"
+        if choice in ("2", "web", "browser"):
+            return "web"
+        if choice in ("3", "quit", "exit"):
+            return "quit"
+        print("Please choose 1, 2, or 3.")
+
+
+def main(argv=None):
+    """Run the game."""
+    parser = argparse.ArgumentParser(description="Echoes of Aethelgard")
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument("--cli", action="store_true", help="play in the terminal")
+    mode_group.add_argument("--web", action="store_true", help="play in a local web browser")
+    parser.add_argument("--host", default="127.0.0.1", help="web server host")
+    parser.add_argument("--port", type=int, default=8000, help="web server port")
+    parser.add_argument("--no-browser", action="store_true", help="do not open the browser automatically")
+    args = parser.parse_args(argv)
+
+    if args.cli:
+        run_cli_game()
+        return
+    if args.web:
+        run_web_game(args.host, args.port, open_browser=not args.no_browser)
+        return
+
+    launch_mode = choose_launch_mode()
+    if launch_mode == "cli":
+        run_cli_game()
+    elif launch_mode == "web":
+        run_web_game(args.host, args.port, open_browser=not args.no_browser)
 
 
 if __name__ == "__main__":

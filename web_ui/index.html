@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Echoes of Aethelgard</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <canvas id="breachCanvas" aria-hidden="true"></canvas>
+    <div class="app-shell" data-state="loading">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <div>
+            <h1>Echoes of Aethelgard</h1>
+            <p id="modeLine">Loading</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="restartButton" class="ghost danger">Restart Session</button>
+        </div>
+      </header>
+
+      <main class="game-layout">
+        <aside class="map-panel panel">
+          <div class="panel-heading">
+            <h2>Wayfinder Map</h2>
+          </div>
+          <svg id="mapSvg" viewBox="-2 -2 48 16" role="img" aria-label="Aethelgard map"></svg>
+          <div id="saveSlots" class="slot-list"></div>
+          <div id="scoreList" class="score-list"></div>
+        </aside>
+
+        <section class="scene-panel panel">
+          <div id="promptBanner" class="prompt-banner"></div>
+          <div id="actionBar" class="action-bar"></div>
+          <div id="screenOutput" class="screen-output"></div>
+          <div class="transcript-wrap">
+            <div class="panel-heading">
+              <h2>Chronicle</h2>
+            </div>
+            <div id="transcript" class="transcript"></div>
+          </div>
+          <form id="commandForm" class="command-form">
+            <input id="commandInput" name="command" autocomplete="off" placeholder="Command / answer">
+            <button type="submit">Send</button>
+          </form>
+        </section>
+
+        <aside class="side-panel">
+          <section class="panel character-panel">
+            <div class="panel-heading">
+              <h2>Wayfinder</h2>
+            </div>
+            <div id="characterCard"></div>
+          </section>
+
+          <section class="panel location-panel">
+            <div class="panel-heading">
+              <h2>Location</h2>
+            </div>
+            <div id="locationCard"></div>
+          </section>
+
+          <section class="panel combat-panel" id="combatPanel">
+            <div class="panel-heading">
+              <h2>Combat</h2>
+            </div>
+            <div id="combatCard"></div>
+          </section>
+
+          <section class="panel inventory-panel">
+            <div class="panel-heading">
+              <h2>Inventory</h2>
+            </div>
+            <div id="inventoryList"></div>
+          </section>
+
+          <section class="panel quest-panel">
+            <div class="panel-heading">
+              <h2>Quests</h2>
+            </div>
+            <div id="questList"></div>
+          </section>
+        </aside>
+      </main>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>

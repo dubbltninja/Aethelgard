@@ -15,8 +15,9 @@ never replaced. Legacy exits are never removed; new exits are added.
   `item_*` items, `mat_*` new materials, `recipe_*` recipes, `npc_*` NPCs, `ev_*` events,
   `echo_*` Echoes, `flag_*` flags, `q_*` quests. Legacy ids derive from names with a leading
   "The" dropped and punctuation removed (`The Chronos Nexus` → `loc_chronos_nexus`,
-  `The Wayfarer's Respite` → `loc_wayfarers_respite`, `The Chronos Tyrant` →
-  `cr_chronos_tyrant`, `Chronos Lens` → `item_chronos_lens`).
+  `The Wayfarer's Respite` → `loc_wayfarers_respite`, `Chronos Lens` → `item_chronos_lens`).
+  The one exception is the Tyrant, which D-051 splits into two creature ids:
+  `cr_chronos_tyrant_contained` (Loop 1) and `cr_chronos_tyrant_unveiled` (Loop 2+).
 - **Conditions** use the D-033 language: `{echo:"echo_litany_verse_1"}`,
   `{quest:"q_clear_path",stage:"accepted"}`, `{all:[...]}`, `{any:[...]}`, `{not:...}`,
   `{item:"id",count:n}`, `{rep:{faction,min,max}}`, `{loop:{min,max}}`, `{flag:"id"}`,
@@ -191,7 +192,7 @@ but is budgeted separately (D-015).
 | Hazards | Mirage paths in the Pass (first visit: 25% chance the chosen exit costs an extra watch — "you walked a path that was not there"; negated by `echo_pass_true_path`). Static discharge at the Spires (Shock 1 turn on entering combat, cosmetic in Loop 1). |
 | Companion anchor | **Dask** (Shimmering Pass). |
 | Changes | Loop 2+: Dask is visible from the first visit. Loop 3+: Tyrant's Reach anomalies may appear at the Spires. Heartstone destroyed: the Spires dim; Aetherial Weavers −25% HP (Breach-born rule applies to Constructs of ley make too). |
-| Story role | Dask's exposition about Wayfinders and the Tyrant's innocence. The Aetherium Shards for the Breach-anchor. The approach to the Skyreach and Seraphine Aldour's trace. |
+| Story role | Dask's exposition about Wayfinders and the Tyrant's innocence. The Aetherium Shards for the Breach-anchor. The approach to the Skyreach and Seraphine Aulde's trace. |
 
 ### 2.5 `region_glowlands_nexus` — Glowlands & Nexus
 
@@ -209,7 +210,7 @@ Apex: reality in violent seams.
 | Weather / time | Glow waves every 40 s (cosmetic). At the Nexus the time-of-day indicator flickers between watches. At the Apex there is no sky. |
 | Hazards | Glowlands sinkholes (Slow 1 turn on ambush). Nexus temporal shear: 10% per watch to lose or gain one watch (net zero over time; a visible stutter). The Apex cannot be rested in. |
 | Companion anchor | **Dask** (Nexus, Apex) and **Mireya** (Glowlands edge, when recruited). |
-| Changes | 6 completed quests (Loop 1) or `echo_apex_fold` open the Apex. Loop 2+ with Chronos Lens + `echo_litany_verse_1`: the Breach-door in the Nexus opens into Silverwood Before. Tyrant spared: the Apex becomes a place you can speak in, and a second door into the Before. Tyrant killed: the Horde begins here. |
+| Changes | 6 completed quests (Loop 1) or `echo_apex_resonance` open the Apex. Loop 2+ with Chronos Lens + `echo_litany_verse_1`: the Breach-door in the Nexus opens into Silverwood Before. Tyrant spared: the Apex becomes a place you can speak in, and a second door into the Before. Tyrant killed: the Horde begins here. |
 | Story role | The finale of every loop. The Tyrant's three phases or his communion. Endings A, B, C, D, and F resolve at the Apex; ending E resolves in the Ruins but requires the Tyrant soothed. |
 
 ### 2.6 `region_silverwood_before` — Silverwood Before
@@ -319,21 +320,21 @@ They are kind. They are becoming something.
 
 **Theme.** Above the Plateau the wind has edges. A stair cut into the rock climbs to the
 crown of the tallest Spire and the roosts of the Sentinels, and to an eyrie of glass and
-brass where Seraphine Aldour, spire-builder of the Nine, tuned the Spires to feed the
+brass where Seraphine Aulde, spire-builder of the Nine, tuned the Spires to feed the
 ritual. Her looms still run. Nothing up here has forgotten its orders.
 
 | Field | Value |
 |---|---|
 | Level band | 12–15 |
 | Locations (5) | loc_windward_stair, loc_spire_crown, loc_roost_of_sentinels, loc_aldours_eyrie, loc_stormcrowns_perch |
-| Factions | None. Nomad sky-burials on the Roost. Remnants want Aldour's notes. |
+| Factions | None. Nomad sky-burials on the Roost. Remnants want Aulde's notes. |
 | Palette | sky `#7FB7E6` · horizon `#CFE6F5` · mid `#5E7FA3` · near `#2C3B52` · accent `#F7FBFF` |
 | Ambient audio | Howling wind (resonant band-pass sweeps 400–2 kHz on white noise, fast LFO) + aeolian tones (sines at 330/495/660 Hz that fade in with gusts) + at the Eyrie a loom-click (regular 0.5 s tick with occasional double) and brass resonance; at the Perch, thunder and a hawk-like FM cry every 20–40 s |
 | Weather / time | Gale by default (ranged −10%; Skyborn Haste). Storm at dusk (Storm damage +25% for everyone; lightning strikes Soaked characters). Dawn is still: the only calm hour. |
 | Hazards | **Thin air:** without `item_sky_whisper_talisman` or `echo_breath_of_heights` the stair cannot be climbed. Falls: fleeing on the Stair costs 10% HP. Storm on Soaked (see weather). |
 | Companion anchor | **Dask** (temporal instability extends up the Spire). |
-| Changes | Heartstone destroyed: the Spire-Crown goes dark; Spire Looms inactive (free Aldour's notes). Loop 2+: Stormcrown can be bargained with (`echo_sentinel_oath`), skipping its fight for the Talisman-bearer. |
-| Story role | Seraphine Aldour's trace and the Aetherial Weavers' origin (D-006). Her notes hold the Breach-anchor schematic's first half (the second is Tobrin's, in the Before). Stormcrown is the Sentinel that has watched the Apex longest and knows the Tyrant does not attack. |
+| Changes | Heartstone destroyed: the Spire-Crown goes dark; Spire Looms inactive (free Aulde's notes). Loop 2+: Stormcrown can be bargained with (`echo_sky_oath`), skipping its fight for the Talisman-bearer. |
+| Story role | Seraphine Aulde's trace and the Aetherial Weavers' origin (D-006). Her notes hold the Breach-anchor schematic's first half (the second is Tobrin's, in the Before). Stormcrown is the Sentinel that has watched the Apex longest and knows the Tyrant does not attack. |
 
 ### 2.12 `region_threshold` — The Threshold
 
@@ -551,7 +552,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | south | loc_ironclad_camp | — |
 | east | loc_blighted_outpost | — |
 
-- **Items:** none fixed. mat_wildling_sinew ×1 (60% after the Brute is slain, in its den).
+- **Items:** none fixed. mat_wildling_hide ×1 (60% after the Brute is slain, in its den).
 - **Encounters:** first: cr_wildling_brute ×1 (100%; legacy; quest target). return: pool 20%; Loop 2+ 15% cr_stutter_hound ×1.
 - **NPCs:** none.
 - **Events:** `peaks_gale` — "A cutting gale whips through the peaks, carrying flecks of stone." — once. `ev_peaks_den` — "The Brute's den is a nest of roots and old steel. Nomad steel. It has been eating patrols." — once, after killing cr_wildling_brute.
@@ -569,7 +570,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | north | loc_emberforge | — |
 | east | loc_scorched_gate | `{any:[{quest:"q_blighted_outpost",stage:"completed"},{echo:"echo_nomad_signs"}]}` — the Nomad watch at the Scorched Gate admits those Brak vouches for, or those who know the trail-signs |
 
-- **Items:** mat_wardstone_slate ×1 (100% after both Golems fall).
+- **Items:** mat_slate_core ×1 (100% after both Golems fall).
 - **Encounters:** first: cr_stone_hide_golem ×2 (100%; legacy; quest target; one group of two). return: cr_warding_pillar ×1 (30%, it was always there, dormant) or pool 20%.
 - **NPCs:** none.
 - **Events:** `outpost_ash` — "Stone scrapes stone as something massive shifts in the dark." — once. `ev_outpost_seal` — "Each golem bears the same mark on its brow: a square inside a circle. A warder's seal." — once, after killing cr_stone_hide_golem. Grants `echo_vask_seal`.
@@ -637,7 +638,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | west | loc_heartstone_depths | — |
 | east | loc_aetherium_spires | — |
 
-- **Items:** item_chronal_dust (legacy). mat_phantom_shimmer ×1 (50% after killing cr_shimmering_phantom).
+- **Items:** item_chronal_dust (legacy). mat_frayed_moment ×1 (50% after killing cr_shimmering_phantom).
 - **Encounters:** first: cr_shimmering_phantom ×1 (100%; legacy). return: cr_moment_moth ×3 (30%) or pool 20%. Mirage hazard: first visit, 25% chance the chosen exit costs an extra watch (negated by `echo_pass_true_path`).
 - **NPCs:** npc_dask (companion anchor; in Loop 1 he is a flicker the player can speak to only after `ev_pass_flicker`).
 - **Events:** `pass_shimmer` — "Light fractures into false paths, then snaps back into focus." — once. `ev_pass_flicker` — "In the cleft a man in a Wayfinder's coat raises a hand. He is gone before it finishes rising." — once per loop. `ev_pass_true_path` — "You remember which path is real. The others fold away ashamed." — once, grants `echo_pass_true_path` after the second visit in any loop.
@@ -706,7 +707,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | Direction | Destination | Condition |
 |---|---|---|
 | west | loc_veridian_glowlands | — |
-| north | loc_temporal_breach_apex | Loop 1: six completed quests — `{questsCompleted:{min:6}}` (proposed D-033 addition; fallback `{all:[six legacy quests completed]}`). Loop 2+: `{any:[{questsCompleted:{min:6}},{echo:"echo_apex_fold"}]}` |
+| north | loc_temporal_breach_apex | Loop 1: six completed quests — `{counter:{name:"quests_completed",min:6}}` (D-048 data form). Loop 2+: `{any:[{counter:{name:"quests_completed",min:6}},{echo:"echo_apex_resonance"}]}` |
 | east ⟂ (Breach-door) | loc_silver_gate | `{all:[{loop:{min:2}},{item:"item_chronos_lens"},{echo:"echo_litany_verse_1"}]}` (D-016) |
 
 - **Items:** item_chronos_lens (legacy). item_orrery_key (Loop 2+, 100% first visit, in the orrery's base).
@@ -727,8 +728,8 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | through the tear ⟂ | loc_conflux_chamber | `{all:[{loop:{min:2}},{flag:"flag_tyrant_spared"}]}` — the Tyrant opens a way through itself |
 | beyond ⟂ | ending F | `{all:[{loop:{min:2}},{flag:"flag_tyrant_spared"},{flag:"flag_refused_all_paths"}]}` (The Unbound, D-018) |
 
-- **Items:** none. (After the Tyrant falls: mat_chrono_filament ×3, item_tyrants_shard ×1.)
-- **Encounters:** cr_chronos_tyrant ×1, present until defeated this loop (legacy rule). Loop 2+ with `echo_tyrant_true_name` or `echo_litany_verse_1`: the fight begins only if the player attacks; the communion path is available (§6). Horde: none (the Apex is the source).
+- **Items:** none. (After the Tyrant falls: mat_frayed_moment ×3, mat_tyrant_shard ×1.)
+- **Encounters:** cr_chronos_tyrant_contained ×1 (Loop 1) or cr_chronos_tyrant_unveiled ×1 (Loop 2+; D-051), present until defeated this loop (legacy rule). Loop 2+ with `echo_tyrant_true_name` or `echo_litany_verse_1`: the fight begins only if the player attacks; the communion path is available (§6). Horde: none (the Apex is the source).
 - **NPCs:** npc_brak (arrives when the Tyrant falls, if his quests were done and he was not kept away; legacy sequence). npc_dask (can remain).
 - **Events:** `apex_rend` — "The breach flashes, and the world stutters as if deciding what to become." — once. `ev_apex_watched` — "Something at the center turns toward you. It has done this seven times before." — once, Loop 2+. `ev_apex_names` — "In the mass, for an instant, a face you know from a painting in a hall that no longer exists." — once, requires `flag_visited_before`.
 - **Art spec:** horizon none (abstract); silhouettes: folded planes, the Tyrant's mass as a vertical cleft of shards and limbs, stair fragments; particles: seams of white that stutter open and shut.
@@ -765,7 +766,7 @@ is applied on entering any Drowned Reach location.
 | east | loc_drowned_stair | — |
 | south | loc_lamplighters_rest | — |
 
-- **Items:** mat_drowned_vellum ×2. **Encounters:** first: cr_tide_clerk ×1 + cr_drowned_archivist ×1 (100%). return: cr_tide_clerk ×1 (30%) or pool 20%. **NPCs:** none.
+- **Items:** mat_sodden_vellum ×2. **Encounters:** first: cr_tide_clerk ×1 + cr_drowned_archivist ×1 (100%). return: cr_tide_clerk ×1 (30%) or pool 20%. **NPCs:** none.
 - **Events:** `ev_tidewell_ledger` — "A ledger lists the drowned by street. The last entry is in a different hand: 'and the Master of Waters, by her own choice.'" — once; grants `echo_rhune_choice`.
 - **Art spec:** horizon 0.62 (interior); silhouettes: table rows at waterline, hanging guild banners, a clerk's desk on a dais; particles: floating pages.
 
@@ -781,7 +782,7 @@ is applied on entering any Drowned Reach location.
 | south | loc_black_sluice | — |
 | west | loc_lamplighters_rest | — |
 
-- **Items:** mat_brine_pearl ×1 (40%). **Encounters:** first: cr_pale_diver ×2 (70%). return: pool 20%. **NPCs:** none.
+- **Items:** mat_drowned_pearl ×1 (40%). **Encounters:** first: cr_pale_diver ×2 (70%). return: pool 20%. **NPCs:** none.
 - **Events:** `ev_cistern_names` — "You find a name you know on the wall. DANTHE. Below it, smaller: and her daughter." — once; grants `echo_oriel_lineage` with `{rep:{faction:"remnants",min:20}}`.
 - **Art spec:** horizon 0.55 (interior); silhouettes: round wall of names, rim walkway, the crack with pouring water; particles: spray mist.
 
@@ -811,7 +812,7 @@ is applied on entering any Drowned Reach location.
 | east | loc_lamplighters_rest | — |
 | south | loc_bell_wardens_deep | — |
 
-- **Items:** item_litany_page_1 (lectern; 100%), item_oriels_ledger (100%, Loop 2+ or `echo_oriel_lineage`), mat_drowned_vellum ×2. **Encounters:** first: cr_ledger_choir ×1 + cr_drowned_archivist ×2 (100%; elite guard). return: cr_drowned_archivist ×2 (30%) or pool 20%. Loop 3+: cr_unmade ×1 (20%).
+- **Items:** item_litany_page_1 (lectern; 100%), item_oriels_ledger (100%, Loop 2+ or `echo_oriel_lineage`), mat_sodden_vellum ×2. **Encounters:** first: cr_ledger_choir ×1 + cr_drowned_archivist ×2 (100%; elite guard). return: cr_drowned_archivist ×2 (30%) or pool 20%. Loop 3+: cr_unmade ×1 (20%).
 - **NPCs:** none. **Events:** `ev_scriptorium_hand` — "The hand on the pages is Oriel Danthe's. You know it from a scroll you carried to a woman with the same hand." — once; grants `echo_oriel_hand`.
 - **Art spec:** horizon 0.60 (interior); silhouettes: tiered desks, a lectern with a pool of light, tall shelves; particles: suspended ink threads.
 
@@ -920,7 +921,7 @@ each three-day cycle.
 | south | loc_scorched_gate | — |
 | east | loc_grey_salt_pan | — |
 
-- **Items:** mat_cinder_horn ×2, mat_ash_iron ×1. **Encounters:** first: cr_cinderback ×1 (50%; one of the warm shapes). return: cr_salt_jackal ×2 (35%) or pool 20%. **NPCs:** none.
+- **Items:** mat_cinder_horn ×2, mat_iron_rivet ×1. **Encounters:** first: cr_cinderback ×1 (50%; one of the warm shapes). return: cr_salt_jackal ×2 (35%) or pool 20%. **NPCs:** none.
 - **Events:** `ev_orchard_brand` — "Each stone beast carries the same scorch on its flank: a flame inside a ring. Dreyl's brand. He warded them, and the ward burned." — once; grants `echo_dreyl_brand`.
 - **Art spec:** horizon 0.52; silhouettes: rows of petrified bison, grey grass tufts, a single warm red glow; particles: ash.
 
@@ -1053,7 +1054,7 @@ loc_null_orchard or loc_eye_of_the_scar without `item_weavers_thread_ring` costs
 | south | loc_voidscar_hollow | — |
 | east | loc_voidglass_gallery | — |
 
-- **Items:** item_void_shard ×1 (first visit), mat_null_glass ×1. **Encounters:** first: cr_void_touched_stalker ×2 (60%). return: pool 20%. **NPCs:** none.
+- **Items:** item_void_shard ×1 (first visit), mat_breach_glass ×1. **Encounters:** first: cr_void_touched_stalker ×2 (60%). return: pool 20%. **NPCs:** none.
 - **Events:** `ev_shelf_seam` — "The Hollow below and the Veil above overlap like two pages held to the light. The seam between them is a woman's height." — once.
 - **Art spec:** horizon 0.45; silhouettes: frozen obsidian sheets, a ledge edge, overlapping skylines; particles: smoke wisps.
 
@@ -1069,7 +1070,7 @@ loc_null_orchard or loc_eye_of_the_scar without `item_weavers_thread_ring` costs
 | east | loc_null_orchard | — |
 | north | loc_eye_of_the_scar | — |
 
-- **Items:** mat_null_glass ×2, item_shade_salt ×1. **Encounters:** first: cr_starved_shadow ×1 (70%). return: cr_hollow_lantern ×2 (30%) or pool 20%. Blind on the first turn of any ambush here unless `item_hollow_lantern_focus`. **NPCs:** none.
+- **Items:** mat_breach_glass ×2, mat_shadow_ash ×2. **Encounters:** first: cr_starved_shadow ×1 (70%). return: cr_hollow_lantern ×2 (30%) or pool 20%. Blind on the first turn of any ambush here unless `item_hollow_lantern_focus`. **NPCs:** none.
 - **Events:** `ev_gallery_reflection` — "At the far end of the gallery your reflection is waiting for you. It arrived first." — once; Loop 4+ this spawns cr_redundant_wayfinder ×1.
 - **Art spec:** horizon 0.60 (interior); silhouettes: a long hall, no reflections, a far door; particles: none (deliberate).
 
@@ -1084,7 +1085,7 @@ loc_null_orchard or loc_eye_of_the_scar without `item_weavers_thread_ring` costs
 | south | loc_stair_of_unmaking | — |
 | north | loc_where_she_fell | — |
 
-- **Items:** mat_null_glass ×1, item_void_shard ×1. **Encounters:** first: cr_null_mouth ×2 (100%). return: cr_null_mouth ×1 (35%). Unmaking hazard applies. **NPCs:** none.
+- **Items:** mat_breach_glass ×1, item_void_shard ×1. **Encounters:** first: cr_null_mouth ×2 (100%). return: cr_null_mouth ×1 (35%). Unmaking hazard applies. **NPCs:** none.
 - **Events:** `ev_orchard_fruit` — "A Weaver picks a hole from a branch and eats it. Afterward there is slightly less of her, and she looks pleased." — once.
 - **Art spec:** horizon 0.55; silhouettes: tree-shaped cut-outs showing the wrong stars through them; particles: falling absence (inverted motes).
 
@@ -1147,7 +1148,7 @@ region-wide.
 | east | loc_elder_mangrove | — |
 | south | loc_breathing_pool | — |
 
-- **Items:** item_antidote_reed ×2. **Encounters:** none (settlement). **NPCs:** npc_elder_tam, npc_elder_wren, npc_old_fennick, npc_mireya (companion anchor).
+- **Items:** item_antidote_root ×2. **Encounters:** none (settlement). **NPCs:** npc_elder_tam, npc_elder_wren, npc_old_fennick, npc_mireya (companion anchor).
 - **Events:** `ev_lanternreed_wrists` — "A child shows you her wrists. The light under the skin pulses with the pool. 'Mam says it means we're chosen,' she says. Mireya, behind her, says nothing." — once per loop.
 - **Art spec:** horizon 0.58; silhouettes: stilt houses, walkways, the breathing pool's rim; particles: soft glow pulsing in time (12 s).
 
@@ -1220,7 +1221,7 @@ region-wide.
 | west | loc_elder_mangrove | — (costs 2 watches) |
 | south | loc_matrons_hall | — |
 
-- **Items:** mat_mireling_hide ×2. **Encounters:** first: cr_glowfen_mireling ×3 (100%). return: cr_reed_stalker ×2 (40%). **NPCs:** none.
+- **Items:** mat_glow_gland ×2. **Encounters:** first: cr_glowfen_mireling ×3 (100%). return: cr_reed_stalker ×2 (40%). **NPCs:** none.
 - **Events:** `ev_gullet_white` — "The light turns white. Lantern-glass would not shape this. Nothing would." — once.
 - **Art spec:** horizon 0.55; silhouettes: converging pale roots, fast water; particles: white motes streaming downhill.
 
@@ -1255,7 +1256,7 @@ Gale by default; storm at dusk (Storm +25%, lightning on Soaked).
 | west | loc_spire_crown | — |
 | south | loc_aldours_eyrie | — |
 
-- **Items:** mat_sentinel_plume ×1. **Encounters:** first: cr_gale_kite ×2 (60%). return: pool(skyreach) 20%. Fleeing here costs 10% HP. **NPCs:** none.
+- **Items:** mat_gale_feather ×1. **Encounters:** first: cr_gale_kite ×2 (60%). return: pool(skyreach) 20%. Fleeing here costs 10% HP. **NPCs:** none.
 - **Events:** `ev_stair_breath` — "You breathe when the Talisman says. You step when the wind says. For eleven steps you are not falling." — once; grants `echo_breath_of_heights`.
 - **Art spec:** horizon 0.30 (high); silhouettes: faint stair outline in wind streaks, plateau far below; particles: fast wind lines.
 
@@ -1285,11 +1286,11 @@ Gale by default; storm at dusk (Storm +25%, lightning on Soaked).
 | east | loc_aldours_eyrie | — |
 | west | loc_stormcrowns_perch | — |
 
-- **Items:** item_hearth_iron_greataxe (on a sky-burial ledge; taking it costs Ironclad −10 unless `echo_sky_oath`), mat_sentinel_plume ×2. **Encounters:** first: cr_sky_whisper_sentinel ×1 + cr_gale_kite ×1 (100%). return: cr_cloud_ray ×2 (35%). **NPCs:** none.
+- **Items:** item_hearth_iron_greataxe (on a sky-burial ledge; taking it costs Ironclad −10 unless `echo_sky_oath`), mat_gale_feather ×2. **Encounters:** first: cr_sky_whisper_sentinel ×1 + cr_gale_kite ×1 (100%). return: cr_cloud_ray ×2 (35%). **NPCs:** none.
 - **Events:** `ev_roost_bones` — "The bones on the ledges wear Nomad steel. The Sentinels guard them as if they were eggs." — once.
 - **Art spec:** horizon 0.40; silhouettes: honeycombed cliff, perched sentinel shapes, laid-out bones; particles: feathers and grit.
 
-#### `loc_aldours_eyrie` — Aldour's Eyrie
+#### `loc_aldours_eyrie` — Aulde's Eyrie
 - **Band / map / rest / merchant:** 14 · (24, 14) · **Rest point: yes** (the workshop's inner room is windless) · no
 - **Description.** A workshop of glass and brass set into the cliff. Looms run on their own, weaving light into cord. Drawings cover every wall: the Spires as a harp; the Apex as a knot; a device with two halves. The hand is a woman's, and sure.
 - **Exits**
@@ -1392,7 +1393,7 @@ moment become **Anchors** (D-016). The Breach Clock does not run here.
 |---|---|---|
 | west | loc_grand_library | — |
 | south | loc_apprentices_garret | — |
-| east | loc_ninefold_hall | `{any:[{flag:"flag_before_day_3"},{item:"item_ward_seal"},{companion:"npc_caelum",state:"active"}]}` — the Hall admits apprentices and the sealed; on Last Bell its doors stand open |
+| east | loc_ninefold_hall | `{any:[{flag:"flag_before_day_3"},{item:"item_ward_seal"},{companion:"caelum",state:"active"}]}` — the Hall admits apprentices and the sealed; on Last Bell its doors stand open |
 
 - **Items:** item_bell_shard (Day 3, after the first toll cracks a bell; 100%). **Encounters:** none; drawing a weapon here summons cr_city_watch_halberdier ×2 (non-lethal arrest). **NPCs:** npc_bellwright_anso (merchant), npc_caelum (Day 1, buying bread; recruit scene).
 - **Events:** `ev_plaza_dance` — "They are dancing. Someone pulls you into it. For a moment you are a person in a city, and nothing else." — once, Day 1. `ev_plaza_crack` — "The ninth bell cracks on the first toll of Last Bell. No one dances." — once, Day 3.
@@ -1542,7 +1543,7 @@ conditions. Gated regions:
 | The Ashen Steppe | WR → Mistwood → Camp → Peaks → Outpost → Scorched Gate (5) | Peaks gate; `q_blighted_outpost` completed or `echo_nomad_signs`. Ungated alternative from the south: Depths → Pass → Spires → Plateau → Glowlands → Reedmarch → Watchfire → Scorched Gate (8 from WR) |
 | The Glowfen | WR → Archives → Depths → Pass → Spires → Plateau → Glowlands → Causeway (7) | Depths gate only (or the Nomad route via the Outpost → Plateau, 7) |
 | The Skyreach | … Plateau → Windward Stair (7) or … Spires → Spire-Crown (6) | `item_sky_whisper_talisman` (lies on the Plateau) or `echo_breath_of_heights` |
-| loc_temporal_breach_apex | … Glowlands → Nexus → Apex (9) | six completed quests (Loop 1) or `echo_apex_fold` |
+| loc_temporal_breach_apex | … Glowlands → Nexus → Apex (9) | six completed quests (Loop 1) or `echo_apex_resonance` |
 | Silverwood Before | … Nexus ⟂ Silver Gate | Loop ≥ 2 + `item_chronos_lens` + `echo_litany_verse_1`; or Apex ⟂ Conflux with the Tyrant spared |
 | The Threshold | Shattered Library portal (Horde), death (Loop 2+), Day 30 | loop end only; returns via loc_far_light to WR |
 

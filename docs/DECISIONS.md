@@ -1,0 +1,540 @@
+# Decisions Log — Echoes of Aethelgard: The Unraveling
+
+This file records every significant decision made during the rebuild, with the reasoning.
+It is the master brief for all design, writing, and engineering work. Later documents
+(DESIGN.md, STORY.md, WORLD.md, PLAN.md, BIBLE.md) elaborate on these decisions and must
+not contradict them. If a later document needs to override something here, the override is
+recorded here first.
+
+Format: `D-###` id, date, decision, rationale. Entries are append-only; superseded entries
+are marked, never deleted.
+
+---
+
+## Part A — Reading of the existing game (facts, not decisions)
+
+What the repo contains as of commit `e7f64b3` ("added a browser-based frontend UI"):
+
+- **Files**: `echoes_of_aethelgard.py` (4,624 lines: engine, UI, quests, dialogue, web
+  server), `aethelgard_data.py` (856 lines: items, enemies, locations), `web_ui/`
+  (thin browser wrapper that polls a Python HTTP server and renders terminal output).
+- **World**: 21 locations in one connected graph. Start: Whispering Ruins. Finale: The
+  Temporal Breach Apex.
+- **Enemies**: 12 (Corrupted Shade, Wildling Brute, Arcane Wisp, Drowned Archivist,
+  Void-Touched Stalker, Stone-Hide Golem, Shimmering Phantom, Aetherial Weaver,
+  Sky-Whisper Sentinel, Glowfen Mireling, Temporal Aberration, The Chronos Tyrant).
+  Enemies basic-attack only. They scale to player level (±1; Tyrant = level+1).
+- **NPCs**: Ilyra (Remnants of Aethelgard, Whispering Ruins), Brak (Ironclad Nomads,
+  Ironclad Camp), Nyx (Shadow Weavers, Chasm of Whispers), Kaelen Stonehand (trader,
+  The Wayfarer's Respite), Borin Stonefist (Ironclad blacksmith, The Emberforge).
+- **Quests** (6): Echoes in the Library (Echo Crystal), The Scholar's Lost Scroll,
+  Clear the Barren Peaks (Wildling Brute), The Blighted Outpost (Stone-Hide Golems),
+  Whispers of the Void (3 Void Shards), The Echoing Heartbeat (Heartstone choice:
+  stabilize / exploit / destroy). Apex unlocks at 6 completed quests.
+- **Classes** (3): Ranger (+2 STR, Rusty Dagger), Wizard (+2 MAG, Apprentice Staff),
+  Elf (+2 AGI, Primitive Bow). Base stats: HP 100, MP 50, STR 8, MAG 7, AGI 6, 30 gold.
+- **Spells** (3): Echo Bolt (10 MP, 5 + 2×MAG), Fireball (unlocked by reading 3 Dark
+  Spellbooks), Lightning Bolt (6 spellbooks). Each spellbook costs 15 HP.
+- **Items**: 26 definitions; rarity tiers Common/Uncommon/Rare/Epic/Legendary
+  (×1.0/1.1/1.25/1.5/1.75); forge upgrades at the Emberforge; merchant restocks every 5
+  moves.
+- **Choices with no consequence**: Heartstone outcome (only a stat bauble), keeping the
+  Echo Crystal (one extra Nyx line), faction help (no reputation). One ending ("ESCAPE").
+- **Endgame**: Killing the Tyrant triggers the Horde (infection spreads node by node from
+  the Apex), Brak dies holding the line, Ilyra holds a portal open in the Shattered
+  Library, player enters → "The Last Threshold" text → score screen.
+- **Lore article** (in-game): Great Sundering ~500 years ago; Rival Mages at the Ley Line
+  Conflux (= Heartstone Depths) tried to command time; tore the Temporal Breach; Silverwood
+  (capital) ruined; three factions; the Wayfinder is born with ley-sense; the Tyrant was
+  "barely containing the full unraveling"; killing it shatters containment.
+- **Credit line**: "a game by Tim Dibert".
+
+Confirmed playtest problems (from the brief, verified in code):
+
+- Echo Bolt at MAG 9 + staff deals ~25 vs melee ~12; nearly every fight is 2–3 casts.
+- Classes are +2 to one stat and a starter weapon; nothing else differs.
+- Enemies have one action (attack); no abilities, statuses, or phases.
+- Tyrant (126 HP ×1.15 per level, 14 dmg) at level 2 vs a 100 HP / 50 MP player: not
+  winnable without luck; scaling means levels never feel like progress.
+- Quests, dialogue, and world logic are hardcoded in Python conditionals.
+
+Continuity wrinkles found in the source (resolved in Part C):
+
+- Lore says "Silverwood became the Whispering Ruins", but `Silverwood Plaza` is a separate
+  location described as "Once the heart of Silverwood".
+- The Tyrant-defeat text calls Brak "Brak Stonehand"; the trader is "Kaelen Stonehand".
+- Lore names a region "Aether-Kissed Highlands" that no location uses.
+- Kaelen's `faction` field is "Wayfarer's Respite", which is a place, not a faction.
+- The spell/Dark Spellbook unlock is the only "ability progression" and it is class-agnostic.
+- Dark Spellbooks are described as "corrupting", but reading six has no story consequence
+  except one Ilyra line.
+
+---
+
+## Part B — Vision and creative decisions
+
+### D-001 · Title and framing
+**Decision.** The rebuilt game is *Echoes of Aethelgard: The Unraveling*. The existing
+story, mechanics, names, factions, and locations are preserved as **Loop 1** and extended.
+Nothing from the original is renamed; new content is added around it.
+**Why.** The brief: "Keep the existing tone, names, factions, and locations; extend them,
+don't replace them."
+
+### D-002 · The loop
+**Decision.** Stepping through Ilyra's portal does not lead "beyond". The portal is a tear
+in the Temporal Breach; the Breach throws the Wayfinder back to the moment they first set
+foot in the Whispering Ruins, Day 1, with memories intact. This is the end of Loop 1 and
+the start of the real game. Every subsequent loop ends by one of: entering a portal into
+the Breach, death (from Loop 2 onward), the Breach Clock expiring, or reaching a true
+ending.
+**Why.** The brief's vision. Death-as-reset from Loop 2 fixes "unwinnable fights = wasted
+run" and is the genre convention (Hades, Outer Wilds). Loop 1 keeps classic game-over so
+the original experience survives intact and the loop reveal lands as a twist.
+
+### D-003 · Why the Wayfinder loops and others did not
+**Decision.** Two unique conditions coincide for the first time: (1) the Wayfinder carries
+the **Amulet of Echoes** (picked up in the first room in the original game), which holds
+memory across temporal shear; (2) **Ilyra** is the first Remnant in centuries strong enough
+to tear a portal, because she descends from **Oriel Danthe**, the archivist of the Nine
+(see D-006). Earlier Wayfinders reached the Apex and died — killed by the Tyrant or
+consumed by the unraveling with no portal to flee through.
+**Why.** The lore calls Wayfinders "rare individuals"; we need a reason this one is special
+that uses existing objects (the Amulet is literally the first item). Also seeds the Dask
+companion (D-013).
+
+### D-004 · The twist (confirmed from lore): the Tyrant is the jailer
+**Decision.** The Chronos Tyrant is not the Breach's master. It is **Archmagus Veyran Thal**,
+leader of the Nine Rival Mages, fused with the failing ritual at the instant the Breach
+opened. He stepped into the tear and *held it*. He has been holding it for five hundred
+years, existing at every instant of the ritual simultaneously, in agony. The "skeletal
+limbs and crystalline shards" that surface in its mass are the other mages caught in the
+ritual with him. Remnant scholars named it "Tyrant" because it tyrannizes *time* — it holds
+one moment forever — and because they assumed anything at the heart of the Breach must be
+its cause. Killing it removes the only containment. The Tyrant knows this and cannot say
+so in Loop 1 (it cannot speak to anyone who has not crossed the Breach). From Loop 2 it
+can speak to the Wayfinder.
+**Why.** The in-game lore already says "a powerful entity born from or guarding the Breach
+... barely containing the full unraveling" and "Upon defeating the Chronos Tyrant, its
+fragile containment shatters." We make it literal and give it a face and a tragedy.
+
+### D-005 · Why now: the Breach Clock
+**Decision.** Veyran's hold is failing. Within one loop, if nothing changes, containment
+collapses on its own around **Day 30** ("the thirtieth dawn") — the unraveling happens
+even if the Tyrant is never touched. The ley network, sensing the failure, produced a
+Wayfinder: Wayfinders are the world's immune response, born when containment weakens,
+pulled toward the Ruins. Each loop has a visible day counter (subtle in Loop 1, explicit
+"Breach Clock" from Loop 2). Travel between locations costs a quarter-day ("watch");
+resting at a camp advances to the next dawn. A normal, thorough Loop 1 uses ~22–26 days.
+Choices change the clock (see D-017).
+**Why.** Gives the loop a mechanical shape, creates meaningful urgency without punishing
+exploration, explains Wayfinders, and makes the Heartstone choice matter. Also provides a
+second loop-closer in Loop 1 for players who dawdle (they still reach Loop 2).
+
+### D-006 · The Nine Rival Mages (named)
+**Decision.** The cabal is **the Ninefold Circle** ("the Nine"). Nine members, all named in
+the codex. Fixed names:
+1. **Veyran Thal** — Archmagus, leader; became the Tyrant's core.
+2. **Nyxaria Vell** — called **Nyx**; theorist of the Void; flung 500 years forward by the
+   Breach's recoil at the instant of failure. She is the Nyx the player meets. She has
+   lived ~40 years in the present. Her "quiet starlight" eyes are Breach-touch.
+3. **Oriel Danthe** — the Circle's archivist; recorded the ritual as the *Litany of the
+   Conflux*; Ilyra's ancestor. Died in the Sundering; her records survive in the Sunken
+   Archives (the Scholar's Lost Scroll is one of them).
+4. **Maelis Korr** — wrote the Dark Spellbooks the player finds; his hand is in all of them.
+5–9. Named and characterized in WORLD.md/STORY.md by the writing team; constraints: each
+   has a role in the ritual, a surviving trace in the present (a location, item, or
+   creature), and a codex entry. One of them must be the origin of the Stone-Hide Golems
+   (a warder), one the origin of the Aetherial Weavers (a spire-builder).
+**Why.** The brief asks for codex coverage of "the Rival Mages, the Tyrant's origin". Giving
+Nyx a true identity converts a flat quest-giver into the game's best twist and justifies
+everything she knows (Void Shards as "tears from the Breach").
+
+### D-007 · The Wayfinder's nature
+**Decision.** Wayfinders are born when the Breach's containment weakens; the ley network
+produces them the way a body produces fever. They can sense ley currents, read echoes, and
+survive temporal shear that kills others. There have been at least seven Wayfinders since
+the Sundering, roughly one per 60–80 years, each drawn to the Ruins, each dead at or near
+the Apex. The player is the eighth. The Tyrant has watched all of them. Wayfinders are
+not chosen by anyone; they are a symptom. A Wayfinder who takes the Tyrant's place would
+end the symptom (ending A). If the Breach is sealed, no more Wayfinders are born (B, D).
+**Why.** Brief: codex must cover "the nature of Wayfinders". A mechanical, slightly cold
+explanation fits the setting's tone (ambition, cost, consequence) better than prophecy.
+
+### D-008 · Classes (five)
+**Decision.** Keep Ranger, Wizard, Elf by name; add **Ironclad Warden** and **Shadow
+Weaver**. Each class has a 3-branch ability tree with **15 abilities** (45+ required
+minimum met with margin). Class fantasies:
+- **Ranger** — hunter of the wilds between settlements. Branches: *Hunt* (ranged, marks,
+  crits), *Steel* (melee, bleeds, counters), *Wildcraft* (traps, poisons, field medicine).
+  Resource: Mana, generated on basic attacks (Focus).
+- **Wizard** — self-taught ley-caster. Branches: *Pyre* (fire, burn), *Storm* (lightning,
+  shock, chain), *Chronomancy* (slow, rewind, haste). Resource: Mana, large pool,
+  regenerates per turn.
+- **Elf** — a Silverwood-blooded ley-duelist (the Elves of Aethelgard are the old
+  Silverwood bloodlines, long-lived, ley-sensitive; this reframes "Elf" from race-as-class
+  into a cultural fighting tradition). Branches: *Bladesong* (fast multi-hits, evasion),
+  *Leyweave* (nature/ley support, regen, shields), *Shadowstep* (phase, repositioning,
+  first-strike). Resource: Mana, generated on dodges and crits.
+- **Ironclad Warden** — the Nomads' wall. Branches: *Bulwark* (guard, taunt, shields),
+  *Breaker* (armor break, stuns, heavy hits), *Iron Will* (anti-magic, resist, cleanse).
+  Resource: Mana generated when hit or when guarding (Grit).
+- **Shadow Weaver** — void-touched. Branches: *Hex* (curses, weaken), *Drain* (life steal,
+  self-heal), *Unmaking* (void burst, high-risk self-damage). Resource: Mana, may also
+  spend HP as mana (Blood price).
+Class can be changed between loops at the Threshold (the Wayfinder re-manifests), with
+per-class mastery tracked. Classes also change a handful of dialogue lines and one unique
+mini-quest each.
+**Why.** Brief: ability trees, 12+ abilities each, two new classes. Different resource
+generation gives class identity without a second resource bar. Changing class between
+loops rewards replay and makes "every class is viable" testable in one save.
+
+### D-009 · Combat model
+**Decision.** Turn-based, player + up to one active companion vs 1–3 enemies. Each
+combatant has an **initiative** from Agility. Each turn: 1 action (ability, basic attack,
+guard, item, flee, or companion command). Enemies **telegraph intents** for their next
+action (type, target, number). Six **damage types**: Physical, Fire, Storm, Ley, Void,
+Chrono. Resistances per creature (−50% weak / 0 / +50% resist / immune). **Status
+effects** (first set): Bleed, Burn, Shock, Soaked, Slow, Haste, Stun, Weaken, Armor Break,
+Mark, Curse, Shield, Regen, Taunt, Phase, Rewind, Poison, Blind. Interplay rules are a
+small fixed table (e.g., Storm on Soaked = +50% and spreads Shock; Fire on Soaked removes
+Soaked and deals −50%; Chrono on Haste removes it; Void on Shield breaks the shield).
+**Guard** halves incoming damage and generates class resource. **Enemies do not scale with
+player level**; each region has a fixed level band; elites and bosses are hand-tuned.
+**Bosses** have 2–4 phases with triggers at HP thresholds or turn counts, phase-specific
+intent patterns, and adds. Flee chance derives from Agility; bosses cannot be fled.
+**Why.** Fixes every combat complaint in the brief. Fixed level bands make leveling feel
+like progress and make regions legible ("this is a level 8 area").
+
+### D-010 · Echoes (knowledge that persists)
+**Decision.** An **Echo** is a discrete fact the Wayfinder has learned, with an id, a codex
+line, and effects. Echoes persist across loops and are shown in the Loop Timeline and
+Codex. ~60 Echoes at launch. Effects: unlock dialogue options ("I know what you are,
+Nyx"), **shortcuts** (skip fetch-steps you already know the answer to; e.g., with
+`echo.crystal_location` you can go straight to the alcove, and with
+`echo.ilyra_watchword` Ilyra believes you about the loop on first meeting), **routes**
+(new exits open when you know the way: the Breach-door in the Chronos Nexus opens with
+`echo.litany_verse_1` + the Chronos Lens), and **ending eligibility**.
+Some Echoes are mutually exclusive within one loop (siding with Nyx vs Ilyra at a key
+moment reveals different truths), so the true ending requires at least three loops.
+**Why.** Brief: "Knowledge carries across loops as 'Echoes' that unlock dialogue,
+shortcuts, and new routes." Making them discrete flags keeps them testable and data-driven.
+
+### D-011 · What persists vs resets
+**Decision.** Persists: Echoes, codex, bestiary, map knowledge (greyed "remembered"
+nodes), achievements, class mastery, **Resonance** (meta-currency earned from first-time
+discoveries), **Attunements** (small permanent bonuses bought with Resonance at the
+Threshold; capped so they are a convenience, not a power creep), run history. Resets:
+level, stats, HP/MP, inventory, gold, quests, world state, companions, faction reputation
+(Echoes let you regain it quickly). Abilities previously unlocked cost half as many points
+to re-unlock (mastery).
+**Why.** A true loop needs real resets or choices lose weight; but re-grinding five times
+is tedious. Shortcuts + mastery + Attunements keep Loop 3+ brisk (target: a focused loop
+in 20–30 minutes of play).
+
+### D-012 · The Threshold
+**Decision.** Between loops the Wayfinder stands in **the Threshold**, a liminal shore
+inside the Breach: run summary, Echoes gained, Resonance to spend, class choice, and
+(later) conversation with Dask and glimpses of the Tyrant. It has 4 "locations": the
+Still Shore, the Gallery of Loops (run history), the Loom (Attunements), the Far Light
+(exit to Day 1).
+**Why.** Gives the loop a place and a ritual; houses New Game+, achievements, and the
+run summary screen the brief requires.
+
+### D-013 · Companions (six)
+**Decision.** Recruitable companions, one active at a time, swapped at camps. They act
+automatically per a stance (Aggressive / Guarded / Support) and have one player-triggered
+signature ability with a cooldown. Each has a personal arc with 3+ quests and at least
+two outcomes.
+1. **Ilyra** — Remnant scholar; support/Ley caster. Arc: the cost of preservation; her
+   lineage from Oriel; she can tear the portal because of it.
+2. **Brak** — Ironclad scout; bruiser. Arc: he dies at the Apex in every loop where the
+   Tyrant falls; saving him needs an Echo and a choice. Brother of Kaelen (D-022).
+3. **Nyx** — Shadow Weaver; Void caster. Arc: she is Nyxaria Vell of the Nine; she wants
+   the Breach fully open so she can go *back* and stop the ritual — sympathetic motive,
+   catastrophic means.
+4. **Dask** — "the Flickering Man": the seventh Wayfinder (died ~70 years ago at the
+   Apex, scattered across moments by the Tyrant's chrono-strike; exists as a phantom
+   between instants). Found in the Shimmering Pass. Knows about Wayfinders and that
+   killing the Tyrant is wrong, but has never seen a loop. Can only remain in locations
+   with temporal instability (Highlands, Nexus, Apex, Threshold, Silverwood Before).
+5. **Mireya of Lanternreed** — Glowfen herbalist; nature/glow healer. Arc: the Glowlands'
+   light is Breach-leak; her people are changing; she must choose what to preserve.
+6. **Caelum Vesper** — apprentice to the Nine in pre-Sundering Silverwood; met in
+   Silverwood Before; can be brought forward because the Breach unanchors him. Chrono
+   caster. Arc: a boy from a doomed city learning his masters' sin.
+**Why.** Brief names Ilyra, Brak, Nyx "plus new ones". Dask carries loop exposition and
+the Wayfinder lineage; Mireya anchors the Glowfen region; Caelum anchors Silverwood
+Before and the ending work there.
+
+### D-014 · Factions and reputation
+**Decision.** Three factions with reputation −100..+100 and tiers Hostile (≤−40), Wary
+(−39..−10), Neutral (−9..19), Trusted (20..59), Sworn (≥60): **Remnants of Aethelgard**,
+**Shadow Weavers**, **Ironclad Nomads**. Helping one often costs another a little. Tiers
+gate merchant prices, unique gear, companion loyalty scenes, and ending eligibility.
+Kaelen's Wayfarer's Respite is **neutral ground**, not a faction (fixes the data wrinkle).
+**Why.** Brief requires faction reputation for exactly these three.
+
+### D-015 · Regions and locations (73 total)
+**Decision.** The existing 21 locations are grouped into five legacy regions and six new
+regions are added:
+- Legacy: **Silverwood Ruins** (7), **Mistwood & the Ironclad Reach** (6), **The Voidscar**
+  (2), **Aether-Kissed Highlands** (3), **Glowlands & Nexus** (3).
+- New: **Silverwood Before** (10; pre-Sundering, through the Breach), **The Drowned Reach**
+  (8; flooded undercity beneath the Sunken Archives), **The Ashen Steppe** (9; the Nomads'
+  wider range), **The Veil** (8; Voidscar deeps and the Shadow Weavers' sanctum), **The
+  Glowfen** (8; the bioluminescent swamp beyond Veridian), **The Skyreach** (5; above the
+  plateau), **The Threshold** (4).
+Total 73 ≥ 60. Each location has: id, region, name, description, exits (with optional
+conditions), level band, art spec, ambient audio spec, items, encounters, NPCs, events.
+**Why.** Brief minimums; each new region ties to a faction, a companion, or an ending.
+
+### D-016 · Silverwood Before (time-travel rules)
+**Decision.** Reachable from Loop 2 via the Breach-door in the Chronos Nexus (needs
+Chronos Lens + `echo.litany_verse_1`) or through the Apex if the Tyrant is spared. It is a
+*time-locked echo*: the last three days before the Sundering, repeating. Changes made there
+do not propagate to the present **except** through **Anchors**: objects placed in the
+Conflux chamber survive the Sundering and appear in Heartstone Depths. Caelum can be
+brought forward because the Breach unanchors him. You cannot stop the ritual (attempting
+it is a quest with a tragic, informative failure that yields a key Echo).
+**Why.** Bounded time travel avoids paradox spaghetti while enabling puzzles and the
+Mending ending.
+
+### D-017 · Every existing choice gains consequences
+**Decision.**
+- **Heartstone — Stabilize**: Breach Clock +6 days this loop; Remnants +15; Echo
+  `heartstone_resonance` (persists; required for endings B and E); unlocks Ley-tuned
+  crafting.
+- **Heartstone — Exploit**: large power item (Heartstone Core), Clock −5 days, Shadow
+  Weavers +15, Remnants −15; Heartstone Depths becomes unstable (new encounters); required
+  for ending C.
+- **Heartstone — Destroy**: Clock −10 days; all Breach-born creatures −25% HP this loop;
+  Ironclad +20, Remnants −25, Weavers −10; Ley abilities cost +25% MP this loop; required
+  for ending D; the Depths go dark (new area state).
+- **Echo Crystal — Give to Ilyra**: Remnants +15; Ilyra deciphers it → Echo
+  `litany_verse_1` on the *next* conversation.
+- **Echo Crystal — Keep**: Weavers +10, Remnants −10; from Loop 2, the Amulet lets you
+  hear the Crystal yourself → `litany_verse_1` immediately plus `nine_voices` (hearing nine
+  voices, a clue to Nyx).
+- **Void Shards — Give to Nyx**: Weavers +20; Shadow-Kissed Dagger.
+- **Void Shards — Refuse**: Keep shards as crafting material (void-forged gear at the
+  Emberforge, Ironclad +5); Nyx turns Wary.
+- **Reading Dark Spellbooks**: each read adds **Corruption** (0–6). Corruption unlocks
+  Wizard/Weaver bonuses and dialogue, costs HP, and at 6 marks you for the Weavers
+  (Remnants −10) and locks ending E unless cleansed at Lanternreed.
+- **Brak's quests**: skipping them in a loop means Brak is not at the Apex (he lives, you
+  lose his aid). Completing them and *telling him the truth* with `echo.brak_death` lets
+  you keep him away from the Apex (he survives).
+- **Factions helped/ignored**: reputation tiers gate everything above.
+**Why.** Brief: "Every existing choice must gain consequences."
+
+### D-018 · Endings (six true endings + two loop-closers)
+**Decision.** Loop-closers (not endings, but recorded): **The Escape** (Loop 1 classic:
+kill Tyrant, flee through portal → Loop 2) and **The Fall** (clock expires or death in
+Loop 2+ → Threshold). True endings, all reachable from Loop 2+, each with a distinct final
+sequence, epilogue slides per companion/faction, and an achievement:
+- **A · The Warden's Vigil** — spare the Tyrant, learn the Litany, take Veyran's place.
+  The Nine are released. Aethelgard is saved; the Wayfinder is gone. Requires:
+  `litany_complete`, Tyrant spared, choose to step in. Bittersweet.
+- **B · The Mending** (true ending) — seal the Breach from both ends: anchor the Conflux
+  in Silverwood Before (with Caelum), forge the Breach-anchor at the Emberforge (Aetherium
+  + stabilized Heartstone fragment + Void Shard resonance), close the Apex with the
+  Tyrant's consent. The Nine are freed to die; time flows forward. Requires:
+  `heartstone_resonance`, `litany_complete`, `void_resonance` (Nyx's knowledge, obtainable
+  only by having been Trusted with the Weavers in *some* loop), the Breach-anchor, Trusted
+  with at least two factions, Tyrant spared.
+- **C · The Weaver's Dawn** — help Nyx open the Breach fully and go back with her. The
+  present unravels. You witness the ritual from inside; it was always going to fail; Nyx
+  becomes one of the shards; the Tyrant that forms has *your* face among the Nine's. Dark.
+  Requires: Weavers Sworn, Heartstone exploited, Nyx alive and loyal.
+- **D · The Iron Silence** — destroy the Heartstone, drive the Breach-anchor into the Apex
+  to cut the ley. Magic dies; the Tyrant dies without unraveling; no more Wayfinders; the
+  Nomads inherit a mundane world. Requires: Ironclad Sworn, Heartstone destroyed, the
+  Breach-anchor, Brak alive.
+- **E · The Long Archive** — the Remnants' way: stabilize the loop deliberately. The
+  stabilized Heartstone's resonance soothes the Tyrant; Ilyra becomes the Keeper who
+  remembers every loop; Aethelgard becomes a conscious time-ring, safe and unchanging; you
+  may leave. Requires: Remnants Sworn, Heartstone stabilized, Corruption < 6, Ilyra alive.
+- **F · The Unbound** — walk away. From Loop 2, at the Apex with the Tyrant spared, step
+  through the Breach to somewhere that is not Aethelgard. Cold epilogue; everyone else's
+  fate reported in one line each. Requires: Tyrant spared and refusing every other path.
+**Why.** Brief: "at least five distinct endings driven by real choices." Six, plus the two
+loop-closers, each tied to the fate of the Tyrant, the Heartstone, and a faction.
+
+### D-019 · Quests (target 44)
+**Decision.** The six legacy quests keep their ids, names, and essential beats. New quests:
+faction chains (3 per faction = 9), companion arcs (3 per companion = 18), regional quests
+(≥1 per new region = 7), loop-only quests (require Echoes; 4), ending quests (6). Quests
+are data: stages with objectives (conditions), on-complete effects, journal text per stage,
+and optional branching. Every quest must be completable by at least one bot strategy.
+**Why.** Brief minimum 40.
+
+### D-020 · Codex and voice
+**Decision.** 80+ codex entries in four in-world voices, each tagged: **Remnant Archive**
+(measured, precise, dated), **Ironclad Telling** (oral, blunt, proverb-laden), **Weaver
+Fragment** (lyrical, elliptical, dangerous), **Wayfinder's Notes** (the player's own terse
+observations, first person). Rules: concrete nouns, no purple prose, short sentences, the
+existing descriptive register ("The air smells of ozone and decay"). Every entry ≤ 220
+words. Entries unlock by discovery, Echoes, or reading.
+**Why.** Brief: 80+ entries in a consistent voice. Four voices with hard rules are easier
+to keep consistent than one vague tone.
+
+### D-021 · Replay layer
+**Decision.** **New Game+** = a fresh save that starts with all Echoes and codex of a
+completed save (any true ending) and loop counter continuing. **Challenge modifiers**
+(toggle at the Threshold): Iron Loop (no Attunements), Frayed Clock (20-day loops),
+Mute Ley (no Echo shortcuts), Horde Rising (elites everywhere), Glass (double damage
+both ways), Pacifist's Vow (XP only from quests and discovery). **Achievements**: ~40.
+**Run summary** after every loop and ending.
+**Why.** Brief scope item 7.
+
+---
+
+## Part C — Continuity resolutions
+
+### D-022 · Brak and Kaelen Stonehand
+**Decision.** Brak and Kaelen are brothers. Ironclad scouts drop family names when they
+take the oath (the Nomads use clan-names), so Brak is "Brak" and, formally, "Brak of the
+Ironclad". Kaelen kept the name and left the Nomads to trade at the Respite; the brothers
+have not spoken in years. The one existing line "Brak Stonehand" is kept as the narrator
+using his birth name at the moment of his death, which is deliberate. A quest explores this.
+
+### D-023 · Silverwood and the Whispering Ruins
+**Decision.** Silverwood was the capital. Its entire ruin-field — Whispering Ruins,
+Crumbling Archway, Darkened Corridor, Shattered Library, Silverwood Plaza, Sunken
+Archives, Heartstone Depths — is "the ruins of Silverwood". **Whispering Ruins** is the
+name of the outskirts where the Wayfinder arrives and, colloquially, of the whole ruin.
+Silverwood Plaza is the old civic heart. The lore line "Silverwood became the Whispering
+Ruins" stands as colloquial truth.
+
+### D-024 · Aether-Kissed Highlands
+**Decision.** This is the region name for Shimmering Pass, Aetherium Spires, and
+Sky-Whisper Plateau (and the new Skyreach above them).
+
+### D-025 · Dates and durations
+**Decision.** The Great Sundering happened **500 years** before Day 1 (exactly, in-world:
+the Remnants count years from it: "Year 500 of the Sundering"). Silverwood Before is the
+last three days before it. Dask died 70 years ago. Nyx arrived in the present 40 years
+ago. A loop's clock is 30 days base. Ilyra is ~30. Brak ~40, Kaelen ~44. Borin ~55.
+
+### D-026 · Terminology
+**Decision.** Canonical spellings: *Wayfinder*, *the Breach* / *the Temporal Breach*,
+*the Sundering* / *the Great Sundering*, *ley lines* (two words, lowercase), *the Conflux*
+/ *the Ley Line Conflux*, *Heartstone* (one word, capitalized), *the Nine* / *the
+Ninefold Circle*, *Echo* (capitalized when meaning persisted knowledge), *the Threshold*,
+*the Breach Clock*, *Resonance*, *Attunement*, *Corruption*. Factions: *the Remnants*
+(short) / *Remnants of Aethelgard*, *the Shadow Weavers* / *Weavers*, *the Ironclad
+Nomads* / *the Ironclad* / *Nomads*. "The Horde" is what Brak calls the unraveling's
+creatures; the Remnants call it "the unraveling".
+
+### D-027 · Author credit
+**Decision.** Keep "a game by Tim Dibert" in the credits and ending screens.
+
+---
+
+## Part D — Engineering decisions
+
+### D-030 · Stack
+**Decision.** TypeScript (strict), Vite, **React 18** for UI, **zod** for content schemas,
+**vitest** for unit tests, **Playwright** for UI tests, **ESLint** (typescript-eslint) +
+Prettier. No backend. No external runtime assets. Minimal dependencies otherwise.
+**Why.** React is the most reliable choice for many agents working in parallel on UI;
+zod gives validated data files with inferred types for free; vitest/Playwright are the
+standard pairing with Vite.
+
+### D-031 · Architecture
+**Decision.** Three layers with one-way dependencies:
+1. `src/engine/` — pure, deterministic, no DOM. `GameState` is a plain serializable
+   object. `step(state, action, rng) → { state, events }` is the only mutation path.
+   Combat, loop, quests, dialogue, economy, crafting, saves all live here.
+2. `src/content/` — data files (TypeScript modules exporting plain objects, validated by
+   zod schemas in `src/content/schema/`) plus a `validateContent()` that runs in tests and
+   at build. Content never imports the engine; the engine never imports concrete content
+   (it receives a `ContentPack`).
+3. `src/ui/` — React. Subscribes to a store wrapping the engine. All screens are
+   components; art is inline SVG components in `src/ui/art/`; audio in `src/audio/`
+   (Web Audio procedural synthesis).
+Also: `src/sim/` — headless bots and simulation harness (imports engine + content, no UI).
+`tests/` — unit + e2e. `legacy/` — the Python game, untouched except for its own README.
+**Why.** Headless simulation and strong tests require a pure engine; data-driven content
+is a brief requirement; separation lets agents work in parallel without collisions.
+
+### D-032 · Determinism and RNG
+**Decision.** `xoshiro128**` seeded PRNG stored in `GameState.rng` (four 32-bit words).
+Every random draw goes through `rng.next()` in the engine; UI never draws random numbers
+that affect state (visual flourishes use a separate seed). A run is reproducible from
+(seed, action list).
+**Why.** Brief: deterministic seeded RNG; also makes bugs from simulations reproducible.
+
+### D-033 · Content condition/effect language
+**Decision.** Conditions are JSON objects: `{ all: [...] }`, `{ any: [...] }`,
+`{ not: ... }`, `{ flag: "id" }`, `{ echo: "id" }`, `{ quest: "id", stage: "x" }`,
+`{ item: "id", count: n }`, `{ rep: { faction, min, max } }`, `{ loop: { min, max } }`,
+`{ day: { min, max } }`, `{ class: "id" }`, `{ companion: "id", state }`,
+`{ stat: { name, min } }`, `{ corruption: { min, max } }`, `{ location: "id" }`,
+`{ killed: "enemyId", count }`. Effects mirror them: setFlag, grantEcho, questAdvance,
+giveItem, takeItem, rep, gold, xp, heal, damage, clock, spawn, teleport, recruit,
+dismiss, unlockExit, startCombat, startDialogue, endLoop(reason), ending(id). Both are
+zod-validated and interpreted by one evaluator in the engine.
+**Why.** Keeps 44 quests and hundreds of dialogue nodes in data, testable without code.
+
+### D-034 · Saves
+**Decision.** Save = `{ version, seed, state }` JSON. Three manual slots + one autosave in
+`localStorage`, each with a summary. Export downloads the JSON; import reads a file and
+validates with zod. A **profile** (persistent layer: Echoes, codex, achievements,
+Resonance, settings) is stored separately so it survives deleting a run. Migrations keyed
+by `version`.
+**Why.** Brief: save slots, localStorage plus export/import.
+
+### D-035 · Accessibility and input
+**Decision.** Every interactive element reachable by keyboard; a visible focus ring;
+screen-level shortcuts (numbers for actions, arrows/WASD for map, I/Q/C/B/M/Esc for
+panels); `prefers-reduced-motion` disables animation and the audio "pulse"; a high-contrast
+toggle; text scale setting; minimum 4.5:1 contrast on all text; ARIA live region for the
+log. Mobile: single-column layout with a bottom tab bar; touch targets ≥ 44px.
+**Why.** Brief scope item 2.
+
+### D-036 · Art and audio
+**Decision.** All art is inline SVG/CSS generated from a small set of parametric
+components per region (palette, horizon, silhouettes, particles) plus hand-authored
+focal pieces for key places and bosses. Creature portraits are stylized SVG sigils with
+animated details. Audio is Web Audio synthesis: per-region ambient drones, combat
+percussion, UI ticks, a Tyrant theme; a single `AudioEngine` with master/ambient/sfx
+volume and mute, started on first user gesture.
+**Why.** Brief: original SVG/CSS art, procedural Web Audio, no external assets.
+
+### D-037 · Simulation and balance process
+**Decision.** Bots: `melee`, `caster`, `explorer`, `speedrunner`, `pacifist`, plus
+`random` as a baseline. Each bot is a policy over engine observations. The harness runs
+N seeded loops per (class × bot) and records: completion, loop reached, ending, deaths,
+days used, damage dealt by source, abilities used, items crafted, quests completed,
+locations visited, soft-lock detection (no legal progress-making action for K steps).
+Targets written to BALANCE.md: every class finishes Loop 1 ≥ 60% with the melee or caster
+bot; no single ability > 35% of total damage for any class in aggregate; difficulty curve
+monotone across regions (median fight length and death rate rise smoothly); every ending
+reached; every quest completed; every location reached; zero soft-locks in 2,000+ runs.
+**Why.** Brief quality bars.
+
+### D-038 · Branching, commits, and CI
+**Decision.** All work on branch `unraveling`. Small commits, pushed often. Never push to
+`main`. CI (`.github/workflows/ci.yml`): typecheck, lint, unit tests, content validation,
+build, Playwright smoke. Pages workflow (`.github/workflows/pages.yml`) deploys `dist/` on
+push to `main` and on manual dispatch (so the PR description can link the preview
+procedure; actual URL goes live when Tim merges). Vite `base` = `/Aethelgard/`.
+**Why.** Brief.
+
+### D-039 · Legacy
+**Decision.** Move `echoes_of_aethelgard.py`, `aethelgard_data.py`, `web_ui/` to `legacy/`
+with a short `legacy/README.md` explaining how to run the original. No behavior changes.
+
+### D-040 · Documentation set
+**Decision.** `docs/DESIGN.md` (systems), `docs/STORY.md` (plot, loops, endings, quests,
+dialogue beats), `docs/WORLD.md` (regions, locations, creatures, items), `docs/PLAN.md`
+(work breakdown, briefs, integration order), `docs/BIBLE.md` (continuity bible: names,
+dates, facts, who-knows-what-when), `docs/BALANCE.md`, `docs/REPORT.md`, `docs/CONTENT.md`
+(how to add content), this file.
+
+---
+
+## Part E — Decisions added during the build
+
+(Appended as the work proceeds.)

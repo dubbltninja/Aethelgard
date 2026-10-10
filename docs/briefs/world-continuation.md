@@ -1,5 +1,8 @@
 # Brief: finish WORLD.md sections 4–13
 
+> **SUPERSEDED (2026-10-10):** split into three parallel briefs — `world-4-6.md`, `world-7-9.md`,
+> `world-10-13.md` — whose outputs land in `docs/world/` and are merged into WORLD.md by the lead.
+
 Agent type: general-purpose. Deliverable: append §4–§13 to `/home/claude/aethelgard/docs/WORLD.md`.
 
 ---

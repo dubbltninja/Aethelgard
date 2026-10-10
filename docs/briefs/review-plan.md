@@ -21,3 +21,23 @@ Attack on these fronts, with evidence:
 10. **Risk register** — missed risks (content volume vs authoring token budget; schema churn; inline SVG bundle size; localStorage 5MB; Safari AudioContext; Pages 404 on deep links; agents inventing ids).
 
 Report format: summary; numbered findings with **Severity**, **Where**, **Problem**, **Proposed fix** (code if needed). 40–80 findings. End with "Top 10 fixes before scaffolding" and a verdict. Reply with counts by severity and the top 10.
+
+---
+
+## Overrides (added 2026-10-10, apply on top of the brief above)
+
+- DECISIONS.md now runs through **D-065**. Also check conformance with **D-062** (document precedence),
+  **D-063** (the Nine are STORY's nine; WORLD's Corvin Dreyl, Ilsabet Rhune, Hadrek, Tobrin Vask are
+  Silverwood people, not of the Nine), **D-064** (NPC role reconciliation), and **D-065** (npm registry
+  is blocked here: the toolchain is esbuild 0.28 + TypeScript 6.0.3 + React 19.2 + zod 3.25 +
+  Playwright 1.56 via `playwright/test` + bun 1.4 test runner; no Vite, vitest, ESLint, Prettier,
+  immer, jsdom, Testing Library, `@types/react`, axe-core; state updates use `structuredClone`).
+- A separate agent is doing the cross-document id/name/number reconciliation
+  (`docs/reviews/REVIEW-CROSS.md`); you may note cross-doc issues you find, but focus on your document.
+- `docs/world/*.md` are in progress (WORLD §4–13); ignore them.
+- **Git:** ignore "Do not run git" above. When your report is complete, commit ONLY your report file
+  per `docs/briefs/COMMIT.md`.
+- PLAN-specific: PLAN.md was written assuming Vite/vitest/ESLint/immer/React 18. Review what must
+  change under D-065 (scripts, configs, CI YAML, test plan, a11y checks without axe, React type shim,
+  offline `tools/link-local-deps.mjs` bootstrap, CI `npm install` without a lockfile + `setup-bun`),
+  and flag anything in the plan that cannot be built with the local toolchain.

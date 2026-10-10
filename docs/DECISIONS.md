@@ -654,3 +654,77 @@ sequence (scripted, not the infection system).
 
 ### D-061 · Ranger ability prefix
 **Decision.** Ranger abilities use `rgr_` (DESIGN's draft `rng_` collides with the `Rng` PRNG type).
+
+### D-062 · Document precedence for conflicts
+**Decision.** When the same fact has different ids, names, or numbers across documents, the owner
+document wins and the others adopt its form: **DECISIONS** (everything it states) > **STORY** (people
+and their names/roles, dates, events, the Nine, quests `q_*`, Echoes `echo_*`, scenes, codex, endings)
+> **DESIGN** (systems and numbers: stats, formulas, abilities, statuses, affixes, materials `mat_*`,
+item mechanical fields, Attunements, achievements, modifiers, economy) > **WORLD** (places, map,
+regions, encounters, creatures `cr_*`, item and NPC placement, NPC ids `npc_*`) > **PLAN**
+(engineering). Echo ids: STORY §12 is the catalog; an Echo that DESIGN or WORLD needs and STORY lacks
+is added to STORY §12 (not invented elsewhere). NPC ids: WORLD's ids; NPC names/roles: STORY's.
+
+### D-063 · The Ninefold Circle is STORY's nine; WORLD's extra figures are not of the Nine
+**Decision.** The Nine are exactly: Veyran Thal, Nyxaria Vell, Oriel Danthe, Maelis Korr, Haldric
+Vane, Durn Hallow, Seraphine Aulde, Imre Sallow, Tovren Masque (STORY §2). Figures that WORLD §3
+described as "of the Nine" are recast as Silverwood people who are NOT of the Nine:
+- **Corvin Dreyl** — Captain of the Silverwood Watch; his pyre-ward (built to Haldric Vane's design)
+  turned outward in the Sundering.
+- **Ilsabet Rhune** — Silverwood's Warden of Waters (a civic office); she opened the cisterns to drown
+  the Conflux's fire.
+- **Hadrek the Clockwright** — Tovren Masque's orrery-maker.
+- **Tobrin Vask** — Haldric Vane's apprentice ward-engineer; in Silverwood Before he keeps the second
+  half of the Breach-anchor schematic (`echo_vask_seal`, `item_ward_seal` stand).
+WORLD's `echo_aldour_weavers` becomes `echo_aulde_weavers` unless STORY §12 already has an equivalent.
+
+### D-064 · NPC role reconciliation (STORY names win for STORY roles)
+**Decision.**
+- Remnant Keeper and faction-chain giver (`q_keepers_ledger`): **Keeper Ansel Dray** (`npc_ansel_dray`).
+  WORLD's Scribe Tamsin Reed (`npc_tamsin_reed`) stays: a Remnant scribe-merchant at the Plaza.
+- Ironclad clan-mother of the Ashen Steppe: **Hadda Ironvow** (`npc_hadda_ironvow`). WORLD's Oma Varr
+  stays as the Steppe's old teller who knew the Stonehand brothers; Tessaly Varr stays (caravan master).
+- Weaver keeper at the Veil and chain-giver (`q_unlidded_eye`): **Sethe the Unlidded**
+  (`npc_sethe_unlidded`). WORLD's Ysmay (`npc_ysmay`) stays as the Thread-Mother, ritual elder of the
+  Hollow Choir; she may give Veil regional quests.
+- Glowfen elder who cleanses Corruption at the Breathing Pool: **Elder Wen Thistlecourt**
+  (`npc_elder_wen`); WORLD's "Elder Wren" (`npc_elder_wren`) is merged into her. Elder Tam stays.
+- WORLD's `npc_hollis_vane` is renamed **Hollis Cade** (`npc_hollis_cade`) to avoid implying kinship
+  with Haldric Vane.
+- DESIGN's placeholder NPC ids adopt WORLD's: `npc_kaelen` → `npc_kaelen_stonehand`; DESIGN's
+  `npc_mireya_stall`, `npc_remnant_archivist`, `npc_skyreach_trader`, `npc_veil_vendor`,
+  `npc_ironclad_quartermaster` map to the WORLD merchant at that place (WORLD §4/§9 define them).
+
+### D-065 · Toolchain under a blocked npm registry (supersedes parts of D-030, D-042, D-058)
+**Context.** This session's egress policy denies `registry.npmjs.org` (proxy 403 on CONNECT; direct
+DNS unavailable). Per policy we do not route around it. These packages are installed locally under
+`/opt/npm-tools/node_modules` and verified working together: **esbuild 0.28.2**, **TypeScript 6.0.3**,
+**React 19.2.8** + react-dom, **zod 3.25.76**, **Playwright 1.56.0** (runner via `playwright/test`,
+Chromium in `/opt/pw-browsers`), **@types/node 26.2.0**, **tsx 4.23**, and **bun 1.4.2** (test runner
+with coverage). Not available: Vite, vitest, ESLint, Prettier, immer, jsdom, Testing Library,
+`@types/react`, axe-core.
+**Decision.**
+- **Build/dev:** esbuild via `tools/build.ts` and `tools/dev.ts` (serve + watch + reload), producing a
+  static `dist/` with relative asset URLs (works at any Pages path; no deep links, so no 404 issue).
+  Vite is not used. esbuild is the transformer Vite itself uses; the app has no Vite-specific code.
+- **Typecheck:** `tsc --noEmit` with strict flags (strict, noUncheckedIndexedAccess, noUnusedLocals,
+  noUnusedParameters, noImplicitReturns, noFallthroughCasesInSwitch, noImplicitOverride).
+- **Lint:** `tools/lint.ts` (custom rules: layer import boundaries, no `Math.random`/`Date.now`/DOM in
+  `src/engine`, no `console` in `src/engine`/`src/content`, no explicit `any` outside shims, no
+  `.only`/`debugger`, whitespace/final newline) plus the tsc flags above.
+- **Unit tests + coverage:** `bun test` with coverage thresholds in `bunfig.toml`.
+- **E2E:** Playwright 1.56 via `playwright/test`; a11y checks implemented in-repo (contrast, names,
+  focus) since axe-core is unavailable.
+- **Schemas:** zod 3 (available) as planned.
+- **State updates:** `step` deep-copies with `structuredClone` and mutates the copy (no immer); D-042
+  is superseded. Callers never observe mutation.
+- **React 19** (not 18). Types: in-repo declarations `src/types/react.d.ts` (hooks, JSX runtime,
+  intrinsic elements, events) because `@types/react` is unavailable; `src/types/bun-test.d.ts`
+  likewise for `bun:test` if `bun-types` is absent.
+- **Dependencies:** `package.json` pins exact versions of the packages above. Locally,
+  `tools/link-local-deps.mjs` symlinks them from `/opt/npm-tools/node_modules` into `node_modules`
+  (offline bootstrap). In GitHub Actions, `npm install` fetches the same exact versions (no lockfile can
+  be generated offline) and `oven-sh/setup-bun` provides bun.
+- **Formatting:** no Prettier; `.editorconfig` plus lint whitespace rules.
+**Why.** Meets every quality bar with tools that run here; nothing the brief asks for depends on Vite
+specifically. Recorded for the final report so Tim knows why Vite is absent.

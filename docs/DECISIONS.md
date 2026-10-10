@@ -538,3 +538,119 @@ dates, facts, who-knows-what-when), `docs/BALANCE.md`, `docs/REPORT.md`, `docs/C
 ## Part E — Decisions added during the build
 
 (Appended as the work proceeds.)
+
+### D-041 · `step` takes and returns the Profile (adopted from PLAN §4.0)
+**Decision.** `step(state, action, content, profile) → { state, profile, events }`. The profile is a
+separate object (survives deleting a run) but Echo grants, codex/bestiary unlocks, achievements and
+Resonance are written during engine transitions, so it is an input and output of `step`.
+
+### D-042 · immer for state transitions (adopted)
+**Decision.** `step` is the only place `produce` is called on `GameState`/`Profile`; reducers receive
+drafts. One dependency (immer) is accepted for correctness and readability.
+
+### D-043 · Illegal actions never throw (adopted)
+**Decision.** `step` returns the same `state`/`profile` references and one `actionRejected` event.
+Throwing is reserved for programmer errors (missing content id after validation, corrupt state).
+
+### D-044 · Id convention — typed prefixes ARE part of the id (overrides PLAN's proposal)
+**Decision.** All ids are lowercase `snake_case`, ASCII, unique across the whole content pack, stable
+forever. Type prefixes are part of the id string and are used in data, prose, and code:
+`region_`, `loc_`, `cr_` (creatures), `item_` (all items incl. quest/key/recipe/tome; materials may use
+`mat_`), `recipe_`, `npc_`, `q_`, `echo_`, `scene_`, `codex_`, `ending_`, `closer_`, `status_`,
+`affix_`, `att_` (attunements), `ach_`, `mod_`, `sfx_`, `screen_`, `ev_` (location events), `flag_`.
+Abilities are prefixed by class: `rgr_` (Ranger), `wiz_`, `elf_`, `wrd_` (Warden), `wvr_` (Weaver);
+companion abilities `comp_<companion>_<name>`; item-granted abilities `itm_`. Plain (unprefixed) ids:
+classes (`ranger`, `wizard`, `elf`, `ironclad_warden`, `shadow_weaver`), companions (`ilyra`, `brak`,
+`nyx`, `dask`, `mireya`, `caelum`), factions (`remnants`, `weavers`, `ironclad`), damage types
+(`physical`, `fire`, `storm`, `ley`, `void`, `chrono`), stats (`strength`, `magic`, `agility`).
+In data the Echo condition is `{ echo: "echo_litany_verse_1" }` (full id). `echo.x` in older prose
+means `echo_x`. The legacy spell ids are `wiz_echo_bolt`, `wiz_fireball`, `wiz_lightning_bolt`.
+**Why.** Three of four docs already use prefixes; they make grep unambiguous and dialogue effects
+self-describing. PLAN.md (Appendix A, D-044 text, code samples) must be revised to this.
+
+### D-045 · Quest count
+**Decision.** 44 quests total, the six legacy quests counted inside their faction/regional categories
+(STORY §11). Meets the brief's ≥40. STORY's six stretch quests are optional, not scope.
+
+### D-046 · Oriel Danthe is the Drowned Archivist
+**Decision.** The Drowned Archivist that guards the Scholar's Lost Scroll is Oriel's echo, "the First
+Drowned", revealed from Loop 2. Elaborates D-006 ("died in the Sundering").
+
+### D-047 · The Amulet of Echoes is exempt from the reset
+**Decision.** The single exception to D-011's inventory reset: the Amulet returns on the Wayfinder's
+neck at Day 1 of every loop from Loop 2 (the "Amulet warm" cue). It also grants the basic ley attack
+`itm_echo_bolt` (10 MP, Ley, ≈0.9× basic attack) to every class so Loop 1 still "feels" like the
+original; the Wizard's `wiz_echo_bolt` is the real spell.
+
+### D-048 · Apex gate
+**Decision.** Loop 1: six completed quests (legacy rule). Loop 2+: `echo_apex_resonance` (granted the
+first time the Wayfinder reaches the Apex) OR six completed quests. Data form:
+`{ any: [ { counter: { name: "quests_completed", min: 6 } }, { echo: "echo_apex_resonance" } ] }`.
+
+### D-049 · Threshold and Loop 1 death
+**Decision.** The Loop 1 → Loop 2 transition skips the Threshold: the portal text plays, then the
+Wayfinder wakes in the Whispering Ruins (the twist). Every later loop-closer passes through the
+Threshold. Loop 1 death is the classic FALLEN game-over to the title (reload a save); Echoes and codex
+gained during that Loop 1 are still written to the profile (the Amulet remembers).
+
+### D-050 · Durn Hallow walked out
+**Decision.** Hallow left the chamber at the sixth verse; eight stood at the ninth; the Echo Crystal
+still holds nine voices because all nine verses were spoken. Hallow's walk is the Ironclad founding
+story and the sixth question of communion.
+
+### D-051 · Two Tyrant encounters
+**Decision.** `cr_chronos_tyrant_contained` (Loop 1; hand-tuned for a level 12–13 party; 3 phases:
+The Holding / The Fracture / The Nine Speak) and `cr_chronos_tyrant_unveiled` (Loop 2+; band 15–18;
+4 phases plus the communion path). Loop 1 XP is not raised.
+
+### D-052 · Heartstone fragments and the Breach-anchor
+**Decision.** `recipe_breach_anchor` accepts either `item_heartstone_fragment_stable` (from Stabilize)
+or `item_heartstone_fragment_dead` (from Destroy). Mireya's dam quest accepts either fragment with
+different epilogue text (the dead fragment dams "permanently and darkly").
+
+### D-053 · One-action turns
+**Decision.** The companion signature ability costs the player's action. Guard generates +5 class
+resource for every class (the Warden's Grit gets more, per DESIGN). Companions scale with player level.
+
+### D-054 · Communion scoring
+**Decision.** Communion uses a discrete **Resolve** meter (integer, 0–8) across three Movements that
+mirror the combat phases (`tyr_movement_1..3`); STORY owns the beats and questions, DESIGN owns the
+numbers and replaces its 0–100 meter with this one. Thresholds: ≥3 the Tyrant lets you pass (F
+possible); ≥6 it consents to release or replacement (A); 8 with `echo_void_resonance`,
+`echo_heartstone_resonance` and the Breach-anchor in hand enables the Mending (B).
+
+### D-055 · Dark Spellbooks and Resonance
+**Decision.** The first Corrupted Shade killed each loop always drops a Dark Spellbook; later Shades
+50%. Loop-closers award +10 Resonance (an addition to D-011's discovery-only rule).
+
+### D-056 · Level bands and XP curve
+**Decision.** DESIGN's band table is canon (Silverwood Ruins 1–4, Mistwood & Ironclad Reach 2–6,
+Drowned Reach 4–8, Voidscar 5–8, Aether-Kissed Highlands 6–10, Ashen Steppe 7–11, The Glowfen 8–12,
+Glowlands & Nexus 9–13, The Veil 10–14, Skyreach 12–15, Silverwood Before 13–17, Apex 15–18 from
+Loop 2). DESIGN's XP curve (per-level 100, 150, 220, 300, 400 … 3,660) is canon. PLAN's alternatives
+are withdrawn.
+
+### D-057 · Merchant restock and economy cadence
+**Decision.** Merchants restock at every dawn (DESIGN). Legacy "every 5 moves" is gone.
+
+### D-058 · Tooling details
+**Decision.** Playwright pinned `^1.49` (floats within 1.x). Vite `base` from `VITE_BASE`, default
+`/Aethelgard/`. Saves are disposable until the first full-screen integration checkpoint; from then,
+save `version: 1` and migrations. Fun reviews are played by fresh agents (three rounds) and the lead
+fixes the findings; Tim is not required to play.
+
+### D-059 · Camp scenes and Dask's constraint
+**Decision.** Companion camp conversations are dialogue overlays triggered on `rest`. Temporal
+instability is a per-location flag (`temporallyUnstable: true`) set in WORLD.md for: every location
+in Aether-Kissed Highlands, Skyreach, The Chronos Nexus, The Temporal Breach Apex, all of Silverwood
+Before, all of the Threshold, plus any Horde-infected location while infected. Dask can only remain
+in flagged locations.
+
+### D-060 · The Horde after Loop 1
+**Decision.** Whenever the Tyrant dies in combat (any loop) or the Breach Clock expires, the legacy
+node-by-node infection runs and the loop closes by portal (`closer_escape`) or death (`closer_fall`).
+Endings A, B, D and E never trigger the Horde. Ending C unravels the present as part of its final
+sequence (scripted, not the infection system).
+
+### D-061 · Ranger ability prefix
+**Decision.** Ranger abilities use `rgr_` (DESIGN's draft `rng_` collides with the `Rng` PRNG type).

@@ -11,9 +11,11 @@ never replaced. Legacy exits are never removed; new exits are added.
 
 ### Conventions
 
-- **Ids** are stable snake_case: `loc_*` locations, `region_*` regions, `cr_*` creatures,
-  `item_*` items, `mat_*` new materials, `recipe_*` recipes, `npc_*` NPCs, `ev_*` events,
-  `echo_*` Echoes, `flag_*` flags, `q_*` quests. Legacy ids derive from names with a leading
+- **Ids** are stable snake_case (D-044, REGISTRY-DRAFT): `loc_*` locations, `region_*` regions,
+  `cr_*` creatures (anomaly variants `cr_anomaly_*`), `item_*` items, `mat_*` new materials,
+  `recipe_*` recipes, `npc_*` NPCs, `ev_*` events, `echo_*` Echoes (STORY §12 is the catalog),
+  `flag_*` flags, `q_*` quests, `fam_*` creature families, `pool_*` wandering pools, `gate_*`
+  map gates, `ws_*` world-state variants. Legacy ids derive from names with a leading
   "The" dropped and punctuation removed (`The Chronos Nexus` → `loc_chronos_nexus`,
   `The Wayfarer's Respite` → `loc_wayfarers_respite`, `Chronos Lens` → `item_chronos_lens`).
   The one exception is the Tyrant, which D-051 splits into two creature ids:
@@ -21,16 +23,21 @@ never replaced. Legacy exits are never removed; new exits are added.
 - **Conditions** use the D-033 language: `{echo:"echo_litany_verse_1"}`,
   `{quest:"q_clear_path",stage:"accepted"}`, `{all:[...]}`, `{any:[...]}`, `{not:...}`,
   `{item:"id",count:n}`, `{rep:{faction,min,max}}`, `{loop:{min,max}}`, `{flag:"id"}`,
-  `{killed:"cr_id",count:n}`. Faction ids: `remnants`, `shadow_weavers`, `ironclad`.
-- **Numbers.** Creatures follow the band formulas: fodder HP ≈ 10×level + 20, elite ×2,
-  boss ×6–8; Attack ≈ level + 6 at band start; Defense ≈ level/2. Legacy numbers are listed
-  beside the rebalanced ones. Damage types: Physical, Fire, Storm, Ley, Void, Chrono.
-  Resistance tiers: weak (−50% to the creature, i.e. it takes +50%), resist (+50%, takes
-  −50%), immune. Status names follow D-009.
+  `{killed:"cr_id",count:n}`, `{companion:"id",state:"active"}`, `{counter:{name,min}}`,
+  `{watch:"dawn"|"day"|"dusk"|"night"}`, `{clock:{daysLeft:{min,max}}}` (the full set is
+  DESIGN §13.3). Faction ids: `remnants`, `weavers`, `ironclad`.
+- **Numbers** (DESIGN §6.5): fodder HP ≈ 22 + 9L (±20% by silhouette), elite ×2; ATK ≈ 5 + 1.5L;
+  armor ≈ L/3. Regional bosses sit two levels above their band's top (D-066.21) and their HP is
+  12 × the expected physical damage per round at the band's top level (D-067.20; the arithmetic
+  is in each boss block, §6). Legacy numbers are listed beside the rebalanced ones. Damage types:
+  Physical, Fire, Storm, Ley, Void, Chrono. Resistance tiers: weak (−50% to the creature, i.e. it
+  takes +50%), resist (+50%, takes −50%), immune. Status names follow D-009.
 - **Telegraphs** are ≤12 words, second person, present tense. The UI shows them before the
   enemy acts.
-- **Time.** Each walkable edge costs one watch (quarter-day). Portal edges (marked ⟂) cost
-  nothing but have their own rules. Resting at a rest point advances to the next dawn.
+- **Time.** Each walkable edge costs one watch (quarter-day) unless the edge says otherwise
+  (§11.2). Portal edges (marked ⟂) cost nothing on the Breach Clock but have their own rules:
+  each return to the present through a Before door costs **one Breach-Clock day** (D-067.5).
+  Resting at a rest point advances to the next dawn.
 - **Voice.** Concrete nouns. Short sentences. Strange and grave. No gore.
 
 ---
@@ -83,27 +90,35 @@ graph LR
   AS --- GN
   GN --- GF[region_glowfen<br/>The Glowfen 8–12]
   GN -. Breach-door ⟂ .-> SB[region_silverwood_before<br/>Silverwood Before 13–17]
+  GN -. Apex tear ⟂ .-> SB
+  SR -. crack .- DR
   SR -. Library portal ⟂ .-> TH
 ```
 
-Solid lines are walkable borders (one watch per edge). Dotted lines are **portal edges**:
-the Far Light returns the Wayfinder to Day 1 at the Whispering Ruins; the Breach-door in
-the Chronos Nexus and the tear at the Apex lead into Silverwood Before; the Shattered
-Library portal (and death or the Breach Clock from Loop 2) lead to the Threshold.
+Solid lines are walkable borders (one watch per edge). The crack between the Heartstone
+Depths and the Cistern of Names is a second, gated walk between the Ruins and the Reach.
+Dotted lines are **portal edges**: the Far Light returns the Wayfinder to Day 1 at the
+Whispering Ruins; the Breach-door in the Chronos Nexus and the tear at the Apex lead into
+Silverwood Before; the Shattered Library portal (and death or the Breach Clock from Loop 2)
+lead to the Threshold.
 
 ### Travel logic
 
-- Every walkable exit costs **one watch**. Four watches make a day: dawn, day, dusk, night.
-  The Breach Clock (D-005) counts days; it is subtle in Loop 1 and explicit from Loop 2.
+- Every walkable exit costs **one watch** unless the edge says otherwise (§11.2: the Pale
+  Gullet haul and the two Skyreach ascents cost two). Four watches make a day: dawn, day,
+  dusk, night. The Breach Clock (D-005) counts days; it is subtle in Loop 1 and explicit from
+  Loop 2.
 - **Rest points** (camps, settlements, sheltered hollows) let the player rest: HP/MP restore,
   companions swap, the day advances to the next dawn. Resting consumes whatever watches
   remain in the day. At least one rest point exists per region (§3, §10).
-- **Portal edges** cost no watches. Inside Silverwood Before the Breach Clock does not run
-  (it is a time-locked echo, D-016); the Before has its own three-day clock. Inside the
-  Threshold there is no time at all.
+- **Portal edges** cost no watches. Inside Silverwood Before the Breach Clock is frozen (it is
+  a time-locked echo, D-016); the Before has its own Day 1–3 counter, which resets on every
+  entry (D-066.9). Each return to the present through a Before door advances the Breach Clock
+  by **one day** — "the door takes a dawn" (D-067.5). Inside the Threshold there is no time at
+  all.
 - **Gated exits** are drawn on the map as locked (`x` in the minimap convention) once the
   destination is known. Every gate has a Loop 1 condition and, where D-010 allows, a Loop 2+
-  Echo alternative (§3.9).
+  Echo alternative (§3.13, §11.3).
 - A thorough Loop 1 that crosses all five legacy regions uses roughly 22–26 days. Crossing
   times per region are in §10.
 
@@ -151,7 +166,7 @@ a canyon that is warm all year because of what runs under it.
 | Weather / time | Fog morning and dusk (Blind for the first turn of ambushes). Clear cold nights. Wind on the Peaks (ranged attacks −10% accuracy for everyone). |
 | Hazards | Rockfall on the Barren Peaks (random 3 Physical on entry at night). Drag-marks at the Outpost mark Golem patrol lanes (telegraphed ambush). |
 | Companion anchor | **Brak** (Ironclad Camp). |
-| Changes | After `q_clear_path` + `q_blighted_outpost`: the Camp doubles its tents, Tessaly's caravan may arrive (if the Scorched Gate is open), and Brak is absent from Loop 1's Horde (he is at the Apex) unless kept away with `echo_brak_death` (D-017). Heartstone destroyed: Nomad patrols appear on the Mistwood Path (friendly). Horde: infected late (it must pass Mistwood Path → Silverwood Plaza, the slow edge). |
+| Changes | After `q_clear_path` + `q_blighted_outpost`: the Camp doubles its tents, Tessaly's caravan may arrive (if the Scorched Gate is open), and Brak is absent from Loop 1's Horde (he is at the Apex) unless kept away with `echo_brak_death` (D-017). Heartstone destroyed: Nomad patrols appear on the Mistwood Path (friendly). Horde: reached from the Plateau at the Outpost (move 5); the Respite falls last (move 9); the slow Mistwood Path → Silverwood Plaza edge delays the Plaza, in the Ruins (W11). |
 | Story role | The Nomads' quests and Brak's death/survival. The Emberforge forges the Breach-anchor (endings B and D) and the void-forged line. Kaelen and Brak's estrangement (D-022) is resolved here. Ending D (The Iron Silence) is the Reach's ending. |
 
 ### 2.3 `region_voidscar` — The Voidscar
@@ -171,7 +186,7 @@ outsiders.
 | Weather / time | No weather. Starlight visible even by day. The chasm exhales on the hour (cosmetic frost). |
 | Hazards | Void-chill: standing in the Hollow more than two watches without moving applies Weaken (1 turn) at next combat. Falling scree (cosmetic). |
 | Companion anchor | **Nyx** (Chasm of Whispers). |
-| Changes | Loop 2+ with `echo_nyx_true_name`: Nyx's dialogue changes entirely. Void Shards refused: Nyx Wary; sentries in the Hollow are hostile. Weavers Trusted: the Veil opens east. Heartstone exploited: the Hollow's crystal glows brighter (Void-touched +1 level variant encounters). |
+| Changes | Loop 2+ with `echo_nyx_is_of_the_nine`: Nyx's dialogue changes entirely. Void Shards refused: Nyx Wary; sentries in the Hollow are hostile. Weavers Trusted: the Veil opens east. Heartstone exploited: the Hollow's crystal glows brighter (Void-touched +1 level variant encounters). |
 | Story role | Where the Void Shards come from (D-017) and the door to the Veil. Nyx's recruitment. The first place a player can side against the Remnants. |
 
 ### 2.4 `region_aether_kissed_highlands` — Aether-Kissed Highlands
@@ -189,7 +204,7 @@ but is budgeted separately (D-015).
 | Palette | sky `#C9C3E6` · horizon `#8E86C2` · mid `#5E5A96` · near `#2E2B52` · accent `#FFD27A` |
 | Ambient audio | Shepard-tone pad (slow, rising, 90 s cycle) −20 dB + crystalline FM "hum" at 220 Hz with 3 Hz beating + wind gusts (white noise with resonant 1.2 kHz peak) that swell every 15–25 s |
 | Weather / time | Light bends: distant nodes flicker on the map (cosmetic). Aurora at night over the Spires. Gales on the Plateau at dusk (Haste to Skyborn creatures). |
-| Hazards | Mirage paths in the Pass (first visit: 25% chance the chosen exit costs an extra watch — "you walked a path that was not there"; negated by `echo_pass_true_path`). Static discharge at the Spires (Shock 1 turn on entering combat, cosmetic in Loop 1). |
+| Hazards | Mirage paths in the Pass (first visit: 25% chance the chosen exit costs an extra watch — "you walked a path that was not there"; negated by `echo_flickering_man`). Static discharge at the Spires (Shock 1 turn on entering combat, cosmetic in Loop 1). |
 | Companion anchor | **Dask** (Shimmering Pass). |
 | Changes | Loop 2+: Dask is visible from the first visit. Loop 3+: Tyrant's Reach anomalies may appear at the Spires. Heartstone destroyed: the Spires dim; Aetherial Weavers −25% HP (Breach-born rule applies to Constructs of ley make too). |
 | Story role | Dask's exposition about Wayfinders and the Tyrant's innocence. The Aetherium Shards for the Breach-anchor. The approach to the Skyreach and Seraphine Aulde's trace. |
@@ -209,8 +224,8 @@ Apex: reality in violent seams.
 | Ambient audio | Frog-like filtered pulses (random 200–400 Hz blips, 1–3 per s) + wet reed noise; at the Nexus replace with ticking (two unsynchronized clocks, 0.9 s and 1.1 s) + reversed piano-like decays; at the Apex a chorus of detuned saw drones with a 7 s "stutter" gate and distant pitched screams (formant-filtered noise) −26 dB |
 | Weather / time | Glow waves every 40 s (cosmetic). At the Nexus the time-of-day indicator flickers between watches. At the Apex there is no sky. |
 | Hazards | Glowlands sinkholes (Slow 1 turn on ambush). Nexus temporal shear: 10% per watch to lose or gain one watch (net zero over time; a visible stutter). The Apex cannot be rested in. |
-| Companion anchor | **Dask** (Nexus, Apex) and **Mireya** (Glowlands edge, when recruited). |
-| Changes | 6 completed quests (Loop 1) or `echo_apex_resonance` open the Apex. Loop 2+ with Chronos Lens + `echo_litany_verse_1`: the Breach-door in the Nexus opens into Silverwood Before. Tyrant spared: the Apex becomes a place you can speak in, and a second door into the Before. Tyrant killed: the Horde begins here. |
+| Companion anchor | **Dask** (Nexus, Apex; he cannot stay on the Veridian Glowlands, D-068.2) and **Mireya** (Glowlands edge, when recruited). |
+| Changes | 6 completed quests (Loop 1) or `echo_apex_resonance` open the Apex; in Loop 1 the Apex offers *Face it / Not yet* on arrival and writes no autosave (D-067.1). Loop 2+ with Chronos Lens + `echo_litany_verse_1`: the Breach-door in the Nexus opens into Silverwood Before (each return costs a day, D-067.5). Tyrant spared: the Apex becomes a place you can speak in, and a second door into the Before. Tyrant killed: the Horde begins here. |
 | Story role | The finale of every loop. The Tyrant's three phases or his communion. Endings A, B, C, D, and F resolve at the Apex; ending E resolves in the Ruins but requires the Tyrant soothed. |
 
 ### 2.6 `region_silverwood_before` — Silverwood Before
@@ -231,14 +246,15 @@ time the Wayfinder enters (D-016).
 | Weather / time | Three days: **First Bell** (festival; clear), **Second Bell** (overcast; the Circle seals the Archives), **Last Bell** (still air; no birds; the ritual at dusk). The echo ends at Last Bell's dusk; the Sundering throws you back through the door you came by. Resting at the Garret advances a day. |
 | Hazards | The Watch arrests you for drawn weapons in the Plaza (combat with Halberdiers; non-lethal; you wake in the Garret and lose a day). Ley-flare on Day 3 in the Corridor (Burn 1 turn). The Conflux Chamber on Day 3 is a forced fight. |
 | Companion anchor | **Caelum Vesper** (Apprentices' Garret). Dask can remain here. |
-| Changes | Day 1/2/3 states (§12). Anchors: objects placed on the Conflux altar before the ritual appear in the present Heartstone Depths. `echo_anchor_rule` after the first failed attempt. Caelum can be brought forward once `item_caelums_anchor_token` has been anchored. |
+| Changes | Day 1/2/3 states (§12); the Day 1–3 counter restarts on every entry (D-066.9), and each return to the present costs one Breach-Clock day (D-067.5). The Before's pick-ups, drops and XP are granted **once per loop**: the Nine act again on every visit, the loot does not come back (D-067.5). Anchors: `anchorable` items placed on the cradle's rim before the ritual appear in the present Heartstone Depths for the rest of the current loop (D-067.4). `echo_anchor_mechanic` after the first failed attempt. Caelum crosses by his own choice in `q_a_boy_from_a_doomed_city` (STORY §9.6; D-067.9); anchoring the Cradle-Pin sets `flag_cradle_pin_anchored` for ending B only. |
 | Story role | The Mending (ending B) is anchored here with Caelum. The Litany's third page is Oriel's gift. Trying to stop the ritual fails and yields `echo_ritual_inevitable`. Nyxaria Vell can be met young; the Tyrant's core, Veyran Thal, can be met whole. Ending C's witness sequence reuses this region. |
 
 ### 2.7 `region_drowned_reach` — The Drowned Reach
 
 **Theme.** The undercity of Silverwood, under black water. Stairs that go down into
-lamplight. Shelves that go down further. On the last day of the old world the Master of
-Waters, Ilsabet Rhune of the Nine, opened the cisterns to drown the Conflux's fire. The
+lamplight. Shelves that go down further. On the last day of the old world the Warden of
+Waters, Ilsabet Rhune — a civic office, not a seat of the Nine (D-063) — opened the cisterns
+to drown the Conflux's fire. The
 water never left. Lamps still burn where a few Remnant divers keep them. The dead keep
 filing.
 
@@ -294,7 +310,7 @@ where Nyxaria Vell struck the present forty years ago.
 | Hazards | **Unmaking:** each watch spent in the Null Orchard or the Eye without a Weaver's thread (`item_weavers_thread_ring`) costs 5% max HP (restored on leaving). Blind on entering the Gallery (first turn of any ambush) unless `item_hollow_lantern_focus`. |
 | Companion anchor | **Nyx** (her sanctum; her past). |
 | Changes | Weavers Trusted: Veil Sentries are neutral; Sworn: the Sanctum sells the void-forged thread. Heartstone exploited: Where She Fell glows; `echo_void_resonance` can be learned here only if Trusted in some loop (D-018). Loop 2+: Vell's Umbra remembers you (phase 1 skipped if `killed:cr_vells_umbra`). |
-| Story role | Nyx's identity (`echo_nyx_true_name` is learnable at Where She Fell). The second Litany page (Nyxaria's own annotated copy). Ending C (The Weaver's Dawn) requires Weavers Sworn — earned here with the Thread-Mother. `echo_void_resonance` for ending B. |
+| Story role | Nyx's identity (`echo_nyx_is_of_the_nine` is learnable at Where She Fell). The second Litany page (Nyxaria's own annotated copy). Ending C (The Weaver's Dawn) requires Weavers Sworn — earned here with the Thread-Mother. `echo_void_resonance` for ending B. |
 
 ### 2.10 `region_glowfen` — The Glowfen
 
@@ -311,10 +327,10 @@ They are kind. They are becoming something.
 | Palette | sky `#10231F` · horizon `#1E4A3A` · mid `#2F6E4F` · near `#0B1A15` · accent `#B9FF8C` |
 | Ambient audio | Insect chorus (many detuned high square pulses, density by time of day) + bubbling (random low-passed pops) + lantern creak (wood-knock sample with slow random) + at Lanternreed a kalimba-like plucked loop (pentatonic, random order, 60 bpm) −22 dB; at the Breathing Pool a slow inhale/exhale filter sweep on noise, 12 s cycle |
 | Weather / time | Humid; glow brightens at night. Spore-fog in the Shallows at dawn (Poison 1 turn at ambush onset). Rain every second day (Soaked region-wide for the day). |
-| Hazards | Poison from spores and Mirelings. Sinking in the Shallows (Slow). The Pale Gullet's draw: the current pulls toward the Matron's Hall (leaving the Gullet north costs two watches). |
+| Hazards | Poison from spores and Mirelings. Sinking in the Shallows (Slow). The Pale Gullet's draw: the current pulls toward the Matron's Hall (leaving the Gullet west, upstream to the Elder Mangrove, costs two watches). |
 | Companion anchor | **Mireya of Lanternreed** (Lanternreed). |
-| Changes | Corruption ≥ 6 can be cleansed at the Breathing Pool with Elder Wren (D-017). Heartstone stabilized: the Breathing Pool steadies (cleansing is free). Loop 3+: the Barrow-Lights speak the names of past Wayfinders. Horde: infected from the Glowlands by the Causeway. |
-| Story role | Mireya's arc: what to preserve of a people being changed. The Lantern Matron is what an elder became. Cleansing Corruption keeps ending E open. The Glowfen elders know the Breach-leak and give `echo_breach_leak` (the Apex is failing on its own, D-005). |
+| Changes | Corruption ≥ 6 can be cleansed at the Breathing Pool with Elder Wen (D-017, D-064). Heartstone stabilized: the Breathing Pool steadies (cleansing is free). Loop 3+: the Barrow-Lights speak the names of past Wayfinders. Horde: infected from the Glowlands by the Causeway. |
+| Story role | Mireya's arc: what to preserve of a people being changed. The Lantern Matron is what an elder became. Cleansing Corruption keeps ending E open. The Glowfen elders know the Breach-leak and give `echo_glowlands_leak` (the Apex is failing on its own, D-005). |
 
 ### 2.11 `region_skyreach` — The Skyreach
 
@@ -326,15 +342,15 @@ ritual. Her looms still run. Nothing up here has forgotten its orders.
 | Field | Value |
 |---|---|
 | Level band | 12–15 |
-| Locations (5) | loc_windward_stair, loc_spire_crown, loc_roost_of_sentinels, loc_aldours_eyrie, loc_stormcrowns_perch |
+| Locations (5) | loc_windward_stair, loc_spire_crown, loc_roost_of_sentinels, loc_auldes_eyrie, loc_stormcrowns_perch |
 | Factions | None. Nomad sky-burials on the Roost. Remnants want Aulde's notes. |
 | Palette | sky `#7FB7E6` · horizon `#CFE6F5` · mid `#5E7FA3` · near `#2C3B52` · accent `#F7FBFF` |
 | Ambient audio | Howling wind (resonant band-pass sweeps 400–2 kHz on white noise, fast LFO) + aeolian tones (sines at 330/495/660 Hz that fade in with gusts) + at the Eyrie a loom-click (regular 0.5 s tick with occasional double) and brass resonance; at the Perch, thunder and a hawk-like FM cry every 20–40 s |
 | Weather / time | Gale by default (ranged −10%; Skyborn Haste). Storm at dusk (Storm damage +25% for everyone; lightning strikes Soaked characters). Dawn is still: the only calm hour. |
-| Hazards | **Thin air:** without `item_sky_whisper_talisman` or `echo_breath_of_heights` the stair cannot be climbed. Falls: fleeing on the Stair costs 10% HP. Storm on Soaked (see weather). |
+| Hazards | **Thin air:** without `item_sky_whisper_talisman` or `echo_high_mark` the stair cannot be climbed. Falls: fleeing on the Stair costs 10% HP. Storm on Soaked (see weather). |
 | Companion anchor | **Dask** (temporal instability extends up the Spire). |
 | Changes | Heartstone destroyed: the Spire-Crown goes dark; Spire Looms inactive (free Aulde's notes). Loop 2+: Stormcrown can be bargained with (`echo_sky_oath`), skipping its fight for the Talisman-bearer. |
-| Story role | Seraphine Aulde's trace and the Aetherial Weavers' origin (D-006). Her notes hold the Breach-anchor schematic's first half (the second is Tobrin's, in the Before). Stormcrown is the Sentinel that has watched the Apex longest and knows the Tyrant does not attack. |
+| Story role | Seraphine Aulde's trace and the Aetherial Weavers' origin (D-006). Her notes hold the Breach-anchor schematic's first half (the second is Tobrin's, in the Before). Stormcrown is the Sentinel that has watched the Apex longest and knows the Tyrant does not strike what keeps its distance (D-067.12). |
 
 ### 2.12 `region_threshold` — The Threshold
 
@@ -434,7 +450,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 
 - **Items:** item_echo_crystal (alcove; with `echo_crystal_location` the pickup skips the search sub-step). Loop 2+: item_korrs_marginalia 100% on first visit if `corruption ≥ 1`.
 - **Encounters:** first: cr_arcane_wisp ×1 (100%; legacy). return: pool 20%. Horde: none (Ilyra holds the stacks).
-- **NPCs:** npc_ilyra (Horde state only; she relocates here, legacy). npc_tamsin_reed visits here Loop 2+ when the Plaza is infected.
+- **NPCs:** npc_ansel_dray (reading-room camp, Loop 1+; quest giver, D-064). npc_ilyra (Horde state only; she relocates here, legacy). npc_tamsin_reed visits here Loop 2+ when the Plaza is infected.
 - **Events:** `library_shiver` — "A cold gust rattles the shelves, and you smell old ink and rain." — once. `ev_library_pages` — "A page turns itself on a shelf that no longer exists. You read one word before it is gone: 'Conflux.'" — once. `ev_library_seam` — "The seam in the air widens a hair when you look at it. It knows you." — once, Loop 2+.
 - **Art spec:** horizon 0.66 (interior); silhouettes: toppled shelf ridges, a leaning ladder, the alcove's arch; particles: dust motes in a single light shaft (portal state: a vertical violet tear replaces the shaft).
 
@@ -466,10 +482,10 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | south | loc_heartstone_depths | `{any:[{quest:"q_echoing_heartbeat",stage:"accepted"},{echo:"echo_heartstone_path"}]}` (legacy: the quest unlocks the Depths; Loop 2+: you know the way down) |
 | west | loc_drowned_stair | — (open; the dark gate is one node further) |
 
-- **Items:** item_scholars_lost_scroll (present only while `{quest:"q_lost_scroll",stage:"accepted"}` and not completed; legacy). item_glyphbound_lantern (appears with the scroll quest: Ilyra's lamp, left on the top step; legacy item newly placed).
+- **Items:** item_scholars_lost_scroll (present only while `{quest:"q_lost_scroll",stage:"accepted"}` and not completed; legacy). item_glyphbound_lantern (on the top step from Day 1, every loop: Ilyra's lamp, left for the divers; legacy item newly placed — W7, so a Loop 1 pacifist can reach Lamplighters' Rest; Kaelen's Loop 2+ stock and the recipe stay).
 - **Encounters:** first/return: cr_drowned_archivist ×1 (100%) while `q_lost_scroll` is accepted and not completed (legacy rule). Otherwise return: pool 20%.
 - **NPCs:** none.
-- **Events:** `archives_murmur` — "A submerged page unfurls, whispering of the Ley Line Conflux." — once. `ev_archives_lamp` — "On the top step of the drowned stair sits a lantern etched with glyphs. The water below it is black, not dark." — once, when item_glyphbound_lantern is present.
+- **Events:** `archives_murmur` — "A submerged page unfurls, whispering of the Ley Line Conflux." — once. `ev_archives_lamp` — "On the top step of the drowned stair sits a lantern etched with glyphs. The water below it is black, not dark." — once.
 - **Art spec:** horizon 0.60 (interior); silhouettes: half-submerged shelf rows, a vault arch, the stair-head; particles: slow rising bubbles with ley-green light under the waterline.
 
 #### `loc_heartstone_depths` — Heartstone Depths
@@ -482,10 +498,10 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 |---|---|---|
 | north | loc_sunken_archives | — |
 | east | loc_shimmering_pass | — |
-| west | loc_cistern_of_names | `{any:[{item:"item_cistern_key"},{flag:"flag_heartstone_destroyed"},{echo:"echo_cistern_crack"}]}` — a flooded crack behind the ninth plinth |
+| west | loc_cistern_of_names | `{all:[{item:"item_glyphbound_lantern"},{any:[{item:"item_cistern_key"},{flag:"flag_heartstone_destroyed"},{echo:"echo_archive_door"}]}]}` — a flooded crack behind the ninth plinth; the lantern is needed because the crack enters the Reach's dark (W6, `gate_cistern_crack_in`) |
 
-- **Items:** none fixed. **Anchors** (D-016): any item placed on the Conflux altar in loc_conflux_chamber before the ritual appears here on the ninth plinth, every loop thereafter (`item_caelums_anchor_token`, `item_litany_page_3`, etc.).
-- **Encounters:** first: none (legacy). return: pool 20%. *Exploited state:* return: cr_hourglass_crawler ×2 (50%) or cr_unmade ×1 (25%, Loop 3+). *Destroyed state:* return: cr_corrupted_shade ×2 + cr_hollow_lantern ×1 (40%).
+- **Items:** none fixed. **Anchors** (D-016, D-067.4): an `anchorable` item placed on the cradle's rim in loc_conflux_chamber before the ritual appears here on the ninth plinth for the rest of the **current loop** only — the Before replays each loop, so the past is remade each time. Only three items carry the tag: `item_sky_whisper_talisman` (the discovery), `item_caelums_anchor_token` (the Cradle-Pin) and `item_litany_page_3`. What persists is `echo_anchor_mechanic`.
+- **Encounters:** first: none (legacy). return: pool 20%. *Exploited state:* return: cr_hourglass_crawler ×2 (50%) or cr_unmade ×1 (25%, Loop 3+). *Destroyed state:* return: cr_corrupted_shade ×3 (40%; E12 — no L10 Lantern in a band 3–4 node).
 - **NPCs:** none (Caelum appears here when brought forward).
 - **Events:** `heartstone_thrum` — "The Heartstone answers your presence with a tremor that shakes dust from the ceiling." — once. `ev_depths_plinths` — "Eight plinths, empty. The ninth holds something that should not have survived five hundred years." — once, when an Anchor is present. `ev_depths_choice` — "The relic throbs with unstable power. You sense three paths: soothe it, seize it, or shatter it." — the legacy choice prompt; fires while `q_echoing_heartbeat` is accepted and not completed.
 - **Art spec:** horizon 0.50 (cavern); silhouettes: the Heartstone as a faceted ovoid, nine plinths in a ring, stalactite fringe; particles: concentric pulse rings from the center (state variants: calm slow rings / jittering sparks / no particles).
@@ -504,7 +520,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | north | loc_silverwood_plaza | — |
 | south | loc_wayfarers_respite | — |
 
-- **Items:** item_ley_touched_tonic (legacy).
+- **Items:** item_ley_touched_tonic (legacy); gathering: mat_rootbone ×1, mat_ley_resin ×1 (the glowing bark; DESIGN §8.2 "Mistwood gathering").
 - **Encounters:** first: cr_mistwood_prowler ×2 (50%) or cr_rootling ×3 (30%). return: pool 20%. Heartstone destroyed: no encounters (Nomad patrol present).
 - **NPCs:** none (Heartstone destroyed: a Nomad patrol, flavor only).
 - **Events:** `ev_mistwood_herbs` — "You crush a leaf without meaning to. The smell is clean. Nothing here has been clean in a long time." — once. `ev_mistwood_shapes` — "A shape between the trunks keeps your pace for ten steps, then is a tree." — once per loop.
@@ -573,7 +589,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 - **Items:** mat_slate_core ×1 (100% after both Golems fall).
 - **Encounters:** first: cr_stone_hide_golem ×2 (100%; legacy; quest target; one group of two). return: cr_warding_pillar ×1 (30%, it was always there, dormant) or pool 20%.
 - **NPCs:** none.
-- **Events:** `outpost_ash` — "Stone scrapes stone as something massive shifts in the dark." — once. `ev_outpost_seal` — "Each golem bears the same mark on its brow: a square inside a circle. A warder's seal." — once, after killing cr_stone_hide_golem. Grants `echo_vask_seal`.
+- **Events:** `outpost_ash` — "Stone scrapes stone as something massive shifts in the dark." — once. `ev_outpost_seal` — "Each golem bears the same mark on its brow: a square inside a circle. A warder's seal." — once, after killing cr_stone_hide_golem. Grants `echo_vask_seal`. Loop 2+, with `echo_vask_seal`: the seal opens a slot under the burned gate's sill — Tobrin's failsafe copy, `item_breach_anchor_schematic_b` (100%, once per loop; D-067.6: half B is also obtainable here, so ending D needs no Before).
 - **Art spec:** horizon 0.58; silhouettes: broken palisade teeth, a burned gate with bull emblem, drag furrows; particles: grey dust falling.
 
 #### `loc_emberforge` — The Emberforge
@@ -585,7 +601,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 |---|---|---|
 | south | loc_blighted_outpost | — |
 
-- **Items:** none fixed. item_tobrins_warding_primer (Loop 2+, 100% once, if `echo_vask_seal`; Borin "found it in the slag").
+- **Items:** none fixed. item_tobrins_warding_primer (Loop 2+, 100% once, if `echo_vask_seal`; Borin "found it in the slag"). The Breach-anchor is forged here for **0 gold** at Neutral while `q_the_mending` or `q_iron_silence` is active (D-066.10; §8.2).
 - **Encounters:** none. Horde: none (the heat holds them off one extra move).
 - **NPCs:** npc_borin_stonefist.
 - **Events:** `emberforge_heat` — "The forge heat wraps around you like a heavy cloak." — once. `ev_forge_pulse` — "Borin rests his hammer and listens. 'Heartstone's beating fast tonight,' he says, to no one." — once; text varies by Heartstone state (stabilized: "slow and sure"; exploited: "wrong"; destroyed: "The veins are cold. Borin does not look up.").
@@ -617,13 +633,13 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | Direction | Destination | Condition |
 |---|---|---|
 | west | loc_chasm_of_whispers | — |
-| east | loc_veil_mouth | `{any:[{rep:{faction:"shadow_weavers",min:20}},{echo:"echo_veil_watchword"}]}` — the Weaver sentries part the curtain for the Trusted or for those who speak the watchword |
+| east | loc_veil_mouth | `{any:[{rep:{faction:"weavers",min:20}},{echo:"echo_weaver_sign"}]}` — the Weaver sentries part the curtain for the Trusted or for those who speak the watchword |
 | north | loc_scar_shelf | same condition as east |
 
 - **Items:** item_void_shard ×1 lies loose in the crystal (first visit; the other shards drop from Stalkers).
 - **Encounters:** first: group A cr_void_touched_stalker ×2 (100%), then group B cr_void_touched_stalker ×1 (100%) — the legacy three. return: cr_void_touched_stalker ×1 (35%) or pool 20%. Weavers Wary/Hostile, Loop 2+: cr_veil_sentry ×1 joins group B.
 - **NPCs:** none.
-- **Events:** `voidscar_thrum` — "The air tastes of ash and frost. Something in the hollow hisses your name." — once. `ev_hollow_curtain` — "The curtain of dark at the hollow's edge has a seam. Two figures in grey thread stand either side of it and do not look at you." — once.
+- **Events:** `voidscar_thrum` — "The air tastes of ash and frost. Something in the hollow hisses your name." — once. `ev_hollow_curtain` — "The curtain of dark at the hollow's edge has a seam. Two figures in grey thread stand either side of it and do not look at you." — once. `q_lightless_stair` begins here, at the curtain, not at the bottom of the Chasm (W12); while it is accepted the curtain opens (`gate_veil_curtain`).
 - **Art spec:** horizon 0.50; silhouettes: obsidian scree slope, crystal clusters leaning one way, the dark curtain; particles: smoke wisps peeling off edges.
 
 ### 3.4 Aether-Kissed Highlands (`region_aether_kissed_highlands`, 3 locations)
@@ -639,9 +655,9 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | east | loc_aetherium_spires | — |
 
 - **Items:** item_chronal_dust (legacy). mat_frayed_moment ×1 (50% after killing cr_shimmering_phantom).
-- **Encounters:** first: cr_shimmering_phantom ×1 (100%; legacy). return: cr_moment_moth ×3 (30%) or pool 20%. Mirage hazard: first visit, 25% chance the chosen exit costs an extra watch (negated by `echo_pass_true_path`).
-- **NPCs:** npc_dask (companion anchor; in Loop 1 he is a flicker the player can speak to only after `ev_pass_flicker`).
-- **Events:** `pass_shimmer` — "Light fractures into false paths, then snaps back into focus." — once. `ev_pass_flicker` — "In the cleft a man in a Wayfinder's coat raises a hand. He is gone before it finishes rising." — once per loop. `ev_pass_true_path` — "You remember which path is real. The others fold away ashamed." — once, grants `echo_pass_true_path` after the second visit in any loop.
+- **Encounters:** first: cr_shimmering_phantom ×1 (100%; legacy). return: cr_moment_moth ×3 (30%) or pool 20%. Mirage hazard: first visit, 25% chance the chosen exit costs an extra watch (negated by `echo_flickering_man`).
+- **NPCs:** npc_dask (companion anchor; in Loop 1 he is a flicker the player cannot speak to — Loop 2+ only, STORY §4.4, D-066.12; his first scene gives only the warning, the full sentence waits for `q_the_flickering_man`, D-067.16).
+- **Events:** `pass_shimmer` — "Light fractures into false paths, then snaps back into focus." — once. `ev_pass_flicker` — "In the cleft a man in a Wayfinder's coat raises a hand. He is gone before it finishes rising." — once per loop. `ev_pass_true_path` — "You remember which path is real. The others fold away ashamed." — once, requires `echo_flickering_man` (Dask shows the true path; the Echo is STORY §12's).
 - **Art spec:** horizon 0.50; silhouettes: crystal-laced rock walls, a path that doubles, Dask's cleft; particles: refracted light shards that duplicate and snap.
 
 #### `loc_aetherium_spires` — Aetherium Spires
@@ -653,7 +669,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 |---|---|---|
 | west | loc_shimmering_pass | — |
 | east | loc_sky_whisper_plateau | — |
-| south | loc_spire_crown | `{any:[{item:"item_sky_whisper_talisman"},{echo:"echo_breath_of_heights"}]}` — the climb; without the Talisman the air at the top would tear the breath from you |
+| south | loc_spire_crown | `{any:[{item:"item_sky_whisper_talisman"},{echo:"echo_high_mark"}]}` — the climb; without the Talisman the air at the top would tear the breath from you |
 
 - **Items:** item_aetherium_shard (legacy; respawns each loop; a second shard appears here with `flag_heartstone_stabilized`).
 - **Encounters:** first: cr_aetherial_weaver ×1 (100%; legacy). return: cr_glass_mote ×2 (30%) or pool 20%. Loop 3+: cr_tyrants_reach ×1 (10%, once per loop).
@@ -671,7 +687,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | west | loc_aetherium_spires | — |
 | east | loc_veridian_glowlands | — |
 | north | loc_blighted_outpost | — |
-| south | loc_windward_stair | `{any:[{item:"item_sky_whisper_talisman"},{echo:"echo_breath_of_heights"}]}` |
+| south | loc_windward_stair | `{any:[{item:"item_sky_whisper_talisman"},{echo:"echo_high_mark"}]}` |
 
 - **Items:** item_sky_whisper_talisman (legacy; also guaranteed drop from the Sentinel — the second copy is a Trinket upgrade material at Borin's).
 - **Encounters:** first: cr_sky_whisper_sentinel ×1 (100%; legacy). return: cr_steppe_harrier ×2 (25%) or pool 20%.
@@ -693,9 +709,9 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | north | loc_reedmarch_descent | — |
 | south | loc_lantern_causeway | — |
 
-- **Items:** item_glow_moss (legacy). mat_glow_spore ×1 (50%).
+- **Items:** item_glow_moss (legacy). mat_glow_gland ×1 (50%).
 - **Encounters:** first: cr_glowfen_mireling ×1 (100%; legacy). return: cr_lantern_toad ×1 + cr_spore_drift ×1 (30%) or pool 20%.
-- **NPCs:** npc_mireya (flavor only here, gathering; recruit at Lanternreed).
+- **NPCs:** npc_mireya (flavor only here, gathering; recruit at Lanternreed). Dask cannot stay here: the Glowlands are not `temporallyUnstable`, so he leaves the party on arrival and rejoins at the Nexus (D-059, D-068.2).
 - **Events:** `glowlands_pulse` — "The glow brightens in waves, like the basin is breathing." — once. `ev_glowlands_leak` — "The light under the water is the same colour as the Apex's seams. You had not noticed before." — once, Loop 2+.
 - **Art spec:** horizon 0.60; silhouettes: reed clumps, bent lantern-trees, the causeway line; particles: green glow pulses rising from the ground.
 
@@ -710,10 +726,10 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | north | loc_temporal_breach_apex | Loop 1: six completed quests — `{counter:{name:"quests_completed",min:6}}` (D-048 data form). Loop 2+: `{any:[{counter:{name:"quests_completed",min:6}},{echo:"echo_apex_resonance"}]}` |
 | east ⟂ (Breach-door) | loc_silver_gate | `{all:[{loop:{min:2}},{item:"item_chronos_lens"},{echo:"echo_litany_verse_1"}]}` (D-016) |
 
-- **Items:** item_chronos_lens (legacy). item_orrery_key (Loop 2+, 100% first visit, in the orrery's base).
+- **Items:** item_chronos_lens (legacy). item_orrery_key (Loop 2+, 100% first visit, in the orrery's base; Hadrek's duplicate in the Before is the other copy). The key opens the orrery's sealed brass housing here (`ev_nexus_orrery`).
 - **Encounters:** first: cr_temporal_aberration ×1 (100%; legacy). return: cr_hourglass_crawler ×2 (35%) or cr_orrery_knight ×1 (20%, only if `item_orrery_key` not yet taken) or pool 20%. Loop 4+: cr_hour_leech ×1 (15%).
 - **NPCs:** npc_dask (can remain here).
-- **Events:** `nexus_echo` — "A future voice overlaps your own, warning of a choice already made." — once. `ev_nexus_door` — "The door with no handle warms when the Lens is near it. Through the stone you hear bells." — once, requires `item_chronos_lens`. `ev_nexus_moor` — "A brass plate on the orrery reads: H. MOOR, CLOCKWRIGHT TO THE CIRCLE. It has been polished recently." — once.
+- **Events:** `nexus_echo` — "A future voice overlaps your own, warning of a choice already made." — once. `ev_nexus_door` — "The door with no handle warms when the Lens is near it. Through the stone you hear bells." — once, requires `item_chronos_lens`. `ev_nexus_moor` — "A brass plate on the orrery reads: H. MOOR, CLOCKWRIGHT TO THE CIRCLE. It has been polished recently." — once. `ev_nexus_orrery` — "The key turns. Inside the housing, on a cradle of hair-springs, lies an eyepiece of black glass. Through it the Apex is on the far side of something." — once per loop, requires `item_orrery_key`; grants `echo_eye_of_masque` (a Nexus-side source; STORY §12 to list it) and `item_chronal_dust` ×2.
 - **Art spec:** horizon 0.55 (interior); silhouettes: broken dome ribs, an orrery of rings, the handleless door; particles: slow clock-tick flashes (afterimages of the scene offset in time).
 
 #### `loc_temporal_breach_apex` — The Temporal Breach Apex
@@ -728,9 +744,9 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | through the tear ⟂ | loc_conflux_chamber | `{all:[{loop:{min:2}},{flag:"flag_tyrant_spared"}]}` — the Tyrant opens a way through itself |
 | beyond ⟂ | ending F | `{all:[{loop:{min:2}},{flag:"flag_tyrant_spared"},{flag:"flag_refused_all_paths"}]}` (The Unbound, D-018) |
 
-- **Items:** none. (After the Tyrant falls: mat_frayed_moment ×3, mat_tyrant_shard ×1.)
-- **Encounters:** cr_chronos_tyrant_contained ×1 (Loop 1) or cr_chronos_tyrant_unveiled ×1 (Loop 2+; D-051), present until defeated this loop (legacy rule). Loop 2+ with `echo_tyrant_true_name` or `echo_litany_verse_1`: the fight begins only if the player attacks; the communion path is available (§6). Horde: none (the Apex is the source).
-- **NPCs:** npc_brak (arrives when the Tyrant falls, if his quests were done and he was not kept away; legacy sequence). npc_dask (can remain).
+- **Items:** none. After either Tyrant falls: mat_frayed_moment ×3. `mat_tyrant_shard` only from the Unveiled Tyrant, one per phase cleared (DESIGN §8.2); none in Loop 1 (E11).
+- **Encounters:** cr_chronos_tyrant_contained ×1 (Loop 1) or cr_chronos_tyrant_unveiled ×1 (Loop 2+; D-051), present until defeated this loop (legacy rule). **Loop 1:** on arrival the legacy lines play, then the Amulet offers *Face it* / *Not yet*; *Not yet* returns the player to the Nexus at no watch cost, and no autosave is written on arrival at the Loop 1 Apex or during a Horde, so a reload lands at the Nexus camp or at the Horde's first move (D-067.1). **Loop 2+** (`{loop:{min:2}}`): the Tyrant speaks first on every visit (STORY §5.4, W5) and the fight begins only if the player attacks; communion opens with `echo_tyrant_speaks` or the first *Listen* (§6.8). Horde: none (the Apex is the source).
+- **NPCs:** npc_brak (arrives when the Tyrant falls, if his quests were done and he was not kept away; legacy sequence. Ending D needs him **active** at the player's shoulder and never fires `ws_brak_at_apex`, D-067.7). npc_dask (can remain).
 - **Events:** `apex_rend` — "The breach flashes, and the world stutters as if deciding what to become." — once. `ev_apex_watched` — "Something at the center turns toward you. It has done this seven times before." — once, Loop 2+. `ev_apex_names` — "In the mass, for an instant, a face you know from a painting in a hall that no longer exists." — once, requires `flag_visited_before`.
 - **Art spec:** horizon none (abstract); silhouettes: folded planes, the Tyrant's mass as a vertical cleft of shards and limbs, stair fragments; particles: seams of white that stutter open and shut.
 
@@ -767,7 +783,7 @@ is applied on entering any Drowned Reach location.
 | south | loc_lamplighters_rest | — |
 
 - **Items:** mat_sodden_vellum ×2. **Encounters:** first: cr_tide_clerk ×1 + cr_drowned_archivist ×1 (100%). return: cr_tide_clerk ×1 (30%) or pool 20%. **NPCs:** none.
-- **Events:** `ev_tidewell_ledger` — "A ledger lists the drowned by street. The last entry is in a different hand: 'and the Master of Waters, by her own choice.'" — once; grants `echo_rhune_choice`.
+- **Events:** `ev_tidewell_ledger` — "A ledger lists the drowned by street. The last entry is in a different hand: 'and the Warden of Waters, by her own choice.'" — once; grants `echo_rhune_choice`.
 - **Art spec:** horizon 0.62 (interior); silhouettes: table rows at waterline, hanging guild banners, a clerk's desk on a dais; particles: floating pages.
 
 #### `loc_cistern_of_names` — The Cistern of Names
@@ -778,7 +794,7 @@ is applied on entering any Drowned Reach location.
 | Direction | Destination | Condition |
 |---|---|---|
 | north | loc_drowned_stair | — |
-| east | loc_heartstone_depths | `{any:[{item:"item_cistern_key"},{flag:"flag_heartstone_destroyed"},{echo:"echo_cistern_crack"}]}` |
+| east | loc_heartstone_depths | `{any:[{item:"item_cistern_key"},{flag:"flag_heartstone_destroyed"},{echo:"echo_archive_door"}]}` |
 | south | loc_black_sluice | — |
 | west | loc_lamplighters_rest | — |
 
@@ -813,7 +829,7 @@ is applied on entering any Drowned Reach location.
 | south | loc_bell_wardens_deep | — |
 
 - **Items:** item_litany_page_1 (lectern; 100%), item_oriels_ledger (100%, Loop 2+ or `echo_oriel_lineage`), mat_sodden_vellum ×2. **Encounters:** first: cr_ledger_choir ×1 + cr_drowned_archivist ×2 (100%; elite guard). return: cr_drowned_archivist ×2 (30%) or pool 20%. Loop 3+: cr_unmade ×1 (20%).
-- **NPCs:** none. **Events:** `ev_scriptorium_hand` — "The hand on the pages is Oriel Danthe's. You know it from a scroll you carried to a woman with the same hand." — once; grants `echo_oriel_hand`.
+- **NPCs:** none. **Events:** `ev_scriptorium_hand` — "The hand on the pages is Oriel Danthe's. You know it from a scroll you carried to a woman with the same hand." — once; grants `echo_oriel_lineage`.
 - **Art spec:** horizon 0.60 (interior); silhouettes: tiered desks, a lectern with a pool of light, tall shelves; particles: suspended ink threads.
 
 #### `loc_black_sluice` — The Black Sluice
@@ -824,7 +840,7 @@ is applied on entering any Drowned Reach location.
 | Direction | Destination | Condition |
 |---|---|---|
 | north | loc_cistern_of_names | — |
-| west | loc_bellmouth | `{any:[{item:"item_cistern_key"},{not:{day:{watch:"night"}}}]}` — at night the water rises over the walkway |
+| west | loc_bellmouth | `{any:[{item:"item_cistern_key"},{not:{watch:"night"}}]}` — at night the water rises over the walkway (`gate_sluice_walkway`, both directions; W1) |
 
 - **Items:** mat_bell_bronze ×1 (30%, caught in a grate). **Encounters:** first: cr_brine_lamprey ×3 (100%). return: cr_brine_lamprey ×2 (40%). **NPCs:** none.
 - **Events:** `ev_sluice_pull` — "The current wants you west. Something in the west wants you too." — once.
@@ -837,7 +853,7 @@ is applied on entering any Drowned Reach location.
 
 | Direction | Destination | Condition |
 |---|---|---|
-| east | loc_black_sluice | — |
+| east | loc_black_sluice | `{any:[{item:"item_cistern_key"},{not:{watch:"night"}}]}` — the walkway floods both ways (`gate_sluice_walkway`, W1) |
 | north | loc_lamplighters_rest | — |
 | west | loc_bell_wardens_deep | — |
 
@@ -847,7 +863,7 @@ is applied on entering any Drowned Reach location.
 
 #### `loc_bell_wardens_deep` — The Bell-Warden's Deep
 - **Band / map / rest / merchant:** 8 (boss) · (−24, 12) · no · no
-- **Description.** Under the bell the floor drops into a well of black water lit from far below. The Warden sits in it with the bell's clapper across its knees, a drowned giant in a Master's chain of office, and waits for the hour it was told to ring.
+- **Description.** Under the bell the floor drops into a well of black water lit from far below. The Warden sits in it with the bell's clapper across its knees, a drowned giant in the Warden of Waters' chain of office, and waits for the hour it was told to ring.
 - **Exits**
 
 | Direction | Destination | Condition |
@@ -855,7 +871,7 @@ is applied on entering any Drowned Reach location.
 | east | loc_bellmouth | — |
 | north | loc_sunken_scriptorium | — |
 
-- **Items:** item_cistern_key (100% after the boss or after `echo_rhune_choice` + choosing not to fight — the Warden surrenders the key to one who says the Master's name), item_bell_clapper (100% after the boss), item_rhunes_hydromancy (100%, first clear). **Encounters:** **forced boss:** cr_bell_warden ×1 (adds cr_brine_lamprey). Pacifist bypass exists (see §10). **NPCs:** none.
+- **Items:** item_cistern_key (100% after the boss or after `echo_rhune_choice` + choosing not to fight — the Warden surrenders the key to one who says the Warden of Waters' name), item_bell_clapper (100% after the boss), item_rhunes_hydromancy (100%, first clear). **Encounters:** **forced boss:** cr_bell_warden ×1 (adds cr_brine_lamprey). Pacifist bypass exists (see §10). **NPCs:** none.
 - **Events:** `ev_deep_hour` — "The Warden lifts its head. 'Is it the hour?' it asks, in the voice of a city." — once per loop.
 - **Art spec:** horizon 0.45 (interior); silhouettes: the well, the seated giant with clapper, chains hanging; particles: slow rising light from below.
 
@@ -876,8 +892,9 @@ each three-day cycle.
 | east | loc_ash_wind_flats | — |
 | north | loc_bone_orchard | — |
 | south | loc_watchfire_ridge | — |
+| south (the waystone road) | loc_reedmarch_descent | `{echo:"echo_steppe_waystones"}` — the Waystone Order (`q_bone_road` complete), one watch (D-068.1) |
 
-- **Items:** item_nomad_hardtack ×2. **Encounters:** none (watched). Horde: cr_horde_husk ×2. **NPCs:** npc_scout_ferrin (teaches the trail-signs → `echo_nomad_signs` once Ironclad ≥ Neutral).
+- **Items:** item_nomad_hardtack ×2; gathering: mat_ember_ore ×1 (a slag-heap by the brazier, DESIGN §8.2 "Ashen Steppe gathering"). **Encounters:** none (watched). Horde: cr_horde_husk ×2. **NPCs:** npc_scout_ferrin (teaches the trail-signs → `echo_nomad_signs` once Ironclad ≥ Neutral).
 - **Events:** `ev_gate_horn` — "Ferrin blows two notes on the horn. Far off, two notes answer. 'Hearthring knows you're coming,' he says." — once per loop.
 - **Art spec:** horizon 0.58; silhouettes: a gate within a gate, brazier, two leaning scouts; particles: ash falling.
 
@@ -905,9 +922,9 @@ each three-day cycle.
 |---|---|---|
 | west | loc_ash_wind_flats | — |
 | north | loc_stormgate_cairns | — |
-| south | loc_herd_grave | `{any:[{quest:"q_herd_of_one",stage:"accepted"},{echo:"echo_nomad_signs"}]}` — the clan does not let strangers wake the Herd |
+| south | loc_herd_grave | `{any:[{quest:"q_bone_road",stage:"accepted"},{echo:"echo_nomad_signs"}]}` — the clan does not let strangers wake the Herd |
 
-- **Items:** item_hearth_broth ×2. **Encounters:** none (settlement). **NPCs:** npc_oma_varr (clan-mother, quest giver), npc_tessaly_varr (quartermaster/merchant), npc_ketch (skald; Ironclad Telling codex).
+- **Items:** item_hearth_broth ×2. **Encounters:** none (settlement). **NPCs:** npc_hadda_ironvow (clan-mother, quest giver: q_bone_road, q_day_of_teeth, q_iron_silence; D-064), npc_oma_varr (teller), npc_tessaly_varr (quartermaster/merchant), npc_ketch (skald; Ironclad Telling codex). `item_borins_forge_mark` is handed over by Borin at the Emberforge when `q_bone_road` is accepted (OQ10 resolved), so the Cairn stage never lacks it.
 - **Events:** `ev_hearthring_fire` — "Oma Varr does not look up. 'That fire was lit from the last ember of the Burned Hall,' she says. 'Sit. You smell of the Breach.'" — once per loop. `ev_hearthring_brothers` — "Ketch sings a verse about two brothers and a name laid down. He stops when he sees your face." — once, requires `{quest:"q_clear_path",stage:"completed"}`.
 - **Art spec:** horizon 0.56; silhouettes: ring of stones, central fire, tents, skull-pole; particles: embers rising into ash falling.
 
@@ -936,7 +953,7 @@ each three-day cycle.
 | east | loc_stormgate_cairns | — |
 | south | loc_ash_wind_flats | — |
 
-- **Items:** item_salt_charm ×1 (first visit, in a jackal den, 100% after clearing). **Encounters:** first: cr_salt_jackal ×3 (100%). return: cr_salt_jackal ×2 (40%). **NPCs:** none.
+- **Items:** item_salt_charm ×1 (first visit, in a jackal den, 100% after clearing); gathering: mat_steppe_salt ×2. **Encounters:** first: cr_salt_jackal ×3 (100%). return: cr_salt_jackal ×2 (40%). **NPCs:** none.
 - **Events:** `ev_pan_glare` — "At noon the Pan has no edges. You walk toward a shape for an hour. It is a man-high cairn, and it is behind you." — once.
 - **Art spec:** horizon 0.50 (white-out); silhouettes: salt cracks, a lone cairn, jackal shapes; particles: heat shimmer.
 
@@ -951,7 +968,7 @@ each three-day cycle.
 | south | loc_hearthring | — |
 
 - **Items:** mat_storm_glass ×2, item_storm_jar ×1. **Encounters:** first: cr_steppe_harrier ×2 (60%). return: pool 20%. Night: Soaked characters take 5 Storm per watch here. **NPCs:** none.
-- **Events:** `ev_cairns_strike` — "Lightning takes a cairn two paces from you. The spike glows. The stone beneath it is glass now, and in the glass a face you half know." — once; grants `echo_sky_oath` (Stormcrown's bargain, §6) with `{item:"item_sky_whisper_talisman"}`.
+- **Events:** `ev_cairns_strike` — "Lightning takes a cairn two paces from you. The spike glows. The stone beneath it is glass now, and in the glass a face you half know." — once; grants `echo_sky_oath` (Stormcrown's bargain, §6) with `{item:"item_sky_whisper_talisman"}`. `ev_hallows_cairn` — "One cairn stands apart, older than the rest and capped with a hammer-head instead of a spike. Under the ash the iron is still warm. Hallow's Cairn: the smith died here with the ember still lit, after crossing the Peaks north." — once; STORY's Hallow's Cairn (`q_bone_road` stage 3, `echo_iron_that_does_not_wish` with `item_borins_forge_mark` in inventory; C-37).
 - **Art spec:** horizon 0.48; silhouettes: cairns with spikes, a lightning fork, low cloud; particles: sparks and glass glitter.
 
 #### `loc_watchfire_ridge` — Watchfire Ridge
@@ -965,7 +982,7 @@ each three-day cycle.
 | south | loc_reedmarch_descent | — |
 
 - **Items:** item_whetstone_strip ×1. **Encounters:** first: cr_steppe_harrier ×2 (40%). return: pool 20%. **NPCs:** none (sentries are set-dressing).
-- **Events:** `ev_ridge_apex` — "A sentry hands you a glass. Through it the Apex seams move like breathing. 'Faster than last season,' she says." — once; grants `echo_breach_failing`.
+- **Events:** `ev_ridge_apex` — "A sentry hands you a glass. Through it the Apex seams move like breathing. 'Faster than last season,' she says." — once; grants `echo_breach_clock`.
 - **Art spec:** horizon 0.40 (high); silhouettes: ridge spine, watchfire, distant green and white smears; particles: embers.
 
 #### `loc_reedmarch_descent` — Reedmarch Descent
@@ -976,6 +993,7 @@ each three-day cycle.
 | Direction | Destination | Condition |
 |---|---|---|
 | north | loc_watchfire_ridge | — |
+| north (the waystone road) | loc_scorched_gate | `{echo:"echo_steppe_waystones"}` — the Waystone Order: a cairn-marked road past the Ridge, one watch (D-068.1) |
 | south | loc_veridian_glowlands | — |
 
 - **Items:** item_glow_moss ×2 (the trade baskets). **Encounters:** first: cr_reed_stalker ×1 (40%). return: pool(steppe) 10% / pool(glowfen) 10%. **NPCs:** none.
@@ -1024,7 +1042,7 @@ loc_null_orchard or loc_eye_of_the_scar without `item_weavers_thread_ring` costs
 | Direction | Destination | Condition |
 |---|---|---|
 | west | loc_veil_mouth | — |
-| east | loc_sanctum_of_threads | `{rep:{faction:"shadow_weavers",min:-9}}` — the Sanctum door is barred to the Wary and Hostile |
+| east | loc_sanctum_of_threads | `{rep:{faction:"weavers",min:-9}}` — the Sanctum door is barred to the Wary and Hostile |
 | north | loc_null_orchard | — |
 
 - **Items:** mat_umbral_thread ×2. **Encounters:** first: cr_null_mouth ×1 (60%). return: pool 20%. **NPCs:** none.
@@ -1032,7 +1050,7 @@ loc_null_orchard or loc_eye_of_the_scar without `item_weavers_thread_ring` costs
 - **Art spec:** horizon 0.60 (interior); silhouettes: descending steps fading to nothing, a wall thread; particles: pixel-dissolve of the lowest steps.
 
 #### `loc_sanctum_of_threads` — Sanctum of Threads
-- **Band / map / rest / merchant:** 11 · (48, 0) · **Rest point: yes** · **Merchant: yes** (npc_hollis_vane)
+- **Band / map / rest / merchant:** 11 · (48, 0) · **Rest point: yes** · **Merchant: yes** (npc_hollis_cade)
 - **Description.** A hall woven, not built. Threads of grey and violet run from wall to wall in thousands and the walls themselves are more thread. Weavers sit in the web and work. At the center an old woman with no eyes holds the one thread that all the others are tied to.
 - **Exits**
 
@@ -1040,7 +1058,7 @@ loc_null_orchard or loc_eye_of_the_scar without `item_weavers_thread_ring` costs
 |---|---|---|
 | west | loc_stair_of_unmaking | — |
 
-- **Items:** item_weavers_thread_ring (gift at Trusted). **Encounters:** none. **NPCs:** npc_ysmay (Thread-Mother; quest giver), npc_hollis_vane (quartermaster/merchant), npc_nyx (when not at the Chasm, Loop 2+ scenes).
+- **Items:** item_weavers_thread_ring (gift at Trusted). **Encounters:** none. **NPCs:** npc_sethe_unlidded (Weaver keeper and chain-giver: q_hollow_choir, q_unlidded_eye; D-064), npc_ysmay (Thread-Mother; Veil regional errands), npc_hollis_cade (quartermaster/merchant), npc_nyx (when not at the Chasm, Loop 2+ scenes). STORY's "Hollow Choir" is this hall.
 - **Events:** `ev_sanctum_thread` — "The Thread-Mother turns her face to you. 'You are knotted,' she says. 'Someone has tied you to the same day eight times.'" — once per loop, Loop 2+.
 - **Art spec:** horizon 0.55 (interior); silhouettes: radial threads converging, seated weavers, a central figure; particles: violet thread-glints.
 
@@ -1099,13 +1117,13 @@ loc_null_orchard or loc_eye_of_the_scar without `item_weavers_thread_ring` costs
 | south | loc_voidglass_gallery | — |
 | east | loc_where_she_fell | — |
 
-- **Items:** item_umbral_mirror (100% after boss), mat_umbral_thread ×3 (after boss). **Encounters:** **forced boss:** cr_vells_umbra ×1 (adds cr_hollow_lantern). Pacifist bypass: with Nyx as active companion and `echo_nyx_true_name`, she calls it back — it goes into her; Nyx gains a permanent stance bonus and the fight is skipped. **NPCs:** none.
+- **Items:** item_umbral_mirror (100% after boss), mat_umbral_thread ×3 (after boss). **Encounters:** **forced boss:** cr_vells_umbra ×1 (adds cr_hollow_lantern). Pacifist bypass: with Nyx as active companion and `echo_nyx_is_of_the_nine`, she calls it back — it goes into her; Nyx gains a permanent stance bonus and the fight is skipped. **NPCs:** none.
 - **Events:** `ev_eye_shape` — "The shadow stands up. It is a woman's. You know the woman." — once per loop.
 - **Art spec:** horizon 0.50; silhouettes: circular glass floor, a single tall shadow with no caster; particles: inverted light (dark motes on a faint glow).
 
 #### `loc_where_she_fell` — Where She Fell
 - **Band / map / rest / merchant:** 12–13 · (40, −4) · no · no
-- **Description.** A crater of fused starlight glass, forty paces across, forty years old. In the center, the print of a body that landed from very far away and very long ago, and got up. Around the rim, in a hand you have seen in a Dark Spellbook's margins, notes.
+- **Description.** A crater of fused starlight glass, forty paces across, forty years old. In the center, the print of a body that landed from very far away and very long ago, and got up, and crawled toward the Hollow (D-067.13). Around the rim, in a hand you have seen in a Dark Spellbook's margins, notes. Cut into the crater's east wall, a cell: a bed of thread, a lamp, and a wall of nine names, eight crossed out.
 - **Exits**
 
 | Direction | Destination | Condition |
@@ -1113,8 +1131,8 @@ loc_null_orchard or loc_eye_of_the_scar without `item_weavers_thread_ring` costs
 | west | loc_eye_of_the_scar | — |
 | south | loc_null_orchard | — |
 
-- **Items:** item_litany_page_2 (100%, in a glass case Nyxaria made; opens with `{any:[{rep:{faction:"shadow_weavers",min:20}},{echo:"echo_nyx_true_name"}]}`), item_nyxarias_quiet (void_focus; Weavers Sworn only). **Encounters:** none (she warded it). **NPCs:** npc_nyx (Loop 2+ confrontation scene, STORY.md).
-- **Events:** `ev_fell_notes` — "The notes on the rim are dated. The first says: 'Year 460 of the Sundering. It worked. It worked and I am alone.'" — once; grants `echo_nyx_true_name`. `ev_fell_resonance` — "You put your hand in the print. For a moment you fall for five hundred years. You understand what a Void Shard is." — once, requires `{rep:{faction:"shadow_weavers",min:20}}`; grants `echo_void_resonance`.
+- **Items:** item_litany_page_2 (100%, in a glass case Nyxaria made; opens with `{any:[{rep:{faction:"weavers",min:20}},{echo:"echo_nyx_is_of_the_nine"}]}`), item_nyxs_shardglass (void_focus; Weavers Sworn only). **Encounters:** none (she warded it). **NPCs:** npc_nyx (Loop 2+ confrontation scene, STORY.md).
+- **Events:** `ev_fell_notes` — "The notes on the rim are dated. The first says: 'Year 460 of the Sundering. It worked. It worked and I am alone.'" — once; grants `echo_nyx_is_of_the_nine`. `ev_fell_resonance` — "You put your hand in the print. For a moment you fall for five hundred years. You understand what a Void Shard is." — once, requires `{rep:{faction:"weavers",min:20}}`; grants `echo_void_resonance`. `ev_nyx_cell` — "Nine names on the cell wall. Eight are struck through. The ninth is hers, and the line through it stops halfway." — once, Loop 2+; STORY's "Nyx's Cell" (`q_the_dark_between`, C-37) is this cell.
 - **Art spec:** horizon 0.50; silhouettes: crater rim with notes, central body-print, glass glint; particles: a single held starlight sparkle.
 
 ### 3.9 The Glowfen (`region_glowfen`, 8 locations)
@@ -1148,7 +1166,7 @@ region-wide.
 | east | loc_elder_mangrove | — |
 | south | loc_breathing_pool | — |
 
-- **Items:** item_antidote_root ×2. **Encounters:** none (settlement). **NPCs:** npc_elder_tam, npc_elder_wren, npc_old_fennick, npc_mireya (companion anchor).
+- **Items:** item_antidote_root ×2. **Encounters:** none (settlement). **NPCs:** npc_elder_tam, npc_elder_wen, npc_old_fennick, npc_mireya (companion anchor).
 - **Events:** `ev_lanternreed_wrists` — "A child shows you her wrists. The light under the skin pulses with the pool. 'Mam says it means we're chosen,' she says. Mireya, behind her, says nothing." — once per loop.
 - **Art spec:** horizon 0.58; silhouettes: stilt houses, walkways, the breathing pool's rim; particles: soft glow pulsing in time (12 s).
 
@@ -1162,7 +1180,7 @@ region-wide.
 | west | loc_lantern_causeway | — |
 | south | loc_elder_mangrove | — |
 
-- **Items:** mat_glow_spore ×3. **Encounters:** first: cr_spore_drift ×2 (70%). return: cr_glowfen_mireling ×2 (30%) or pool 20%. Dawn: Poison 1 turn at ambush onset. **NPCs:** none.
+- **Items:** mat_glow_gland ×3. **Encounters:** first: cr_spore_drift ×2 (70%). return: cr_glowfen_mireling ×2 (30%) or pool 20%. Dawn: Poison 1 turn at ambush onset. **NPCs:** none.
 - **Events:** `ev_shallows_sweet` — "The air is sweet. You hold your breath too late and the shallows tilt." — once.
 - **Art spec:** horizon 0.62; silhouettes: stumps with fungal shelves, mist layer; particles: glowing spore dust.
 
@@ -1178,13 +1196,13 @@ region-wide.
 | south | loc_firefly_barrows | — |
 | east | loc_pale_gullet | — |
 
-- **Items:** mat_lantern_resin ×2, item_lanternwood_bow (Loop 2+, 100% once, in a root-hollow, if Mireya is active). **Encounters:** first: cr_reed_stalker ×1 + cr_glowfen_mireling ×1 (60%). return: cr_barrow_light ×1 (20%) or pool 20%. **NPCs:** none.
-- **Events:** `ev_mangrove_answer` — "You ask the tree nothing. It answers anyway, in Elder Tam's voice: 'Not yet.'" — once; grants `echo_breach_leak` with Mireya active.
+- **Items:** mat_ley_resin ×2, item_lanternwood_bow (Loop 2+, 100% once, in a root-hollow, if Mireya is active). **Encounters:** first: cr_reed_stalker ×1 + cr_glowfen_mireling ×1 (60%). return: cr_barrow_light ×1 (20%) or pool 20%. **NPCs:** none.
+- **Events:** `ev_mangrove_answer` — "You ask the tree nothing. It answers anyway, in Elder Tam's voice: 'Not yet.'" — once; grants `echo_glowlands_leak` with Mireya active.
 - **Art spec:** horizon 0.50; silhouettes: a vast root-hall, hanging moss, light pools; particles: slow drifting fireflies.
 
 #### `loc_breathing_pool` — The Breathing Pool
 - **Band / map / rest / merchant:** 9–10 · (32, 16) · no · no
-- **Description.** Below Lanternreed the pool's source: a well of light that inhales for six heartbeats and exhales for six. Elder Wren keeps a reed mat at the edge. People who sit there come away lighter, or less.
+- **Description.** Below Lanternreed the pool's source: a well of light that inhales for six heartbeats and exhales for six. Elder Wen keeps a reed mat at the edge. People who sit there come away lighter, or less.
 - **Exits**
 
 | Direction | Destination | Condition |
@@ -1192,8 +1210,8 @@ region-wide.
 | north | loc_lanternreed | — |
 | east | loc_firefly_barrows | — |
 
-- **Items:** item_stillwater_phial ×1. **Encounters:** none while Wren lives. **NPCs:** npc_elder_wren (cleansing of Corruption, D-017; free with `flag_heartstone_stabilized`).
-- **Events:** `ev_pool_cleanse` — "Wren puts your hands in the light. Something in you lets go of a book. It takes six breaths." — fires on cleansing.
+- **Items:** item_stillwater_phial ×1. **Encounters:** none while Wen lives. **NPCs:** npc_elder_wen (cleansing of Corruption, D-017/D-064: one full rest here + `item_glow_moss` ×3, sets Corruption 0 and `flag_corruption_cleansed`; free with `flag_heartstone_stabilized`; quest giver, q_the_drowned_lantern).
+- **Events:** `ev_pool_cleanse` — "Wen puts your hands in the light. Something in you lets go of a book. It takes six breaths." — fires on cleansing.
 - **Art spec:** horizon 0.60; silhouettes: a round well of light, reed mat, a seated elder; particles: in/out pulse of motes, 12 s cycle.
 
 #### `loc_firefly_barrows` — Firefly Barrows
@@ -1207,13 +1225,13 @@ region-wide.
 | north | loc_elder_mangrove | — |
 | east | loc_matrons_hall | — |
 
-- **Items:** item_barrow_light_vial ×1 (100% after cr_barrow_light), mat_lantern_resin ×1. **Encounters:** first: cr_barrow_light ×1 (100%, dusk/night; 40% by day). return: cr_barrow_light ×1 (30%). **NPCs:** none.
-- **Events:** `ev_barrows_names` — "The lights speak names as they walk. Seven of them are Wayfinders'. The eighth is yours, and it has not been spoken yet." — once, Loop 3+; grants `echo_wayfinder_lineage` if not already held.
+- **Items:** item_barrow_light_vial ×1 (100% after cr_barrow_light), mat_ley_resin ×1. **Encounters:** first: cr_barrow_light ×1 (100%, dusk/night; 40% by day). return: cr_barrow_light ×1 (30%). **NPCs:** none.
+- **Events:** `ev_barrows_names` — "The lights speak names as they walk. Seven of them are Wayfinders'. The eighth is yours, and it has not been spoken yet." — once, Loop 3+; grants `echo_seven_wayfinders` if not already held.
 - **Art spec:** horizon 0.58; silhouettes: low mounds, walking light-figures; particles: firefly swarm.
 
 #### `loc_pale_gullet` — The Pale Gullet
 - **Band / map / rest / merchant:** 11–12 · (48, 14) · no · no
-- **Description.** The swamp narrows into a throat of pale roots and the water runs fast and downhill. The light here is white, not green. The current wants you to go on. Leaving the Gullet north costs two watches of hauling against it.
+- **Description.** The swamp narrows into a throat of pale roots and the water runs fast and downhill. The light here is white, not green. The current wants you to go on. Leaving the Gullet west, upstream to the Mangrove, costs two watches of hauling against it.
 - **Exits**
 
 | Direction | Destination | Condition |
@@ -1235,14 +1253,14 @@ region-wide.
 | north | loc_pale_gullet | — |
 | west | loc_firefly_barrows | — |
 
-- **Items:** item_mireyas_lantern (Mireya's quest), item_lantern_moth_brooch (100% after boss), mat_lantern_resin ×4 (after boss). **Encounters:** **forced boss:** cr_lantern_matron ×1 (adds cr_lantern_toad). Pacifist bypass: with Mireya active and `item_mireyas_lantern` lit, Sulis is lulled and the lanterns can be taken from her back — Mireya's arc branch "preserve". **NPCs:** none.
+- **Items:** item_mireyas_lantern (Mireya's quest), item_lantern_moth_brooch (100% after boss), mat_ley_resin ×4 (after boss). **Encounters:** **forced boss:** cr_lantern_matron ×1 (adds cr_lantern_toad). Pacifist bypass: with Mireya active and `item_mireyas_lantern` lit, Sulis is lulled and the lanterns can be taken from her back — Mireya's arc branch "preserve". **NPCs:** none.
 - **Events:** `ev_hall_names` — "The lanterns on her back have names scratched in the glass. Mireya reads one and stops reading." — once per loop.
 - **Art spec:** horizon 0.45 (cavern); silhouettes: root island, a mountainous seated figure hung with lanterns; particles: dense lantern-glow haze.
 
 ### 3.10 The Skyreach (`region_skyreach`, 5 locations)
 
 Entered from loc_sky_whisper_plateau (south) or loc_aetherium_spires (south). **Thin air
-gate:** both entrances require `{any:[{item:"item_sky_whisper_talisman"},{echo:"echo_breath_of_heights"}]}`.
+gate:** both entrances require `{any:[{item:"item_sky_whisper_talisman"},{echo:"echo_high_mark"}]}`.
 Gale by default; storm at dusk (Storm +25%, lightning on Soaked).
 
 #### `loc_windward_stair` — The Windward Stair
@@ -1254,10 +1272,10 @@ Gale by default; storm at dusk (Storm +25%, lightning on Soaked).
 |---|---|---|
 | north | loc_sky_whisper_plateau | — |
 | west | loc_spire_crown | — |
-| south | loc_aldours_eyrie | — |
+| south | loc_auldes_eyrie | — |
 
-- **Items:** mat_gale_feather ×1. **Encounters:** first: cr_gale_kite ×2 (60%). return: pool(skyreach) 20%. Fleeing here costs 10% HP. **NPCs:** none.
-- **Events:** `ev_stair_breath` — "You breathe when the Talisman says. You step when the wind says. For eleven steps you are not falling." — once; grants `echo_breath_of_heights`.
+- **Items:** mat_gale_feather ×1; gathering: mat_skyreach_crystal ×1. **Encounters:** first: cr_gale_kite ×2 (60%). return: pool(skyreach) 20%. Fleeing here costs 10% HP. **NPCs:** none.
+- **Events:** `ev_stair_breath` — "You breathe when the Talisman says. You step when the wind says. For eleven steps you are not falling." — once; grants `echo_high_mark`.
 - **Art spec:** horizon 0.30 (high); silhouettes: faint stair outline in wind streaks, plateau far below; particles: fast wind lines.
 
 #### `loc_spire_crown` — The Spire-Crown
@@ -1271,8 +1289,8 @@ Gale by default; storm at dusk (Storm +25%, lightning on Soaked).
 | east | loc_windward_stair | — |
 | south | loc_roost_of_sentinels | — |
 
-- **Items:** item_aetherium_shard ×2, item_aetherium_prism (100%, Loop 2+). **Encounters:** first: cr_aetherial_weaver ×2 + cr_glass_mote ×1 (100%). return: cr_glass_mote ×3 (35%). Heartstone destroyed: no encounters (the Crown is dark). **NPCs:** none.
-- **Events:** `ev_crown_threads` — "Nine threads of light. One for each of them. The one that still runs goes east, to the Apex, and it is taut." — once; grants `echo_nine_threads`.
+- **Items:** item_aetherium_shard ×2, item_aetherium_prism (100%, Loop 2+); gathering: mat_skyreach_crystal ×1. **Encounters:** first: cr_aetherial_weaver ×2 + cr_glass_mote ×1 (100%). return: cr_glass_mote ×3 (35%). Heartstone destroyed: no encounters (the Crown is dark). **NPCs:** none.
+- **Events:** `ev_crown_threads` — "Nine threads of light. One for each of them. The one that still runs goes east, to the Apex, and it is taut." — once; grants `echo_spire_note`.
 - **Art spec:** horizon 0.35; silhouettes: a crystal disc, nine light rays, cloud floor; particles: light threads with slow pulse.
 
 #### `loc_roost_of_sentinels` — Roost of the Sentinels
@@ -1283,16 +1301,16 @@ Gale by default; storm at dusk (Storm +25%, lightning on Soaked).
 | Direction | Destination | Condition |
 |---|---|---|
 | north | loc_spire_crown | — |
-| east | loc_aldours_eyrie | — |
+| east | loc_auldes_eyrie | — |
 | west | loc_stormcrowns_perch | — |
 
 - **Items:** item_hearth_iron_greataxe (on a sky-burial ledge; taking it costs Ironclad −10 unless `echo_sky_oath`), mat_gale_feather ×2. **Encounters:** first: cr_sky_whisper_sentinel ×1 + cr_gale_kite ×1 (100%). return: cr_cloud_ray ×2 (35%). **NPCs:** none.
 - **Events:** `ev_roost_bones` — "The bones on the ledges wear Nomad steel. The Sentinels guard them as if they were eggs." — once.
 - **Art spec:** horizon 0.40; silhouettes: honeycombed cliff, perched sentinel shapes, laid-out bones; particles: feathers and grit.
 
-#### `loc_aldours_eyrie` — Aulde's Eyrie
+#### `loc_auldes_eyrie` — Aulde's Eyrie
 - **Band / map / rest / merchant:** 14 · (24, 14) · **Rest point: yes** (the workshop's inner room is windless) · no
-- **Description.** A workshop of glass and brass set into the cliff. Looms run on their own, weaving light into cord. Drawings cover every wall: the Spires as a harp; the Apex as a knot; a device with two halves. The hand is a woman's, and sure.
+- **Description.** A workshop of glass and brass set into the cliff. Looms run on their own, weaving light into cord. Drawings cover every wall: the Spires as a harp; the Apex as a knot; a device with two halves. The hand is a woman's, and sure. (The id was `loc_aldours_eyrie` before U9; D-063's spelling is Aulde.)
 - **Exits**
 
 | Direction | Destination | Condition |
@@ -1300,21 +1318,21 @@ Gale by default; storm at dusk (Storm +25%, lightning on Soaked).
 | north | loc_windward_stair | — |
 | west | loc_roost_of_sentinels | — |
 
-- **Items:** item_aldours_spire_notes (100%), item_breach_anchor_schematic_a (100%; half the schematic), item_spire_builders_staff (locked case; opens with `item_aetherium_prism`). **Encounters:** first: cr_spire_loom ×1 + cr_aetherial_weaver ×1 (100%). return: cr_spire_loom ×1 (25%). Heartstone destroyed: looms inactive, no encounters. **NPCs:** npc_dask (can remain).
-- **Events:** `ev_eyrie_weavers` — "A loom finishes a cord of light and lets it go. It drifts out the window toward the Spires, spinning, and you know what an Aetherial Weaver is." — once; grants `echo_aldour_weavers`.
+- **Items:** item_auldes_spire_notes (100%), item_breach_anchor_schematic_a (100%; half the schematic — reading it grants its own persistent Echo, `echo_anchor_half_a`; holding both halves' Echoes, from any loops, grants `echo_anchor_schema`, D-067.6), item_spire_builders_staff (locked case; opens with `item_aetherium_prism`). **Encounters:** first: cr_spire_loom ×1 + cr_aetherial_weaver ×1 (100%). return: cr_spire_loom ×1 (25%). Heartstone destroyed: looms inactive, no encounters. **NPCs:** npc_dask (can remain).
+- **Events:** `ev_eyrie_weavers` — "A loom finishes a cord of light and lets it go. It drifts out the window toward the Spires, spinning, and you know what an Aetherial Weaver is." — once; grants `echo_spire_note`.
 - **Art spec:** horizon 0.55 (interior); silhouettes: looms, wall drawings, a cliff window; particles: light-cord filaments.
 
 #### `loc_stormcrowns_perch` — The Stormcrown's Perch
 - **Band / map / rest / merchant:** 15 (boss) · (8, 14) · no · no
-- **Description.** A single pinnacle above everything, ringed with lightning that never grounds. On it the first Sentinel, made before the others, with a crown of storm-glass and five hundred years of watching the Apex. It knows the thing in the Apex has never once struck first.
+- **Description.** A single pinnacle above everything, ringed with lightning that never grounds. On it the first Sentinel, made before the others, with a crown of storm-glass and five hundred years of watching the Apex. It knows the thing in the Apex does not strike what keeps its distance (D-067.12).
 - **Exits**
 
 | Direction | Destination | Condition |
 |---|---|---|
 | east | loc_roost_of_sentinels | — |
 
-- **Items:** item_stormcrown_talon (100% after boss or bargain), item_gale_feather (100% after boss), mat_storm_glass ×3. **Encounters:** **forced boss:** cr_stormcrown ×1 (adds cr_gale_kite) unless bargain. Pacifist bypass: `echo_sky_oath` + `item_sky_whisper_talisman` → Stormcrown yields the Talon and `echo_tyrant_never_struck`. **NPCs:** none.
-- **Events:** `ev_perch_watch` — "The Stormcrown does not look at you. It looks east. 'It has never struck first,' it says. 'Seven came. Seven struck.'" — once per loop; grants `echo_tyrant_never_struck`.
+- **Items:** item_stormcrown_talon (100% after boss or bargain), mat_gale_feather (100% after boss), mat_storm_glass ×3. **Encounters:** **forced boss:** cr_stormcrown ×1 (adds cr_gale_kite) unless bargain. Pacifist bypass: `echo_sky_oath` + `item_sky_whisper_talisman` → Stormcrown yields the Talon and `echo_tyrant_never_struck`. **NPCs:** none.
+- **Events:** `ev_perch_watch` — "The Stormcrown does not look at you. It looks east. 'It does not strike what keeps its distance,' it says. 'Seven came. Seven came close.'" — once per loop; grants `echo_tyrant_never_struck`.
 - **Art spec:** horizon 0.25; silhouettes: a pinnacle, a crowned sentinel, ring of lightning; particles: lightning arcs.
 
 ### 3.11 Silverwood Before (`region_silverwood_before`, 10 locations)
@@ -1323,8 +1341,11 @@ Entered by the Breach-door (loc_chronos_nexus → loc_silver_gate) or through th
 Tyrant (loc_temporal_breach_apex → loc_conflux_chamber). The echo runs three days: First
 Bell, Second Bell, Last Bell (`flag_before_day_1/2/3`). Resting at the Garret advances one
 day. At Last Bell's dusk the Sundering fires and the player is returned through the door
-they came by, with everything they carry. Objects placed on the Conflux altar before that
-moment become **Anchors** (D-016). The Breach Clock does not run here.
+they came by, with everything they carry, and the Breach Clock advances one day for the
+crossing (D-067.5). `anchorable` objects placed on the cradle's rim before that moment
+become **Anchors** for the current loop (D-016, D-067.4). The Breach Clock is frozen here and
+the Day 1–3 counter restarts on every entry (D-066.9); pick-ups, drops and XP are granted
+once per loop (D-067.5).
 
 #### `loc_silver_gate` — The Silver Gate
 - **Band / map / rest / merchant:** 13 · (64, 4) · no · no
@@ -1337,7 +1358,7 @@ moment become **Anchors** (D-016). The Breach Clock does not run here.
 | south | loc_outer_walks | — |
 | west ⟂ (Breach-door) | loc_chronos_nexus | `{flag:"flag_entered_before_via_nexus"}` — the way back |
 
-- **Items:** none. **Encounters:** none (Watch present); on Day 3, cr_city_watch_halberdier ×2 if `flag_wanted_in_silverwood`. **NPCs:** npc_hesper_dunn (Watch-Captain; quest giver).
+- **Items:** none. **Encounters:** none (Watch present); on Day 3, cr_city_watch_halberdier ×2 if `flag_wanted_in_silverwood`. **NPCs:** npc_merrit_dunn (Gate-Captain under Captain Corvin Dreyl; gatekeeper, no quest; renamed from Hesper Dunn, C-52).
 - **Events:** `ev_gate_whole` — "The arch is whole. You put a hand on it. It is cool, and it does not remember anything yet." — once per entry.
 - **Art spec:** horizon 0.55; silhouettes: the whole arch with silver keystone, uniformed guards, a roofed skyline; particles: dawn dust-gold.
 
@@ -1352,7 +1373,7 @@ moment become **Anchors** (D-016). The Breach Clock does not run here.
 | east | loc_apprentices_garret | — |
 | south | loc_archives_of_danthe | — |
 
-- **Items:** item_silverwood_honeycake ×2. **Encounters:** first: cr_ley_hound ×2 (Day 2–3 only, 40%; the Circle's hounds roam when the Archives are sealed). **NPCs:** none.
+- **Items:** item_silverwood_honeycake ×2; gathering: mat_silverwood_heartwood ×1 (a felled tree by the tablets; once per loop). **Encounters:** first: cr_ley_hound ×2 (Day 2–3 only, 40%; the Circle's hounds roam when the Archives are sealed). **NPCs:** npc_seraphine_aulde (Days 1–2, tuning the Spires from the east terrace; E7).
 - **Events:** `ev_walks_tablet` — "The blank tablet stands where you will wake in five hundred years. You do not carve anything on it. You think about it." — once per loop.
 - **Art spec:** horizon 0.60; silhouettes: straight trees, tablet row, garden wall; particles: leaves.
 
@@ -1366,7 +1387,7 @@ moment become **Anchors** (D-016). The Breach Clock does not run here.
 | south | loc_silver_gate | — |
 | north | loc_grand_library | — |
 
-- **Items:** none. **Encounters:** Day 3: ley-flare hazard (Burn 1 turn on entry); cr_circle_adept ×1 (50%) if `flag_wanted_in_silverwood`. **NPCs:** none.
+- **Items:** none. **Encounters:** Day 3: ley-flare hazard (Burn 1 turn on entry); cr_circle_adept ×1 (50%) if `flag_wanted_in_silverwood`. **NPCs:** npc_maelis_korr (Days 1–2, lecturing at the clean wall; E7).
 - **Events:** `ev_corridor_plaster` — "A scholar leans on the clean wall, hand flat, to shift his books. You see where the scorch will be." — once.
 - **Art spec:** horizon 0.68 (interior); silhouettes: colonnade, lamps, passing grey figures; particles: lamplight motes (Day 3: blue flare).
 
@@ -1380,8 +1401,8 @@ moment become **Anchors** (D-016). The Breach Clock does not run here.
 | south | loc_scholars_corridor | — |
 | east | loc_plaza_of_bells | — |
 
-- **Items:** item_korrs_marginalia (Day 1–2, in the restricted stacks; requires `item_ward_seal` or `rep remnants ≥ 20` via Oriel's letter), item_remnant_ink ×2. **Encounters:** none Days 1–2; Day 3: cr_circle_adept ×2 (60%). **NPCs:** none (Oriel is in her Archives).
-- **Events:** `ev_library_cradle` — "The Echo Crystal sits in its cradle, dark. It has not heard the nine voices yet. You could tell it what it will hear." — once; Loop 3+ option grants `echo_crystal_seeded` (STORY.md).
+- **Items:** item_korrs_marginalia (Day 1–2, in the restricted stacks; requires `item_ward_seal` or `rep remnants ≥ 20` via Oriel's letter), item_remnant_ink ×2. **Encounters:** none Days 1–2; Day 3: cr_circle_adept ×2 (60%). **NPCs:** npc_tovren_masque (on the glass roof, Days 1–3; E7). Oriel is in her Archives.
+- **Events:** `ev_library_cradle` — "The Echo Crystal sits in its cradle, dark. It has not heard the nine voices yet. You could tell it what it will hear." — once; Loop 3+ option grants `echo_crystal_seeded` (REGISTRY §6.2; STORY §12 defines the effect).
 - **Art spec:** horizon 0.70 (interior); silhouettes: shelf walls, rail ladders, glass roof grid; particles: dust in sunlight.
 
 #### `loc_plaza_of_bells` — The Plaza of Bells
@@ -1395,8 +1416,8 @@ moment become **Anchors** (D-016). The Breach Clock does not run here.
 | south | loc_apprentices_garret | — |
 | east | loc_ninefold_hall | `{any:[{flag:"flag_before_day_3"},{item:"item_ward_seal"},{companion:"caelum",state:"active"}]}` — the Hall admits apprentices and the sealed; on Last Bell its doors stand open |
 
-- **Items:** item_bell_shard (Day 3, after the first toll cracks a bell; 100%). **Encounters:** none; drawing a weapon here summons cr_city_watch_halberdier ×2 (non-lethal arrest). **NPCs:** npc_bellwright_anso (merchant), npc_caelum (Day 1, buying bread; recruit scene).
-- **Events:** `ev_plaza_dance` — "They are dancing. Someone pulls you into it. For a moment you are a person in a city, and nothing else." — once, Day 1. `ev_plaza_crack` — "The ninth bell cracks on the first toll of Last Bell. No one dances." — once, Day 3.
+- **Items:** item_bell_shard (Day 3, after the first toll cracks a bell; 100%). **Encounters:** none; drawing a weapon here summons cr_city_watch_halberdier ×2 (non-lethal arrest). **NPCs:** npc_bellwright_anso (merchant), npc_corvin_dreyl (Days 1–3, the Watch post; E5), npc_caelum (Day 1, buying bread; `q_the_apprentices_errand` runs from here at noon on Last Bell — Day 3, STORY's Day −1 — and he joins as a companion inside the Before once it is done, D-067.9). **The Spire Yard** (STORY §9) is the Plaza's east terrace, below the bell-frame.
+- **Events:** `ev_plaza_dance` — "They are dancing. Someone pulls you into it. For a moment you are a person in a city, and nothing else." — once, Day 1. `ev_plaza_crack` — "The ninth bell cracks on the first toll of Last Bell. No one dances." — once, Day 3. `ev_plaza_spire_yard` — "On the east terrace Aulde reads a boy's message, laughs once, and says to the bells: 'Begin at the ninth.' Verse 5 is in her laugh." — once, Day 3 noon, during `q_the_apprentices_errand` (STORY §9.1: the Spire Yard; grants `echo_litany_verse_5`). The second message, sent at dusk, is the one Caelum carries up the Archive stair and never delivers (D-067.9).
 - **Art spec:** horizon 0.58; silhouettes: running fountains, the bell-frame, dancers; particles: water spray (Day 3: none).
 
 #### `loc_ninefold_hall` — The Ninefold Hall
@@ -1408,8 +1429,8 @@ moment become **Anchors** (D-016). The Breach Clock does not run here.
 |---|---|---|
 | west | loc_plaza_of_bells | — |
 
-- **Items:** item_litany_page_3 is **not** here (see Archives); item_orrery_key duplicate (Hadrek's chair, Day 1, 100% if `echo_hadrek_clockwright`). **Encounters:** Day 3: cr_ninefold_knight ×1 (100%) guards the empty hall. **NPCs:** npc_veyran_thal (Days 1–2), npc_nyxaria_vell_before (Days 1–2), npc_tobrin_vask (Day 2).
-- **Events:** `ev_hall_veyran` — "Veyran Thal looks at you the way a man looks at a letter he has not opened. 'You are not from the city,' he says. 'You are not from the year.'" — once, Day 1; grants `echo_tyrant_true_name`.
+- **Items:** item_litany_page_3 is **not** here (see Archives); item_orrery_key duplicate (Masque's chair, where Hadrek works, Day 1, 100% if `echo_hadrek_clockwright`; E6). **Encounters:** Day 3: cr_ninefold_knight ×1 (100%) guards the empty hall. **NPCs:** npc_veyran_thal (Days 1–2), npc_nyxaria_vell_before (Days 1–2), npc_haldric_vane (Days 1–2, golem sigils on the floor-map), npc_hadrek (Day 1, in Masque's empty chair), npc_tobrin_vask (Day 2). **Veyran's study** is the Hall's east closet; **Masque's roof** is the Hall's dome (STORY §9, D-067.10).
+- **Events:** `ev_hall_veyran` — "Veyran Thal looks at you the way a man looks at a letter he has not opened. 'You are not from the city,' he says. 'You are not from the year.'" — once, Day 1; grants `echo_tyrant_name`. `ev_hall_study_draft` — "In the study, a draft of the ninth verse, crossed out four times. The fifth version is not finished. The ink is still wet." — once, Days 2–3 (STORY §9.5: verse 9's draft; grants `echo_litany_verse_9` per STORY §12). `ev_hall_masque_roof` — "On the dome, Masque has his eye to the glass. 'It fails,' he says without turning. 'I have read it twice. Go and tell him. He will not hear it from me.'" — once, Day 3 (STORY §9.4: `q_stop_the_ritual`'s final beat, `echo_ritual_inevitable`).
 - **Art spec:** horizon 0.60 (interior); silhouettes: nine chairs in a ring, silver floor-map, domed roof; particles: silver glints along the floor lines.
 
 #### `loc_apprentices_garret` — The Apprentices' Garret
@@ -1424,20 +1445,20 @@ moment become **Anchors** (D-016). The Breach Clock does not run here.
 | south | loc_cistern_gardens | — |
 
 - **Items:** item_caelums_anchor_token (Caelum gives it; his quest), item_silverwood_honeycake ×1. **Encounters:** none. **NPCs:** npc_caelum (companion anchor).
-- **Events:** `ev_garret_litany` — "Caelum reads aloud without knowing it: 'Hold the moment as a hand holds water.' He stops. 'That is not in the copy they gave us.'" — once; grants `echo_litany_verse_2` if not held.
+- **Events:** `ev_garret_litany` — "Caelum reads aloud without knowing it: 'What is read is owed.' He stops. 'That is not in the copy they gave us.'" — once; grants `echo_litany_verse_2` if not held (STORY §2.3's verse 2).
 - **Art spec:** horizon 0.66 (interior); silhouettes: cot rows, a window onto bells, a reading boy; particles: candle motes.
 
 #### `loc_cistern_gardens` — The Cistern Gardens
 - **Band / map / rest / merchant:** 14 · (72, 8) · no · no
-- **Description.** Terraced pools above the undercity's cisterns, green with lilies. Sluice-wheels at each pool. The Master of Waters walks the terraces on Second Bell with a key on a chain, checking each wheel twice, and does not sleep.
+- **Description.** Terraced pools above the undercity's cisterns, green with lilies. Sluice-wheels at each pool. The Warden of Waters walks the terraces on Second Bell with a key on a chain, checking each wheel twice, and does not sleep.
 - **Exits**
 
 | Direction | Destination | Condition |
 |---|---|---|
 | north | loc_apprentices_garret | — |
 
-- **Items:** item_cistern_key (Day 2, if `echo_rhune_choice`: Ilsabet gives it — "You will need this where you are going. I will not."), item_mana_bloom ×2 (the lilies). **Encounters:** none. **NPCs:** none (Ilsabet Rhune appears as an event figure only; see §13).
-- **Events:** `ev_gardens_wheels` — "The Master of Waters checks a wheel, then checks it again. 'If it fails,' she says to you, or to the wheel, 'I will drown the fire. The city will forgive me or it will not be there to.'" — once, Day 2.
+- **Items:** item_cistern_key (Day 2, if `echo_rhune_choice`: Ilsabet gives it — "You will need this where you are going. I will not."), item_mana_bloom ×2 (the lilies); gathering: mat_silverwood_heartwood ×1 (the sluice-wheels' spokes; once per loop). **Encounters:** none. **NPCs:** npc_ilsabet_rhune (Day 2; E3), npc_imre_sallow (Days 1–2, the Green Court beds; E7).
+- **Events:** `ev_gardens_wheels` — "The Warden of Waters checks a wheel, then checks it again. 'If it fails,' she says to you, or to the wheel, 'I will drown the fire. The city will forgive me or it will not be there to.'" — once, Day 2.
 - **Art spec:** horizon 0.58; silhouettes: terraced pools, sluice-wheels, a walking figure with a key; particles: lily-pollen.
 
 #### `loc_archives_of_danthe` — The Archives of Danthe
@@ -1456,7 +1477,7 @@ moment become **Anchors** (D-016). The Breach Clock does not run here.
 
 #### `loc_conflux_chamber` — The Conflux Chamber
 - **Band / map / rest / merchant:** 16–17 (boss) · (64, 10) · no · no
-- **Description.** The chamber of raw, pulsing magic, before it was a wound. Nine plinths around a well of light with no stone in it yet. An altar. On Last Bell the Circle stands at the plinths and the warder's masterwork stands at the stair, and it does not let anyone through who is not Nine.
+- **Description.** The chamber of raw, pulsing magic, before it was a wound. Nine plinths around a well of light, and in the well the Heartstone, whole, held in Hallow's iron cradle: iron that does not wish. The cradle's rim is where a hand could set something down. A field-forge by the stair. On Last Bell the Circle stands at the plinths and the warder's masterwork stands at the stair, and it does not let anyone through who is not Nine. (STORY wins, D-067.10: the stone exists before the ritual; the ritual cracks it.)
 - **Exits**
 
 | Direction | Destination | Condition |
@@ -1464,9 +1485,9 @@ moment become **Anchors** (D-016). The Breach Clock does not run here.
 | north | loc_archives_of_danthe | — |
 | through the tear ⟂ | loc_temporal_breach_apex | `{flag:"flag_entered_before_via_apex"}` — the way back |
 
-- **Items:** **Altar (Anchor slot):** any item placed here before the ritual survives into loc_heartstone_depths. item_ward_seal (Day 2, from Tobrin Vask if `echo_vask_seal`), item_breach_anchor_schematic_b (Day 3, on Tobrin's body-plinth after the Warden fight — the Nine's own failsafe), mat_conflux_dust ×3. **Encounters:** **forced boss (Day 3):** cr_unbroken_warden ×1 (adds cr_warding_pillar). Days 1–2: cr_warding_pillar ×2 (100%) unless `item_ward_seal`. Pacifist bypass: `item_ward_seal` + Caelum active — the Warden recognizes the seal and kneels; you may place Anchors but cannot touch the Nine (the ritual proceeds regardless).
-- **NPCs:** the Nine (Day 3, non-interactive; attempting to interrupt starts `q_stop_the_ritual`, which fails and grants `echo_ritual_inevitable`).
-- **Events:** `ev_conflux_well` — "The well has no stone in it. It is only light, and nine people about to reach into it." — once per loop. `ev_conflux_sundering` — "Veyran Thal steps forward into the light and does not step back. The bells stop. The floor is the sky. You are falling toward a door." — fires at Last Bell dusk; returns the player.
+- **Items:** **The cradle's rim (Anchor slot):** an `anchorable` item placed here before the ritual appears at loc_heartstone_depths for the rest of the loop (D-067.4); the Cradle-Pin set here is `flag_cradle_pin_anchored` (ending B; it must be set before Caelum crosses, D-067.9). item_ward_seal (Day 2, from Tobrin Vask if `echo_vask_seal`), item_breach_anchor_schematic_b (Day 3, on Tobrin's plinth after the Warden fight or the kneeling — the Nine's own failsafe; reading it grants `echo_anchor_half_b`; its present-day copy is at Vane's Watch, D-067.6), item_chronal_dust ×3; once per loop (D-067.5). **Gathering:** mat_silverwood_heartwood ×2 (the cradle's shims, once per loop). **Encounters:** **forced boss (Day 3):** cr_unbroken_warden ×1 (adds cr_warding_pillar). Days 1–2: cr_warding_pillar ×2 (100%) unless `item_ward_seal`, and only when entering by the Archives stair — arrival through the Apex tear wakes no pillars (W8). Pacifist bypass: `item_ward_seal` + Caelum active — the Warden recognizes the seal and kneels; you may place Anchors but cannot touch the Nine (the ritual proceeds regardless).
+- **NPCs:** npc_durn_hallow (Days 1–2, at his field-forge by the stair, fitting the cradle; E7). Day 3: all nine, non-interactive — npc_veyran_thal, npc_nyxaria_vell_before, npc_oriel_danthe, npc_maelis_korr, npc_haldric_vane, npc_durn_hallow (leaves at the sixth verse, D-050), npc_seraphine_aulde, npc_imre_sallow, npc_tovren_masque; attempting to interrupt starts `q_stop_the_ritual`, which fails and grants `echo_ritual_inevitable`.
+- **Events:** `ev_conflux_well` — "The Heartstone is whole. It sits in Hallow's iron and beats slowly, like something asleep, and nine people are about to reach into it." — once per loop. `ev_conflux_sundering` — "Veyran Thal steps forward into the light and does not step back. The bells stop. The floor is the sky. You are falling toward a door." — fires at Last Bell dusk; returns the player.
 - **Art spec:** horizon 0.50 (cavern); silhouettes: nine plinths with figures, an altar, a well of white light, a towering warder at the stair; particles: rising light streams (Day 3: strobe to white).
 
 ### 3.12 The Threshold (`region_threshold`, 4 locations)
@@ -1499,7 +1520,7 @@ Reached only by a loop ending. No combat, no time, no items to take except Attun
 | east | loc_still_shore | — |
 
 - **Items / Encounters:** none. **NPCs:** none. **Function:** run history, achievements, codex, bestiary (D-011).
-- **Events:** `ev_gallery_ending` — "A new painting, larger than the others. It is not of you. It is of everyone." — once, after any true ending.
+- **Events:** `ev_gallery_ending` — "A new painting, larger than the others. It is not of you. It is of everyone." — once, after any true ending. `ev_gallery_marks` — "Seven frames carry a scratch in the gilt, low on the left, where a hand would rest. The same hand." — once, Loop 3+, while `q_seven_marks` is active (its Gallery stage; quests started at the Threshold belong to the profile and survive the Far Light, D-067.15).
 - **Art spec:** horizon 0.60; silhouettes: colonnade receding, framed panels; particles: none.
 
 #### `loc_loom` — The Loom
@@ -1538,14 +1559,14 @@ conditions. Gated regions:
 | loc_heartstone_depths | WR → Sunken Archives → Depths (2) | `q_echoing_heartbeat` accepted (Loop 1: two completed quests trigger it) or `echo_heartstone_path` |
 | loc_barren_peaks and east | WR → Mistwood Path → Ironclad Camp → Peaks (3) | `q_clear_path` accepted or `echo_ironclad_passwords`. Alternative with no Nomad gate: WR → Archives → Depths → Pass → Spires → Plateau → Blighted Outpost (6, needs the Depths gate) |
 | loc_voidscar_hollow | WR → Mistwood Path → Plaza → Chasm → Hollow (4) | `q_void_shards` accepted or `echo_hollow_path` |
-| The Veil | … Hollow → Veil Mouth (5) | Weavers Trusted (rep ≥ 20) or `echo_veil_watchword`; the Sanctum additionally needs rep ≥ −9 |
-| The Drowned Reach | WR → Archives → Drowned Stair (2); beyond the Stair (3+) | `item_glyphbound_lantern` (Archives, with the scroll quest; or Kaelen, Loop 2+) |
-| The Ashen Steppe | WR → Mistwood → Camp → Peaks → Outpost → Scorched Gate (5) | Peaks gate; `q_blighted_outpost` completed or `echo_nomad_signs`. Ungated alternative from the south: Depths → Pass → Spires → Plateau → Glowlands → Reedmarch → Watchfire → Scorched Gate (8 from WR) |
+| The Veil | … Hollow → Veil Mouth (5) | Weavers Trusted (rep ≥ 20) or `echo_weaver_sign`; the Sanctum additionally needs rep ≥ −9 |
+| The Drowned Reach | WR → Archives → Drowned Stair (2); beyond the Stair (3+) | `item_glyphbound_lantern` (on the Archives' top step from Day 1, W7; or Kaelen, Loop 2+; or the recipe). Second way in: the Depths ↔ Cistern crack (`gate_cistern_crack_in`: lantern + key, or the Heartstone destroyed, or `echo_archive_door`) |
+| The Ashen Steppe | WR → Mistwood → Camp → Peaks → Outpost → Scorched Gate (5) | Peaks gate; `q_blighted_outpost` completed or `echo_nomad_signs`. Ungated alternative from the south: Depths → Pass → Spires → Plateau → Glowlands → Reedmarch → Watchfire → Scorched Gate (9 from WR; W10). With `echo_steppe_waystones` a 1-watch road joins the Scorched Gate and the Reedmarch Descent (D-068.1) |
 | The Glowfen | WR → Archives → Depths → Pass → Spires → Plateau → Glowlands → Causeway (7) | Depths gate only (or the Nomad route via the Outpost → Plateau, 7) |
-| The Skyreach | … Plateau → Windward Stair (7) or … Spires → Spire-Crown (6) | `item_sky_whisper_talisman` (lies on the Plateau) or `echo_breath_of_heights` |
-| loc_temporal_breach_apex | … Glowlands → Nexus → Apex (9) | six completed quests (Loop 1) or `echo_apex_resonance` |
+| The Skyreach | … Plateau → Windward Stair (7) or … Spires → Spire-Crown (6), counting the 2-watch ascents | `item_sky_whisper_talisman` (lies on the Plateau) or `echo_high_mark` |
+| loc_temporal_breach_apex | … Glowlands → Nexus → Apex (8; W10) | six completed quests (Loop 1) or `echo_apex_resonance`; in Loop 1 the Apex offers *Face it / Not yet* on arrival (D-067.1) |
 | Silverwood Before | … Nexus ⟂ Silver Gate | Loop ≥ 2 + `item_chronos_lens` + `echo_litany_verse_1`; or Apex ⟂ Conflux with the Tyrant spared |
-| The Threshold | Shattered Library portal (Horde), death (Loop 2+), Day 30 | loop end only; returns via loc_far_light to WR |
+| The Threshold | Shattered Library portal (Horde), death (Loop 2+), Day 30, *Let go* at any camp (Loop 2+, D-067.14) | loop end only, from Loop 2 (Loop 1's closers go straight to Loop 2 Day 1, D-049/D-066.7); returns via loc_far_light to WR |
 
 The Plateau is the keystone junction: it joins the Highlands, the Reach (north), the
 Glowlands (east), and the Skyreach (south), so a player who cannot or will not take Nomad
@@ -1576,13 +1597,25 @@ quests still reaches every present-day region through the Depths gate.
   `ifAllyPresent`, `ifTargetHas:<status>`, `ifSelfHas:<status>`, `round:n`, `onDeath` (resolves when
   it dies, before loot). `hidden` follows DESIGN §4.2 (a "?" chip until the player's preceding turn).
 - **Loot.** Gold range; guaranteed drops (100%); chance drops with %. `†` marks a material that WORLD
-  §3/§7 defines and DESIGN §8.2 does not (see Appendix A).
+  §3/§7 introduced and DESIGN §8.2 has since adopted (`mat_bell_bronze`, `mat_cinder_horn`,
+  `mat_storm_glass`, `mat_umbral_thread`; C-42).
 - **XP** (DESIGN §6.2): fodder `round(20 + 8L + 1.2L²)`, elite ×1.8, anomaly ×1.3 of its base,
   bosses hand-set (400–1,200 regional; Tyrants 900 / 1,600).
-- **Number rules** (DESIGN §6.5): fodder HP ≈ 10L + 20 (±20% by silhouette), elite ×2; ATK ≈ 5 + 1.5L;
+- **Number rules** (DESIGN §6.5): fodder HP ≈ 22 + 9L (±20% by silhouette), elite ×2; ATK ≈ 5 + 1.5L;
   DEF total ≈ L/2 split between armor and ward by silhouette; gold `[3+2L, 6+3L]`, elite ×2, boss ×5.
-  Boss HP is set for DESIGN §19's 10–14 turns, which lands at ×3.5–4.5 fodder HP at the boss's level,
-  the same ratio as DESIGN's two Tyrants (×3.6 and ×4.5). See open question Q1.
+- **Regional bosses** (D-066.21, D-067.20): level = band top + 2; the two extra levels raise ATK
+  (5 + 1.5L), accuracy (+2 AGI) and XP, never HP. **HP = 12 × the expected physical damage per
+  round at the band's top level.** The reference is a Ranger at the band's top level L with
+  STR 9 + L (one point per level) and a Common weapon of the tier the region itself supplies
+  (WORLD §7 sources: Drowned Reach T2 power 8; Steppe, Glowfen and Veil T3 power 12; Skyreach and
+  Silverwood Before T4 power 17 — T5 is crafted from the Before's own patterns and cannot be
+  assumed on entry), dealing ≈ 1.2·ATK per round minus the boss's armor; rounded to the nearest
+  10. Each boss block shows the line. Adds have their own blocks and are not in the number. The
+  sim (DESIGN §19 #8) must land every regional boss at 10–14 rounds.
+- **Boss reference damage per round:** Drowned Reach (top 8, ATK 25) 30 · Steppe (top 11, ATK 32)
+  38.4 · Glowfen (top 12, ATK 33) 39.6 · Veil (top 14, ATK 35) 42 · Skyreach (top 15, ATK 41) 49.2
+  · Before (top 17, ATK 43) 51.6. Casters with the matching element run faster; physical classes
+  set the ceiling (REVIEW-STORY-WORLD #19).
 - **Tags.** `breach-born`: Poison immune; −25% HP for the loop if the Heartstone was destroyed
   (D-017). `construct`: Poison and Bleed immune; WORLD §2.4 extends the −25% to ley-made constructs.
   `skyborn`: gains Haste in gales (WORLD §2.4, §2.11). `drowned`: re-applies Soaked to itself at the
@@ -1597,16 +1630,18 @@ quests still reaches every present-day region through the Depths gate.
 ## 4. Non-companion NPCs (and companion anchors)
 
 38 NPC ids. Every `npc_*` used in WORLD §3 is defined here, with the D-064 renames applied
-(`npc_hollis_vane` → `npc_hollis_cade`; `npc_elder_wren` merged into `npc_elder_wen`). Faction `—`
-means no reputation faction. Roles: **merchant** (stall location in bold; W-B writes stock against
+(the former `npc_hollis_vane` is `npc_hollis_cade`; the former `npc_elder_wren` is merged into
+`npc_elder_wen`) and the U9 rename of the gate-captain to `npc_merrit_dunn` (C-52). Names and
+roles are STORY's (D-062); ids and placement are WORLD's. Faction `—`
+means no reputation faction. Roles: **merchant** (stall location in bold; §9 writes stock against
 these ids), **crafter**, **quest giver**, **flavor**, **companion anchor** (companion id given).
 
 | id | Name | Faction | Location | Role | Description | Sample lines |
 |---|---|---|---|---|---|---|
 | `npc_ilyra` | Ilyra | remnants | loc_whispering_ruins (Horde: loc_shattered_library) | companion anchor `ilyra`; quest giver (q_echo_crystal, q_lost_scroll, Ilyra arc) | Remnant scholar, ~30, in faded robes by a cold fire. Oriel Danthe's descendant; she does not know it. | "The whispers are louder each day, Wayfinder. You hear them too, I think?" / "Ink remembers what hands forget. That is the whole of my faith." |
 | `npc_brak` | Brak | ironclad | loc_ironclad_camp (arc: loc_hearthring) | companion anchor `brak`; quest giver (q_clear_path, q_blighted_outpost, Brak arc) | Ironclad scout, ~40; laid down the name Stonehand at the oath. Kaelen's brother. | "Peaks first. Then the Outpost. Then we talk." / "Two golems. One of you. I like the odds less than you do." |
-| `npc_nyx` | Nyx (Nyxaria Vell) | weavers | loc_chasm_of_whispers (Loop 2+ scenes: loc_sanctum_of_threads, loc_where_she_fell) | companion anchor `nyx`; quest giver (q_void_shards, Nyx arc, q_weavers_dawn) | Leader of the Shadow Weavers for thirty years; eyes of quiet starlight. Of the Nine, flung forward. | "Three shards. The void remembers where it was torn." / "He is still holding it. Ask what he is holding it against." |
-| `npc_dask` | Dask, the Flickering Man | — | loc_shimmering_pass (may remain in any `temporallyUnstable` location, D-059) | companion anchor `dask`; quest giver (Dask arc, q_high_mark, q_wardens_vigil) | The seventh Wayfinder, Year 430, scattered across moments by a chrono-strike. | "Hells of a road, this. I walked it seventy years ago. Or — tomorrow." / "Don't strike it first. It never strikes first." |
+| `npc_nyx` | Nyx (Nyxaria Vell) | weavers | loc_chasm_of_whispers (Loop 2+ scenes: loc_sanctum_of_threads, loc_where_she_fell) | companion anchor `nyx`; quest giver (q_void_shards, Nyx arc, q_weavers_dawn) | Leader of the Shadow Weavers since about Year 470, ~70 now (she arrived in Year 460, young); eyes of quiet starlight. Of the Nine, flung forward: she came down at Where She Fell and crawled to the Hollow (D-067.13). | "Three shards. The void remembers where it was torn." / "He is still holding it. Ask what he is holding it against." |
+| `npc_dask` | Dask, the Flickering Man | — | loc_shimmering_pass (may remain in any `temporallyUnstable` location, D-059) | companion anchor `dask`; quest giver (Dask arc, q_high_mark, q_wardens_vigil) | The seventh Wayfinder, Year 430, scattered across moments by a chrono-strike. | "Hells of a road, this. I walked it seventy years ago. Or — tomorrow." / "Don't strike it first. It won't strike what keeps its distance." |
 | `npc_mireya` | Mireya of Lanternreed | — (Glowfen folk) | loc_lanternreed (gathering, flavor only: loc_veridian_glowlands) | companion anchor `mireya`; quest giver (Mireya arc) | Herbalist with light under the skin of her own wrists. | "Sit *down*. Feverfew, then water, then you tell me where you've been." / "Rain by dusk. Bring the moss in before it drinks the light." |
 | `npc_caelum` | Caelum Vesper | — (Circle apprentice) | loc_apprentices_garret (Day 1: loc_plaza_of_bells; Day 3 dusk: the Archive stair) | companion anchor `caelum`; quest giver (Caelum arc) | Veyran's errand-boy, ~16, unanchored by the Breach's first breath. The only one in the Before who remembers you. | "Master Thal says the Holding is a kindness to the hour. Is it?" / "You were here yesterday. No one else remembers. Why do I?" |
 | `npc_kaelen_stonehand` | Kaelen Stonehand | — (neutral ground) | **stall: loc_wayfarers_respite** | merchant (DESIGN `npc_kaelen`); quest giver (q_blood_and_salt, with Brak) | Trader, ~44; left the Nomads and kept the name. Has not spoken to Brak in years. | "Tonic's three. Fair weight. The road east is not." / "My brother? I sell salt, Wayfinder, not news." |
@@ -1623,10 +1658,10 @@ these ids), **crafter**, **quest giver**, **flavor**, **companion anchor** (comp
 | `npc_sethe_unlidded` | Sethe the Unlidded | weavers | loc_sanctum_of_threads (STORY's Hollow Choir) | quest giver (q_hollow_choir, q_unlidded_eye) | Weaver lieutenant who cut away her eyelids to keep watch between moments. Wants to see what Nyx has seen. | "Bring one thing torn from a moment. Bring it, bring it torn." / "Nyx looks at the seam. I want to look where she looks." |
 | `npc_ysmay` | Ysmay, the Thread-Mother | weavers | loc_sanctum_of_threads | quest giver (Veil regional errands); flavor; gives `item_weavers_thread_ring` at Trusted | Ritual elder of the Hollow Choir; no eyes; holds the thread all the others are tied to. | "You are knotted. Someone has tied you to the same day eight times." / "Hold the thread. If it pulls, you are still here." |
 | `npc_hollis_cade` | Hollis Cade | weavers | **stall: loc_sanctum_of_threads** | merchant (DESIGN `npc_veil_vendor`; Weavers ≥ Neutral or Corruption ≥ 3) | Weaver quartermaster in grey thread. Renamed from Hollis Vane (D-064). | "A Spellbook, uncharred. Fifteen of your blood to read it, more of your gold to own it." / "We sell the thread. The dark is free." |
-| `npc_elder_wen` | Elder Wen Thistlecourt | — (Glowfen folk) | loc_breathing_pool (sits with the elders at loc_lanternreed) | quest giver (q_the_drowned_lantern); cleanses Corruption (D-017). Absorbs `npc_elder_wren` | Glowfen elder at the reed mat by the Pool. Would keep the glow, whatever it costs. | "No." / "Hands in the light. Six breaths. Then go." |
+| `npc_elder_wen` | Elder Wen Thistlecourt | — (Glowfen folk) | loc_breathing_pool (sits with the elders at loc_lanternreed) | quest giver (q_the_drowned_lantern); cleanses Corruption (D-017; one full rest + `item_glow_moss` ×3, `flag_corruption_cleansed`). Absorbs WORLD's former `npc_elder_wren` (D-064) | Glowfen elder at the reed mat by the Pool. Would keep the glow, whatever it costs. | "No." / "Hands in the light. Six breaths. Then go." |
 | `npc_elder_tam` | Elder Tam | — (Glowfen folk) | loc_lanternreed | flavor (the Mangrove speaks in his voice, `ev_mangrove_answer`) | Eldest of Lanternreed, so far into the glow that the tree answers for him. | "Not yet." / "The pool breathes. We breathe with it. Lately it breathes for us." |
 | `npc_old_fennick` | Old Fennick | — (Glowfen folk) | **stall: loc_lanternreed** | merchant (DESIGN `npc_mireya_stall`) | Stall-keeper on the stilts; trades moss for Nomad salt through the Reedmarch baskets. | "Moss is three a bundle. The salts are dear; the light goes into them." / "Never met a Nomad. Good salt, though." |
-| `npc_hesper_dunn` | Gate-Captain Hesper Dunn | — (Silverwood Watch) | loc_silver_gate (Days 1–3) | flavor; gatekeeper (issues the visitor's pass that keeps `flag_wanted_in_silverwood` off); quest giver pending (Q8) | Gate-captain under Captain Corvin Dreyl. Takes the Wayfinder for a foreign scholar. | "Papers. Scholar? From where? No — don't tell me. I'd have to write it down." / "Blades sheathed in the Plaza. Captain Dreyl's order, not mine." |
+| `npc_merrit_dunn` | Gate-Captain Merrit Dunn | — (Silverwood Watch) | loc_silver_gate (Days 1–3) | flavor; gatekeeper (issues the visitor's pass that keeps `flag_wanted_in_silverwood` off); no quest | Gate-captain under Captain Corvin Dreyl. Takes the Wayfinder for a foreign scholar. Renamed from Hesper Dunn (C-52: the first name repeated the second Wayfinder's). | "Papers. Scholar? From where? No — don't tell me. I'd have to write it down." / "Blades sheathed in the Plaza. Captain Dreyl's order, not mine." |
 | `npc_bellwright_anso` | Anso the Bellwright | — (Silverwood) | **stall: loc_plaza_of_bells** | merchant (charms, bell-bronze, honeycake) | Casts the Plaza's nine bells and sells charms beneath them. | "Bell-charm, scholar? Rung once on First Bell, it keeps the luck all year." / "The ninth bell is flat. I told them. Nobody listens to a bellwright." |
 | `npc_veyran_thal` | Archmagus Veyran Thal | — (Ninefold Circle) | loc_ninefold_hall (Days 1–2); loc_conflux_chamber (Day 3, non-interactive) | flavor; q_stop_the_ritual attempt 1; `ev_hall_veyran` grants `echo_tyrant_name` | Leader of the Nine, whole. Kind to apprentices, certain a mind large enough can hold anything. | "You are not from the city. You are not from the year." / "The Holding is a kindness to the hour. We keep it still and look at it. That is all." |
 | `npc_nyxaria_vell_before` | Nyxaria Vell (young) | — (Ninefold Circle) | loc_ninefold_hall (Days 1–2); loc_plaza_of_bells (nights) | flavor; Nyx-arc scenes | Youngest of the Nine, ~30, eyes still ordinary. The only one who looks at you twice. | "You're from the far side of something. I can see the seam on you." / "There is a dark between one moment and the next. Nobody else wants to talk about it." |
@@ -1649,7 +1684,7 @@ these ids), **crafter**, **quest giver**, **flavor**, **companion anchor** (comp
 Anso the Bellwright (loc_plaza_of_bells). DESIGN §9.4 placeholders map: `npc_kaelen` →
 `npc_kaelen_stonehand`; `npc_ironclad_quartermaster` → `npc_tessaly_varr`; `npc_remnant_archivist` →
 `npc_tamsin_reed`; `npc_veil_vendor` → `npc_hollis_cade`; `npc_mireya_stall` → `npc_old_fennick`;
-`npc_skyreach_trader` → no WORLD merchant exists (Q7).
+`npc_skyreach_trader` → no WORLD merchant exists; DESIGN §9 dropped it and the Skyreach inn (C-31).
 
 **STORY §11 givers → ids.** Ilyra `npc_ilyra`; Keeper Ansel Dray `npc_ansel_dray`; Brak `npc_brak`;
 Hadda Ironvow `npc_hadda_ironvow`; Nyx `npc_nyx`; Sethe `npc_sethe_unlidded`; Elder Wen
@@ -1672,10 +1707,10 @@ one lesson for the player. DESIGN §8.2's material "families" are kin inside the
 |---|---|---|---|---|---|---|---|
 | `fam_hollowed` | The Hollowed | **Maelis Korr** (the Lesson: his students paid the debt and are still paying — Shades) and **Nyxaria Vell** (the dark between she named, which the Stalkers, Mouths and her Umbra came out of) | Teardrop sigil; smeared outlines; pieces missing, as if erased | void; curse, weaken, blind | weak **ley** (Ley lifts Curse ×1.25), Shades also weak fire; resist void, wraiths resist physical; tag breach-born | `mat_shadow_ash`, `item_void_shard`, `mat_breach_glass`, `mat_umbral_thread`† | Clean the Curse and the big hit never comes. |
 | `fam_wilds` | The Wilds | No maker. Beasts and growths bent by the ley-wash; on the Steppe, what **Corvin Dreyl's** pyre-ward burned and branded; in the Before, the Circle's bred hounds | Triangle sigil; four legs or none, heads low | physical; bleed, slow; Steppe kin fire | Mistwood kin weak **fire**; Steppe (ash-born) kin resist fire, weak **storm**; living (Poison works) | `mat_wildling_hide`, `mat_rootbone`, `mat_steppe_salt`, `mat_ember_ore`, `mat_cinder_horn`† | Watch the wind-up; Guard the heavy. |
-| `fam_drowned` | The Drowned | **Ilsabet Rhune** opening the cisterns on the last day; the scholars who stayed with the shelves; **Oriel Danthe**, the First Drowned (D-046) | Circle sigil cut by a waterline; hunched, robed, dripping | physical, storm, ley; soaked, slow, mark | tag drowned (always Soaked: **storm** ×1.5 and spreads Shock, fire ×0.5); weak **ley** (the clean current loosens the binding); resist fire; breach-born | `mat_sodden_vellum`, `mat_drowned_pearl`, `mat_bell_bronze`† | Bring Storm. Kill the reader first, or it reads them back. |
-| `fam_wards` | Wards | **Haldric Vane** ("Stone, stand where flesh would fall") | Hexagon sigil; slate and iron, ring-and-bar sigil on the chest | physical; armor break, stun | resist **fire, ley, void, chrono** ("magic skitters off"); neutral physical and storm; tag construct; Harden re-arms | `mat_slate_core`, `mat_iron_rivet`, `mat_silverwood_heartwood`, `mat_conflux_dust`† | Break the armor, then hit it with something plain. |
+| `fam_drowned` | The Drowned | **Ilsabet Rhune**, Warden of Waters, opening the cisterns on the last day; the scholars who stayed with the shelves; **Oriel Danthe**, the First Drowned (D-046) | Circle sigil cut by a waterline; hunched, robed, dripping | physical, storm, ley; soaked, slow, mark | tag drowned (always Soaked: **storm** ×1.5 and spreads Shock, fire ×0.5); neutral ley (D-067.19: the Drowned lost "weak ley" — their lesson is Storm on Soaked); resist fire; breach-born | `mat_sodden_vellum`, `mat_drowned_pearl`, `mat_bell_bronze`† | Bring Storm. Kill the reader first, or it reads them back. |
+| `fam_wards` | Wards | **Haldric Vane** ("Stone, stand where flesh would fall") | Hexagon sigil; slate and iron, ring-and-bar sigil on the chest | physical; armor break, stun | resist **fire, ley, void, chrono** ("magic skitters off"); neutral physical and storm; tag construct; Harden re-arms | `mat_slate_core`, `mat_iron_rivet`, `mat_silverwood_heartwood`, `item_chronal_dust` | Break the armor, then hit it with something plain. |
 | `fam_spireborn` | Spireborn | **Seraphine Aulde** (loom-strands carrying her one note; her Sentinels and their spotters) | Rhombus sigil; threads of light, vanes, glass | ley; skyborn kin storm; shock, slow, mark | resist **ley**; skyborn kin resist storm; weak **void** (unspins them), glass kin weak physical, skyborn kin weak chrono (strips Haste); tag construct; skyborn | `mat_ley_spark`, `item_aetherium_shard`, `mat_spire_thread`, `mat_gale_feather`, `mat_skyreach_crystal`, `mat_storm_glass`† | Kill the loom, not the cord; cut the tether before the dive. |
-| `fam_green` | The Green | **Imre Sallow** (the Breath: "Let what lives carry what does not" — the overflow leaking into the Glowlands and Glowfen) | Circle sigil lit from inside; soft, swollen, glowing at throat and wrist | ley, physical; poison, blind, regen | weak **fire**, weak **void** (Void strips Regen); resist ley; Poison immune (they carry it) | `mat_glow_gland`, `item_glow_moss`, `mat_glow_spore`†, `mat_lantern_resin`† | Take the Regen away first. |
+| `fam_green` | The Green | **Imre Sallow** (the Breath: "Let what lives carry what does not" — the overflow leaking into the Glowlands and Glowfen) | Circle sigil lit from inside; soft, swollen, glowing at throat and wrist | ley, physical; poison, blind, regen | weak **fire**, weak **void** (Void strips Regen); resist ley; Poison immune (they carry it) | `mat_glow_gland`, `item_glow_moss`, `mat_glow_gland`, `mat_ley_resin` | Take the Regen away first. |
 | `fam_watch_wardens` | Watch-wardens | **Tovren Masque** (the Eye: wardens set to keep the observatory's hours; the hours broke and they keep all of them, out of order) | Spiral sigil; doubled outlines, after-images | chrono; slow, rewind, haste, phase; hidden intents | resist **chrono**; weak **void** (Void consumes Rewind ×1.25); breach-born | `item_chronal_dust`, `mat_frayed_moment` | Guard the "?"; Void after it rewinds. |
 | `fam_unravelled` | The Unravelled | **Veyran Thal's** Holding failing: the Tyrant itself (with Korr, Vane, Aulde, Sallow and Masque surfacing in it) and what spills when the hold slips — the Horde, the Day of Teeth | Broken circle with a spiral through it; parts of every other family, flickering | chrono, void | resist **chrono, void**; weak **ley** (DESIGN §4.10); many intents hidden ("no next moment"); breach-born | `mat_frayed_moment`, `mat_tyrant_shard` (Unveiled only), `mat_breach_glass` | Ley gives them an order to fall apart in. |
 | *(Mortals)* | People | Silverwood's Watch and the Circle's adepts (the Before); Weaver sentries (the Veil) | No sigil; a portrait | physical, ley, fire, void | neutral; can be Stunned, Bled and Poisoned; often yield or call help | none (coin, kit) | They can be avoided. Often they should be. |
@@ -1688,17 +1723,27 @@ Watch-wardens 7 · Unravelled 7 · Mortals 3.
 ## 6. Creatures (57)
 
 Exactly the 57 ids WORLD §3 uses. STORY §11 needs no others: its "Unravelled" (q_day_of_teeth) are
-`cr_horde_husk`, its "Aberrant Eye" comes from `cr_temporal_aberration`, and DESIGN §4.10's
-`nine_shard` adds are `cr_tyrants_reach`. Roles: 33 fodder · 9 elite · 6 anomaly · 9 boss.
+`cr_horde_husk`, its "Aberrant Eye" comes from `cr_temporal_aberration`, and the Unveiled Tyrant's
+adds are `cr_tyrants_reach` (DESIGN §4.10). Roles: 33 fodder · 9 elite · 6 anomaly · 9 boss. The six
+regional bosses sit at band top + 2 with HP from D-067.20 (retuned in U9; the old values are shown
+struck through in each block). `q_weavers_dawn`'s two waves (STORY) are `cr_horde_husk` ×2, then ×3,
+at the Nexus (REVIEW-STORY-WORLD #5).
+
+**`itm_echo_bolt` in the tactics notes.** The Amulet gives every class a Ley attack:
+max(0.75·ATK, 4 + 0.8·SP), 10 MP, one-turn cooldown; it consumes Rewind and lifts Curse like any
+Ley hit (D-067.19, DESIGN §4.5–4.6). Where a note says "Ley" against the Hollowed, the Unravelled or a
+Rewound Watch-warden, the bolt is the answer every class carries — but it is a sidearm, not a main
+weapon: at 0.75·ATK it loses to a basic attack against anything Ley-neutral, and the Drowned are
+Ley-neutral on purpose. The Wizard's `wiz_echo_bolt` is the real spell.
 
 | id | Name | Family | Role | L | Regions | XP |
 |---|---|---|---|---|---|---|
 | `cr_aetherial_weaver` | Aetherial Weaver | Spireborn | fodder | 8 | Highlands, Skyreach | 161 |
 | `cr_arcane_wisp` | Arcane Wisp | Spireborn | fodder | 2 | Silverwood Ruins | 41 |
-| `cr_ashmaw` | Ashmaw | Wilds | **boss** | 12 | Ashen Steppe | 650 |
+| `cr_ashmaw` | Ashmaw | Wilds | **boss** | 13 | Ashen Steppe | 720 |
 | `cr_barrow_light` | Barrow-Light | Green | fodder | 11 | Glowfen | 253 |
 | `cr_bell_ringer` | Bell-Ringer | Drowned | elite | 7 | Drowned Reach | 243 |
-| `cr_bell_warden` | The Bell-Warden | Drowned | **boss** | 9 | Drowned Reach | 450 |
+| `cr_bell_warden` | The Bell-Warden | Drowned | **boss** | 10 | Drowned Reach | 500 |
 | `cr_brine_lamprey` | Brine Lamprey | Drowned | fodder | 5 | Drowned Reach | 90 |
 | `cr_chronos_tyrant_contained` | The Chronos Tyrant (Contained) | Unravelled | **boss** | 14 | Apex, Loop 1 | 900 |
 | `cr_chronos_tyrant_unveiled` | The Chronos Tyrant (Unveiled) | Unravelled | **boss** | 18 | Apex, Loop 2+ | 1,600 |
@@ -1715,7 +1760,7 @@ Exactly the 57 ids WORLD §3 uses. STORY §11 needs no others: its "Unravelled" 
 | `cr_horde_husk` | Horde Husk | Unravelled | fodder | 12 | Horde (any infected node) | 289 |
 | `cr_hour_leech` | Hour Leech | Watch-wardens | anomaly (Loop 4+) | 12 | Chronos Nexus | 376 |
 | `cr_hourglass_crawler` | Hourglass Crawler | Watch-wardens | fodder | 11 | Nexus, Depths (exploited) | 253 |
-| `cr_lantern_matron` | The Lantern Matron | Green | **boss** | 13 | Glowfen | 700 |
+| `cr_lantern_matron` | The Lantern Matron | Green | **boss** | 14 | Glowfen | 770 |
 | `cr_lantern_toad` | Lantern Toad | Green | fodder | 8 | Glowlands, Glowfen | 161 |
 | `cr_ledger_choir` | Ledger Choir | Drowned | elite | 7 | Drowned Reach | 243 |
 | `cr_ley_hound` | Ley Hound | Wilds | fodder | 13 | Silverwood Before | 327 |
@@ -1737,16 +1782,16 @@ Exactly the 57 ids WORLD §3 uses. STORY §11 needs no others: its "Unravelled" 
 | `cr_starved_shadow` | Starved Shadow | Hollowed | elite | 12 | Veil | 520 |
 | `cr_steppe_harrier` | Steppe Harrier | Wilds | fodder | 8 | Highlands, Ashen Steppe | 161 |
 | `cr_stone_hide_golem` | Stone-Hide Golem | Wards | elite | 6 | Mistwood & Reach | 200 |
-| `cr_stormcrown` | The Stormcrown | Spireborn | **boss** | 16 | Skyreach | 950 |
+| `cr_stormcrown` | The Stormcrown | Spireborn | **boss** | 17 | Skyreach | 1,050 |
 | `cr_stutter_hound` | Stutter Hound | Watch-wardens | anomaly (Loop 2+) | 5 | Mistwood & Reach | 117 |
 | `cr_temporal_aberration` | Temporal Aberration | Watch-wardens | elite | 12 | Nexus; Contained Tyrant add | 520 |
 | `cr_tide_clerk` | Tide Clerk | Drowned | fodder | 5 | Drowned Reach | 90 |
 | `cr_tyrants_reach` | Tyrant's Reach | Unravelled | anomaly (Loop 3+) | 9 | Highlands; Unveiled Tyrant add | 246 |
-| `cr_unbroken_warden` | The Unbroken Warden | Wards | **boss** | 18 | Silverwood Before | 1,100 |
+| `cr_unbroken_warden` | The Unbroken Warden | Wards | **boss** | 19 | Silverwood Before | 1,200 |
 | `cr_unmade` | The Unmade | Unravelled | anomaly (Loop 3+) | 13 | Depths (exploited), Drowned Reach | 425 |
 | `cr_unraveling_tide` | The Unraveling Tide | Unravelled | **boss** (Horde) | 14 | Horde: loc_darkened_corridor | 500 |
 | `cr_veil_sentry` | Veil Sentry | Mortal | fodder | 10 | Voidscar, Veil | 220 |
-| `cr_vells_umbra` | Vell's Umbra | Hollowed | **boss** | 15 | Veil | 800 |
+| `cr_vells_umbra` | Vell's Umbra | Hollowed | **boss** | 16 | Veil | 880 |
 | `cr_void_touched_stalker` | Void-Touched Stalker | Hollowed | fodder | 6 | Voidscar, Veil | 111 |
 | `cr_warding_pillar` | Warding Pillar | Wards | fodder | 6 | Mistwood & Reach, Silverwood Before | 111 |
 | `cr_wildling_brute` | Wildling Brute | Wilds | fodder | 4 | Mistwood & Reach | 71 |
@@ -1790,7 +1835,7 @@ Exactly the 57 ids WORLD §3 uses. STORY §11 needs no others: its "Unravelled" 
 
 #### `cr_hollow_lantern` — Hollow Lantern
 **Hollowed (Void) · L10 fodder · XP 220** · loc_veil_mouth, loc_voidglass_gallery; Vell's Umbra add;
-Depths (destroyed state, see Errata E12)
+Depths (destroyed state: no longer — E12 moved that state to Shades)
 - **Stats:** HP 110 · ATK 20 · DEF 0/5 · AGI 8 · void · breach-born
 - **Resist:** weak physical, ley · resist void, fire · immune poison
 - **Intents:**
@@ -1798,7 +1843,7 @@ Depths (destroyed state, see Errata E12)
   - `lantern_drink` · "It drinks the light out of your wounds." · 1.0× you · heals self for 50% of damage dealt
   - `lantern_shelter` · "It draws its dark around another." · shield ally 1.2× · ifAllyPresent
 - **Loot:** 23–36 g · `mat_shadow_ash` 60% · `mat_breach_glass` 25% · `item_hollow_lantern_focus` 10%
-  (as W-B §7; it is also craftable)
+  (§7; it is also craftable)
 - **Bestiary** (Wayfinder's Notes): The Weavers carry lanterns that hold dark the way ours hold flame.
   A few got loose. They float at the Veil Mouth and wait for anything bright. Break the glass and the
   dark goes back where it came from, which is everywhere.
@@ -1831,7 +1876,7 @@ q_bone_road ambushes · *legacy: HP 40 · dmg 9 · def 2 · agi 6 · XP 55*
   - `stalker_starbite` · "Its eyes flare; the cold reaches you first." · 0.9× you · curse 40% 3
   - `stalker_pounce` · "It crouches low, all its weight on the back legs." · 1.5× physical you · ifTargetHas:curse
 - **Loot:** 15–24 g · `item_void_shard` 100% (legacy; DESIGN §8.2) · `item_warriors_sword` 25% (legacy bonus) ·
-  `item_chasmglass_focus` 10% (W-B §7)
+  `item_chasmglass_focus` 10% (§7)
 - **Legacy description:** "A predator born of corrupted ley echoes, eyes like cold stars."
 - **Bestiary** (Wayfinder's Notes): Three in the Hollow, always three. They open by vanishing, so my
   first swing hits air. Wait it out. The pounce only comes after the cold gets into me. Clean the
@@ -1840,10 +1885,12 @@ q_bone_road ambushes · *legacy: HP 40 · dmg 9 · def 2 · agi 6 · XP 55*
 - **Tactics:** Guard or buff on turn one; answer every Curse with a Ley hit (removes it, ×1.25).
 
 #### `cr_vells_umbra` — Vell's Umbra (boss)
-**Hollowed (Void) · L15 boss · XP 800** · loc_eye_of_the_scar (forced; adds `cr_hollow_lantern`)
-- **Stats:** HP 600 · ATK 27 · DEF 2/8 · AGI 9 · void · breach-born · cannot be fled
-- **Resist:** weak ley, fire · resist physical · immune void · status immune: poison, blind, curse;
-  Stagger allowed
+**Hollowed (Void) · L16 boss · XP 880** · loc_eye_of_the_scar (forced; adds `cr_hollow_lantern`) · the
+Veil's regional boss (band 10–14 top + 2)
+- **Stats:** HP 480 (~~600~~; 12 × (42 − 2 armor) = 480, D-067.20) · ATK 29 (~~27~~) · DEF 2/8 · AGI 11 (~~9~~) ·
+  void · breach-born · cannot be fled
+- **Resist:** weak ley, fire · **resist void** (~~immune~~, D-067.18) · neutral physical (~~resist~~, #19) ·
+  status immune: poison, blind (curse immunity dropped, so the Hex branch works); Stagger allowed
 - **Phase 1 — Her Shape** (100–60%; skipped, fight opens in Phase 2, if `{killed:"cr_vells_umbra"}` in
   any earlier loop, WORLD §2.9):
   - `umbra_her_hand` · "A woman's hand of shadow reaches for your face." · 1.0× you · curse 50% 3
@@ -1859,7 +1906,7 @@ q_bone_road ambushes · *legacy: HP 40 · dmg 9 · def 2 · agi 6 · XP 55*
   - `umbra_fall` · "It falls toward you from very far away." · hidden · 2.2× all · everyNthTurn:3
   - `umbra_cling` · "It pulls a lantern into itself and darkens." · heal self 2.0× · ifAllyPresent (consumes one lantern)
   - `umbra_her_hand` (as Phase 1)
-- **Pacifist:** with Nyx active and `echo_nyx_is_of_the_nine` (WORLD's `echo_nyx_true_name`, Errata E9)
+- **Pacifist:** with Nyx active and `echo_nyx_is_of_the_nine` (STORY §12's id, E9)
   she calls it back into herself (WORLD §3.8).
 - **Loot:** 165–255 g · `item_umbral_mirror` 100% · `mat_umbral_thread`† ×3 100% · `mat_breach_glass` ×2
   100% · `item_void_shard` ×2 60%
@@ -1868,7 +1915,9 @@ q_bone_road ambushes · *legacy: HP 40 · dmg 9 · def 2 · agi 6 · XP 55*
   years it has learned her shape from memory and got it slightly wrong. It wants her back. It will
   settle for something warm. When Nyx stands beside me and says her own name, it goes to her like a dog.
 - **Tactics:** Ley twice per Curse. Keep a Blind cleanse for the Open combo. Kill the lanterns before
-  25% or it eats them. In Phase 3, Guard every third turn; Chrono strips its Haste for a turn.
+  25% or it eats them. In Phase 3, Guard every third turn; Chrono strips its Haste for a turn. Plain
+  steel now lands in full. A Shadow Weaver Curses it first: against a Cursed target its Void treats
+  *resist void* as neutral, and `wvr_unravel` is Chrono (D-067.18).
 
 ### 6.2 The Wilds
 
@@ -1911,7 +1960,7 @@ q_bone_road ambushes · *legacy: HP 40 · dmg 9 · def 2 · agi 6 · XP 55*
   - `prowler_from_fog` · "The fog thickens on your left. It is not fog." · 1.3× you · first
   - `prowler_rake` · "Bark-patterned flanks ripple as it circles you." · 0.9× you · bleed 30% 3
   - `prowler_fade` · "It steps back into the fog and is gone." · phase self 1 · everyNthTurn:3
-- **Loot:** 7–12 g · `mat_wildling_hide` 40% · `mat_ley_resin` 30% · `item_travelers_sword` 10% (W-B §7)
+- **Loot:** 7–12 g · `mat_wildling_hide` 40% · `mat_ley_resin` 30% · `item_travelers_sword` 10% (§7)
 - **Bestiary** (Remnant Archive): Year 471. A lean grey cat with bark-light patterning along the
   flanks. It hunts the Archway at dusk and will follow a scholar a mile without closing. Lanterns do
   not deter it. Noise does. Remnants who walk the Archway walk in pairs, and talk.
@@ -1967,8 +2016,10 @@ loc_stormgate_cairns, loc_watchfire_ridge (×2) · skyborn
 - **Tactics:** Guard turn one, and every fourth turn; Storm Jars from the Cairns.
 
 #### `cr_ashmaw` — Ashmaw (boss)
-**Wilds (Steppe) · L12 boss · XP 650** · loc_herd_grave (forced; adds `cr_salt_jackal`)
-- **Stats:** HP 520 · ATK 23 · DEF 6/3 · AGI 4 · fire (physical on Shoulder and Gore) · cannot be fled
+**Wilds (Steppe) · L13 boss · XP 720** · loc_herd_grave (forced; adds `cr_salt_jackal`) · the Ashen
+Steppe's regional boss (band 7–11 top + 2)
+- **Stats:** HP 390 (~~520~~; 12 × (38.4 − 6 armor) = 389, D-067.20) · ATK 25 (~~23~~) · DEF 6/3 · AGI 6 (~~4~~) ·
+  fire (physical on Shoulder and Gore) · cannot be fled
 - **Resist:** weak storm · immune fire · status immune: burn, stun; Stagger allowed
 - **Phase 1 — The Herd Sleeps** (100–70%; onEnter: 2× `cr_salt_jackal`, "They come for the leavings."):
   - `ashmaw_breathe` · "The ash in the bowl rises and falls toward you." · 0.7× all · blind 40% 1
@@ -2010,19 +2061,20 @@ loc_stormgate_cairns, loc_watchfire_ridge (×2) · skyborn
 
 ### 6.3 The Drowned
 
-All Drowned carry the `drowned` tag: Soaked re-applied at the start of each of their turns.
+All Drowned carry the `drowned` tag: Soaked re-applied at the start of each of their turns. None is weak
+to Ley (D-067.19): their lesson is Storm on Soaked, and `itm_echo_bolt` is only a basic attack here.
 
 #### `cr_drowned_archivist` — Drowned Archivist
 **Drowned · L4 fodder · XP 71** · loc_sunken_archives (q_lost_scroll), loc_tidewell_hall,
 loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 · agi 4 · XP 45*
 - **Stats:** HP 58 · ATK 11 · DEF 1/3 · AGI 4 · ley · breach-born, drowned
-- **Resist:** weak ley · resist fire · immune poison
+- **Resist:** weak — (Soaked does the work; the Drowned lost "weak ley", D-067.19) · resist fire · immune poison
 - **Intents:**
   - `first_drowned_turns` · "She clutches the scroll and turns her back to you." · no action · first; **only** the Archivist at loc_sunken_archives during q_lost_scroll (Oriel's echo, the First Drowned, D-046)
   - `archivist_page_cut` · "A sodden page lifts from its book, edge first." · 1.0× physical you · bleed 30% 2
   - `archivist_recite` · "It reads aloud. The water around you listens." · 0.9× you · soaked 100% 3
   - `archivist_bind` · "It closes its book on your shadow." · 0.6× you · slow 50% 2 · everyNthTurn:3
-- **Loot:** 11–18 g · `item_mana_bloom` 60% (legacy) · `mat_sodden_vellum` 80% · `item_necromancer_staff` 5% (W-B §7) ·
+- **Loot:** 11–18 g · `item_mana_bloom` 60% (legacy) · `mat_sodden_vellum` 80% · `item_necromancer_staff` 5% (§7) ·
   at loc_sunken_archives
   the quest drop is `item_scholars_lost_scroll` (WORLD §3.1)
 - **Legacy description:** "A sodden scholar bound to drowned pages, still guarding secrets."
@@ -2030,12 +2082,12 @@ loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 
   rose are still with them. They read to the water and guard what they were last carrying. One, in the
   carrel under the east stair, guards a scroll sealed in Danthe wax and turns her back before she
   fights. The Keeper asks that no one record her name until we are sure.
-- **Tactics:** Storm (always Soaked) or Ley; never fire. From Loop 2, `q_the_first_drowned` avoids the fight.
+- **Tactics:** Storm (always Soaked); never fire. From Loop 2, `q_the_first_drowned` avoids the fight.
 
 #### `cr_tide_clerk` — Tide Clerk
 **Drowned · L5 fodder · XP 90** · loc_tidewell_hall
 - **Stats:** HP 70 · ATK 12 · DEF 2/2 · AGI 5 · physical · breach-born, drowned
-- **Resist:** weak ley · resist fire · immune poison
+- **Resist:** weak — (Soaked does the work; the Drowned lost "weak ley", D-067.19) · resist fire · immune poison
 - **Intents:**
   - `clerk_check_name` · "It runs a wet finger down the ledger to your name." · mark 100% 3 · first
   - `clerk_stamp` · "It brings the ledger down like a seal." · 1.2× you · stun 15% 1 · ifTargetHas:mark
@@ -2049,7 +2101,7 @@ loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 
 #### `cr_pale_diver` — Pale Diver
 **Drowned · L6 fodder · XP 111** · loc_cistern_of_names (×2), loc_bellmouth (×2, return)
 - **Stats:** HP 80 · ATK 14 · DEF 1/3 · AGI 7 · physical · breach-born, drowned
-- **Resist:** weak ley · resist fire · immune poison
+- **Resist:** weak — (Soaked does the work; the Drowned lost "weak ley", D-067.19) · resist fire · immune poison
 - **Intents:**
   - `diver_grapple` · "Pale hands close on your belt and pull downward." · 0.9× you · slow 60% 2
   - `diver_hold_under` · "It wraps around you and the water closes over." · 1.4× you · soaked 100% 3 · ifTargetHas:slow
@@ -2077,7 +2129,7 @@ loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 
 #### `cr_ledger_choir` — Ledger Choir
 **Drowned · L7 elite · XP 243** · loc_sunken_scriptorium (with 2× `cr_drowned_archivist`)
 - **Stats:** HP 180 · ATK 15 · DEF 2/4 · AGI 4 · ley · breach-born, drowned
-- **Resist:** weak ley · resist fire · immune poison
+- **Resist:** weak — (Soaked does the work; the Drowned lost "weak ley", D-067.19) · resist fire · immune poison
 - **Intents:**
   - `choir_intone` · "Many wet voices read one name together." · 0.8× all · weaken 40% 2
   - `choir_amend` · "The pages turn back. An ally's wound closes." · heal ally 1.5× · ifAllyPresent
@@ -2093,7 +2145,7 @@ loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 
 #### `cr_bell_ringer` — Bell-Ringer
 **Drowned · L7 elite · XP 243** · loc_bellmouth (with `cr_drowned_archivist`)
 - **Stats:** HP 180 · ATK 15 · DEF 4/2 · AGI 3 · storm (physical on Rope) · breach-born, drowned
-- **Resist:** weak ley, void · resist fire · immune poison
+- **Resist:** weak void (ley neutral, D-067.19) · resist fire · immune poison
 - **Intents:**
   - `ringer_low_note` · "The great bell speaks one low note. The water shivers." · 0.7× all · shock 40% 2
   - `ringer_stand_them_up` · "The note goes on. Something drowned stands up again." · revives one fallen ally at 50% HP · ifAllyDown · once per fight
@@ -2106,11 +2158,11 @@ loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 
 - **Tactics:** Its Low Note is Storm, and you are Soaked down here: Guard it. Void breaks the Shell.
 
 #### `cr_bell_warden` — The Bell-Warden (boss)
-**Drowned · L9 boss · XP 450** · loc_bell_wardens_deep (forced; adds `cr_brine_lamprey`) · the Drowned
-Reach's regional boss
-- **Stats:** HP 420 · ATK 18 · DEF 5/4 · AGI 3 · physical (storm on the tolls) · breach-born, drowned ·
-  cannot be fled
-- **Resist:** weak ley · resist fire · status immune: poison, stun; Stagger allowed
+**Drowned · L10 boss · XP 500** · loc_bell_wardens_deep (forced; adds `cr_brine_lamprey`) · the Drowned
+Reach's regional boss (band 4–8 top + 2)
+- **Stats:** HP 300 (~~420~~; 12 × (30 − 5 armor) = 300, D-067.20) · ATK 20 (~~18~~) · DEF 5/4 · AGI 5 (~~3~~) ·
+  physical (storm on the tolls) · breach-born, drowned · cannot be fled
+- **Resist:** neutral ley (~~weak~~, D-067.19) · resist fire · status immune: poison, stun; Stagger allowed
 - **Phase 1 — Is It the Hour?** (100–65%; skipped if `flag_heartstone_stabilized`: "it does not toll"):
   - `warden_ask` · "It lifts its head. 'Is it the hour?'" · no action · first (with `echo_rhune_choice`, answering with the Warden of Waters' name ends the fight peacefully, WORLD §3.6)
   - `warden_toll` · "It strikes the clapper on its knee. The water jumps." · 0.8× storm all · soaked 100% 3
@@ -2132,8 +2184,9 @@ Reach's regional boss
   when she opened them. They rang. The water came. They did not leave the ropes. What sits in the Deep
   is the guild, grown together around the clapper, wearing the chain she hung on it. It waits to be
   told the hour. It will take her name instead.
-- **Tactics:** Guard every Great Toll (you are Soaked: Storm ×1.5). Ley is its weakness; Storm hits it
-  ×1.5 too, and Shocks the lampreys. Kill lampreys as they come.
+- **Tactics:** Guard every Great Toll (you are Soaked: Storm ×1.5). Storm is the answer: it is always
+  Soaked, so Storm hits ×1.5 and Shocks the lampreys. Kill lampreys as they come. `itm_echo_bolt` is
+  no shortcut here (Ley is neutral, D-067.19).
 
 ### 6.4 Wards
 
@@ -2147,7 +2200,8 @@ Reach's regional boss
   - `golem_grind` · "It leans its weight into you, iron on bone." · 0.9× you · armor_break 40% 2
   - `golem_harden` · "Grit rains from its seams as the slate locks shut." · removes its Armor Break; shield self 1.0× · ifSelfHas:armor_break
   - `golem_cover` · "It steps in front of the other one." · shield ally 1.0× · ifAllyPresent and the ally is below 50%
-- **Loot:** 30–48 g · `mat_slate_core` 100% · `mat_iron_rivet` 60%
+- **Loot:** 30–48 g · `mat_slate_core` 100% · `mat_iron_rivet` 60% · `mat_silverwood_heartwood` 25% (the
+  cores were cut from Silverwood's own trees; D-067.6, so ending D's anchor needs no Before)
 - **Legacy description:** "A hulking construct of slate and iron. Magic skitters off its hide."
 - **Bestiary** (Remnant Archive): Year 30. The golems at the northern ley-knot, once Vane's Watch,
   turned outward at the third verse on the night of the Sundering and have faced outward since.
@@ -2166,7 +2220,7 @@ loc_conflux_chamber (×2, Days 1–2); Unbroken Warden add
   - `pillar_ward` · "Sigils climb the pillar and leap to its ally." · shield ally = 10% of that ally's max HP · ifAllyPresent
   - `pillar_discharge` · "Light gathers at the pillar's iron cap." · 0.8× all · everyNthTurn:3
   - `pillar_seal` · "The sigils close. The pillar goes still." · ends the fight, no loot · round:6, only if it is the last enemy
-- **Loot:** 15–24 g · `mat_slate_core` 30% · `mat_conflux_dust`† 30% (Silverwood Before only)
+- **Loot:** 15–24 g · `mat_slate_core` 30% · `item_chronal_dust` 30% (Silverwood Before only)
 - **Bestiary** (Wayfinder's Notes): A standing stone cut with Vane's ring-and-bar. At the Outpost it
   was there all along, dormant, and woke when the golems fell. In the Before they guard the Archives'
   door and the Conflux stair. Alone, it slows me and waits. Beside something bigger, it shields it.
@@ -2184,16 +2238,17 @@ loc_conflux_chamber (×2, Days 1–2); Unbroken Warden add
   - `knight_bash` · "It drives the shield's rim at your jaw." · 0.9× you · stun 30% 1 · ifSelfHas:shield
   - `knight_verse` · "It speaks one line of a verse it does not understand." · weaken 60% 2, armor_break 40% 2 on you · everyNthTurn:3
 - **Loot:** 66–102 g · `mat_slate_core` ×2 100% · `mat_silverwood_heartwood` 40% · `mat_iron_rivet` 60% ·
-  `item_pattern_breachsteel_blade` 100% on the first kill (W-B §7)
+  `item_pattern_breachsteel_blade` 100% on the first kill (§7)
 - **Bestiary** (Wayfinder's Notes): On Last Bell the Ninefold Hall is empty except for this: plate on
   no one, a shield with nine sides, Vane's sigil on the breast. It bashes only from behind the shield.
   One Void hit takes the shield away. Then strike where the sigil is.
 - **Tactics:** Void destroys its Shield outright (interplay 4); without a Shield it cannot Bash.
 
 #### `cr_unbroken_warden` — The Unbroken Warden (boss)
-**Wards · L18 boss · XP 1,100** · loc_conflux_chamber (Day 3, forced; adds `cr_warding_pillar`) ·
-Silverwood Before's regional boss
-- **Stats:** HP 720 · ATK 32 · DEF 10/6 · AGI 4 · physical · construct · cannot be fled
+**Wards · L19 boss · XP 1,200** · loc_conflux_chamber (Day 3, forced; adds `cr_warding_pillar`) ·
+Silverwood Before's regional boss (band 13–17 top + 2)
+- **Stats:** HP 500 (~~720~~; 12 × (51.6 − 10 armor) = 499, D-067.20) · ATK 34 (~~32~~) · DEF 10/6 · AGI 6 (~~4~~) ·
+  physical · construct · cannot be fled
 - **Resist:** weak storm · resist fire, ley, void, chrono · status immune: poison, bleed, stun, slow;
   Stagger allowed
 - **Phase 1 — Keep the Line** (100–65%; onEnter: 2× `cr_warding_pillar`):
@@ -2211,8 +2266,8 @@ Silverwood Before's regional boss
   - `uw_last_order` · "'Not Nine,' it says. 'Not Nine. Not Nine.'" · 1.0× all · weaken 50% 2 · everyNthTurn:3
   - `uw_sweep` (as Phase 1)
 - **Pacifist:** `item_ward_seal` + Caelum active: it kneels; Anchors may be placed (WORLD §3.11).
-- **Loot:** 195–300 g · `mat_silverwood_heartwood` ×2 100% · `mat_slate_core` ×3 100% · `mat_conflux_dust`†
-  ×2 100% · `item_pattern_breachwarden_mail` 100% (W-B §7) · (`item_breach_anchor_schematic_b` lies on
+- **Loot:** 195–300 g · `mat_silverwood_heartwood` ×2 100% · `mat_slate_core` ×3 100% · `item_chronal_dust`
+  ×2 100% · `item_pattern_breachwarden_mail` 100% (§7) · (`item_breach_anchor_schematic_b` lies on
   Tobrin's plinth afterward, WORLD §3.11)
 - **Bestiary** (Wayfinder's Notes): Haldric Vane's masterwork at the Conflux stair. It lets the Nine
   through and no one else. The third verse is cut into its chest: Stone, stand where flesh would fall.
@@ -2270,7 +2325,7 @@ Silverwood Before's regional boss
 
 #### `cr_aetherial_weaver` — Aetherial Weaver
 **Spireborn (Aetherial) · L8 fodder · XP 161** · loc_aetherium_spires (100% first), loc_spire_crown
-(×2), loc_aldours_eyrie · *legacy: HP 38 · dmg 8 · def 3 · agi 5 · XP 55*
+(×2), loc_auldes_eyrie · *legacy: HP 38 · dmg 8 · def 3 · agi 5 · XP 55*
 - **Stats:** HP 96 · ATK 17 · DEF 2/4 · AGI 7 · ley · construct (−25% HP if the Heartstone was destroyed)
 - **Resist:** weak void · resist ley · immune poison
 - **Intents:**
@@ -2287,7 +2342,7 @@ Silverwood Before's regional boss
 - **Tactics:** Void, or steel; cleanse Weaken before your big turn.
 
 #### `cr_spire_loom` — Spire Loom
-**Spireborn (Aetherial) · L14 elite · XP 661** · loc_aldours_eyrie (with a Weaver; return 25%)
+**Spireborn (Aetherial) · L14 elite · XP 661** · loc_auldes_eyrie (with a Weaver; return 25%)
 - **Stats:** HP 320 · ATK 26 · DEF 6/6 · AGI 2 · ley (physical on Shuttle) · construct
 - **Resist:** weak void · resist ley, storm · immune poison, bleed, stun
 - **Intents:**
@@ -2328,7 +2383,7 @@ Stormcrown add · skyborn
 - **Intents:**
   - `kite_tether` · "It hooks a line of wind to you and pulls." · 0.8× storm you · mark 100% 2 · first
   - `kite_slice` · "It turns edge-on and comes at you like a thrown blade." · 1.1× you · bleed 40% 3
-  - `kite_swoop` · "It drops out of the sun down its line." · 1.4× you · ifTargetHas:mark
+  - `kite_swoop` · "It drops out of the sun down its line." · 1.2× you (~~1.4×~~, REVIEW-STORY-WORLD #19) · ifTargetHas:mark
   - `kite_updraft` · "It catches a gust, and the gust catches you." · 0.6× storm you · slow 50% 2 · everyNthTurn:3
 - **Loot:** 27–42 g · `mat_gale_feather` 70% · `mat_storm_glass`† 20%
 - **Bestiary** (Wayfinder's Notes): Diamond-shaped, wide as my arms, with a tail of wind. Aulde built
@@ -2351,9 +2406,10 @@ Stormcrown add · skyborn
 - **Tactics:** Its pattern is fixed: Mist, Discharge, Wingbeat. Guard every Discharge.
 
 #### `cr_stormcrown` — The Stormcrown (boss)
-**Spireborn (Sentinel) · L16 boss · XP 950** · loc_stormcrowns_perch (forced unless bargained; adds
-`cr_gale_kite`) · the Skyreach's regional boss · skyborn
-- **Stats:** HP 640 · ATK 29 · DEF 6/8 · AGI 9 · storm (physical on Talon) · construct · cannot be fled
+**Spireborn (Sentinel) · L17 boss · XP 1,050** · loc_stormcrowns_perch (forced unless bargained; adds
+`cr_gale_kite`) · the Skyreach's regional boss (band 12–15 top + 2) · skyborn
+- **Stats:** HP 520 (~~640~~; 12 × (49.2 − 6 armor) = 518, D-067.20) · ATK 31 (~~29~~) · DEF 6/8 · AGI 11 (~~9~~) ·
+  storm (physical on Talon) · construct · cannot be fled
 - **Resist:** weak chrono · resist storm, ley · status immune: shock, blind, poison; Stagger allowed
 - **Phase 1 — The Watch** (100–70%; onEnter: 1× `cr_gale_kite`):
   - `crown_regard` · "It turns from the east and looks at you, once." · mark 100% 3 · first
@@ -2371,12 +2427,12 @@ Stormcrown add · skyborn
   - `crown_talon` (as Phase 1)
 - **Pacifist:** `echo_sky_oath` + `item_sky_whisper_talisman`: it yields the Talon and
   `echo_tyrant_never_struck` (WORLD §3.10).
-- **Loot:** 175–270 g · `item_stormcrown_talon` 100% · `item_gale_feather` 100% · `mat_storm_glass`† ×3
+- **Loot:** 175–270 g · `item_stormcrown_talon` 100% · `mat_gale_feather` 100% · `mat_storm_glass`† ×3
   100% · `mat_skyreach_crystal` ×2 100%
 - **Bestiary** (Remnant Archive): Year 500. The first Sentinel, made by Seraphine Aulde before the
   others, with a crown of storm-glass. It has watched the Apex for five hundred years and keeps one
-  fact the Remnants never recorded: the thing in the Apex has never once struck first. Seven Wayfinders
-  came. Seven struck. It will fight the eighth if the eighth insists.
+  fact the Remnants never recorded: the thing in the Apex does not strike what keeps its distance.
+  Seven Wayfinders came. Seven came close. It will fight the eighth if the eighth insists.
 - **Tactics:** Guard every Call Lightning (you will be Soaked). Physical and Chrono; it resists Storm
   and Ley. Kill the kite to keep Mark off you. Chrono strips its Phase 3 Haste.
 
@@ -2409,7 +2465,7 @@ loc_elder_mangrove, loc_pale_gullet (×3) · *legacy: HP 36 · dmg 7 · def 2 ·
   - `toad_tongue` · "A tongue the length of a reed snaps out." · 1.0× you · slow 30% 2
   - `toad_swallow_light` · "It gulps, and the light goes into it." · shield self 1.0× · ifTargetHas:blind
   - `toad_flop` · "It gathers itself, heavy, over your feet." · 1.3× you · everyNthTurn:3
-- **Loot:** 19–30 g · `mat_glow_gland` 50% · `mat_glow_spore`† 30%
+- **Loot:** 19–30 g · `mat_glow_gland` 50% · `mat_glow_gland` 30%
 - **Bestiary** (Remnant Archive): Year 488. The lantern-toad of the Causeway: dog-sized, its
   throat-sac lit by Breach-leak. It lures with the light and strikes whatever comes to look.
   Lanternreed children call them night-lamps and are taught not to follow them. The Matron in the Hall
@@ -2425,7 +2481,7 @@ loc_elder_mangrove, loc_pale_gullet (×3) · *legacy: HP 36 · dmg 7 · def 2 ·
   - `spore_settle` · "It settles on you like warm dust." · 0.8× you · weaken 40% 2
   - `spore_bloom` · "Light-dust blooms from it in a slow ring." · blind 40% 1 all · everyNthTurn:3
   - `spore_burst` · "It bursts, sweetly." · 0.8× all · poison 100% 4 · onDeath
-- **Loot:** 21–33 g · `mat_glow_spore`† 70% · `item_antidote_root` 20%
+- **Loot:** 21–33 g · `mat_glow_gland` 70% · `item_antidote_root` 20%
 - **Bestiary** (Wayfinder's Notes): A cloud that drifts against the wind. Breathing it is sweet, then
   it is not. A blade mostly hits air. Fire takes it in one breath. If I must kill it close, I kill it
   last, and I have the antidote root out first: it bursts when it dies.
@@ -2440,7 +2496,7 @@ loc_elder_mangrove, loc_pale_gullet (×3) · *legacy: HP 36 · dmg 7 · def 2 ·
   - `reed_spear` · "A beak like a reed-knife darts at your eye." · 1.2× you · blind 30% 1
   - `reed_twice` · "It cocks its head twice." · 2 hits × 0.7× you · bleed 30% 2 · everyNthTurn:3
   - `reed_wade` · "It steps back into the reeds, slow and patient." · regen self 0.3×/3 · ifHpBelow:50
-- **Loot:** 21–33 g · `mat_lantern_resin`† 40% · `mat_glow_gland` 30%
+- **Loot:** 21–33 g · `mat_ley_resin` 40% · `mat_glow_gland` 30%
 - **Bestiary** (Remnant Archive): Year 490. A grey-green wader twice a man's height, all neck and
   patience. It stands in the reeds at the Reedmarch where Glowfen baskets meet Nomad salt, and has
   never taken either. It takes the people who come for them. The Glowfen say it was a fisherman's
@@ -2457,7 +2513,7 @@ loc_elder_mangrove, loc_pale_gullet (×3) · *legacy: HP 36 · dmg 7 · def 2 ·
   - `barrow_say_a_name` · "It speaks a name. You turn before you can stop." · 0.5× you · stun 30% 1 · everyNthTurn:3
   - `barrow_gather` · "More light leaks out of the mound into it." · heal self 1.0× · ifHpBelow:40
 - **Loot:** 25–39 g · `item_barrow_light_vial` (the first one killed at loc_firefly_barrows, 100%, WORLD
-  §3.9) · `mat_lantern_resin`† 40% · `mat_glow_gland` 30%
+  §3.9) · `mat_ley_resin` 40% · `mat_glow_gland` 30%
 - **Bestiary** (Wayfinder's Notes): The Glowfen bury their dead in the water and the dead do not stay
   dark. At dusk the light leaks out and walks the edge of its own barrow, keeping watch over itself.
   It is not angry. It is on watch. In the third loop they began to say names. Seven were Wayfinders'.
@@ -2465,9 +2521,10 @@ loc_elder_mangrove, loc_pale_gullet (×3) · *legacy: HP 36 · dmg 7 · def 2 ·
 - **Tactics:** Void; from Loop 3 the named turn is the Stun turn, so Guard it.
 
 #### `cr_lantern_matron` — The Lantern Matron (boss)
-**Green · L13 boss · XP 700** · loc_matrons_hall (forced; adds `cr_lantern_toad`) · the Glowfen's
-regional boss · Elder Mother Sulis of Lanternreed
-- **Stats:** HP 560 · ATK 24 · DEF 4/6 · AGI 2 · ley (physical on Reach and Embrace) · cannot be fled
+**Green · L14 boss · XP 770** · loc_matrons_hall (forced; adds `cr_lantern_toad`) · the Glowfen's
+regional boss (band 8–12 top + 2) · Elder Mother Sulis of Lanternreed
+- **Stats:** HP 430 (~~560~~; 12 × (39.6 − 4 armor) = 427, D-067.20) · ATK 26 (~~24~~) · DEF 4/6 · AGI 4 (~~2~~) ·
+  ley (physical on Reach and Embrace) · cannot be fled
 - **Resist:** weak void, fire · resist ley · status immune: poison, blind, stun; Stagger allowed
 - **Phase 1 — Lullaby** (100–65%):
   - `matron_hum` · "She hums the tune every Lanternreed mother hums." · 0.4× all · slow 60% 2
@@ -2484,7 +2541,7 @@ regional boss · Elder Mother Sulis of Lanternreed
   - `matron_flood` · "The Breach-light under the Hall rises through her and out." · 1.1× all · blind 50% 1 · everyNthTurn:2
   - `matron_embrace` (as Phase 2)
 - **Pacifist:** Mireya active and `item_mireyas_lantern` lit: Sulis is lulled (WORLD §3.9, Mireya's "preserve" branch).
-- **Loot:** 145–225 g · `item_lantern_moth_brooch` 100% · `mat_lantern_resin`† ×4 100% · `mat_glow_gland` ×3 100%
+- **Loot:** 145–225 g · `item_lantern_moth_brooch` 100% · `mat_ley_resin` ×4 100% · `mat_glow_gland` ×3 100%
 - **Bestiary** (Remnant Archive): Year 431. Elder Mother Sulis of Lanternreed went down into the cavern
   under the swamp, where the light pools thickest, to bring back the children who had followed it.
   She brought none back. She stayed, and the light grew her. Her back is a hill of lanterns, each
@@ -2496,7 +2553,7 @@ regional boss · Elder Mother Sulis of Lanternreed
 
 #### `cr_temporal_aberration` — Temporal Aberration
 **Watch-wardens (Aberration) · L12 elite · XP 520** · loc_chronos_nexus (100% first; q_unlidded_eye
-target); Contained Tyrant Phase 2 add (at 60% HP) · *legacy: HP 55 · dmg 12 · def 4 · agi 6 · XP 85*
+target); Contained Tyrant Phase 2 add (at 40% HP = 112, D-066.1; 1 when solo) · *legacy: HP 55 · dmg 12 · def 4 · agi 6 · XP 85*
 - **Stats:** HP 280 · ATK 23 · DEF 4/4 · AGI 8 · chrono · breach-born
 - **Resist:** weak void · resist chrono · immune poison
 - **Intents:**
@@ -2505,7 +2562,7 @@ target); Contained Tyrant Phase 2 add (at 60% HP) · *legacy: HP 55 · dmg 12 ·
   - `aberration_future_blow` · "It strikes at a moment that has not happened." · hidden · 0.8× all · everyNthTurn:3
   - `aberration_rewind` · "Its wounds run backward into it." · rewind self 2 · ifHpBelow:50 · once per fight
 - **Loot:** 54–84 g · `item_chronal_dust` 100% (legacy) · `mat_frayed_moment` 80% · `item_aberrant_eye`
-  100% while `q_unlidded_eye` is active (Appendix A)
+  100% while `q_unlidded_eye` is active (§7.10)
 - **Legacy description:** "A warped being that flickers between past and future strikes."
 - **Bestiary** (Remnant Archive): Year 302. Tovren Masque built watch-wardens to keep the observatory's
   hours while he read the sky. When the dome fell the hours broke, and the wardens kept them anyway,
@@ -2569,7 +2626,7 @@ target); Contained Tyrant Phase 2 add (at 60% HP) · *legacy: HP 55 · dmg 12 ·
   - `orrery_conjunction` · "Every ring stops. The line is complete." · 1.8× you · ifTargetHas:mark, everyNthTurn:3
   - `orrery_retrograde` · "The rings run backward. So does the dent you made." · rewind self 2 · ifHpBelow:50
 - **Loot:** 58–90 g · `item_chronal_dust` ×2 100% · `mat_frayed_moment` 80% · `mat_iron_rivet` 40% ·
-  `item_pattern_hour_spindle` 100% (W-B §7)
+  `item_pattern_hour_spindle` 100% (§7)
 - **Bestiary** (Remnant Archive): Year 377. A brass knight with an orrery for a chest, standing over
   the observatory's great orrery like a nurse. Hadrek the Clockwright's mark is on its heel. It aligns
   its rings on one target and strikes when the line is complete. It guards the key in the orrery's foot
@@ -2688,7 +2745,7 @@ the pool roll, only where the player died in an earlier loop; `ev_redundant_stan
 
 #### `cr_tyrants_reach` — Tyrant's Reach (anomaly)
 **Unravelled · L9 anomaly, Loop 3+ · XP 246** · loc_aetherium_spires (10%, once per loop);
-`cr_chronos_tyrant_unveiled` Phase 2 add (DESIGN §4.10's `nine_shard`, 90 HP kept)
+`cr_chronos_tyrant_unveiled` Phase 2 add (DESIGN §4.10; 90 HP)
 - **Stats:** HP 90 · ATK 18 · DEF 3/5 · AGI 5 · chrono · breach-born
 - **Resist:** weak ley · resist chrono, void · immune poison
 - **Bound mage** (rolled on spawn; at the Apex no repeats among the five): Korr · Vane · Aulde · Sallow · Masque.
@@ -2705,32 +2762,33 @@ the pool roll, only where the player died in an earlier loop; `ev_redundant_stan
 - **Tactics:** At the Apex kill Aulde and Sallow reaches first (they heal and shield the Tyrant); Ley.
 
 #### `cr_chronos_tyrant_contained` — The Chronos Tyrant, Contained (boss, Loop 1)
-**Unravelled · L14 boss (hand-tuned for a level 12–13 party, D-051) · XP 900** ·
+**Unravelled · L14 boss (hand-tuned for a level-11 party, D-066.1; explorer 11–13, speedrunner ≥ 9, DESIGN §19 #11) · XP 900** ·
 loc_temporal_breach_apex, Loop 1 · *legacy "The Chronos Tyrant": HP 126 · dmg 14 · def 5 · agi 4 ·
 XP 180 · magic resistance 30% · scaled to player level +1*
-- **Stats** (DESIGN §4.10): HP 540 · ATK 24 · SP 26 · DEF 6/8 · AGI 4 · chrono · breach-born ·
-  cannot be fled · cannot speak (D-004; Loop 1 voices are "a chorus of countless dying moments")
+- **Stats** (DESIGN §4.10, D-066.1): HP 460 (~~540~~) · ATK 24 · SP 26 · DEF 6/8 · AGI 4 · chrono · breach-born ·
+  cannot be fled · cannot speak (D-004; Loop 1 voices are "a chorus of countless dying moments") ·
+  target 12–18 rounds; effective HP (HP + shields + capped Rewinds + adds − the P3 bonus) ≤ 850
 - **Resist:** weak ley · resist chrono, void · status immune: stun, slow, poison, bleed; Taunt ignored;
   Stagger allowed
 - **Legacy description:** "A towering, amorphous figure of rippling time. Skeletal limbs and crystalline
   shards surface and vanish within its shifting mass."
 - **Phase 1 — The Holding** (100–66%; STORY §8.4: it does not want to fight you):
-  - `tyr_brace` · "The Tyrant braces the hour against you." · shield self 1.0× SP · every second turn (alternates with the moves below)
+  - `tyr_brace` · "The Tyrant braces the hour against you." · shield self 0.6× SP (~~1.0×~~) · every second turn (alternates with the moves below; it braces because it is resisting the Holding's reflex, D-067.12)
   - `tyr_grasp` · "A skeletal limb surfaces, reaching." · 1.2× ATK physical you · slow 100% 2
   - `tyr_shear` · "Time thickens around your feet." · 1.0× SP all
   - `tyr_time_lash` · "The hour draws tight, then lashes at you." · 1.3× SP you
-  - *Transition (<66%):* "The mass splits along old seams. Things that were people surface and do not sink back." onEnter: 2× `cr_temporal_aberration` at 60% HP.
+  - *Transition (<66%):* "The mass splits along old seams. Things that were people surface and do not sink back." onEnter: 2× `cr_temporal_aberration` at 40% HP (~~60%~~), 1 if the player has no active companion (`countSolo`).
 - **Phase 2 — The Fracture** (<66%; the five strike once per rotation, STORY §8.4):
   - `tyr_korr_burns` · "Something that was a scholar burns." · 1.0× SP fire you · burn 60% 3
   - `tyr_vane_closes` · "Stone-grey hands close on your left." · 1.1× ATK physical you · armor_break 60% 3
   - `tyr_gather` · "The hour draws back like an arm. It will fall." · hidden 2-turn wind-up, then `tyr_chrono_strike` 2.0× SP you · stun 100% 1 unless you Guarded ("the strike that scattered Dask")
-  - `tyr_aulde_sings` · "One clear note rises. Light settles over the mass." · shield self 1.5× SP
-  - `tyr_sallow_breathes` · "Green breath leaks from the mass toward you." · 0.6× SP ley you · poison 70% 4; regen self 0.4× SP/3
-  - `tyr_remember` · "An eye opens in the mass and looks back a moment." · rewind self 2 (Masque) · everyNthTurn:3
-  - *Transition (<33% or round 14):* "It stops guarding itself. Every wound you give it is answered by a voice."
-- **Phase 3 — The Nine Speak** (<33% or round 14; takes ×1.5 damage, STORY §8.4; no more Brace):
-  - `tyr_unraveling` · "The Tyrant stops guarding itself. Everything here comes loose." · 1.1× SP all · armor_break 100% 2
-  - `tyr_remember` · everyNthTurn:3
+  - `tyr_aulde_sings` · "One clear note rises. Light settles over the mass." · shield self 1.0× SP (~~1.5×~~)
+  - `tyr_sallow_breathes` · "Green breath leaks from the mass toward you." · 0.6× SP ley you · poison 70% 4 (no regen in this form, D-066.1)
+  - `tyr_remember` · "An eye opens in the mass and looks back a moment." · rewind self 2 (Masque; a boss Rewind restores at most 10% max HP and any Void or Ley hit removes it — `itm_echo_bolt` answers it for every class) · **once in this phase**
+  - *Transition (<33% or round 12):* "It stops guarding itself. Every wound you give it is answered by a voice."
+- **Phase 3 — The Nine Speak** (`hpBelow 0.33` OR `round 12`, ~~14~~; takes ×1.5 damage, STORY §8.4 — provisional until the §19 #19 sims, D-068.3; no more Brace):
+  - `tyr_unraveling` · "The Tyrant stops guarding itself. Everything here comes loose." · 1.1× SP all · armor_break 100% 2 · every turn
+  - `tyr_remember` · **once in this phase**
 - **Loot:** none (legacy); `mat_frayed_moment` ×3 lie at the Apex afterwards (WORLD §3.5). The Horde
   begins (D-060).
 - **Bestiary** (Remnant Archive): Year 44. The Remnants named it the Chronos Tyrant after the first
@@ -2738,51 +2796,58 @@ XP 180 · magic resistance 30% · scaled to player level +1*
   surfacing and sinking. It has never left the Apex. Scholars reasoned that whatever stands at the
   heart of the Breach must be its cause. A later hand adds: it braces before it strikes, like something
   that would rather not.
-- **Tactics:** Ley throughout. Guard every Chrono-Strike wind-up. Void after Remember (consumes Rewind).
-  The Aberrations can be ignored if your damage is high; their Slow cannot.
+- **Tactics:** Ley throughout. Guard every Chrono-Strike wind-up. Void or Ley after Remember (consumes the
+  Rewind; the Amulet's bolt does it for every class). The Aberrations can be ignored if your damage is
+  high; their Slow cannot. Loop 1 offers *Face it / Not yet* on arrival and writes no autosave at the
+  Apex (D-067.1), so an under-levelled player can walk back to the Nexus.
 
 #### `cr_chronos_tyrant_unveiled` — The Chronos Tyrant, Unveiled (boss, Loop 2+)
 **Unravelled · L18 boss · XP 1,600** · loc_temporal_breach_apex, Loop 2+ · Veyran Thal, holding
 - **Stats** (DESIGN §4.10): HP 900 · ATK 32 · SP 36 · DEF 8/10 · AGI 4 · chrono · breach-born · cannot be fled
 - **Resist:** weak ley · resist chrono, void · status immune: stun, slow, poison, bleed; Taunt ignored;
   Stagger allowed
-- **Opening:** it does not attack first. With `echo_tyrant_speaks` (WORLD §3.5's condition, Errata E9) the
-  fight begins only when the player attacks; communion is open from the first turn.
-- **Phase 1 — Lament** (100–75%; ↔ Movement I):
+- **Opening:** it does not attack first — from Loop 2 Veyran holds the Holding's reflex back from one who
+  has crossed (D-067.12). The fight begins only when the player attacks; communion is open from the
+  first turn with `echo_tyrant_speaks` or the first *Listen* (STORY §8.3, C-07).
+- **Phase 1 — Lament** (`tyr_movement_1`, 100–75%; ↔ Movement I):
   - `tyr_speak` · "It speaks: 'You have crossed. So.'" · no action · first (later loops: STORY §8.2 lines)
   - `tyr_time_lash`, `tyr_grasp`, `tyr_shear` (as Contained, with these stats)
   - *Transition (<75%):* "'Then you came to finish it.' The mass opens. Two of the five reach out."
-- **Phase 2 — The Nine Surface** (<75%; ↔ Movement II; onEnter: 2× `cr_tyrants_reach`, mages rolled
+- **Phase 2 — The Nine Surface** (`tyr_movement_2`, <75%; ↔ Movement II; onEnter: 2× `cr_tyrants_reach`, mages rolled
   without repeat; one more each time one dies, max 2 alive and 5 in total):
   - `tyr_remember` · everyNthTurn:3 · otherwise the Phase 1 moves
   - *Transition (<50%):* "'I hold,' it says. 'If I do not hold, you have seen what comes.'"
-- **Phase 3 — Chrono-Strike** (<50%; ↔ Movement III):
+- **Phase 3 — Chrono-Strike** (`tyr_movement_3`, <50%; ↔ Movement III):
   - `tyr_gather` → `tyr_chrono_strike` · everyNthTurn:3 · otherwise the Phase 1 moves
   - *Transition (<25% or round 20):* "The hold fails. The chorus stops pretending to be one voice."
-- **Phase 4 — The Hold Fails** (<25% or round 20):
+- **Phase 4 — The Hold Fails** (`tyr_phase_4`, `hpBelow 0.25` OR `round 20`; no communion Movement):
   - `tyr_unraveling` · every turn · its outgoing damage +10% per round in this phase (uncapped, DESIGN)
   - at 10% HP, once: "'If you finish this, run,' says the voice under the chorus. 'I mean that kindly.'"
 - **Communion** (STORY §8.3 beats, D-054 Resolve 0–8). Opens with `echo_tyrant_speaks` or the first
   *Listen*; from Loop 2 the player may also switch at any phase transition and start at Movement II
   (STORY §8.4). The Commune toggle swaps the bar for Speak / Listen / Offer / Resist (DESIGN §4.11).
   While communing, the Tyrant's intent alternates a question (pseudo-intent, no damage) with
-  `tyr_hour_presses` · "The hour leans on you while it waits." · 0.6× SP you × (1 − Resolve/16).
+  `tyr_hour_presses` · "The hour leans on you while it waits." · Chrono, **8% of your max HP × (1 −
+  Resolve/8)**; it cannot take you below 1 HP while Resolve ≥ 3 (D-067.3, replacing the SP-scaled
+  version so communion is never a level check).
 
 | Movement | Pseudo-intents (question chip) | Answers |
 |---|---|---|
-| `tyr_movement_1` · I — The Holding | `tyr_q_why` "It asks why you have come." · `tyr_q_hour` "It asks what day this is, for you." · `tyr_q_before` "It asks who came before you." | `echo_tyrant_jailer` +1; the honest "to kill you" +1; a lie −2 · `echo_thirtieth_dawn` +1 · `echo_seven_wayfinders` +1 |
+| `tyr_movement_1` · I — The Holding | `tyr_q_why` "It asks why you have come." · `tyr_q_hour` "It asks what day this is, for you." · `tyr_q_before` "It asks who came before you." | `echo_tyrant_jailer` +1 (it needs two of its five sources, D-067.16); the honest "to kill you" +1; a lie −2 · `echo_thirtieth_dawn` +1 · `echo_seven_wayfinders` +1 (`echo_tyrant_never_struck` also answers `tyr_q_why`, +1) |
 | `tyr_movement_2` · II — The Fracture | `tyr_q_korr` "'What is read is owed. What have you read?'" · `tyr_q_vane` "'Who guards the gate now?'" · `tyr_q_aulde` "'What note does the sky hold?'" · `tyr_q_sallow` "'What lives, that carries what does not?'" · `tyr_q_masque` "'Tell me what you saw from the far side.'" · `tyr_q_hallow` "The chorus leaves a gap where a sixth voice should be." | verse 2 or `echo_korr_marginalia` +1 (Corruption ≥ 3 also +1 here, −1 at the next asker) · verse 3 or `echo_stone_hide_origin` +1 · verse 5 or `echo_spire_note` +1 · verse 6 or `echo_breathing_pool` +1 (automatic with Mireya active) · verse 7 or `echo_eye_of_masque` +1, `echo_ritual_inevitable` +2 · `echo_hallow_said_stop` +2 |
 | `tyr_movement_3` · III — The Nine Speak | `tyr_q_choice` "The chorus stops. One voice asks what you will do." | Resolve ≥ 3: let you pass (Silverwood Before, or ending F) · ≥ 6 with `echo_litany_complete`: take its place (A) · 8 with `echo_void_resonance`, `echo_heartstone_resonance` and `item_breach_anchor` (STORY adds `echo_anchor_mechanic` and Caelum's cradle-pin): the Mending (B, `echo_tyrant_consent`) |
 
-  Resolve caps at 8. Other actions (proposed conversion of DESIGN §4.11's 0–100 values; DESIGN to
-  confirm, Q4): **Listen** +1 once per Movement, and its next intent becomes a full-strength
-  `tyr_time_lash`; **Offer** `item_chronos_lens` +1, `item_stabilized_heartstone` +1,
-  `item_breach_anchor` +2 (sets `flag_anchor_offered`), `item_heartstone_core` −2; **Resist** = Guard,
-  +0; a companion in Support stance, Dask or Caelum only, +1 once per Movement. Below 30% Tyrant HP or
-  in Phase 4, every gain is +1 more ("it is tired"). **Rejection** (STORY §8.5): Resolve < 3 at a
-  Movement's end, or two lies: "Then you are the fifth to come for me with a blade in your mouth. Go and
-  get a real one." Combat resumes at Phase 2; leaving instead is `closer_fall` (reason `rejected`) and
-  grants `echo_tyrant_rejected`. Attacking during communion is allowed; a kill ends in the Horde.
+  Resolve is 0–8 and starts at 1 (D-066.6; DESIGN §4.11 adopted these conversions). **Listen** +1 once
+  per Movement, and its next intent becomes a full-strength `tyr_time_lash` (DESIGN §4.11; see §13 open
+  question 3); **Offer** — the item is shown, never consumed (D-067.3) — `item_chronos_lens` +1,
+  `item_stabilized_heartstone` +1, `item_breach_anchor` +2 (sets `flag_anchor_offered`),
+  `item_heartstone_core` −2; **Resist** = Guard, +0; a companion in Support stance, Dask or Caelum only,
+  +1 once per Movement. Below 30% Tyrant HP every gain is +1 more ("it is tired"). The first time in a
+  loop Resolve reaches 4 the Breach Clock gains +8 watches. **Rejection** (STORY §8.5, D-066.6): Resolve
+  < 3 at the end of Movement II or III, or two lies: "Then you are the third to come for me with a blade
+  in your mouth. Go and get a real one." (STORY's count per D-067.12.) Combat resumes at Phase 2; leaving
+  instead is `closer_fall` (reason `rejected`) and grants `echo_tyrant_rejected`. Attacking during
+  communion is allowed and forfeits the current question (D-067.3); a kill ends in the Horde.
 - **Loot:** `mat_tyrant_shard` 1 per phase cleared (DESIGN §8.2; max 4) · `mat_frayed_moment` ×3. A kill
   triggers the Horde and the Escape (D-060), never a true ending.
 - **Bestiary** (Wayfinder's Notes): Loop 2. It spoke. "You have crossed. So." A chorus, with one voice
@@ -2872,16 +2937,17 @@ Hostile), loc_veil_mouth (×2, every visit, Weavers Wary or Hostile)
 
 #### Tiers
 
-T1–T4 are DESIGN §7.4. **T5 is proposed here** (OQ-1): capstone gear, band 16–18, crafted from a read
-pattern or taken from a Before/Apex boss; reachable from Loop 2 only.
+T1–T5 are DESIGN §7.4 (T5 adopted by D-066.22): capstone gear, band 16–18, crafted from a read
+pattern or taken from a Before/Apex boss; reachable from Loop 2 only. T4 pieces may still appear in
+16–18 bands as lower-rarity fill.
 
 | Tier | Band | Weapon power | Staff/focus power / spell_power | Armor / ward | Trinket stat | Value |
 |---|---|---|---|---|---|---|
 | T1 | 1–4 | 4–6 | 2 / 1–2 | 2–3 / 0–1 | +1 | 8–40 |
 | T2 | 5–8 | 7–10 | 3–4 / 3–4 | 4–6 / 1–2 | +1–2 | 40–110 |
 | T3 | 9–13 | 11–14 | 5–6 / 5–7 | 7–9 / 2–3 | +2 | 110–220 |
-| T4 | 14–18 | 15–20 | 7–8 / 8–10 | 10–12 / 3–4 | +2–3 | 220–400 |
-| T5 *(proposed)* | 16–18 | 21–24 | 9 / 11–13 | 13–15 / 4–5 | +3 | 400–650 |
+| T4 | 14–15 | 15–20 | 7–8 / 8–10 | 10–12 / 3–4 | +2–3 | 220–400 |
+| T5 | 16–18 | 21–24 | 9 / 11–13 | 13–15 / 4–5 | +3 | 400–650 |
 
 #### Count (budget DESIGN §7.6)
 
@@ -2896,7 +2962,7 @@ pattern or taken from a Before/Apex boss; reachable from Loop 2 only.
 | key | 6 | 6 | |
 | recipe | 10 | 10 | 8 patterns + 2 Breach-anchor schematic halves |
 | tome | 8 | 4 | WORLD's readable records counted as codex tomes |
-| **Total** | **157** | **139** | 26 legacy kept; trim candidates in OQ-6 |
+| **Total** | **157** | **139** | 26 legacy kept; 157 adopted (C-43: the budget is a floor) |
 
 ---
 
@@ -2934,7 +3000,7 @@ pattern or taken from a Before/Apex boss; reachable from Loop 2 only.
 | `item_necromancer_staff` | Necromancer Staff | T2 | roll | power 4; spell_power 3; mp_cost_reduction 20; life_steal 5 | 100 | pool `npc_tamsin_reed`, `npc_kaelen_stonehand`; `cr_drowned_archivist` 5% | A staff of dark, polished bone, pulsating with forbidden power and a faint, chilling aura. *(legacy: damage 4, magic 3, 20%, life_steal_percent 5, 100 g)* |
 | `item_scriptorium_staff` | Scriptorium Staff | T3 | roll | power 5; spell_power 6; mp_cost_reduction 10; max_mp +5 | 150 | `npc_sedge_marrow`, `npc_tamsin_reed` stock; `recipe_scriptorium_staff` | A Remnant reading-rod, wrapped in drowned vellum. The ink still moves under the wax. |
 | `item_ley_tuned_staff` | Ley-tuned Staff | T3 | craft | power 6; spell_power 7; mp_cost_reduction 15; dmg_bonus `ley` +10% | 200 | `recipe_ley_tuned_staff` (Heartstone stabilized this loop) | Tuned to the calm Heartstone. It hums one note and holds it. |
-| `item_spire_builders_staff` | Spire-Builder's Staff | T4 | fixed R | power 8; spell_power 10; mp_cost_reduction 15; dmg_bonus `storm` +10% | 380 | `loc_aldours_eyrie` (locked case; opens with `item_aetherium_prism`) | Seraphine Aulde's tuning staff. Strike it and the spires answer. |
+| `item_spire_builders_staff` | Spire-Builder's Staff | T4 | fixed R | power 8; spell_power 10; mp_cost_reduction 15; dmg_bonus `storm` +10% | 380 | `loc_auldes_eyrie` (locked case; opens with `item_aetherium_prism`) | Seraphine Aulde's tuning staff. Strike it and the spires answer. |
 | `item_hour_spindle` | Hour Spindle | T5 | craft | power 9; spell_power 13; mp_cost_reduction 20; on_hit `status_slow` 10% (2) | 580 | `recipe_hour_spindle` (read `item_pattern_hour_spindle`) | A spindle wound with frayed moments. Time catches on it like wool. |
 
 ### 7.4 Weapons — `shield_heavy` (6)
@@ -2956,7 +3022,7 @@ pattern or taken from a Before/Apex boss; reachable from Loop 2 only.
 | `item_chasmglass_focus` | Chasmglass Focus | T2 | roll | power 3; spell_power 4 | 60 | pool `npc_kaelen_stonehand`; `cr_void_touched_stalker` 10% | Glass from the Chasm's lip, ground to a lens. It is always cold. |
 | `item_hollow_lantern_focus` | Hollow Lantern Focus | T3 | roll | power 5; spell_power 6; immune `status_blind` on the first turn of an ambush (Voidglass Gallery rule, WORLD §2.9) | 160 | `npc_hollis_cade` stock; `cr_hollow_lantern` 10%; `recipe_hollow_lantern_focus` | A Hollow Lantern's empty cage. You see by what it does not show. |
 | `item_umbral_mirror` | Umbral Mirror | T4 | fixed R (`affix_of_the_void`) | power 7; spell_power 9; on_hit `status_curse` 15% (3) | 340 | `cr_vells_umbra` 100% (`loc_eye_of_the_scar`) | Vell's Umbra wore this face. The mirror keeps it. |
-| `item_nyxs_shardglass` | Nyx's Shardglass | T4 | fixed E (`affix_of_the_void`, `affix_of_the_wellspring`) | power 7; spell_power 10; life_steal 5; dmg_bonus `void` +10% | 400 | Weavers Sworn: `loc_where_she_fell` glass case (WORLD's `item_nyxarias_quiet`); `npc_hollis_cade` Sworn stock | Nyxaria Vell ground this from her own first Shard. She calls it her quiet. |
+| `item_nyxs_shardglass` | Nyx's Shardglass | T4 | fixed E (`affix_of_the_void`, `affix_of_the_wellspring`) | power 7; spell_power 10; life_steal 5; dmg_bonus `void` +10% | 400 | Weavers Sworn: `loc_where_she_fell` glass case (formerly WORLD's `item_nyxarias_quiet`); `npc_hollis_cade` Sworn stock | Nyxaria Vell ground this from her own first Shard. She calls it her quiet. |
 | `item_breachglass_focus` | Breachglass Focus | T5 | craft | power 9; spell_power 12; life_steal 5; dmg_bonus `void` +15% | 570 | `recipe_breachglass_focus` (read `item_pattern_breachglass_focus`) | A lens cut from the Breach itself. Look through it and the wrong stars line up. |
 
 ### 7.6 Armor (18)
@@ -2992,8 +3058,8 @@ also satisfy exit conditions while carried (equipped or not).
 
 | id | Name | Tier | Rarity | Stats and effects | g | Sources | Description |
 |---|---|---|---|---|---|---|---|
-| `item_glyphbound_lantern` | Glyphbound Lantern | T1 | roll | magic +1; tag `key`: Drowned Reach dark gate (WORLD §3.6) | 30 | `loc_sunken_archives` (appears with `q_lost_scroll`); `q_bell_vault` reward; `npc_kaelen_stonehand` Loop 2+ stock; `recipe_glyphbound_lantern` | A lantern etched with warding glyphs that sharpen focus. *(legacy: magic 1, 30 g)* |
-| `item_sky_whisper_talisman` | Sky-Whisper Talisman | T2 | roll | agility +1; tag `key`: Spire-Crown climb, `q_high_mark` pass, Stormcrown bargain | 32 | `loc_sky_whisper_plateau`; `cr_sky_whisper_sentinel` 100% (legacy) | A weathered charm that steadies breath in high winds. *(legacy: agility 1, 32 g)* |
+| `item_glyphbound_lantern` | Glyphbound Lantern | T1 | roll | magic +1; tag `key`: Drowned Reach dark gate (WORLD §3.6) | 30 | `loc_sunken_archives` (top step, from Day 1, W7); `q_bell_vault` reward; `npc_kaelen_stonehand` Loop 2+ stock; `recipe_glyphbound_lantern` | A lantern etched with warding glyphs that sharpen focus. *(legacy: magic 1, 30 g)* |
+| `item_sky_whisper_talisman` | Sky-Whisper Talisman | T2 | roll | agility +1; tag `key`: Spire-Crown climb, `q_high_mark` pass, Stormcrown bargain; tag **`anchorable`** (the discovery, D-067.4) | 32 | `loc_sky_whisper_plateau`; `cr_sky_whisper_sentinel` 100% (legacy) | A weathered charm that steadies breath in high winds. *(legacy: agility 1, 32 g)* |
 | `item_chronos_lens` | Chronos Lens | T3 | roll | magic +2; max_mp +10; tag `key`: Nexus Breach-door with `echo_litany_verse_1` (Loop 2+) | 120 | `loc_chronos_nexus` | A cracked lens that focuses time's echo. *(legacy: magic 2, mana 10, 120 g)* |
 | `item_stabilized_heartstone` | Stabilized Heartstone | — | bound | magic +1; max_mp +15 | 90 | `q_echoing_heartbeat` (Stabilize) | A calm core that hums with the ley lines. *(legacy: passive once, magic 1, mana 15, 90 g)* |
 | `item_heartstone_core` | Heartstone Core | — | bound | magic +2; max_mp +25; max_hp −15 | 100 | `q_echoing_heartbeat` (Exploit) | A stolen heartbeat of the world. Power surges, but each pulse hurts. *(legacy: magic 2, mana 25, health −15, 100 g)* |
@@ -3024,10 +3090,10 @@ noted. Tier = the band where the item is first common.
 | `item_glow_moss` | Glow Moss | T1 | heal 20; mp 5 | 10 | Elf start kit; every merchant core (§9); `loc_veridian_glowlands`, `loc_lantern_causeway`, `loc_reedmarch_descent` ×2; `cr_glowfen_mireling` (legacy) | Bioluminescent moss steeped in swamp magic. It soothes wounds. *(legacy: health 20, mana 5, 10 g)* |
 | `item_mana_bloom` | Mana Bloom | T1 | heal 10; mp 30 | 25 | Wizard start kit; `npc_kaelen_stonehand` core; `loc_cistern_gardens` ×2; `cr_drowned_archivist` (legacy) | A rare blossom steeped in ley mist. It brings cool clarity. *(legacy: health 10, mana 30, 25 g)* |
 | `item_antidote_root` | Antidote Root | T1 | cleanse `status_poison`, `status_bleed` | 8 | `npc_kaelen_stonehand`, `npc_old_fennick`, `npc_sedge_marrow` core; `loc_lanternreed` ×2; `recipe_antidote_root` | A bitter knuckle of root. Chew, spit, keep walking. |
-| `item_chronal_dust` | Chronal Dust | T2 | mp 25 (also a material, §8.1) | 18 | `cr_shimmering_phantom`, `cr_temporal_aberration` 100% (DESIGN); `loc_shimmering_pass`; `loc_conflux_chamber` ×3 (WORLD's `mat_conflux_dust`); `npc_tamsin_reed` core | Fine grains that glitter with frozen time. It sharpens the mind. *(legacy: mana 25, 18 g)* |
+| `item_chronal_dust` | Chronal Dust | T2 | mp 25 (also a material, §8.1) | 18 | `cr_shimmering_phantom`, `cr_temporal_aberration` 100% (DESIGN); `loc_shimmering_pass`; `loc_conflux_chamber` ×3 (formerly WORLD's `mat_conflux_dust`); `npc_tamsin_reed` core | Fine grains that glitter with frozen time. It sharpens the mind. *(legacy: mana 25, 18 g)* |
 | `item_ward_salts` | Ward Salts | T2 | self or ally: `status_shield` 20 | 20 | `npc_borin_stonefist`, `npc_tessaly_varr` core; `recipe_ward_salts` | Steppe salt and shade ash in a twist of paper. Scatter it and the air hardens. |
 | `item_ember_flask` | Ember Flask | T2 | thrown: `fire` 25; `status_burn` 100% (2) | 22 | `npc_borin_stonefist` stock; `recipe_ember_flask` | Ember ore ground into resin. Don't hold it long. |
-| `item_storm_jar` | Storm Jar | T2 | thrown: `storm` 20; `status_shock` 100% (2) | 22 | `loc_stormgate_cairns`; `npc_tessaly_varr` stock; `recipe_stormjar` | A sealed jar with a captured spark inside. It ticks against the glass. |
+| `item_storm_jar` | Storm Jar | T2 | thrown: `storm` 20; `status_shock` 100% (2) | 22 | `loc_stormgate_cairns`; `npc_tessaly_varr` stock; `recipe_storm_jar` | A sealed jar with a captured spark inside. It ticks against the glass. |
 | `item_brine_draught` | Brine Draught | T2 | heal 35; cleanse `status_soaked` | 18 | `loc_drowned_stair`; `npc_sedge_marrow` core | Salt water boiled with kelp. It tastes like drowning and works anyway. |
 | `item_lantern_oil` | Lantern Oil | T2 | thrown: `fire` 15; `status_burn` 100% (2). Out of combat: no Blind on ambush until next dawn | 12 | `loc_lamplighters_rest` ×2; `npc_sedge_marrow` core | Lamplighters' oil, rendered from something that lived in the dark. It burns clean. |
 | `item_hearth_broth` | Hearth Broth | T2 | heal 30; mp 20; cleanse `status_weaken` | 16 | `loc_hearthring` ×2; `npc_tessaly_varr` core | Bone broth from the Hearthring pot, which has not gone out in a hundred years. |
@@ -3056,19 +3122,19 @@ mechanical hook.
 | `item_amulet_of_echoes` | Amulet of Echoes | slotless passive magic +1; grants_ability `itm_echo_bolt` (D-047); enables *Listen* (Loop 2+); exempt from the reset (D-047) | 60 | `loc_whispering_ruins` (Day 1, every loop) | A faintly glowing amulet tied to the Great Sundering. Enhances magical affinity. *(legacy: quest_item, magic 1, 60 g)* |
 | `item_echo_crystal` | Echo Crystal | `q_echo_crystal` objective; give to Ilyra or keep (D-017) | 70 | `loc_shattered_library` alcove | A crystal that seems to hold voices from the past. *(legacy: quest_item, 70 g)* |
 | `item_scholars_lost_scroll` | Scholar's Lost Scroll | `q_lost_scroll` objective; deliver to Ilyra | 45 | `loc_sunken_archives` (while `q_lost_scroll` is accepted) | A waterlogged scroll sealed with Remnant wax. The ink still holds secrets. *(legacy: quest_item, 45 g)* |
-| `item_heartstone_fragment_stable` | Heartstone Fragment (stable) | `recipe_breach_anchor` input (seals: ending B route); `q_preserve_or_heal` dam | — | `q_echoing_heartbeat` Stabilize ×2 (count proposed, OQ-4) | A warm chip of the calm core. It beats in time with the ley. |
-| `item_heartstone_fragment_dead` | Heartstone Fragment (dead) | `recipe_breach_anchor` input (cuts: ending D route); `q_preserve_or_heal` dam ("permanently and darkly", D-052) | — | `q_echoing_heartbeat` Destroy ×2 (OQ-4) | Grey stone that was a heartbeat. It is cold in a way stone is not. |
+| `item_heartstone_fragment_stable` | Heartstone Fragment (stable) | `recipe_breach_anchor` input (seals: ending B route); `q_preserve_or_heal` dam | — | `q_echoing_heartbeat` Stabilize ×2 (D-066.10) | A warm chip of the calm core. It beats in time with the ley. |
+| `item_heartstone_fragment_dead` | Heartstone Fragment (dead) | `recipe_breach_anchor` input (cuts: ending D route); `q_preserve_or_heal` dam ("permanently and darkly", D-052) | — | `q_echoing_heartbeat` Destroy ×2 (D-066.10) | Grey stone that was a heartbeat. It is cold in a way stone is not. |
 | `item_breach_anchor` | Breach-anchor | driven at the Apex: a stable-fragment anchor seals (ending B), a dead-fragment anchor cuts (ending D) (DESIGN §8.5); counts toward communion Resolve 8 (D-054) | — | `recipe_breach_anchor` | Iron, Aetherium and a Shard that remembers closing. It is heavier on one end than the other, and the heavy end changes. |
-| `item_caelums_anchor_token` | Hallow's Cradle-Pin | placed on the Conflux altar (`loc_conflux_chamber`): sets `cradle_pin_anchored`; then lies in `loc_heartstone_depths` every loop (Anchor, D-016) | — | `npc_caelum` gives it (`loc_apprentices_garret`, his errand); `q_the_mending` stage 3 | A forge-pin from the cradle's rim, Hallow's mark on the head. Caelum has carried it for three days that never end. |
-| `item_litany_page_1` | Litany Page (the Witness) | read: grants `echo_litany_verse_1` if not held (ruling, Errata E-9) | — | `loc_sunken_scriptorium` lectern | A leaf of Oriel's record, swollen with water. The first verse is legible. |
-| `item_litany_page_2` | Litany Page (the Dark Between) | read: grants `echo_litany_verse_8` if not held | — | `loc_where_she_fell` glass case (Weavers ≥ 20 or `echo_nyx_true_name`) | A page Nyxaria kept under glass. Her own verse, in another woman's hand. |
-| `item_litany_page_3` | Litany Page (the Warding) | read: grants `echo_litany_verse_3` if not held; can be anchored (then in `loc_heartstone_depths` every loop) | — | `npc_oriel_danthe` gives it (`loc_archives_of_danthe`, `echo_oriel_lineage` or Remnants ≥ 20) | A clean page, ink still drying, from the night before. Oriel hands it over without asking why. |
+| `item_caelums_anchor_token` | Hallow's Cradle-Pin | **anchorable**; set on the cradle's rim (`loc_conflux_chamber`) before Caelum crosses: sets `flag_cradle_pin_anchored` (ending B); then lies in `loc_heartstone_depths` for the rest of the loop (Anchor, D-016, D-067.4) | — | `npc_caelum` gives it (`loc_apprentices_garret`, his errand); `q_the_mending` stage 3 | A forge-pin from the cradle's rim, Hallow's mark on the head. Caelum has carried it for three days that never end. |
+| `item_litany_page_1` | Litany Page (the Witness) | read: grants `echo_litany_verse_1` if not held (STORY §12 lists the page as a source, C-23) | — | `loc_sunken_scriptorium` lectern | A leaf of Oriel's record, swollen with water. The first verse is legible. |
+| `item_litany_page_2` | Litany Page (the Dark Between) | read: grants `echo_litany_verse_8` if not held | — | `loc_where_she_fell` glass case (Weavers ≥ 20 or `echo_nyx_is_of_the_nine`) | A page Nyxaria kept under glass. Her own verse, in another woman's hand. |
+| `item_litany_page_3` | Litany Page (the Warding) | **anchorable**; read: grants `echo_litany_verse_3` if not held; anchored, it lies in `loc_heartstone_depths` for the rest of the loop (D-067.4) | — | `npc_oriel_danthe` gives it (`loc_archives_of_danthe`, `echo_oriel_lineage` or Remnants ≥ 20) | A clean page, ink still drying, from the night before. Oriel hands it over without asking why. |
 | `item_keepers_copy` | Keeper's Copy | out of combat: re-read any verse Echo held (codex replay; refreshes communion answers) | — | `q_keepers_ledger` reward | The Remnants' copy of the Litany you gave them, bound in grey. |
 | `item_scouts_whistle` | Scout's Whistle | at any camp: call Brak to the active slot | — | `q_the_scouts_oath` reward | A bone whistle cut with an Ironclad mark. One note, and Brak comes. |
 | `item_aberrant_eye` | Aberrant Eye | `q_unlidded_eye` stage 2 objective | — | `cr_temporal_aberration` 100% while `q_unlidded_eye` is active (`loc_chronos_nexus`) | It looks between moments, and it is still looking. |
 | `item_pells_day_count` | Pell Ashcombe's Day-Count | `q_keepers_ledger` stage 2 objective | — | `loc_cistern_of_names` while `q_keepers_ledger` is active | Thirty strokes in a waterproof case. The last one is pressed hard. |
 | `item_fathers_whetstone` | Father's Whetstone | `q_blood_and_salt` outcome A: carry from Kaelen to Brak (Brak gains *Named*, STORY §7.2) | — | `npc_kaelen_stonehand` (outcome A) | An old whetstone, never oiled. Both brothers learned on it. |
-| `item_borins_forge_mark` | Borin's Forge-Mark | carried at Hallow's Cairn during `q_bone_road`: grants `echo_iron_that_does_not_wish` (STORY §12) | — | `npc_borin_stonefist` (dialogue; proposed: given when `q_bone_road` is accepted, OQ-10) | An iron tag stamped with Borin's mark. Hallow's mark is under it, worn almost flat. |
+| `item_borins_forge_mark` | Borin's Forge-Mark | carried at Hallow's Cairn during `q_bone_road`: grants `echo_iron_that_does_not_wish` (STORY §12) | — | `npc_borin_stonefist` hands it over when `q_bone_road` is accepted (OQ-10 resolved; C-45) | An iron tag stamped with Borin's mark. Hallow's mark is under it, worn almost flat. |
 | `item_mireyas_lantern` | Mireya's Lantern | lit, with Mireya active: pacifist bypass of `cr_lantern_matron` (WORLD §3.9) | — | `loc_matrons_hall` (Mireya's arc, STORY §7.5) | A reed lantern with a moth-shaped flame. It burns the colour her people used to be. |
 | `item_remnant_wax_seal` | Remnant Wax Seal | while carried: `npc_tamsin_reed` and `npc_sedge_marrow` offer stock as if Remnants were one tier higher (stock only, not prices) | — | `loc_crumbling_archway` (Loop 2+, 30% first visit, `echo_nine_voices`) | Remnant wax pressed with nine faces. One has been scratched out. |
 
@@ -3080,10 +3146,10 @@ counted under trinkets.
 
 | id | Name | Opens | Sources | Description |
 |---|---|---|---|---|
-| `item_cistern_key` | Cistern Key | `loc_black_sluice` → `loc_bellmouth` at night; the flooded crack `loc_heartstone_depths` ↔ `loc_cistern_of_names` (DESIGN's `key_sluice`) | `cr_bell_warden` 100% or surrender with `echo_rhune_choice` (`loc_bell_wardens_deep`); `loc_cistern_gardens` (Before Day 2, `echo_rhune_choice`) | The Master of Waters' key on a green chain. It turns every sluice in the city. |
+| `item_cistern_key` | Cistern Key | `loc_black_sluice` ↔ `loc_bellmouth` at night (`gate_sluice_walkway`); the flooded crack `loc_heartstone_depths` ↔ `loc_cistern_of_names` (DESIGN's former `key_sluice`) | `cr_bell_warden` 100% or surrender with `echo_rhune_choice` (`loc_bell_wardens_deep`); `loc_cistern_gardens` (Before Day 2, `echo_rhune_choice`) | The Warden of Waters' key on a green chain. It turns every sluice in the city. |
 | `item_bell_vault_key` | Bell-Vault Key | the Bell Vault; satisfies `q_the_danthe_line`'s prerequisite (Door of Pages) | `q_bell_vault` reward | A bronze key shaped like a bell's tongue. It hums when the hour turns. |
-| `item_orrery_key` | Orrery Key | the orrery housing in `loc_chronos_nexus` (contents for WORLD §10, OQ-9); while untaken, `cr_orrery_knight` can spawn | `loc_chronos_nexus` (Loop 2+, first visit); `loc_ninefold_hall` (Before Day 1, `echo_hadrek_clockwright`) | Hadrek's winding key, nine teeth on the bit. Each tooth is a different length of hour. |
-| `item_aetherium_prism` | Aetherium Prism | Aulde's locked case in `loc_aldours_eyrie` (`item_spire_builders_staff`) | `loc_spire_crown` (Loop 2+, 100%) | A spire-tip cut into a prism. Light through it comes out as a note. |
+| `item_orrery_key` | Orrery Key | the orrery's sealed housing in `loc_chronos_nexus` (`ev_nexus_orrery`: Masque's eyepiece, a Nexus-side source of `echo_eye_of_masque`, plus `item_chronal_dust` ×2; OQ-9 resolved); while untaken, `cr_orrery_knight` can spawn | `loc_chronos_nexus` (Loop 2+, first visit); `loc_ninefold_hall` (Before Day 1, `echo_hadrek_clockwright`) | Hadrek's winding key, nine teeth on the bit. Each tooth is a different length of hour. |
+| `item_aetherium_prism` | Aetherium Prism | Aulde's locked case in `loc_auldes_eyrie` (`item_spire_builders_staff`) | `loc_spire_crown` (Loop 2+, 100%) | A spire-tip cut into a prism. Light through it comes out as a note. |
 | `item_ward_seal` | Ward Seal | `loc_plaza_of_bells` → `loc_ninefold_hall` and `loc_archives_of_danthe` → `loc_conflux_chamber` before Day 3; no `cr_warding_pillar`; Korr's stacks; pacifist bypass of `cr_unbroken_warden` with Caelum | `npc_tobrin_vask` (`loc_conflux_chamber`, Before Day 2, `echo_vask_seal`) | A warder's seal: a square inside a circle. The golems in the Outpost bear the same mark. |
 | `item_veil_sigil` | Veil Sigil | while carried, `cr_veil_sentry` encounters at `loc_veil_mouth` are skipped when Weavers are Wary (not Hostile); never required | `npc_hollis_cade` (30 g — DESIGN §9.1's "Veil tithe"; Weavers ≥ Neutral); `npc_sethe_unlidded` free at Weavers Trusted | A disc of black glass threaded on grey cord. The sentries count it instead of you. |
 
@@ -3094,8 +3160,8 @@ except the two schematic halves (bound).
 
 | id | Name | Unlocks | g | Sources |
 |---|---|---|---|---|
-| `item_breach_anchor_schematic_a` | Breach-anchor Schematic (first half) | with half B read in the same loop: `echo_anchor_schema` → `recipe_breach_anchor` (Errata E-14) | — | `loc_aldours_eyrie` 100% (Aulde's notes) |
-| `item_breach_anchor_schematic_b` | Breach-anchor Schematic (second half) | as above | — | `loc_conflux_chamber` (Before Day 3, Tobrin's plinth, after or bypassing `cr_unbroken_warden`) |
+| `item_breach_anchor_schematic_a` | Breach-anchor Schematic (first half) | read: grants the persistent `echo_anchor_half_a`; holding both halves' Echoes, from any loops, grants `echo_anchor_schema` → `recipe_breach_anchor` (D-067.6) | — | `loc_auldes_eyrie` 100% (Aulde's notes) |
+| `item_breach_anchor_schematic_b` | Breach-anchor Schematic (second half) | read: grants the persistent `echo_anchor_half_b`; as above | — | `loc_conflux_chamber` (Before Day 3, Tobrin's plinth, after or bypassing `cr_unbroken_warden`); **or** `loc_blighted_outpost` (Loop 2+, `ev_outpost_seal` with `echo_vask_seal`: Tobrin's failsafe copy under Vane's Watch, D-067.6) |
 | `item_pattern_breachsteel_blade` | Borin's Pattern: Breachsteel Blade | `recipe_breachsteel_blade` | 90 | `cr_ninefold_knight` 100% first kill (`loc_ninefold_hall`, Day 3) |
 | `item_pattern_heartwood_bow` | Borin's Pattern: Heartwood Bow | `recipe_heartwood_bow` | 90 | `cr_stormcrown` 100% or bargain; `npc_old_fennick` stock (Loop 2+) |
 | `item_pattern_hour_spindle` | Borin's Pattern: Hour Spindle | `recipe_hour_spindle` | 90 | `cr_orrery_knight` 100% (`loc_chronos_nexus`) |
@@ -3114,12 +3180,12 @@ unlock their codex entry (ids per STORY §14) and any Echo listed.
 |---|---|---|---|---|---|
 | `item_dark_spellbook` | Dark Spellbook | −15 HP (current); +1 Corruption; 3 in one loop → `echo_litany_verse_2`; with the Amulet (Loop 2+) → `echo_korr_marginalia` | 8 | `cr_corrupted_shade` first kill per loop 100%, later 50% (D-055); Shadow Weaver start kit; `npc_hollis_cade` core | A charred tome of corrupted secrets. Reading its forbidden pages unlocks new magical abilities, but at a cost to your vitality. *(legacy: consumable, health −15, 8 g)* |
 | `item_korrs_marginalia` | Korr's Marginalia | codex (Maelis Korr); counts as one Dark Spellbook toward `echo_litany_verse_2`, with no HP or Corruption cost | 30 | `loc_shattered_library` (Loop 2+, Corruption ≥ 1); `loc_grand_library` (Before Days 1–2, `item_ward_seal` or Remnants ≥ 20) | Maelis Korr's notes to himself, in the margins of a book he had not yet burned. |
-| `item_warder_plate` | Warder Plate | grants `echo_golem_warder` (DESIGN §10.5; needs `q_blighted_outpost` complete) | 20 | `loc_blighted_outpost` (after both `cr_stone_hide_golem` fall) | A slate plate from a golem's brow, cut with a square inside a circle. |
+| `item_warder_plate` | Warder Plate | grants `echo_stone_hide_origin` (DESIGN §10.5; needs `q_blighted_outpost` complete) | 20 | `loc_blighted_outpost` (after both `cr_stone_hide_golem` fall) | A slate plate from a golem's brow, cut with a square inside a circle. |
 | `item_tobrins_warding_primer` | Tobrin's Warding Primer | codex (Tobrin Vask) | 30 | `loc_emberforge` (Loop 2+, once, `echo_vask_seal`; Borin found it in the slag) | An apprentice's primer of ward-sigils. Someone corrected every page in red. |
 | `item_oriels_ledger` | Oriel's Ledger | codex (Oriel Danthe) | 30 | `loc_sunken_scriptorium` (Loop 2+ or `echo_oriel_lineage`) | The Circle's archivist's own accounts. The last entry is a list of nine names. |
 | `item_rhunes_hydromancy` | Rhune's Hydromancy | codex (Ilsabet Rhune) | 30 | `loc_bell_wardens_deep` (first clear) | The Warden of Waters' sluice tables. One page is a drowning, worked out to the hour. |
 | `item_dreyls_pyre_ledger` | Dreyl's Pyre Ledger | codex (Corvin Dreyl) | 30 | `loc_herd_grave` (first clear) | The Watch-Captain's record of the pyre-ward. The last column is headed "outward". |
-| `item_aldours_spire_notes` | Aulde's Spire Notes | codex (Seraphine Aulde) | 30 | `loc_aldours_eyrie` 100% | Tuning notes for nine spires, and one line in a different ink: *begin*. |
+| `item_auldes_spire_notes` | Aulde's Spire Notes | codex (Seraphine Aulde) | 30 | `loc_auldes_eyrie` 100% | Tuning notes for nine spires, and one line in a different ink: *begin*. |
 
 ---
 
@@ -3133,36 +3199,37 @@ the Ironclad tier (DESIGN §8.1 `repTier`).
 ### 8.1 Materials (25 + Chronal Dust)
 
 DESIGN §8.2's ids, stacks and family sources, plus four WORLD regional materials (marked **W**).
-Values and tiers are proposals (DESIGN gives values only for legacy items). "Gathering" = 1–2 per
-visit per day, reset at dawn (DESIGN §8.2); nodes marked *(proposed)* need WORLD placement.
+Values and tiers follow DESIGN §7–8 (DESIGN gives values only for legacy items; the rest are WORLD's,
+adopted in U8). "Gathering" = 1–2 per visit per day, reset at dawn (DESIGN §8.2); every gathering node
+named here is placed in §3 (E-11 closed in U9).
 
 | id | Name | Tier | Stack | g | Sources (family → creatures; locations; vendors) | Used in |
 |---|---|---|---|---|---|---|
 | `mat_shadow_ash` | Shadow Ash | T1 | 99 | 4 | `shade` 80%: `cr_corrupted_shade`, `cr_starved_shadow`; `loc_voidglass_gallery` ×2 | ward salts, hollow lantern focus |
 | `mat_wildling_hide` | Wildling Hide | T1 | 99 | 5 | `wildling` 80%: `cr_wildling_brute`; `loc_barren_peaks` 60% | T1 Rare→Epic upgrades |
-| `mat_rootbone` | Rootbone | T1 | 99 | 4 | `wildling` 40%, `cr_rootling`; gathering `loc_mistwood_path` *(proposed)* | antidote root, harrier bow, scriptorium staff |
+| `mat_rootbone` | Rootbone | T1 | 99 | 4 | `wildling` 40%, `cr_rootling`; gathering `loc_mistwood_path` | antidote root, harrier bow, scriptorium staff |
 | `mat_ley_spark` | Ley Spark | T1 | 99 | 6 | `wisp` 80%: `cr_arcane_wisp`, `cr_paradox_wisp` | Ley-tuned line, storm jar, glyphbound lantern, scriptorium staff; T1 upgrades |
-| `mat_ley_resin` | Ley Resin | T1 | 99 | 5 | gathering `loc_mistwood_path` *(proposed)*; `loc_elder_mangrove` ×2, `loc_firefly_barrows` ×1, `loc_matrons_hall` ×4 (WORLD's `mat_lantern_resin`); `npc_kaelen_stonehand` | Ley-tuned line, ember flask, antidote root, spireweave mantle |
+| `mat_ley_resin` | Ley Resin | T1 | 99 | 5 | gathering `loc_mistwood_path`; `loc_elder_mangrove` ×2, `loc_firefly_barrows` ×1, `loc_matrons_hall` ×4 (formerly WORLD's `mat_lantern_resin`); `npc_kaelen_stonehand` | Ley-tuned line, ember flask, antidote root, spireweave mantle |
 | `mat_iron_rivet` | Iron Rivet | T1 | 99 | 3 | `golem` 60%: `cr_stone_hide_golem`; `loc_bone_orchard`; `npc_borin_stonefist`, `npc_tessaly_varr` | void-forged edge, many T3–T5 recipes |
-| `mat_steppe_salt` | Steppe Salt | T2 | 99 | 4 | gathering `loc_grey_salt_pan` *(proposed)*; `npc_tessaly_varr`, `npc_borin_stonefist`, `npc_kaelen_stonehand` (STORY's "Respite salt") | ward salts |
+| `mat_steppe_salt` | Steppe Salt | T2 | 99 | 4 | gathering `loc_grey_salt_pan`; `npc_tessaly_varr`, `npc_borin_stonefist`, `npc_kaelen_stonehand` (STORY's "Respite salt") | ward salts |
 | `mat_sodden_vellum` | Sodden Vellum | T2 | 99 | 8 | `drowned` 80%: `cr_drowned_archivist`, `cr_tide_clerk`; `loc_tidewell_hall` ×2, `loc_sunken_scriptorium` ×2 | scriptorium staff |
 | `item_void_shard` | Void Shard | T2 | 99 | 20 | `void_touched` 100%: `cr_void_touched_stalker`; `loc_voidscar_hollow`, `loc_scar_shelf`, `loc_null_orchard`; `q_tears_of_the_breach`; `npc_hollis_cade` | void-forged line, Breach-anchor, breachglass focus; `q_void_shards` objective. *(legacy desc: "A shard of condensed shadow that promises power." 20 g)* |
 | `mat_slate_core` | Slate Core | T2 | 99 | 12 | `golem` 100%: `cr_stone_hide_golem`; `loc_blighted_outpost` | void-forged mail, cinderhorn plate, emberwrought blade, sunderforged plate; T2 upgrades |
-| `mat_ember_ore` | Ember Ore | T2 | 99 | 15 | Emberforge vein 3/loop (8 with `echo_emberforge_vein`); Ashen Steppe gathering `loc_scorched_gate` *(proposed)*; `npc_tessaly_varr` ×3 (proposed) | every upgrade from Uncommon; Breach-anchor; Ironclad recipes |
+| `mat_ember_ore` | Ember Ore | T2 | 99 | 15 | Emberforge vein 3/loop (8 with `echo_emberforge_vein`); Ashen Steppe gathering `loc_scorched_gate` ×1; `npc_tessaly_varr` ×3; `cr_ashmaw` ×3 | every upgrade from Uncommon; Breach-anchor (×3, D-066.10: the vein alone covers it); Ironclad recipes |
 | `mat_bell_bronze` **W** | Bell Bronze | T2 | 99 | 12 | `cr_bell_ringer`; `loc_black_sluice` 30%, `loc_bellmouth` ×2 | bell clapper, breachwarden mail |
 | `mat_cinder_horn` **W** | Cinder Horn | T3 | 99 | 14 | `cr_cinderback`; `loc_ash_wind_flats` 50%, `loc_bone_orchard` ×2, `loc_herd_grave` ×3 | nomad sabre, cinderhorn plate, emberwrought blade, hallow's hammer |
 | `mat_frayed_moment` | Frayed Moment | T3 | 99 | 18 | `aberration` 80%, `phantom` 30%: `cr_temporal_aberration`, `cr_shimmering_phantom`, `cr_hourglass_crawler`; `loc_shimmering_pass` 50%; `loc_temporal_breach_apex` ×3 (after the Tyrant falls) | T5 recipes; Epic→Legendary upgrades |
 | `item_aetherium_shard` | Aetherium Shard | T3 | 99 | 28 | `aetherial` 100%: `cr_aetherial_weaver`; `loc_aetherium_spires` (+1 with `flag_heartstone_stabilized`), `loc_spire_crown` ×2 | Breach-anchor, Ley-tuned line, hour spindle, conflux robe. *(legacy desc: "A sliver from a humming spire, warm with raw energy." 28 g)* |
 | `mat_spire_thread` | Spire Thread | T3 | 99 | 15 | `aetherial` 70%: `cr_aetherial_weaver`, `cr_spire_loom` | Ley-tuned vestment, spireweave mantle, conflux robe; T3 upgrades |
-| `mat_gale_feather` | Gale Feather | T3 | 99 | 12 | `sentinel` 80%: `cr_sky_whisper_sentinel`, `cr_gale_kite`; `loc_windward_stair`, `loc_roost_of_sentinels` ×2, `loc_stormcrowns_perch` (WORLD's `item_gale_feather`) | harrier bow, galefeather bow, spireweave mantle, heartwood bow |
-| `mat_glow_gland` | Glow Gland | T3 | 99 | 10 | `mireling` 70%: `cr_glowfen_mireling`, `cr_spore_drift`; `loc_pale_gullet` ×2; `loc_veridian_glowlands` 50%, `loc_sporelight_shallows` ×3 (WORLD's `mat_glow_spore`) | hollow lantern focus; T3 upgrades |
+| `mat_gale_feather` | Gale Feather | T3 | 99 | 12 | `sentinel` 80%: `cr_sky_whisper_sentinel`, `cr_gale_kite`; `loc_windward_stair`, `loc_roost_of_sentinels` ×2, `loc_stormcrowns_perch` (formerly WORLD's `item_gale_feather`) | harrier bow, galefeather bow, spireweave mantle, heartwood bow |
+| `mat_glow_gland` | Glow Gland | T3 | 99 | 10 | `mireling` 70%: `cr_glowfen_mireling`, `cr_spore_drift`; `loc_pale_gullet` ×2; `loc_veridian_glowlands` 50%, `loc_sporelight_shallows` ×3 (formerly WORLD's `mat_glow_spore`) | hollow lantern focus; T3 upgrades |
 | `mat_storm_glass` **W** | Storm Glass | T3 | 99 | 16 | `cr_steppe_harrier` 30%; `loc_stormgate_cairns` ×2, `loc_stormcrowns_perch` ×3 | harrier bow, galefeather bow |
 | `mat_drowned_pearl` | Drowned Pearl | T3 | 99 | 25 | `loc_cistern_of_names` 40%; `npc_sedge_marrow` ×1 | conflux robe; Legendary upgrades |
-| `mat_breach_glass` | Breach Glass | T4 | 99 | 30 | `loc_scar_shelf` ×1, `loc_voidglass_gallery` ×2, `loc_null_orchard` ×1; `nine_shard` adds (DESIGN) | void-forged band, T5 recipes; Legendary upgrades |
+| `mat_breach_glass` | Breach Glass | T4 | 99 | 30 | `loc_scar_shelf` ×1, `loc_voidglass_gallery` ×2, `loc_null_orchard` ×1; `cr_tyrants_reach` 40% (DESIGN §8.2) | void-forged band, T5 recipes; Legendary upgrades |
 | `mat_umbral_thread` **W** | Umbral Thread | T4 | 99 | 22 | `cr_vells_umbra`, `cr_null_mouth` 30%; `loc_stair_of_unmaking` ×2, `loc_eye_of_the_scar` ×3; `npc_hollis_cade` (Weavers Sworn: WORLD's "void-forged thread") | hollow lantern focus, breachglass focus |
-| `mat_skyreach_crystal` | Skyreach Crystal | T4 | 99 | 30 | Skyreach gathering `loc_windward_stair`, `loc_spire_crown` *(proposed)* | galefeather bow; T4 upgrades |
-| `mat_silverwood_heartwood` | Silverwood Heartwood | T5 | 99 | 40 | Silverwood Before gathering `loc_cistern_gardens`, `loc_outer_walks` *(proposed)* | Breach-anchor, T5 recipes; Legendary upgrades; proposed T5 Rare→Epic material (OQ-1) |
-| `mat_tyrant_shard` | Tyrant Shard | T5 | 9 | 120 | `cr_chronos_tyrant_unveiled` on kill (Loop 2+), 1 per phase; `loc_temporal_breach_apex` ×1 after the fall | Legendary upgrades only (OQ-5) |
+| `mat_skyreach_crystal` | Skyreach Crystal | T4 | 99 | 30 | Skyreach gathering `loc_windward_stair`, `loc_spire_crown` | galefeather bow; T4 upgrades |
+| `mat_silverwood_heartwood` | Silverwood Heartwood | T5 | 99 | 40 | Silverwood Before gathering: `loc_cistern_gardens` ×1, `loc_outer_walks` ×1, `loc_conflux_chamber` ×2 (once per loop, D-067.5); `cr_stone_hide_golem` 25% and `cr_unbroken_warden` ×2, `cr_ninefold_knight`; `npc_kaelen_stonehand` ×1 from Loop 2 (D-067.6: heartwood is never Before-only) | Breach-anchor, T5 recipes; Legendary upgrades; T5 Rare→Epic material (D-066.22) |
+| `mat_tyrant_shard` | Tyrant Shard | T5 | 9 | 120 | `cr_chronos_tyrant_unveiled` on kill (Loop 2+), 1 per phase; `loc_temporal_breach_apex` ×1 after the fall | Legendary upgrades only (dropped on a kill that closes the loop, so usable only during the Horde window) |
 | `item_chronal_dust` | Chronal Dust | T2 | 10 | 18 | see §7.8 | hour spindle |
 
 ### 8.2 Recipes (30)
@@ -3172,7 +3239,7 @@ Inputs are exact counts. Rep = Ironclad tier (DESIGN §8.1). Output is Common un
 
 | id | Output | Inputs | Gold | Rep | Requires |
 |---|---|---|---|---|---|
-| `recipe_breach_anchor` | `item_breach_anchor` | `item_aetherium_shard` ×3; **one of** `item_heartstone_fragment_stable` ×1 **or** `item_heartstone_fragment_dead` ×1; `item_void_shard` ×3; `mat_ember_ore` ×5; `mat_silverwood_heartwood` ×1 | 300 (OQ-2) | trusted (OQ-2) | `echo_anchor_schema`, `echo_void_resonance` (DESIGN §8.5 exact); STORY's `q_the_mending`/`q_iron_silence` also gate Borin's offer on `echo_iron_that_does_not_wish` (OQ-3) |
+| `recipe_breach_anchor` | `item_breach_anchor` | `item_aetherium_shard` ×3; **one of** `item_heartstone_fragment_stable` ×1 **or** `item_heartstone_fragment_dead` ×1; `item_void_shard` ×3; `mat_ember_ore` ×3; `mat_silverwood_heartwood` ×1 | **0** (story recipe, D-066.10) | trusted; **neutral** while `q_the_mending` or `q_iron_silence` is active | `echo_anchor_schema` (both halves' Echoes, from any loops, D-067.6); the quest stage requires STORY's `echo_iron_that_does_not_wish`. `echo_void_resonance` is not a recipe gate — it is checked at ending B's consent (D-066.10), so a dead-fragment anchor for D needs no Weavers loop |
 | `recipe_voidforged_edge` | `item_voidforged_edge` | `item_void_shard` ×3, `mat_ember_ore` ×3, `mat_iron_rivet` ×2 | 120 | trusted (or `echo_borin_oath`) | `flag_shards_refused` this loop |
 | `recipe_voidforged_mail` | `item_voidforged_mail` | `item_void_shard` ×4, `mat_slate_core` ×2, `mat_ember_ore` ×3 | 150 | trusted (or `echo_borin_oath`) | `flag_shards_refused` |
 | `recipe_voidforged_band` | `item_voidforged_band` | `item_void_shard` ×2, `mat_breach_glass` ×1 | 90 | trusted (or `echo_borin_oath`) | `flag_shards_refused` |
@@ -3180,7 +3247,7 @@ Inputs are exact counts. Rep = Ironclad tier (DESIGN §8.1). Output is Common un
 | `recipe_ley_tuned_vestment` | `item_ley_tuned_vestment` | `mat_ley_spark` ×2, `item_aetherium_shard` ×1, `mat_ley_resin` ×3, `mat_spire_thread` ×1 | 160 | neutral | `flag_heartstone_stabilized` |
 | `recipe_ley_tuned_charm` | `item_ley_tuned_charm` | `mat_ley_spark` ×2, `item_aetherium_shard` ×2 | 120 | neutral | `flag_heartstone_stabilized` |
 | `recipe_ley_tuned_tonic` | `item_ley_tuned_tonic` ×3 | `mat_ley_spark` ×1, `mat_ley_resin` ×1, `item_glow_moss` ×1 | 80 | neutral | `flag_heartstone_stabilized` |
-| `recipe_stormjar` | `item_storm_jar` ×2 | `mat_ley_spark` ×2, `mat_iron_rivet` ×1 | 25 | neutral | — |
+| `recipe_storm_jar` | `item_storm_jar` ×2 | `mat_ley_spark` ×2, `mat_iron_rivet` ×1 | 25 | neutral | — |
 | `recipe_ember_flask` | `item_ember_flask` ×2 | `mat_ember_ore` ×1, `mat_ley_resin` ×1 | 20 | neutral | — |
 | `recipe_antidote_root` | `item_antidote_root` ×3 | `mat_rootbone` ×1, `mat_ley_resin` ×1 | 15 | neutral | — |
 | `recipe_ward_salts` | `item_ward_salts` ×2 | `mat_steppe_salt` ×2, `mat_shadow_ash` ×1 | 30 | neutral | — |
@@ -3212,9 +3279,10 @@ behaviour depends on the fragment used (stable seals → B; dead cuts → D; Exp
 ### 8.3 Upgrades and salvage
 
 Use DESIGN §8.3 (fees 0.5/1.0/1.5/2.0 × `gold_value`; Ember Ore and tier materials from Rare) and
-§8.4 (salvage yields) unchanged. Two additions, both proposals: **T5 Rare→Epic tier material** =
-`mat_silverwood_heartwood` ×2 (OQ-1); a **second Sky-Whisper Talisman** may stand in for the tier
-material in any trinket's Rare→Epic upgrade (WORLD §3.4's "Trinket upgrade material").
+§8.4 (salvage yields) unchanged. Two additions: **T5 Rare→Epic tier material** =
+`mat_silverwood_heartwood` ×2 (adopted with T5, D-066.22); a **second Sky-Whisper Talisman** may stand
+in for the tier material in any trinket's Rare→Epic upgrade (WORLD §3.4's "Trinket upgrade material",
+E-8; a Talisman spent this way is not anchored).
 
 ---
 
@@ -3237,12 +3305,12 @@ material in any trinket's Rare→Epic upgrade (WORLD §3.4's "Trinket upgrade ma
 |---|---|---|---|---|---|---|
 | `npc_kaelen_stonehand` | `loc_wayfarers_respite` | 2–3 | none (best of three) | 1.0 (DESIGN) | 10 g | anything non-quest |
 | `npc_tamsin_reed` | `loc_silverwood_plaza` | 2–4 | `remnants` | 1.0 (DESIGN "archive stall") | — | tomes, recipes, trinkets, staves, consumables |
-| `npc_borin_stonefist` | `loc_emberforge` | 4–6 | `ironclad` | 1.0 *(proposed)* | — (free forge hearth) | weapons, armor, materials |
-| `npc_sedge_marrow` | `loc_lamplighters_rest` | 5 | `remnants` | 1.1 *(proposed)* | — | materials, consumables, armor |
+| `npc_borin_stonefist` | `loc_emberforge` | 4–6 | `ironclad` | 1.0 | — (free forge hearth) | weapons, armor, materials |
+| `npc_sedge_marrow` | `loc_lamplighters_rest` | 5 | `remnants` | 1.1 | — | materials, consumables, armor |
 | `npc_tessaly_varr` | `loc_hearthring`; caravan at `loc_ironclad_camp` after `flag_hearthring_caravan` | 8 (3–4) | `ironclad` | 1.0 (DESIGN Ironclad Camp; Hearthring proposed) | 10 g | weapons, armor, materials, consumables |
 | `npc_old_fennick` | `loc_lanternreed` | 8–9 | none | 1.1 (DESIGN Lanternreed) | 10 g | consumables, materials, light armor, bows |
 | `npc_hollis_cade` | `loc_sanctum_of_threads` | 11 | `weavers` | 1.2 (DESIGN Veil sanctum) | 10 g | weapons, trinkets, tomes, materials |
-| `npc_bellwright_anso` | `loc_plaza_of_bells` (Before) | 13–14 | none | 1.2 *(proposed)* | — | trinkets, consumables |
+| `npc_bellwright_anso` | `loc_plaza_of_bells` (Before) | 13–14 | none | 1.2 | — | trinkets, consumables |
 
 ### 9.2 Stock
 
@@ -3252,7 +3320,7 @@ Quantities are core counts per dawn. "Pool" lists the theme pool the 3–4 daily
 
 | Section | Stock |
 |---|---|
-| Core | `item_ley_touched_tonic` ×3, `item_mana_bloom` ×1, `item_antidote_root` ×2 (DESIGN); `item_glow_moss` ×3; `mat_steppe_salt` ×2 ("Respite salt", 4 g; free for `q_blood_and_salt` outcome A); `mat_ley_resin` ×3; Loop 2+: `item_glyphbound_lantern` ×1 (WORLD §3.6) |
+| Core | `item_ley_touched_tonic` ×3, `item_mana_bloom` ×1, `item_antidote_root` ×2 (DESIGN); `item_glow_moss` ×3; `mat_steppe_salt` ×2 ("Respite salt", 4 g; free for `q_blood_and_salt` outcome A); `mat_ley_resin` ×3; Loop 2+: `item_glyphbound_lantern` ×1 (WORLD §3.6), `mat_silverwood_heartwood` ×1 ("a cartwright's offcut, older than the cart"; D-067.6) |
 | Pool | any T1–T2 weapon or armor that is not quest-locked, **except** `item_warriors_sword` and `item_shadow_kissed_dagger` (legacy exclusion): `item_rusty_dagger`, `item_travelers_sword`, `item_primitive_bow`, `item_elven_bow`, `item_apprentice_staff`, `item_necromancer_staff`, `item_nomads_maul`, `item_ironclad_hammer`, `item_cracked_void_focus`, `item_chasmglass_focus`, `item_wildling_hide_armor`, `item_scribes_robe`, `item_ironclad_mail`, `item_steppe_lamellar` |
 | Rep-gated | none (never refuses) |
 
@@ -3275,7 +3343,7 @@ Plaza is Horde-infected, at the Library instead from Loop 2)
 | Core | `mat_iron_rivet` ×5, `item_ward_salts` ×2 (DESIGN quartermaster); `mat_steppe_salt` ×2; `item_glow_moss` ×3; `item_ley_touched_tonic` ×2; `item_ember_flask` ×2 |
 | Pool | heavy weapons and medium/heavy armor T1–T3 with `affix_of_iron`/`affix_of_the_warden` bias: `item_nomads_maul`, `item_ironclad_hammer`, `item_warriors_sword`, `item_scrap_harness`, `item_ironclad_mail`, `item_steppe_lamellar`, `item_whetstone_strip` |
 | Trusted | `item_ironclad_hammer` at fixed Rare (`affix_of_iron`); Ironclad-trusted recipes (§8.2) |
-| Free | Ember vein: `mat_ember_ore` 3 per loop (8 with `echo_emberforge_vein`); `item_borins_forge_mark` (OQ-10); `item_pattern_hallows_hammer` with `echo_hallows_ember`; Loop 2+ `item_tobrins_warding_primer` |
+| Free | Ember vein: `mat_ember_ore` 3 per loop (8 with `echo_emberforge_vein`); `item_borins_forge_mark` when `q_bone_road` is accepted; `item_pattern_hallows_hammer` with `echo_hallows_ember`; Loop 2+ `item_tobrins_warding_primer`; the Breach-anchor at 0 g (§8.2) |
 
 **`npc_sedge_marrow` — Lamplighters' Rest** (Drowned Reach; diver gear made off-screen, no crafting UI)
 
@@ -3301,12 +3369,12 @@ Plaza is Horde-infected, at the Library instead from Loop 2)
 | Core | `item_glow_moss` ×5, `item_antidote_root` ×3, `item_lanternreed_salts` ×1 (DESIGN); `item_fenlight_salve` ×2 |
 | Pool | light armor and bows T2–T3: `item_elven_bow`, `item_harrier_bow`, `item_scribes_robe`, `item_divers_coat`; herbs: `item_stillwater_phial`, `item_fenlight_salve`; Loop 2+: `item_pattern_heartwood_bow` |
 
-**`npc_hollis_cade` — Sanctum of Threads** (DESIGN `npc_veil_vendor`; WORLD's `npc_hollis_vane`, D-064).
+**`npc_hollis_cade` — Sanctum of Threads** (DESIGN `npc_veil_vendor`; formerly WORLD's `npc_hollis_vane`, D-064).
 Trades only if Weavers ≥ Neutral **or** Corruption ≥ 3 (DESIGN §9.4).
 
 | Section | Stock |
 |---|---|
-| Core | `item_dark_spellbook` ×1, `item_void_shard` ×2 (DESIGN "expensive": priced at 2× `gold_value`, proposed), `item_glow_moss` ×3, `item_ley_touched_tonic` ×3, `item_chronal_dust` ×2, `item_veil_sigil` ×1 (30 g flat, the Veil tithe) |
+| Core | `item_dark_spellbook` ×1, `item_void_shard` ×2 (DESIGN "expensive": priced at 2× `gold_value`, adopted by DESIGN §9 in U8), `item_glow_moss` ×3, `item_ley_touched_tonic` ×3, `item_chronal_dust` ×2, `item_veil_sigil` ×1 (30 g flat, the Veil tithe) |
 | Pool | void focuses and `affix_of_the_void` gear: `item_chasmglass_focus`, `item_hollow_lantern_focus`, `item_cracked_void_focus`, rolled armor/trinkets with `affix_of_the_void` |
 | Trusted | `item_veil_threadmail`; `item_hollow_lantern_focus` at fixed Rare (`affix_of_the_void`) — DESIGN §11.4's Weaver focus; `item_pattern_breachglass_focus` |
 | Sworn | `item_nyxs_shardglass` (if not taken from `loc_where_she_fell` this loop); `mat_umbral_thread` ×3 |
@@ -3331,7 +3399,7 @@ Trades only if Weavers ≥ Neutral **or** Corruption ≥ 3 (DESIGN §9.4).
 | 8–12 Glowfen | Glow Moss 10 g, Fenlight Salve 31 g | Fennick | Lanternreed |
 | 9–13 Glowlands & Nexus | Glow Moss 10 g (Fennick, adjacent) | Fennick | astronomers' cell |
 | 10–14 Veil | Glow Moss 12 g (Hollis ×1.2) | Hollis (gated); Fennick/Kaelen fallback | Sanctum |
-| 12–15 Skyreach | none on site (OQ-8) | Hollis, Fennick, Anso | Aulde's Eyrie |
+| 12–15 Skyreach | none on site (DESIGN §9 dropped its Skyreach merchant and inn, C-31) | Hollis, Fennick, Anso | Aulde's Eyrie |
 | 13–17 Silverwood Before | Glow Moss 12 g, Honeycake 36 g | Anso | Apprentices' Garret |
 | 15–18 Apex | none (prepare in the Nexus/Before) | — | cannot rest |
 
@@ -3356,8 +3424,8 @@ upgrade step affordable from kill gold alone.
 3. Gate items cost nothing: the Glyphbound Lantern is placed, a `q_bell_vault` reward, Kaelen stock
    from Loop 2 and a 0-fee recipe; every key comes from a place, drop or quest; the Veil Sigil is
    optional.
-4. `q_blood_and_salt`'s salt is 4 g or free (STORY). The Breach-anchor's 300 g fee is the one conflict
-   with rule 5 (OQ-2).
+4. `q_blood_and_salt`'s salt is 4 g or free (STORY). The Breach-anchor costs 0 g and its rep gate is
+   Neutral while its quest is active (D-066.10), so no ending needs gold or a faction it cannot reach.
 
 ---
 
@@ -3371,26 +3439,32 @@ upgrade step affordable from kill gold alone.
 - **Watches.** One per edge (WORLD §1). Exceptions, as edge data in §11.2: the Pale Gullet → Elder
   Mangrove haul costs 2 (§3.9), and the two Skyreach ascents (Spires → Spire-Crown, Plateau →
   Windward Stair) cost 2 going up (DESIGN §10.1 "Skyreach ascent 2 watches per climb"). Combat costs
-  0, a flee 1 (DESIGN §4.7), the Heartstone ritual 1, the first forge action of a visit 1. Silverwood
-  Before and the Threshold cost no Breach Clock time.
-- **R10-1 · `onFlee` encounter field.** DESIGN §4.7 leaves a fled encounter at the node until it is
-  beaten, which turns every 100% fixed group into a wall for anyone who will not kill. WORLD encounter
-  data gets one field: `onFlee: "hold" | "scatter"`.
-  - `hold` (DESIGN's default behaviour): bosses, Horde encounters, and **story gates**, meaning a
-    legacy kill quest's target while that quest is active (`cr_wildling_brute` under `q_clear_path`,
-    `cr_stone_hide_golem` ×2 under `q_blighted_outpost`, `cr_drowned_archivist` at the Sunken Archives
-    under `q_lost_scroll`) and the Before's day-scripted guards (Archives Day 2, Hall Day 3, Conflux).
-  - `scatter`: every other fixed group, wandering roll and anomaly. A successful flee places the party
-    at the previous node (DESIGN unchanged); the group is gone for this loop, with no XP and no loot,
-    and the node behaves as visited. Passing a scattered node costs **+2 watches** (the flee and the
-    re-entry) plus failed-flee turns.
+  0, a flee 1 (DESIGN §4.7; 3 when it scatters a fixed group), the Heartstone ritual 1, the first
+  forge action of a visit 1.
+- **R10-1 · `onFlee` encounter field** (adopted: D-066.11, DESIGN §4.7). Every encounter carries
+  `onFlee: "hold" | "scatter"`; only bosses and story gates block flight.
+  - `hold`: bosses, Horde encounters, and **story gates**, meaning a legacy kill quest's target while
+    that quest is active (`cr_wildling_brute` under `q_clear_path`, `cr_stone_hide_golem` ×2 under
+    `q_blighted_outpost`, `cr_drowned_archivist` at the Sunken Archives under `q_lost_scroll`) and the
+    Before's day-scripted guards (Archives Day 2, Hall Day 3, Conflux). Not fleeable; Retreat is the
+    way to avoid them.
+  - `scatter` (the default): every other fixed group, wandering roll and anomaly. A successful flee
+    from a fixed group **scatters it for the rest of the loop**: the flee costs +2 watches more (3 in
+    all), grants no XP and no loot, and the party stands at the encounter's node, which now behaves as
+    visited and passable (DESIGN §4.7). A fled wandering roll puts the party back at the previous node
+    (legacy). Failed flees cost their turns. This is what makes the pacifist routes in §10.6 valid.
 - **R10-2 · Forced combat.** A node is forced when entering and passing it needs a won fight: a `hold`
   encounter with no non-combat bypass satisfied. Only bosses and story gates may be forced (§10.5).
-- **R10-3 · Expiry Horde delay.** The Tyrant-kill Horde keeps the legacy one-move delay. The
-  clock-expiry Horde (D-060) starts with a **three-move** delay. With the legacy delay, a player in
-  the deep Glowfen at expiry (Firefly Barrows, Pale Gullet, Matron's Hall) must cross 6–7 infected
-  nodes, which kills them (each costs ⌈maxHP/3⌉); in Loop 1 that is a FALLEN game-over. With three
-  moves, every one of the 61 present-day nodes has a damage-free route to the Library (§10.7).
+- **R10-3 · Expiry Horde delay** (adopted: D-066.7). The Tyrant-kill Horde keeps the legacy one-move
+  delay. The clock-expiry Horde (D-060) starts with a **three-move** delay. With the legacy delay, a
+  player in the deep Glowfen at expiry (Firefly Barrows, Pale Gullet, Matron's Hall) must cross 6–7
+  infected nodes, which kills them (each costs ⌈maxHP/3⌉). With three moves, every one of the 61
+  present-day nodes has a damage-free route to the Library (§10.7). Death in any Horde is `closer_fall`
+  (reason `death`) and leads to Loop 2 Day 1 in Loop 1 (D-066.7); no autosave is written during a
+  Horde, so a reload lands at the Horde's first move (D-067.1).
+- **Silverwood Before** (D-066.9, D-067.5): the Breach Clock is frozen inside; each return to the
+  present costs one Breach-Clock day; the Before's fights, pick-ups and XP count once per loop (the
+  Nine still act on every visit). The Threshold costs nothing.
 
 ### 10.1 Wandering pools (`pool(region)` in §3)
 
@@ -3418,22 +3492,22 @@ drop (DESIGN). They spawn only in regions where the base creature lives.
 
 | id | region | base | twist (telegraph-length) | loop ≥ |
 |---|---|---|---|---|
-| `anomaly_echoed_shade` | silverwood_ruins | cr_corrupted_shade | Repeats its previous intent; both are shown. | 2 |
-| `anomaly_split_wisp` | silverwood_ruins | cr_arcane_wisp | At half HP it splits into two wisps at 40%. | 2 |
-| `anomaly_frayed_brute` | mistwood_ironclad_reach | cr_wildling_brute | Permanent Haste; telegraphs two intents. | 2 |
-| `anomaly_rootbound_pack` | mistwood_ironclad_reach | cr_rootling ×3 | Three rootlings share one HP pool. | 2 |
-| `anomaly_phase_stalker` | voidscar | cr_void_touched_stalker | Phased on even turns; Void damage still lands. | 2 |
-| `anomaly_tethered_stalkers` | voidscar | cr_void_touched_stalker ×2 | Damage to one is split between both. | 3 |
-| `anomaly_doubled_phantom` | aether_kissed_highlands | cr_shimmering_phantom | Fights beside its past self (a 50% HP copy). | 2 |
-| `anomaly_flat_chord_weaver` | aether_kissed_highlands | cr_aetherial_weaver | Its Shock chains to you and your companion. | 2 |
-| `anomaly_aberration_pair` | glowlands_nexus | cr_temporal_aberration ×2 | Two Aberrations share one Rewind (Nexus only). | 3 |
-| `anomaly_late_mireling` | glowlands_nexus | cr_glowfen_mireling | Acts every other turn; each act hits twice. | 2 |
-| `anomaly_unfiled_archivist` | drowned_reach | cr_drowned_archivist | Rewinds a wounded ally instead of attacking. | 2 |
-| `anomaly_one_herd` | ashen_steppe | cr_salt_jackal ×3 | Three jackals act on one initiative. | 2 |
-| `anomaly_unlit_lantern` | veil | cr_hollow_lantern | Intent hidden until it takes damage. | 2 |
-| `anomaly_seeding_toad` | glowfen | cr_lantern_toad | Adds one Spore Drift each turn (max 2). | 2 |
-| `anomaly_still_kite` | skyreach | cr_gale_kite | Ignores the gale; strikes twice at dawn. | 2 |
-| `anomaly_early_hound` | silverwood_before | cr_ley_hound | Roams on First Bell, out of its day. | 2 |
+| `cr_anomaly_echoed_shade` | silverwood_ruins | cr_corrupted_shade | Repeats its previous intent; both are shown. | 2 |
+| `cr_anomaly_split_wisp` | silverwood_ruins | cr_arcane_wisp | At half HP it splits into two wisps at 40%. | 2 |
+| `cr_anomaly_frayed_brute` | mistwood_ironclad_reach | cr_wildling_brute | Permanent Haste; telegraphs two intents. | 2 |
+| `cr_anomaly_rootbound_pack` | mistwood_ironclad_reach | cr_rootling ×3 | Three rootlings share one HP pool. | 2 |
+| `cr_anomaly_phase_stalker` | voidscar | cr_void_touched_stalker | Phased on even turns; Void damage still lands. | 2 |
+| `cr_anomaly_tethered_stalkers` | voidscar | cr_void_touched_stalker ×2 | Damage to one is split between both. | 3 |
+| `cr_anomaly_doubled_phantom` | aether_kissed_highlands | cr_shimmering_phantom | Fights beside its past self (a 50% HP copy). | 2 |
+| `cr_anomaly_flat_chord_weaver` | aether_kissed_highlands | cr_aetherial_weaver | Its Shock chains to you and your companion. | 2 |
+| `cr_anomaly_aberration_pair` | glowlands_nexus | cr_temporal_aberration ×2 | Two Aberrations share one Rewind (Nexus only). | 3 |
+| `cr_anomaly_late_mireling` | glowlands_nexus | cr_glowfen_mireling | Acts every other turn; each act hits twice. | 2 |
+| `cr_anomaly_unfiled_archivist` | drowned_reach | cr_drowned_archivist | Rewinds a wounded ally instead of attacking. | 2 |
+| `cr_anomaly_one_herd` | ashen_steppe | cr_salt_jackal ×3 | Three jackals act on one initiative. | 2 |
+| `cr_anomaly_unlit_lantern` | veil | cr_hollow_lantern | Intent hidden until it takes damage. | 2 |
+| `cr_anomaly_seeding_toad` | glowfen | cr_lantern_toad | Adds one Spore Drift each turn (max 2). | 2 |
+| `cr_anomaly_still_kite` | skyreach | cr_gale_kite | Ignores the gale; strikes twice at dawn. | 2 |
+| `cr_anomaly_early_hound` | silverwood_before | cr_ley_hound | Roams on First Bell, out of its day. | 2 |
 
 ### 10.3 Traversal per region (Loop 1 numbers)
 
@@ -3460,8 +3534,8 @@ worst node's distance to any rest point.
 
 Elites are §6's `elite` role. Placement rules applied: no elites in band ≤ 4; at most one guaranteed
 elite on any through-route; an elite on a settlement's approach must be `scatter`. "Scatter nodes"
-are 100% fixed groups that a non-killer passes at +2 watches (R10-1). Horde moves are counted from
-the Tyrant's death (legacy one-move delay; add 2 for the expiry Horde, R10-3).
+are 100% fixed groups that a non-killer passes at +2 watches (R10-1, D-066.11). Horde moves are counted
+from the Tyrant's death (legacy one-move delay; add 2 for the expiry Horde, R10-3, D-066.7).
 
 | region | elites (node, chance) | forced nodes (§10.5) | scatter nodes | pacifist path to its settlement / exit | Horde entry → order (move infected) |
 |---|---|---|---|---|---|
@@ -3502,8 +3576,8 @@ the Tyrant's death (legacy one-move delay; add 2 for the expiry Horde, R10-3).
 
 | node | encounter | kind | forced when | non-combat bypass | justification |
 |---|---|---|---|---|---|
-| loc_temporal_breach_apex | cr_chronos_tyrant_contained | boss | Loop 1, always | none in Loop 1. Loop 2+ is never forced: the Tyrant speaks first (STORY §5.4; errata W5) | the legacy finale |
-| loc_bell_wardens_deep | cr_bell_warden | boss | without `echo_rhune_choice` | say the Master's name (Echo from loc_tidewell_hall, no kill needed) | regional boss, dead end |
+| loc_temporal_breach_apex | cr_chronos_tyrant_contained | boss | Loop 1, once the player chooses *Face it* | Loop 1: *Not yet* on arrival returns the player to the Nexus at no cost, and no autosave is written at the Apex (D-067.1); once the fight starts it cannot be fled. Loop 2+ is never forced: the Tyrant speaks first (STORY §5.4; W5) | the legacy finale |
+| loc_bell_wardens_deep | cr_bell_warden | boss | without `echo_rhune_choice` | say the Warden of Waters' name (Echo from loc_tidewell_hall, no kill needed) | regional boss, dead end |
 | loc_herd_grave | cr_ashmaw | boss | without `echo_dreyl_brand` | break the brand-stone (Echo from loc_bone_orchard) | regional boss, dead end |
 | loc_eye_of_the_scar | cr_vells_umbra | boss | without Nyx active + `echo_nyx_is_of_the_nine` | Nyx calls it back | regional boss; WS stays reachable via NO |
 | loc_matrons_hall | cr_lantern_matron | boss | without Mireya active + lit `item_mireyas_lantern` | Sulis is lulled | regional boss, cul-de-sac |
@@ -3530,9 +3604,9 @@ Settlements: the seven present-day inhabited nodes, plus the Before's Plaza of B
 | loc_wayfarers_respite | WR→MP→WY | same |
 | loc_ironclad_camp | WR→MP→IC | same |
 | loc_emberforge | Depths gate after 2 quests (`q_echo_crystal` + `q_blood_and_salt`) → HD→SM→AS→SW→BO→EF, 5 scatters | + `echo_ironclad_passwords`: IC→BP→BO→EF, 2 scatters |
-| loc_lamplighters_rest | **blocked**: the lantern only appears with `q_lost_scroll`, whose Archivist is a story gate. Fixed by W7 (lantern on the top step from Day 1) → SA→DS→CI→LR | Kaelen sells the lantern → SA→DS→CI→LR |
+| loc_lamplighters_rest | SA→DS→CI→LR (the lantern lies on the Archives' top step from Day 1, W7) | same; Kaelen also sells the lantern |
 | loc_hearthring | ungated from the south: VG→RD→WF→SG→AF→HR (AF scatters) | + `echo_nomad_signs`: BO→SG→AF→HR |
-| loc_sanctum_of_threads | Weavers 25 without kills (keep the Crystal +10, Exploit +15) + `q_void_shards` accepted → CW→VH (scatter)→VM→SU→ST | `echo_hollow_path` + `echo_veil_watchword` |
+| loc_sanctum_of_threads | Weavers 25 without kills (keep the Crystal +10, Exploit +15) + `q_void_shards` accepted → CW→VH (scatter)→VM→SU→ST | `echo_hollow_path` + `echo_weaver_sign` |
 | loc_lanternreed | VG (scatter)→LC→LN | same |
 | loc_plaza_of_bells, loc_apprentices_garret | — (the Before is Loop 2+) | Nexus ⟂ GT→OW→AG→PB on First Bell |
 | loc_chronos_nexus (Apex approach) | SW→VG→CN, 2 scatters; the Apex gate opens with 6 pacifist-completable quests (`q_echo_crystal`, `q_blood_and_salt`, `q_echoing_heartbeat`, `q_high_mark`, `q_the_drowned_lantern`, `q_lantern_in_the_reeds`) | + `echo_apex_resonance`; the Apex is never forced |
@@ -3600,32 +3674,36 @@ scatters) reaches the Nexus D18 Dawn and ends by expiry on D25, inside the clock
 ### 10.9 Loop 3+ focused routes (key locations per ending)
 
 These assume the Echoes a Loop 3+ player holds (`echo_heartstone_path`, `echo_apex_resonance`,
-`echo_hollow_path`, the faction-start Echoes) and nothing in hand. The Before costs no clock.
+`echo_hollow_path`, `echo_anchor_half_a` from an earlier Skyreach visit, the faction-start Echoes) and
+nothing in hand. Each loop starts at ⌊0.6 × the best level reached⌋, capped at 10 (D-067.2), so a
+focused route is brisk but not a level-1 replay. Every return from the Before costs one Breach-Clock
+day (D-067.5); the Before itself is clockless.
 
 | ending | key locations, in order | moves | rests | at the Apex / goal | limit | slack |
 |---|---|---|---|---|---|---|
 | A Warden's Vigil | WR→SA→HD→SM→AS→SW→VG→CN→TA | 8 | 2 | D4 Day | D30 | 25.75 d |
-| B Mending | VH (shard) → HD (Stabilize) → AS (Aetherium) → EF (forge) → CN ⟂ Before (Caelum anchors at CX) ⟂ CN → TA | 20 | 3 | D8 Day | D36; D39 once anchored (+3, DESIGN §10.1) | 27.75 d (30.75) |
-| C Weaver's Dawn | SL (keep Crystal) → CW → VH/SH shards → ST (Nyx's rite) → HD (Exploit) → TA with the Core | 26 | 5 | D11 Day | D25 | 13.75 d |
-| D Iron Silence | VH (shard) → IC/BP/BO (Brak, quests, the truth) → HD (Destroy, late) → AS → EF (forge) → TA with Brak | 28 | 4 | D11 Day | D20 | 8.75 d |
-| E Long Archive | Remnant chain + SY → HD (Stabilize) → wait → HD **on Day 29** | 20 | 24 | D29 | D36 | the goal is a date, not a race |
+| B Mending | VH (shard) → HD (Stabilize; 2 fragments) → AS (Aetherium) → CN ⟂ Before (the pin on the cradle's rim before Caelum crosses; heartwood; half B) ⟂ CN (+1 day) → SW→BO→EF (forge the anchor: 0 g) → BO→SW→VG→CN → TA (drive the anchor; B's present end is the player's own hand, D-067.8) | 26 | 4 | D10 Day | D36; D39 once the Conflux stage is done (+3, DESIGN §10.1) | 25.75 d (28.75) |
+| C Weaver's Dawn | SL (keep Crystal) → CW → VH/SH shards → ST (Nyx's rite) → HD (Exploit) → CN (two Husk waves: ×2, then ×3) → TA with the Core | 26 | 5 | D11 Day | D25 | 13.75 d |
+| D Iron Silence | VH (shard) → IC/BP/BO (Brak **active**, his quests, the truth; `ev_outpost_seal` gives half B here, D-067.6) → HD (Destroy, late; 2 dead fragments) → AS (Aetherium) → EF (forge; heartwood from a Golem or Kaelen) → TA with Brak at your shoulder (D-067.7). No Before, no Skyreach needed once half A is remembered | 28 | 4 | D11 Day | D20 | 8.75 d |
+| E Long Archive | Remnant chain + SY → HD (Stabilize) → *Keep the vigil* with Ilyra at the Depths once every other requirement is met: it advances to the last dawn before collapse (`{clock:{daysLeft:{max:1}}}`, D-066.8, D-067.14) | 20 | 3 (+ the skip) | the last dawn | D36 | the goal is a date, not a race |
 | F Unbound | as A | 8 | 2 | D4 Day | D30 | 25.75 d |
+
+From Loop 2 a player who has learned what they came for can also end the loop on purpose: *Let go*
+at any camp closes it as `closer_fall` (reason `released`, no Resonance bonus; D-067.14).
 
 ### 10.10 Clock-math flags
 
-1. **Loop 1 + Destroy fails for a thorough player** (§10.8). It is legitimate pressure, but nothing
-   tells the Loop 1 player (the clock is subtle). Proposal: after a Destroy in Loop 1, Brak or Borin
-   says the dawn count aloud ("Twenty dawns, Wayfinder. Not thirty.") as STORY §4.1 beat 9 already
-   does for the choice itself. DESIGN §19 target 15 (explorer expiry 10–20%) should be measured with
-   the bot's Heartstone choice logged.
-2. **Ending E fails under `mod_frayed_clock`**: base 20, Stabilize halved to +3 gives D23, but
-   `q_long_archive` needs the Depths on "Day 29". Fix: express the stage relative to the limit (the
-   last dawn before collapse), e.g. a D-033 extension `{clock:{daysLeft:{max:1}}}`.
-3. **The deep Glowfen at expiry** (FB, PG, MH) is a death trap with the legacy one-move delay. Fixed
-   by R10-3.
-4. **DESIGN's flat "Ashen Steppe crossing 4 watches"** is now graph distance (Outpost→Glowlands by the
-   south road: 4 edges). `echo_steppe_waystones` ("2 watches") has no edge to act on. See Open
-   question X3.
+1. **Loop 1 + Destroy fails for a thorough player** (§10.8). It is legitimate pressure. DESIGN §10.1
+   now has the spoken dawn-count line after a Loop 1 Destroy ("Twenty dawns, Wayfinder. Not thirty."),
+   and the clock floor (never below current day + 3 dawns, D-066.8) keeps it from being a trap.
+   DESIGN §19 target 15 (explorer expiry 10–20%) is measured with the bot's Heartstone choice logged.
+2. **Ending E under `mod_frayed_clock`** is fixed by D-066.8: the stage is "the last dawn before
+   collapse" (`daysLeft ≤ 1`), not Day 29, so base 20 with Stabilize halved to +3 still works.
+3. **The deep Glowfen at expiry** (FB, PG, MH) was a death trap with the legacy one-move delay. Fixed by
+   R10-3 (D-066.7).
+4. **The Ashen Steppe crossing**: DESIGN §10.1's "4 watches (2 with `echo_steppe_waystones`)" is now
+   graph distance plus the waystone road (D-068.1): Outpost → Glowlands by the south road is 4 edges,
+   3 with the road (BO→SG→RD→VG).
 5. No other region fails. The tightest Loop 3+ case is D under Frayed Clock (limit D15, Apex D11).
 
 ---
@@ -3649,7 +3727,7 @@ These assume the Echoes a Loop 3+ player holds (`echo_heartstone_path`, `echo_ap
 - Costs are Breach Clock watches. Before and Threshold edges cost 0: the Before has only its
   three-day clock, advanced by resting at the Garret, and the Threshold has no time.
 - `gate_*` = `open`, a gate id from §11.3, or `none` (that direction does not exist).
-- `kind`: `walk`, `portal` (both ways, own conditions), `portal_oneway`.
+- `kind`: `walk`, `road` (a gated shortcut, not a Horde edge), `portal` (both ways, own conditions), `portal_oneway`.
 
 ### 11.1 Nodes (73)
 
@@ -3712,7 +3790,7 @@ These assume the Echoes a Loop 3+ player holds (`echo_heartstone_path`, `echo_ap
 | loc_windward_stair | WW | The Windward Stair | region_skyreach | 24 | 12 | 12 | true | — | — | false |
 | loc_spire_crown | CR | The Spire-Crown | region_skyreach | 16 | 12 | 13 | true | — | — | false |
 | loc_roost_of_sentinels | RS | Roost of the Sentinels | region_skyreach | 16 | 14 | 13–14 | true | — | — | false |
-| loc_aldours_eyrie | AE | Aulde's Eyrie | region_skyreach | 24 | 14 | 14 | true | inn | — | false |
+| loc_auldes_eyrie | AE | Aulde's Eyrie | region_skyreach | 24 | 14 | 14 | true | inn | — | false |
 | loc_stormcrowns_perch | PE | The Stormcrown's Perch | region_skyreach | 8 | 14 | 15 | true | — | — | false |
 | loc_silver_gate | GT | The Silver Gate | region_silverwood_before | 64 | 4 | 13 | true | — | — | false |
 | loc_outer_walks | OW | The Outer Walks | region_silverwood_before | 64 | 6 | 13 | true | — | — | false |
@@ -3728,10 +3806,12 @@ These assume the Echoes a Loop 3+ player holds (`echo_heartstone_path`, `echo_ap
 | loc_gallery_of_loops | LG | The Gallery of Loops | region_threshold | 64 | 14 | — | true | — | — | false |
 | loc_loom | LM | The Loom | region_threshold | 80 | 14 | — | true | — | attunements | false |
 | loc_far_light | FL | The Far Light | region_threshold | 72 | 16 | — | true | — | — | false |
-### 11.2 Edges (92 = 88 walk + 2 portal + 2 one-way portal)
+### 11.2 Edges (93 = 88 walk + 1 road + 2 portal + 2 one-way portal)
 
 Undirected; `a` precedes `b` in §11.1 order. The Apex's "beyond ⟂ ending F" is an ending exit, not an
-edge (`g_unbound_exit`, §11.3).
+edge (`gate_unbound_exit`, §11.3). Kind `road` (one edge, D-068.1) is a conditional shortcut: it is
+drawn as a dashed arc through (36, 6), east of Watchfire Ridge, so no node lies on it, and it is
+**not** in the Horde's spread graph (§12.2).
 
 | a | b | dir_ab | dir_ba | cost_ab | cost_ba | gate_ab | gate_ba | kind |
 |---|---|---|---|---|---|---|---|---|
@@ -3743,52 +3823,53 @@ edge (`g_unbound_exit`, §11.3).
 | loc_shattered_library | loc_silverwood_plaza | east | west | 1 | 1 | open | open | walk |
 | loc_silverwood_plaza | loc_mistwood_path | south | north | 1 | 1 | open | open | walk |
 | loc_silverwood_plaza | loc_chasm_of_whispers | east | west | 1 | 1 | open | open | walk |
-| loc_sunken_archives | loc_heartstone_depths | south | north | 1 | 1 | g_depths_descent | open | walk |
+| loc_sunken_archives | loc_heartstone_depths | south | north | 1 | 1 | gate_depths_descent | open | walk |
 | loc_sunken_archives | loc_drowned_stair | west | east | 1 | 1 | open | open | walk |
 | loc_heartstone_depths | loc_shimmering_pass | east | west | 1 | 1 | open | open | walk |
-| loc_heartstone_depths | loc_cistern_of_names | west | east | 1 | 1 | g_cistern_crack_in | g_cistern_crack | walk |
+| loc_heartstone_depths | loc_cistern_of_names | west | east | 1 | 1 | gate_cistern_crack_in | gate_cistern_crack | walk |
 | loc_mistwood_path | loc_wayfarers_respite | south | north | 1 | 1 | open | open | walk |
 | loc_mistwood_path | loc_ironclad_camp | east | west | 1 | 1 | open | open | walk |
-| loc_ironclad_camp | loc_barren_peaks | north | south | 1 | 1 | g_peaks_pass | open | walk |
+| loc_ironclad_camp | loc_barren_peaks | north | south | 1 | 1 | gate_peaks_pass | open | walk |
 | loc_barren_peaks | loc_blighted_outpost | east | west | 1 | 1 | open | open | walk |
 | loc_blighted_outpost | loc_emberforge | north | south | 1 | 1 | open | open | walk |
 | loc_blighted_outpost | loc_sky_whisper_plateau | south | north | 1 | 1 | open | open | walk |
-| loc_blighted_outpost | loc_scorched_gate | east | west | 1 | 1 | g_scorched_gate | open | walk |
-| loc_chasm_of_whispers | loc_voidscar_hollow | east | west | 1 | 1 | g_chasm_bridge | open | walk |
-| loc_voidscar_hollow | loc_veil_mouth | east | west | 1 | 1 | g_veil_curtain | open | walk |
-| loc_voidscar_hollow | loc_scar_shelf | north | south | 1 | 1 | g_veil_curtain | open | walk |
+| loc_blighted_outpost | loc_scorched_gate | east | west | 1 | 1 | gate_scorched_gate | open | walk |
+| loc_chasm_of_whispers | loc_voidscar_hollow | east | west | 1 | 1 | gate_chasm_bridge | open | walk |
+| loc_voidscar_hollow | loc_veil_mouth | east | west | 1 | 1 | gate_veil_curtain | open | walk |
+| loc_voidscar_hollow | loc_scar_shelf | north | south | 1 | 1 | gate_veil_curtain | open | walk |
 | loc_shimmering_pass | loc_aetherium_spires | east | west | 1 | 1 | open | open | walk |
 | loc_aetherium_spires | loc_sky_whisper_plateau | east | west | 1 | 1 | open | open | walk |
-| loc_aetherium_spires | loc_spire_crown | south | north | 2 | 1 | g_thin_air | open | walk |
+| loc_aetherium_spires | loc_spire_crown | south | north | 2 | 1 | gate_thin_air | open | walk |
 | loc_sky_whisper_plateau | loc_veridian_glowlands | east | west | 1 | 1 | open | open | walk |
-| loc_sky_whisper_plateau | loc_windward_stair | south | north | 2 | 1 | g_thin_air | open | walk |
+| loc_sky_whisper_plateau | loc_windward_stair | south | north | 2 | 1 | gate_thin_air | open | walk |
 | loc_veridian_glowlands | loc_chronos_nexus | east | west | 1 | 1 | open | open | walk |
 | loc_veridian_glowlands | loc_reedmarch_descent | north | south | 1 | 1 | open | open | walk |
 | loc_veridian_glowlands | loc_lantern_causeway | south | north | 1 | 1 | open | open | walk |
-| loc_chronos_nexus | loc_temporal_breach_apex | north | south | 1 | 1 | g_apex | open | walk |
-| loc_drowned_stair | loc_tidewell_hall | west | east | 1 | 1 | g_drowned_dark | open | walk |
-| loc_drowned_stair | loc_cistern_of_names | south | north | 1 | 1 | g_drowned_dark | open | walk |
+| loc_chronos_nexus | loc_temporal_breach_apex | north | south | 1 | 1 | gate_apex | open | walk |
+| loc_drowned_stair | loc_tidewell_hall | west | east | 1 | 1 | gate_drowned_dark | open | walk |
+| loc_drowned_stair | loc_cistern_of_names | south | north | 1 | 1 | gate_drowned_dark | open | walk |
 | loc_tidewell_hall | loc_lamplighters_rest | south | north | 1 | 1 | open | open | walk |
 | loc_cistern_of_names | loc_lamplighters_rest | west | east | 1 | 1 | open | open | walk |
 | loc_cistern_of_names | loc_black_sluice | south | north | 1 | 1 | open | open | walk |
 | loc_lamplighters_rest | loc_sunken_scriptorium | west | east | 1 | 1 | open | open | walk |
 | loc_lamplighters_rest | loc_bellmouth | south | north | 1 | 1 | open | open | walk |
 | loc_sunken_scriptorium | loc_bell_wardens_deep | south | north | 1 | 1 | open | open | walk |
-| loc_black_sluice | loc_bellmouth | west | east | 1 | 1 | g_sluice_walkway | g_sluice_walkway | walk |
+| loc_black_sluice | loc_bellmouth | west | east | 1 | 1 | gate_sluice_walkway | gate_sluice_walkway | walk |
 | loc_bellmouth | loc_bell_wardens_deep | west | east | 1 | 1 | open | open | walk |
 | loc_scorched_gate | loc_ash_wind_flats | east | west | 1 | 1 | open | open | walk |
 | loc_scorched_gate | loc_bone_orchard | north | south | 1 | 1 | open | open | walk |
 | loc_scorched_gate | loc_watchfire_ridge | south | north | 1 | 1 | open | open | walk |
+| loc_scorched_gate | loc_reedmarch_descent | south (the waystone road) | north (the waystone road) | 1 | 1 | gate_steppe_road | gate_steppe_road | road |
 | loc_ash_wind_flats | loc_hearthring | east | west | 1 | 1 | open | open | walk |
 | loc_ash_wind_flats | loc_grey_salt_pan | north | south | 1 | 1 | open | open | walk |
 | loc_hearthring | loc_stormgate_cairns | north | south | 1 | 1 | open | open | walk |
-| loc_hearthring | loc_herd_grave | south | north | 1 | 1 | g_herd_grave | open | walk |
+| loc_hearthring | loc_herd_grave | south | north | 1 | 1 | gate_herd_grave | open | walk |
 | loc_bone_orchard | loc_grey_salt_pan | east | west | 1 | 1 | open | open | walk |
 | loc_grey_salt_pan | loc_stormgate_cairns | east | west | 1 | 1 | open | open | walk |
 | loc_watchfire_ridge | loc_reedmarch_descent | south | north | 1 | 1 | open | open | walk |
 | loc_veil_mouth | loc_stair_of_unmaking | east | west | 1 | 1 | open | open | walk |
 | loc_veil_mouth | loc_voidglass_gallery | north | south | 1 | 1 | open | open | walk |
-| loc_stair_of_unmaking | loc_sanctum_of_threads | east | west | 1 | 1 | g_sanctum_door | open | walk |
+| loc_stair_of_unmaking | loc_sanctum_of_threads | east | west | 1 | 1 | gate_sanctum_door | open | walk |
 | loc_stair_of_unmaking | loc_null_orchard | north | south | 1 | 1 | open | open | walk |
 | loc_scar_shelf | loc_voidglass_gallery | east | west | 1 | 1 | open | open | walk |
 | loc_voidglass_gallery | loc_null_orchard | east | west | 1 | 1 | open | open | walk |
@@ -3806,9 +3887,9 @@ edge (`g_unbound_exit`, §11.3).
 | loc_firefly_barrows | loc_matrons_hall | east | west | 1 | 1 | open | open | walk |
 | loc_pale_gullet | loc_matrons_hall | south | north | 1 | 1 | open | open | walk |
 | loc_windward_stair | loc_spire_crown | west | east | 1 | 1 | open | open | walk |
-| loc_windward_stair | loc_aldours_eyrie | south | north | 1 | 1 | open | open | walk |
+| loc_windward_stair | loc_auldes_eyrie | south | north | 1 | 1 | open | open | walk |
 | loc_spire_crown | loc_roost_of_sentinels | south | north | 1 | 1 | open | open | walk |
-| loc_roost_of_sentinels | loc_aldours_eyrie | east | west | 1 | 1 | open | open | walk |
+| loc_roost_of_sentinels | loc_auldes_eyrie | east | west | 1 | 1 | open | open | walk |
 | loc_roost_of_sentinels | loc_stormcrowns_perch | west | east | 1 | 1 | open | open | walk |
 | loc_silver_gate | loc_outer_walks | south | north | 0 | 0 | open | open | walk |
 | loc_silver_gate | loc_scholars_corridor | north | south | 0 | 0 | open | open | walk |
@@ -3816,49 +3897,52 @@ edge (`g_unbound_exit`, §11.3).
 | loc_outer_walks | loc_archives_of_danthe | south | north | 0 | 0 | open | open | walk |
 | loc_scholars_corridor | loc_grand_library | north | south | 0 | 0 | open | open | walk |
 | loc_grand_library | loc_plaza_of_bells | east | west | 0 | 0 | open | open | walk |
-| loc_plaza_of_bells | loc_ninefold_hall | east | west | 0 | 0 | g_hall_doors | open | walk |
+| loc_plaza_of_bells | loc_ninefold_hall | east | west | 0 | 0 | gate_hall_doors | open | walk |
 | loc_plaza_of_bells | loc_apprentices_garret | south | north | 0 | 0 | open | open | walk |
 | loc_apprentices_garret | loc_cistern_gardens | south | north | 0 | 0 | open | open | walk |
-| loc_archives_of_danthe | loc_conflux_chamber | south | north | 0 | 0 | g_conflux_stair | open | walk |
+| loc_archives_of_danthe | loc_conflux_chamber | south | north | 0 | 0 | gate_conflux_stair | open | walk |
 | loc_still_shore | loc_gallery_of_loops | west | east | 0 | 0 | open | open | walk |
 | loc_still_shore | loc_loom | east | west | 0 | 0 | open | open | walk |
 | loc_still_shore | loc_far_light | south | north | 0 | 0 | open | open | walk |
-| loc_whispering_ruins | loc_far_light | none | step into the light | none | 0 | none | g_far_light | portal_oneway |
-| loc_shattered_library | loc_still_shore | portal | none | 0 | none | g_library_portal | none | portal_oneway |
-| loc_chronos_nexus | loc_silver_gate | east | west | 0 | 0 | g_breach_door | g_breach_door_back | portal |
-| loc_temporal_breach_apex | loc_conflux_chamber | through the tear | through the tear | 0 | 0 | g_tyrant_tear | g_tyrant_tear_back | portal |
+| loc_whispering_ruins | loc_far_light | none | step into the light | none | 0 | none | gate_far_light | portal_oneway |
+| loc_shattered_library | loc_still_shore | portal | none | 0 | none | gate_library_portal | none | portal_oneway |
+| loc_chronos_nexus | loc_silver_gate | east | west | 0 | 0 | gate_breach_door | gate_breach_door_back | portal |
+| loc_temporal_breach_apex | loc_conflux_chamber | through the tear | through the tear | 0 | 0 | gate_tyrant_tear | gate_tyrant_tear_back | portal |
 ### 11.3 Gate conditions
 
-D-033 JSON, canonical ids. A dagger (†) marks a change from §3; each is listed in the errata appendix.
+DESIGN §13.3 condition language, canonical ids. §3's exit tables and this table now agree (the U9
+changelog in §13 lists what moved: W1, W2, W6, W12). Gate ids are `gate_*` (REGISTRY; WORLD wrote `g_*`
+before U9).
 
 | gate | edges (from → to) | condition | notes |
 |---|---|---|---|
-| `g_depths_descent` | sunken_archives → heartstone_depths | `{any:[{quest:"q_echoing_heartbeat",stage:"accepted"},{echo:"echo_heartstone_path"}]}` | heartbeat after 2 completed quests (STORY §4.1); return is open |
-| `g_cistern_crack_in` † | heartstone_depths → cistern_of_names | `{all:[{item:"item_glyphbound_lantern"},{any:[{item:"item_cistern_key"},{flag:"flag_heartstone_destroyed"},{echo:"echo_cistern_crack"}]}]}` | lantern added so the crack cannot bypass the dark (W6) |
-| `g_cistern_crack` | cistern_of_names → heartstone_depths | `{any:[{item:"item_cistern_key"},{flag:"flag_heartstone_destroyed"},{echo:"echo_cistern_crack"}]}` | — |
-| `g_peaks_pass` | ironclad_camp → barren_peaks | `{any:[{quest:"q_clear_path",stage:"accepted"},{echo:"echo_ironclad_passwords"}]}` | legacy line on lock: "I should talk to Brak before going this way." |
-| `g_scorched_gate` | blighted_outpost → scorched_gate | `{any:[{quest:"q_blighted_outpost",stage:"completed"},{echo:"echo_nomad_signs"}]}` | eastbound only; the Steppe is open from the south |
-| `g_chasm_bridge` | chasm_of_whispers → voidscar_hollow | `{any:[{quest:"q_void_shards",stage:"accepted"},{echo:"echo_hollow_path"}]}` | — |
-| `g_veil_curtain` † | voidscar_hollow → veil_mouth, voidscar_hollow → scar_shelf | `{any:[{rep:{faction:"weavers",min:20}},{echo:"echo_veil_watchword"},{quest:"q_lightless_stair",stage:"accepted"}]}` | faction id per 04-06 E10; `q_lightless_stair` added (W12) |
-| `g_sanctum_door` | stair_of_unmaking → sanctum_of_threads | `{rep:{faction:"weavers",min:-9}}` | — |
-| `g_drowned_dark` | drowned_stair → tidewell_hall, drowned_stair → cistern_of_names | `{item:"item_glyphbound_lantern"}` | no Echo alternative (WORLD §3.6) |
-| `g_sluice_walkway` † | black_sluice ↔ bellmouth (both ways) | `{any:[{item:"item_cistern_key"},{not:{watch:"night"}}]}` | `{watch}` is a proposed D-033 atom (W1); reverse direction added |
-| `g_herd_grave` † | hearthring → herd_grave | `{any:[{quest:"q_bone_road",stage:"accepted"},{echo:"echo_nomad_signs"}]}` | `q_herd_of_one` is not a STORY quest (W2) |
-| `g_thin_air` | aetherium_spires → spire_crown, sky_whisper_plateau → windward_stair | `{any:[{item:"item_sky_whisper_talisman"},{echo:"echo_breath_of_heights"}]}` | ascent costs 2 watches; descent is open and costs 1 |
-| `g_apex` | chronos_nexus → temporal_breach_apex | `{any:[{counter:{name:"quests_completed",min:6}},{echo:"echo_apex_resonance"}]}` | D-048, one form for all loops (the Echo cannot exist in Loop 1) |
-| `g_breach_door` | chronos_nexus ⟂ silver_gate | `{all:[{loop:{min:2}},{item:"item_chronos_lens"},{echo:"echo_litany_verse_1"}]}` | D-016; sets `flag_entered_before_via_nexus` |
-| `g_breach_door_back` | silver_gate ⟂ chronos_nexus | `{flag:"flag_entered_before_via_nexus"}` | also forced at Last Bell's dusk |
-| `g_tyrant_tear` | temporal_breach_apex ⟂ conflux_chamber | `{all:[{loop:{min:2}},{flag:"flag_tyrant_spared"}]}` | sets `flag_entered_before_via_apex` |
-| `g_tyrant_tear_back` | conflux_chamber ⟂ temporal_breach_apex | `{flag:"flag_entered_before_via_apex"}` | — |
-| `g_hall_doors` | plaza_of_bells → ninefold_hall | `{any:[{flag:"flag_before_day_3"},{item:"item_ward_seal"},{companion:"caelum",state:"active"}]}` | — |
-| `g_conflux_stair` | archives_of_danthe → conflux_chamber | `{any:[{flag:"flag_before_day_3"},{item:"item_ward_seal"}]}` | — |
-| `g_library_portal` | shattered_library ⟂ still_shore (one-way) | `{any:[{flag:"flag_library_portal_open"},{all:[{loop:{min:2}},{rep:{faction:"remnants",min:20}},{echo:"echo_portal_tear"}]}]}` | ends the loop (`closer_escape`); Loop 1 → Loop 2 skips the Threshold (D-049) |
-| `g_far_light` | far_light ⟂ whispering_ruins (one-way) | always | begins the next loop, Day 1 Dawn |
-| `g_unbound_exit` | temporal_breach_apex → ending F | `{all:[{loop:{min:2}},{flag:"flag_tyrant_spared"},{flag:"flag_refused_all_paths"}]}` | not a map edge; drawn as the tear's glow |
+| `gate_depths_descent` | sunken_archives → heartstone_depths | `{any:[{quest:"q_echoing_heartbeat",stage:"accepted"},{echo:"echo_heartstone_path"}]}` | heartbeat after 2 completed quests (STORY §4.1); return is open |
+| `gate_cistern_crack_in` | heartstone_depths → cistern_of_names | `{all:[{item:"item_glyphbound_lantern"},{any:[{item:"item_cistern_key"},{flag:"flag_heartstone_destroyed"},{echo:"echo_archive_door"}]}]}` | lantern added so the crack cannot bypass the dark (W6); §3.1 agrees |
+| `gate_cistern_crack` | cistern_of_names → heartstone_depths | `{any:[{item:"item_cistern_key"},{flag:"flag_heartstone_destroyed"},{echo:"echo_archive_door"}]}` | — |
+| `gate_peaks_pass` | ironclad_camp → barren_peaks | `{any:[{quest:"q_clear_path",stage:"accepted"},{echo:"echo_ironclad_passwords"}]}` | legacy line on lock: "I should talk to Brak before going this way." |
+| `gate_steppe_road` | scorched_gate ↔ reedmarch_descent (kind `road`) | `{echo:"echo_steppe_waystones"}` | D-068.1 (WORLD X3): the Waystone Order; Outpost → Glowlands by the Steppe becomes 3 watches |
+| `gate_scorched_gate` | blighted_outpost → scorched_gate | `{any:[{quest:"q_blighted_outpost",stage:"completed"},{echo:"echo_nomad_signs"}]}` | eastbound only; the Steppe is open from the south |
+| `gate_chasm_bridge` | chasm_of_whispers → voidscar_hollow | `{any:[{quest:"q_void_shards",stage:"accepted"},{echo:"echo_hollow_path"}]}` | — |
+| `gate_veil_curtain` | voidscar_hollow → veil_mouth, voidscar_hollow → scar_shelf | `{any:[{rep:{faction:"weavers",min:20}},{echo:"echo_weaver_sign"},{quest:"q_lightless_stair",stage:"accepted"}]}` | faction id `weavers` (E10); `q_lightless_stair` accepted also opens it (W12) |
+| `gate_sanctum_door` | stair_of_unmaking → sanctum_of_threads | `{rep:{faction:"weavers",min:-9}}` | — |
+| `gate_drowned_dark` | drowned_stair → tidewell_hall, drowned_stair → cistern_of_names | `{item:"item_glyphbound_lantern"}` | no Echo alternative (WORLD §3.6) |
+| `gate_sluice_walkway` | black_sluice ↔ bellmouth (both ways) | `{any:[{item:"item_cistern_key"},{not:{watch:"night"}}]}` | `{watch}` atom (DESIGN §13.3); both directions (W1) |
+| `gate_herd_grave` | hearthring → herd_grave | `{any:[{quest:"q_bone_road",stage:"accepted"},{echo:"echo_nomad_signs"}]}` | was `q_herd_of_one` (not a STORY quest, W2) |
+| `gate_thin_air` | aetherium_spires → spire_crown, sky_whisper_plateau → windward_stair | `{any:[{item:"item_sky_whisper_talisman"},{echo:"echo_high_mark"}]}` | ascent costs 2 watches; descent is open and costs 1 |
+| `gate_apex` | chronos_nexus → temporal_breach_apex | `{any:[{counter:{name:"quests_completed",min:6}},{echo:"echo_apex_resonance"}]}` | D-048, one form for all loops (the Echo cannot exist in Loop 1). In Loop 1 arrival offers *Face it / Not yet*; no autosave at the Apex (D-067.1) |
+| `gate_breach_door` | chronos_nexus ⟂ silver_gate | `{all:[{loop:{min:2}},{item:"item_chronos_lens"},{echo:"echo_litany_verse_1"}]}` | D-016; sets `flag_entered_before_via_nexus`; the return costs one Breach-Clock day (D-067.5) |
+| `gate_breach_door_back` | silver_gate ⟂ chronos_nexus | `{flag:"flag_entered_before_via_nexus"}` | also forced at Last Bell's dusk |
+| `gate_tyrant_tear` | temporal_breach_apex ⟂ conflux_chamber | `{all:[{loop:{min:2}},{flag:"flag_tyrant_spared"}]}` | sets `flag_entered_before_via_apex` |
+| `gate_tyrant_tear_back` | conflux_chamber ⟂ temporal_breach_apex | `{flag:"flag_entered_before_via_apex"}` | the return costs one Breach-Clock day (D-067.5) |
+| `gate_hall_doors` | plaza_of_bells → ninefold_hall | `{any:[{flag:"flag_before_day_3"},{item:"item_ward_seal"},{companion:"caelum",state:"active"}]}` | — |
+| `gate_conflux_stair` | archives_of_danthe → conflux_chamber | `{any:[{flag:"flag_before_day_3"},{item:"item_ward_seal"}]}` | — |
+| `gate_library_portal` | shattered_library ⟂ still_shore (one-way) | `{any:[{flag:"flag_library_portal_open"},{all:[{loop:{min:2}},{rep:{faction:"remnants",min:20}},{echo:"echo_portal_tear"}]}]}` | ends the loop (`closer_escape` = any portal flight, any loop, D-066.7); Loop 1 → Loop 2 skips the Threshold (D-049) |
+| `gate_far_light` | far_light ⟂ whispering_ruins (one-way) | always | begins the next loop, Day 1 Dawn |
+| `gate_unbound_exit` | temporal_breach_apex → ending F | `{all:[{loop:{min:2}},{flag:"flag_tyrant_spared"},{flag:"flag_refused_all_paths"}]}` | not a map edge; drawn as the tear's glow |
 
 **Reachability check (script).** From loc_whispering_ruins, with no gate satisfied, 11 nodes are
 reachable (WR, CA, DC, SL, SP, SA, MP, WY, IC, CW, DS). With every gate satisfiable, all 73 are. Each
-gated region's minimal path is in §3.13; two of its counts are wrong (W10).
+gated region's minimal path is in §3.13 (counts corrected in U9, W10).
 
 ### 11.4 Region extents, label anchors, insets
 
@@ -3894,15 +3978,23 @@ where no node or edge can lie.
 
 | STORY name | location | note |
 |---|---|---|
-| the Ring of Wagons | loc_hearthring | 04-06 E8 |
-| the Hollow Choir | loc_sanctum_of_threads | 04-06 E8 |
-| Vane's Watch | loc_blighted_outpost | codex name |
-| Hallow's Cairn | loc_stormgate_cairns | proposed: a named cairn there (`ev_hallows_cairn`) for `q_bone_road` stage 3 |
+| the Ring of Wagons | loc_hearthring | E8 |
+| the Hollow Choir | loc_sanctum_of_threads | E8; Sethe and Ysmay both stand here |
+| Vane's Watch | loc_blighted_outpost | codex name; `ev_outpost_seal` (Loop 2+) also yields schematic half B (D-067.6) |
+| Hallow's Cairn | loc_stormgate_cairns | `ev_hallows_cairn` (`q_bone_road` stage 3; C-37, X7 closed) |
+| Oriel's carrel | loc_sunken_archives | under the east stair (D-046, C-36) |
+| Nyx's Cell | loc_where_she_fell | the cell in the crater's east wall, `ev_nyx_cell` (C-37) |
+| the Bell Vault | loc_bell_wardens_deep | `q_bell_vault` |
 | the Reed Maze | loc_sporelight_shallows | `q_the_drowned_lantern`, `q_lantern_in_the_reeds` |
 | the Door of Pages | loc_sunken_scriptorium | the Scriptorium's door; `q_the_danthe_line` |
 | the Wind Stair / the High Mark | loc_windward_stair | `q_high_mark` |
 | the Lightless Stair | loc_stair_of_unmaking | begins at the Hollow's curtain, not "the bottom of the Chasm" (W12) |
-| the Conflux | loc_heartstone_depths (present) / loc_conflux_chamber (Before) | D-023 |
+| the Spire Yard | loc_plaza_of_bells | the east terrace below the bell-frame; `ev_plaza_spire_yard` (D-067.10) |
+| Veyran's study | loc_ninefold_hall | the Hall's east closet; `ev_hall_study_draft`, Days 2–3 (D-067.10) |
+| Masque's roof | loc_ninefold_hall | the Hall's dome; `ev_hall_masque_roof`, Day 3 (D-067.10) |
+| Hallow's Forge | loc_conflux_chamber | his field-forge by the stair (`npc_durn_hallow`, Days 1–2) |
+| the Conflux | loc_heartstone_depths (present) / loc_conflux_chamber (Before) | D-023; in the Before the whole Heartstone sits in Hallow's cradle (D-067.10) |
+| the Archive stair | loc_archives_of_danthe → loc_conflux_chamber | where Caelum stands at verse 8 (D-067.9) |
 
 ### 11.6 Rendering notes (node and edge states)
 
@@ -3942,36 +4034,37 @@ adjacent.
 
 ### 12.1 State table
 
-Conditions are D-033 (`{watch}` and the `flag_*` names marked † are proposed; see Appendix X).
+Conditions are DESIGN §13.3's canonical set (the `{watch}` atom, `{clock:{daysLeft}}` and the flags
+`flag_heartstone_exploited`, `flag_brak_kept_away`, `flag_clock_expired` were adopted in U8).
 "Ends" says when the state stops: `loop` = at the loop's end (D-011 reset), `permanent` = profile.
 
 | state | scope | trigger | text | encounters | exits / other | ends |
 |---|---|---|---|---|---|---|
-| `ws_horde` | global | `{any:[{killed:"cr_chronos_tyrant_contained"},{killed:"cr_chronos_tyrant_unveiled"},{flag:"flag_clock_expired"}]}` → sets `flag_horde_active`, `flag_library_portal_open` | kill: legacy Brak lines (if he is present); expiry: STORY §4.3 | the spread starts (§12.2): delay 1 after a kill, 3 after expiry (R10-3) | Brak leaves loc_ironclad_camp (legacy); Ilyra goes to the Library; merchants close; no resting | loop |
+| `ws_horde` | global | `{any:[{killed:"cr_chronos_tyrant_contained"},{killed:"cr_chronos_tyrant_unveiled"},{flag:"flag_clock_expired"}]}` → sets `flag_horde_active`, `flag_library_portal_open` | kill: legacy Brak lines (if he is present); expiry: STORY §4.3 | the spread starts (§12.2): delay 1 after a kill, 3 after expiry (R10-3, D-066.7); no autosave while it runs (D-067.1) | Brak leaves loc_ironclad_camp (legacy); Ilyra goes to the Library; merchants close; no resting | loop |
 | `ws_infected` | each node, as reached | in the infected set | loc_temporal_breach_apex: legacy Horde text; elsewhere `+` "The air here is coming apart at the seams." | DC: cr_horde_husk ×2, then cr_unraveling_tide after move 14; IC: husk ×2 if Brak is absent; SG: husk ×2; WY "goes quiet" with no fights; SL: none (Ilyra holds the stacks). Other nodes: no new fights, the entry damage is the threat | entry costs ⌈maxHP/3⌉ and skips that move's spread; `temporallyUnstable` true; drawn hatched | loop |
-| `ws_portal_ilyra` | loc_shattered_library | `{all:[{flag:"flag_library_portal_open"},{not:{companion:"ilyra",state:"active"}}]}` | legacy "…Ilyra stands before it…" | none | `g_library_portal` open; Ilyra's speech (STORY §4.1 beat 15) | loop |
+| `ws_portal_ilyra` | loc_shattered_library | `{all:[{flag:"flag_library_portal_open"},{not:{companion:"ilyra",state:"active"}}]}` | legacy "…Ilyra stands before it…" | none | `gate_library_portal` open; Ilyra's speech (STORY §4.1 beat 15) | loop |
 | `ws_portal_alone` | loc_shattered_library | `{all:[{flag:"flag_library_portal_open"},{companion:"ilyra",state:"active"}]}` | legacy "A swirling, unstable portal now pulses…"; becomes `ws_portal_ilyra` when she arrives with you | none | portal open | loop |
-| `ws_portal_scar` | loc_shattered_library | `{all:[{loop:{min:2}},{not:{flag:"flag_horde_active"}}]}` | §3.1 scar line; `ev_library_seam` | — | Ilyra's deliberate tear (`g_library_portal`, Remnants ≥ 20 + `echo_portal_tear`) | loop |
+| `ws_portal_scar` | loc_shattered_library | `{all:[{loop:{min:2}},{not:{flag:"flag_horde_active"}}]}` | §3.1 scar line; `ev_library_seam` | — | Ilyra's deliberate tear (`gate_library_portal`, Remnants ≥ 20 + `echo_portal_tear`) | loop |
 | `ws_heartstone_stabilized` | HD, BW, AS, BR, EF | `{flag:"flag_heartstone_stabilized"}` | HD "The beat is slow and even now…"; Borin "slow and sure" | BW: the Bell-Warden skips phase 1 | Clock +6; a second Aetherium Shard at AS; cleansing at BR is free; the Drowned water calms; Ley-tuned recipes | loop |
-| `ws_heartstone_exploited` | HD, VH, WS, EF | `{flag:"flag_heartstone_exploited"}` † | HD "…a socket of dark glass…"; WS glows; Borin "wrong" | HD becomes band 6–8: return cr_hourglass_crawler ×2 50% or cr_unmade ×1 25% (Loop 3+); VH: Void-touched +1 level variants | Clock −5; Heartstone Core | loop |
-| `ws_heartstone_destroyed` | HD, MP, CR, AE, Steppe, Drowned, EF | `{flag:"flag_heartstone_destroyed"}` | HD "There is no light here but your own…"; Borin's veins cold | HD return cr_corrupted_shade ×3 40% (04-06 E12); MP none (a Nomad patrol, friendly); CR, AE none (dark; looms idle); all breach-born −25% HP | Clock −10; `g_cistern_crack` open both ways; the Reach goes lamp-dark; Steppe ashfall stops; Ley abilities +25% MP | loop |
+| `ws_heartstone_exploited` | HD, VH, WS, EF | `{flag:"flag_heartstone_exploited"}` | HD "…a socket of dark glass…"; WS glows; Borin "wrong" | HD becomes band 6–8: return cr_hourglass_crawler ×2 50% or cr_unmade ×1 25% (Loop 3+); VH: Void-touched +1 level variants | Clock −5; Heartstone Core | loop |
+| `ws_heartstone_destroyed` | HD, MP, CR, AE, Steppe, Drowned, EF | `{flag:"flag_heartstone_destroyed"}` | HD "There is no light here but your own…"; Borin's veins cold | HD return cr_corrupted_shade ×3 40% (E12); MP none (a Nomad patrol, friendly); CR, AE none (dark; looms idle); all breach-born −25% HP | Clock −10; `gate_cistern_crack` open both ways; the Reach goes lamp-dark; Steppe ashfall stops; Ley abilities +25% MP | loop |
 | `ws_camp_doubled` | loc_ironclad_camp | `{all:[{quest:"q_clear_path",stage:"completed"},{quest:"q_blighted_outpost",stage:"completed"}]}` | §3.2 state line ("The circle has doubled…") | — | — | loop |
 | `ws_caravan` | loc_ironclad_camp | `{flag:"flag_hearthring_caravan"}`, set at the dawn after `{all:[{quest:"q_blighted_outpost",stage:"completed"},{quest:"q_the_scouts_oath",stage:"completed"}]}` | `ev_camp_bull` | — | npc_tessaly_varr sells at IC | loop |
-| `ws_brak_at_apex` | IC → TA | the Tyrant dies with `{all:[{quest:"q_clear_path",stage:"completed"},{quest:"q_blighted_outpost",stage:"completed"},{not:{flag:"flag_brak_kept_away"}}]}` † | legacy defeat sequence | — | Brak dies holding the line (D-017; `echo_brak_death`) | loop |
-| `ws_brak_kept_away` | IC → loc_hearthring | `{flag:"flag_brak_kept_away"}` † (set by `q_the_line_he_holds`) | — | IC infected → husk ×2 | Brak waits at Hearthring (STORY §7.2) and lives | loop |
+| `ws_brak_at_apex` | IC → TA | the Tyrant dies with `{all:[{quest:"q_clear_path",stage:"completed"},{quest:"q_blighted_outpost",stage:"completed"},{not:{flag:"flag_brak_kept_away"}}]}` | legacy defeat sequence | — | Brak dies holding the line (D-017; `echo_brak_death`). Never fires in ending D, which needs him active and alive (D-067.7) | loop |
+| `ws_brak_kept_away` | IC → loc_hearthring | `{flag:"flag_brak_kept_away"}` (set by `q_the_line_he_holds`) | — | IC infected → husk ×2 | Brak waits at Hearthring (STORY §7.2) and lives | loop |
 | `ws_loop_2` | global | `{loop:{min:2}}` | `ev_ruins_return`, `ev_mouth_count` "Eight again", `ev_plateau_view`, `ev_glowlands_leak`, `ev_apex_watched`; Dask visible at SM | anomalies (§10.2) on nodes with no fixed group: 10% + 5%·(loop−1), cap 30%; cr_paradox_wisp at SP; cr_stutter_hound at BP; all creatures +3%/loop, cap +15% (DESIGN §6.6) | the Tyrant speaks, so the Apex is not forced; Loop 2+ items (CA wax seal, SP bell shard, CN orrery key, CR prism, SL marginalia, EF primer, EM bow) | permanent |
 | `ws_loop_3` | global | `{loop:{min:3}}` | `ev_barrows_names` (FB); Dask on the Still Shore | cr_tyrants_reach at AS (10%, once a loop); cr_unmade at HD (exploited) and SY (20%) | — | permanent |
-| `ws_loop_4` | global | `{loop:{min:4}}` | `ev_gallery_reflection` spawns at VY | cr_redundant_wayfinder: WR 10% if the last death was there (needs profile `lastDeathLocation` †), VY on reflection; cr_hour_leech at CN 15% | — | permanent |
+| `ws_loop_4` | global | `{loop:{min:4}}` | `ev_gallery_reflection` spawns at VY | cr_redundant_wayfinder: WR 10% if the last death was there (profile `lastDeathLocation`, DESIGN §14.1), VY on reflection; cr_hour_leech at CN 15% | — | permanent |
 | `ws_before_day_1` | Silverwood Before | `{flag:"flag_before_day_1"}` | First Bell: festival peals; `ev_plaza_dance`; NH chairs full (`ev_hall_veyran`) | none, except CX pillars ×2 when entering from the Archives stair without the seal | NH only with the seal or Caelum; Caelum at PB; marginalia at GL (seal or Remnants ≥ 20) | Before day |
 | `ws_before_day_2` | Silverwood Before | `{flag:"flag_before_day_2"}` | Second Bell: overcast, single tolls; Ilsabet at CG (`ev_gardens_wheels`) | OW cr_ley_hound ×2 40%; AD cr_warding_pillar 100% without the seal; CX pillars as Day 1 | CG gives the cistern key (`echo_rhune_choice`); CX: Tobrin's ward seal (`echo_vask_seal`) | Before day |
-| `ws_before_day_3` | Silverwood Before | `{flag:"flag_before_day_3"}` | Last Bell: no birds, 60 Hz hum; `ev_plaza_crack`; NH empty | CO ley-flare (Burn), adept 50% if wanted; GL adepts 60%; OW hounds 40%; NH cr_ninefold_knight 100%; CX boss cr_unbroken_warden | `g_hall_doors`, `g_conflux_stair` open; at dusk `ev_conflux_sundering` returns the player through the door they came by; altar items become Anchors (permanent) | Before day |
+| `ws_before_day_3` | Silverwood Before | `{flag:"flag_before_day_3"}` | Last Bell: no birds, 60 Hz hum; `ev_plaza_crack`; NH empty | CO ley-flare (Burn), adept 50% if wanted; GL adepts 60%; OW hounds 40%; NH cr_ninefold_knight 100%; CX boss cr_unbroken_warden | `gate_hall_doors`, `gate_conflux_stair` open; at dusk `ev_conflux_sundering` returns the player through the door they came by (+1 Breach-Clock day, D-067.5); `anchorable` items on the cradle's rim become Anchors for the current loop (D-067.4) | Before day |
 | `ws_wanted` | Silverwood Before | `{flag:"flag_wanted_in_silverwood"}` (weapon drawn at PB → arrest, wake at AG, lose a day) | — | GT halberdiers ×2 (Day 3); CO adept 50% | — | Before visit |
-| `ws_tyrant_spared` | TA | `{all:[{loop:{min:2}},{flag:"flag_tyrant_spared"}]}` | "a place you can speak in" | no fight | `g_tyrant_tear`, `g_unbound_exit` | loop |
-| `ws_weavers_wary` | CW, VH, VM, ST | `{rep:{faction:"weavers",max:-10}}` | Nyx curt | CW pool 20%; VH: cr_veil_sentry joins group B (Loop 2+); VM: sentries ×2 every visit | `g_sanctum_door` fails | loop |
-| `ws_weavers_trusted` | VH, VM, ST | `{rep:{faction:"weavers",min:20}}` | — | VM sentries neutral | `g_veil_curtain` open; at Sworn (≥ 60) the Sanctum sells void-forged thread | loop |
+| `ws_tyrant_spared` | TA | `{all:[{loop:{min:2}},{flag:"flag_tyrant_spared"}]}` | "a place you can speak in" | no fight | `gate_tyrant_tear`, `gate_unbound_exit` | loop |
+| `ws_weavers_wary` | CW, VH, VM, ST | `{rep:{faction:"weavers",max:-10}}` | Nyx curt | CW pool 20%; VH: cr_veil_sentry joins group B (Loop 2+); VM: sentries ×2 every visit | `gate_sanctum_door` fails | loop |
+| `ws_weavers_trusted` | VH, VM, ST | `{rep:{faction:"weavers",min:20}}` | — | VM sentries neutral | `gate_veil_curtain` open; at Sworn (≥ 60) the Sanctum sells void-forged thread | loop |
 | `ws_marked` | BR | `{corruption:{min:6}}` | `ev_pool_cleanse` on cleansing | — | Clock −1; ending E locked until cleansed at BR (free when stabilized) | loop |
-| `ws_forecast` | map | Loop 1 `{day:{min:28}}`; Loop 2+ `{day:{min:25}}` | DESIGN §10.1 warnings; `ev_ruins_thirtieth` at Day 29 dusk | — | forecast hatch only (§11.6) | loop |
-| `ws_night` | various | `{watch:"night"}` † | Lanternreed folk indoors | FB cr_barrow_light 100% (dusk/night); SC lightning on Soaked | `g_sluice_walkway` closes; Kaelen and the Camp trade close (Borin works) | each night |
+| `ws_forecast` | map | Loop 1 `{clock:{daysLeft:{max:2}}}`; Loop 2+ `{clock:{daysLeft:{max:5}}}` (expressed against the limit, so clock modifiers and Frayed Clock move it) | DESIGN §10.1 warnings by dawns left; `ev_ruins_thirtieth` at the last dusk | — | forecast hatch only (§11.6) | loop |
+| `ws_night` | various | `{watch:"night"}` | Lanternreed folk indoors | FB cr_barrow_light 100% (dusk/night); SC lightning on Soaked | `gate_sluice_walkway` closes; Kaelen and the Camp trade close (Borin works) | each night |
 | `ws_threshold_n` | Threshold | `{loop:{min:N}}` | Loop 2 bare; 3 Dask on the Shore; 5 `ev_shore_silhouette`; 7 `ev_shore_shards` | none | — | permanent |
 | `ws_threshold_ended` | loc_gallery_of_loops | any true ending recorded in the profile | `ev_gallery_ending`; epilogue paintings | none | New Game+ at the Loom | permanent |
 | `ws_ending_a` | TA | `ending_wardens_vigil` sequence | the Apex sigil becomes the Wayfinder's | no Horde (D-060) | the clock chip reads "held" | ending |
@@ -3987,7 +4080,7 @@ Conditions are D-033 (`{watch}` and the `flag_*` names marked † are proposed; 
 horde: {
   source: "loc_temporal_breach_apex",
   delay:  { tyrantKilled: 1, clockExpired: 3 },            // moves before the first spread (R10-3)
-  graph:  "present-day walk edges, gates ignored, no portals",
+  graph:  "present-day walk edges, gates ignored, no portals, no road (kind road is excluded)",
   edgeDelay: [ { from: "loc_mistwood_path",   to: "loc_silverwood_plaza", moves: 2 },   // legacy
                { from: "loc_blighted_outpost", to: "loc_emberforge",      moves: 1 } ], // forge heat
   perMove: "resolve pending, then every infected node infects all neighbours",
@@ -4002,16 +4095,16 @@ Infection order (Tyrant kill): §10.4 last column. The expiry Horde is the same 
 ### 12.3 `temporallyUnstable` (D-059)
 
 **Static (24):** loc_shimmering_pass, loc_aetherium_spires, loc_sky_whisper_plateau (Highlands);
-loc_windward_stair, loc_spire_crown, loc_roost_of_sentinels, loc_aldours_eyrie, loc_stormcrowns_perch
+loc_windward_stair, loc_spire_crown, loc_roost_of_sentinels, loc_auldes_eyrie, loc_stormcrowns_perch
 (Skyreach); loc_chronos_nexus; loc_temporal_breach_apex; loc_silver_gate, loc_outer_walks,
 loc_scholars_corridor, loc_grand_library, loc_plaza_of_bells, loc_ninefold_hall,
 loc_apprentices_garret, loc_cistern_gardens, loc_archives_of_danthe, loc_conflux_chamber (Silverwood
 Before); loc_still_shore, loc_gallery_of_loops, loc_loom, loc_far_light (Threshold).
 **Dynamic:** every node while it is infected (`ws_infected`). The Heartstone's exploited state does
 not set the flag (D-059's list is exhaustive).
-**Gap:** loc_veridian_glowlands is not flagged, but it sits between the Plateau and the Nexus, so
-under D-059 Dask drops out on the Apex road and returns at the Nexus. DESIGN §12.8's region list
-(which includes all of Glowlands & Nexus) disagrees. See X8.
+**Ruled (D-068.2):** loc_veridian_glowlands is not flagged, so Dask leaves the party on arrival there
+and rejoins at the next flagged node (the Nexus, or the Plateau going west). DESIGN §12.8 reads this
+flag and has no region list (D-066.12). Every node row in §11.1 carries the flag.
 
 ---
 

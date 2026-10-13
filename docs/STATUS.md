@@ -18,6 +18,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
   design rulings, engine/combat logic, and reviews.
 - Before starting a unit: mark it `▶ in progress` here and push. After: mark `✅`, note the commit, push.
 - A session prompt like "continue from STATUS.md, do 2–3 units" = do exactly that, then stop with a one-line report.
+- **Tim's reporting preference (2026-10-13):** at the end of every prompt, list the **next four** units (with model and
+  dependencies), not two.
 - Agents commit their own deliverable (docs/briefs/COMMIT.md).
 - **✦ Fable reminder (Tim asked for this, 2026-10-13).** Units marked **✦ Fable** in the queue benefit most from
   Fable 5.1 (prose quality, lore coherence, fun judgment). **Before starting a ✦ unit, the lead must tell Tim in its

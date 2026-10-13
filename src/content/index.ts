@@ -43,6 +43,7 @@ import { RecipeSchema, type RecipeInput } from '@schema/recipe';
 import { RegionSchema, type RegionInput } from '@schema/region';
 import { StatusSchema, type StatusInput } from '@schema/status';
 import { configInput, gameConfig } from './shared/config';
+import { validateContent } from './validate';
 
 export type { ContentIndex, ContentIssue, ContentPack, ContentReport, GameConfig, TableName } from '@schema/contentPack';
 
@@ -129,11 +130,11 @@ export interface BuildOptions {
   /** Default `CONTENT_VERSION`. */
   version?: string;
   /**
-   * Cross-reference and semantic validation (PLAN §5.19: `validateContent`, U19). Runs on the assembled pack only when
-   * every table parsed cleanly (cross-reference errors against records that failed to parse are noise). Omitted: skipped.
-   * TODO(U19): default this to `validateContent` once src/content/validate.ts exists.
+   * Cross-reference and semantic validation (PLAN §5.19). Runs on the assembled pack only when every table parsed cleanly
+   * (cross-reference errors against records that failed to parse are noise). Omitted: `validateContent` (non-strict, U19);
+   * `false`: skipped (a deliberately partial pack in a test).
    */
-  validate?: (pack: ContentPack) => ContentReport;
+  validate?: ((pack: ContentPack) => ContentReport) | false;
 }
 
 export interface BuildResult {
@@ -255,8 +256,9 @@ export function parseContentPack(tables: Partial<ContentTables> = contentTables,
   const body: Omit<ContentPack, 'index' | 'version'> = { ...parsed, config };
   const pack: ContentPack = { ...body, index: buildIndex(body), version: options.version ?? CONTENT_VERSION };
 
-  if (options.validate && report.errors.length === 0) {
-    const extra = options.validate(pack);
+  const validate = options.validate === false ? undefined : (options.validate ?? validateContent);
+  if (validate && report.errors.length === 0) {
+    const extra = validate(pack);
     report.errors.push(...extra.errors);
     report.warnings.push(...extra.warnings);
   }

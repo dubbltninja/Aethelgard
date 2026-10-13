@@ -61,7 +61,11 @@ const populated = (): Partial<ContentTables> => ({
   factions: [factionRemnants],
 });
 
-const errorsOf = (tables: Partial<ContentTables>): string[] => parseContentPack(tables).report.errors.map(formatIssue);
+// These tests build deliberately partial packs (a location without its NPCs …), so cross-validation (U19) is off here;
+// tests/unit/content/crossrefs.test.ts covers the validator.
+const RAW = { validate: false } as const;
+
+const errorsOf = (tables: Partial<ContentTables>): string[] => parseContentPack(tables, RAW).report.errors.map(formatIssue);
 
 describe('an empty pack', () => {
   test('builds: every table is an empty record, the config is the DESIGN defaults, the index is empty', () => {
@@ -101,7 +105,7 @@ describe('an empty pack', () => {
 
 describe('one record per table', () => {
   test('builds, keyed by id, with schema defaults applied', () => {
-    const pack = buildContentPack(populated());
+    const pack = buildContentPack(populated(), RAW);
     expect(Object.keys(pack.quests)).toEqual(['q_echo_crystal']);
     expect(pack.quests.q_echo_crystal?.rewards).toEqual({ xp: 120, gold: 20, items: [], rep: [], echoes: [], resonance: 0 });
     expect(pack.dialogues.scene_first_meeting_ilyra?.priority).toBe(0);
@@ -119,8 +123,8 @@ describe('one record per table', () => {
   });
 
   test('the same input is the same pack (no shared mutable state between builds)', () => {
-    const a = buildContentPack(populated());
-    const b = buildContentPack(populated());
+    const a = buildContentPack(populated(), RAW);
+    const b = buildContentPack(populated(), RAW);
     expect(a).toEqual(b);
     expect(a.quests).not.toBe(b.quests);
   });
@@ -131,7 +135,7 @@ describe('one record per table', () => {
     const low: DialogueSceneInput = { ...sceneFirstMeetingIlyra, id: 'scene_ilyra_low', priority: -5 };
     const tied: DialogueSceneInput = { ...sceneFirstMeetingIlyra, id: 'scene_ilyra_tied' };
     const loose: DialogueSceneInput = { ...sceneFirstMeetingIlyra, id: 'scene_unattached', npcId: undefined };
-    const { index } = buildContentPack({ ...base, dialogues: [low, sceneFirstMeetingIlyra, high, tied, loose] });
+    const { index } = buildContentPack({ ...base, dialogues: [low, sceneFirstMeetingIlyra, high, tied, loose] }, RAW);
     expect(index.exitsFrom.loc_whispering_ruins?.map((e) => e.to)).toEqual(['loc_crumbling_archway', 'loc_mistwood_path']);
     expect(index.locationsByRegion).toEqual({ region_silverwood_ruins: ['loc_whispering_ruins'] });
     expect(index.scenesByNpc).toEqual({ npc_ilyra: ['scene_ilyra_high', 'scene_first_meeting_ilyra', 'scene_ilyra_tied', 'scene_ilyra_low'] });
@@ -147,7 +151,7 @@ describe('one record per table', () => {
 
   test('index: a location in an undeclared region still gets a bucket; a region without locations has an empty one', () => {
     const stray = { ...locationWhisperingRuins, regionId: 'region_elsewhere' } as const;
-    const pack = buildContentPack({ regions: [regionSilverwoodRuins], locations: [stray] });
+    const pack = buildContentPack({ regions: [regionSilverwoodRuins], locations: [stray] }, RAW);
     expect(pack.index.locationsByRegion).toEqual({ region_silverwood_ruins: [], region_elsewhere: ['loc_whispering_ruins'] });
     expect(buildIndex(pack).startLocationId).toBe(gameConfig.startLocationId);
   });
@@ -272,7 +276,7 @@ describe('cross-validation hook', () => {
 });
 
 describe('typed lookups', () => {
-  const pack = buildContentPack(populated());
+  const pack = buildContentPack(populated(), RAW);
 
   test('lookup returns the typed record, or undefined', () => {
     const quest = lookup(pack, 'quests', 'q_echo_crystal');

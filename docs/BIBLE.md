@@ -121,7 +121,7 @@ Columns: canonical name · id · age/era · faction · what they know on Day 1 o
 | **Ilsabet Rhune**, Warden of Waters | `npc_ilsabet_rhune` | Civic office (not "Master of Waters of the Nine") | Checks every wheel twice; does not sleep; will open the cisterns to drown the Conflux's fire; gives the Cistern Key | Cistern Gardens, Second Bell | The Drowned Reach; the Bell-Warden in her chain of office; the Cistern Key | `echo_rhune_choice` (Tidewell Hall ledger or Second Bell) |
 | **Hadrek the Clockwright** | `npc_hadrek` | Masque's orrery-maker | Every gear in the Nexus orrery is his; sits in Masque's empty chair | Ninefold Hall, First Bell | The Nexus orrery and its key | `echo_hadrek_clockwright` (a second Orrery Key) |
 | **Tobrin Vask** | `npc_tobrin_vask` | Vane's apprentice ward-engineer | Keeps the failsafe: the ward seal and the schematic's second half; "if it goes wrong, someone should be able to open the door" | Ninefold Hall and Conflux Chamber, Second Bell | A copy under Vane's Watch (`ev_outpost_seal`) | `echo_vask_seal`, `echo_anchor_half_b` |
-| **Gate-Captain Bryn Dunn** | `npc_hesper_dunn` (WORLD id; display name renamed per C-52, STORY §3.3) | Gate-captain under Dreyl; gatekeeper | Issues the visitor's pass; takes the Wayfinder for a foreign scholar | The Silver Gate, Days 1–3 | — | — |
+| **Gate-Captain Bryn Dunn** | `npc_bryn_dunn` (renamed from `npc_hesper_dunn` per C-52, STORY §3.3) | Gate-captain under Dreyl; gatekeeper | Issues the visitor's pass; takes the Wayfinder for a foreign scholar | The Silver Gate, Days 1–3 | — | — |
 | **Anso the Bellwright** | `npc_bellwright_anso` | Casts the nine bells; sells charms | "The ninth bell is flat. I told them." | Plaza of Bells stall | The Plaza's "chorus of distant bells"; bell-bronze | — |
 
 ### 3.5 The seven prior Wayfinders (STORY §2.8; the Ledger of Seven)
@@ -364,7 +364,7 @@ D-026 plus every proper noun. Left column is canonical; right column is what to 
 | Elder Wen Thistlecourt (`npc_elder_wen`); Elder Tam; Old Fennick; Mireya of Lanternreed | Elder Wren |
 | Scribe Tamsin Reed; Sedge Marrow; Pellam | — |
 | Captain Corvin Dreyl (Captain of the Silverwood Watch); Ilsabet Rhune, Warden of Waters; Hadrek the Clockwright; Tobrin Vask | "of the Nine" for any of them; "Master of Waters"; "Watch-Captain" |
-| Gate-Captain Bryn Dunn (`npc_hesper_dunn`) | Hesper Dunn (display name; C-52) |
+| Gate-Captain Bryn Dunn (`npc_bryn_dunn`) | Hesper Dunn, `npc_hesper_dunn` (C-52) |
 | Anso the Bellwright | — |
 | Caelum Vesper; "Master Thal"; the noon message / the dusk message | "the message" without saying which |
 | Dask, the Flickering Man; the Shimmering Pass | Dask the Flicker |

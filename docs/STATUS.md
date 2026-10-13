@@ -1,7 +1,7 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 0 (design docs). Round-1 launch was cancelled; work now proceeds in small units (see protocol). No application code exists yet.
+**Current phase:** Phase 0 complete except U9.5 touch-ups; next is U10 (scaffold) then implementation units U11+ from PLAN §9. No application code exists yet.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-065), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
@@ -47,7 +47,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U6 | Combined review of DESIGN + PLAN (blockers/majors, ≤30) — brief `briefs/review-design-plan.md` | 1 agent | ✅ bea5aea — 3 blockers, 19 majors; rulings adopted as D-066 |
 | U7 | Combined review of STORY + WORLD (blockers/majors, ≤30) — brief `briefs/review-story-world.md` | 1 agent | ✅ f6d3be9 — 1 blocker, 18 majors; rulings adopted as D-067 |
 | U8 | Apply review/registry fixes to DESIGN + PLAN (incl. D-065 rewrite) — brief `briefs/revise-design-plan.md` | 1 agent | ✅ 773861e DESIGN, eebb823 PLAN — conform to D-044..D-066; PLAN §9 = unit list U11–U91 |
-| U9 | Apply fixes to STORY + WORLD (REVIEW-STORY-WORLD, REVIEW-CROSS §4 U9 handoff, registry renames, D-066/D-067/D-068); write BIBLE.md | 2 agents (Fable) — briefs `briefs/revise-story-bible.md`, `briefs/revise-world.md` | ▶ in progress ✦ |
+| U9 | Apply fixes to STORY + WORLD (REVIEW-STORY-WORLD, REVIEW-CROSS §4 U9 handoff, registry renames, D-066/D-067/D-068); write BIBLE.md | 2 agents (Fable) | ✅ STORY 1f76fdd, BIBLE 74641cb, WORLD 4e9f8e3; leftovers ruled in D-069 |
+| U9.5 | DESIGN/PLAN touch-ups from D-069 (§4.11 press formula, §12.1 Ilyra Loop 2+, §11.3 line, Listen lash, new effect kinds + `road` edges + `passWatches`, `flag_tyrant_dead`, class quests Loop 2+); re-run the owner-id grep | 1 agent, **Sonnet** | ⏳ |
 | U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | lead | ⏳ |
 | U11–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9** (81 units). Copy the next few here as they start. | — | ⏳ |
 
@@ -92,13 +93,13 @@ document" is still met because each doc is attacked by a reviewer who did not wr
 | Item | State | Notes |
 |---|---|---|
 | Read the whole legacy repo | ✅ done | Findings in `DECISIONS.md` Part A |
-| `docs/DECISIONS.md` | ✅ D-001..D-068 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
-| `docs/DESIGN.md` (systems) | ✅ draft (20 sections) | Pre-dates Part E → needs conformance revision after review |
-| `docs/STORY.md` (narrative) | ✅ draft (16 sections) | 44 quests, 75 Echoes, 85 codex, 20 scenes, Litany, the Nine, 6 endings |
-| `docs/PLAN.md` (engineering) | ✅ draft (13 sections + App. A) | Must be rewritten for D-044 ids and **D-065 toolchain** (no Vite/vitest/ESLint/immer) |
-| `docs/WORLD.md` | ✅ complete draft, §1–13 | §13 collects errata + open questions from the three authors |
+| `docs/DECISIONS.md` | ✅ D-001..D-069 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
+| `docs/DESIGN.md` (systems) | ✅ revised U8 | conforms to D-044..D-066; U9.5 touch-ups pending |
+| `docs/STORY.md` (narrative) | ✅ revised U9 | 44 quests (+5 class, +6 optional), 103 Echoes, 87 codex, 21 scenes, Litany, the Nine, 6 endings |
+| `docs/PLAN.md` (engineering) | ✅ revised U8 | D-065 toolchain; §9 = unit list U11–U91 |
+| `docs/WORLD.md` | ✅ revised U9 | bosses retuned (D-067.20), ids per registry/STORY; §13 = changelog + still-open |
 | Reviews | ⏳ round 1 in flight | see §2 |
-| `docs/BIBLE.md` | ⏳ | after revisions |
+| `docs/BIBLE.md` | ✅ 74641cb | timeline 44 rows, people, who-knows-what (23 facts), places (85), things, terminology, rules, 18 open risks |
 | Phase 1+ (code) | ⏳ | after revisions; toolchain verified (D-065) |
 
 ### Environment facts (verified 2026-10-10)

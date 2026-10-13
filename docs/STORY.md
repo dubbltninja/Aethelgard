@@ -387,7 +387,7 @@ one either thing.
 | **Sethe the Unlidded** (Weaver lieutenant; `npc_sethe_unlidded`) | The Hollow Choir (`loc_sanctum_of_threads`), the Veil | The Choir's rite completed | To see what Nyx has seen. |
 | **Elder Wen Thistlecourt** (Glowfen elder; `npc_elder_wen`) | The Breathing Pool; sits with the elders at Lanternreed | The old ways kept | The glow kept, whatever it costs. She is the one who cleanses Corruption at the Pool (D-064). |
 | **Scribe Tamsin Reed**, **Sedge Marrow**, **Pellam**, **Scout Ferrin**, **Oma Varr**, **Tessaly Varr**, **Ketch**, **Ysmay the Thread-Mother**, **Hollis Cade**, **Elder Tam**, **Old Fennick**, **Anso the Bellwright** | per WORLD §4 | trade, telling, errands | WORLD's people; they keep WORLD's lines. Oma Varr knew the Stonehand brothers as boys. |
-| **Gate-Captain Bryn Dunn** (Silverwood Watch, the Before; WORLD's `npc_hesper_dunn`, renamed per C-52 so no one shares a first name with the second Wayfinder) | The Silver Gate, First to Last Bell | Papers; blades sheathed in the Plaza | Not to have to write anything down. |
+| **Gate-Captain Bryn Dunn** (Silverwood Watch, the Before; WORLD's `npc_bryn_dunn`, renamed per C-52 so no one shares a first name with the second Wayfinder) | The Silver Gate, First to Last Bell | Papers; blades sheathed in the Plaza | Not to have to write anything down. |
 
 ### 3.4 What each faction believes about the Tyrant, and how each is wrong
 

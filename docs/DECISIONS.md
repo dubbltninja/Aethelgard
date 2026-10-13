@@ -809,3 +809,24 @@ Details in `docs/reviews/REVIEW-STORY-WORLD.md`. These amend earlier decisions w
 2. Dask leaves the party on non-flagged locations (e.g. Veridian Glowlands) and rejoins at the next flagged one.
 3. Contained Tyrant Phase 3 "takes ×1.5 damage" is provisional until simulations.
 4. Branch coverage is not gated (bun reports lines/functions only); line coverage thresholds stand.
+
+### D-069 · Rulings on U9 leftovers, 2026-10-13
+1. `echo_anchor_half_a` / `echo_anchor_half_b` (schematic halves, D-067.6) are canon Echo ids; STORY §12 is the
+   catalog (103 Echoes). REGISTRY-DRAFT §6.2 is superseded by STORY §12 + BIBLE.md for names and Echoes; it remains
+   a useful list for the other id tables until content files exist.
+2. Gate-Captain **Bryn Dunn**, id `npc_bryn_dunn` (replaces `npc_hesper_dunn`). `ev_fell_names` is a WORLD event.
+3. Masque's observatory work happens on the Library roof on First Bell and under the Hall dome on Last Bell;
+   Aulde walks the Outer Walks on First Bell and the Plaza's east terrace on Second Bell (STORY/WORLD day-split).
+4. Ilyra is recruitable from **Loop 2** (STORY wins; DESIGN §12.1 to be corrected). Any faction can reach Sworn in
+   Loop 1 (DESIGN §11.3 line removed).
+5. Dropped clock effects become `passWatches` effects: `q_preserve_or_heal` ±8 watches, Bell Vault −4 watches.
+6. `flag_tyrant_dead` is set when either Tyrant dies in combat; cleared at loop reset.
+7. The five class mini-quests are Loop 2+.
+8. Communion *Listen*: no HP lash (REVIEW-STORY-WORLD #4's fix); the only communion damage is `tyr_hour_presses`.
+9. Engine effect kinds added to the canonical set: `multiHit`, `stripBuffs`, `healOnDamage`, `surviveRounds`
+   (survival-win fights such as the Unraveling Tide), `leaveCombat`, `passWatches`; edge kind `road` (conditional
+   road, Steppe waystones). Boss stats: Vell's Umbra 480 HP stands until sims; Unraveling Tide is a survival fight
+   (`surviveRounds`), not retuned by D-067.20.
+10. Chosen-not-ruled items in WORLD §13.2 (Anso takes present gold; cross-band escorts; the Orrery Key opens the
+    Nexus orrery housing with `echo_eye_of_masque` or the Lens; Skyreach rest under the Spire Loom; infected-Library
+    legacy behaviour) are accepted as written.

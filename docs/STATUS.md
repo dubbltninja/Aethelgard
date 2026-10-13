@@ -1,10 +1,43 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 0 (design docs) — review round 1 in flight. No application code exists yet.
+**Current phase:** Phase 0 (design docs). Round-1 launch was cancelled; work now proceeds in small units (see protocol). No application code exists yet.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-065), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
+
+---
+
+## ⚑ Checkpoint protocol (adopted 2026-10-12 — follow this every session)
+
+Usage windows end mid-turn and kill in-flight work. Therefore:
+
+- Work in **units** from the queue below. One unit ≈ 15–30 min, ends with commit + push + this file updated.
+- **Max 1–2 agents at a time.** Never fan out 4+ agents in one turn.
+- Use **lower effort / cheaper model** for mechanical units (merges, data entry, conversions); max effort only for
+  design rulings, engine/combat logic, and reviews.
+- Before starting a unit: mark it `▶ in progress` here and push. After: mark `✅`, note the commit, push.
+- A session prompt like "continue from STATUS.md, do 2–3 units" = do exactly that, then stop with a one-line report.
+- Agents commit their own deliverable (docs/briefs/COMMIT.md).
+
+### Unit queue (Phase 0 → Phase 1)
+
+| # | Unit | Mode | State |
+|---|---|---|---|
+| U1 | WORLD §4–6 (NPCs, creatures) — brief `briefs/world-4-6.md` | 1 agent | ⏳ |
+| U2 | WORLD §7–9 (items, crafting, merchants) — brief `briefs/world-7-9.md` | 1 agent | ⏳ |
+| U3 | WORLD §10–12 (encounters, map, variants) — brief `briefs/world-10-13.md` | 1 agent | ⏳ |
+| U4 | Merge docs/world/* into WORLD.md + dangling-id grep | lead, low effort | ⏳ |
+| U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ⏳ |
+| U6 | Combined review of DESIGN + PLAN (focus: blockers only, ≤30 findings) | 1 agent | ⏳ |
+| U7 | Combined review of STORY + WORLD (blockers only, ≤30 findings) | 1 agent | ⏳ |
+| U8 | Apply review/registry fixes to DESIGN + PLAN (incl. D-065 toolchain rewrite of PLAN §3/§11) | 1 agent | ⏳ |
+| U9 | Apply fixes to STORY + WORLD; write BIBLE.md (continuity facts) | 1 agent | ⏳ |
+| U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | lead | ⏳ |
+| U11+ | Phase 2 units — to be listed from revised PLAN §9 (engine core, combat, content per region, UI screens, art, audio, sim, tests) | — | ⏳ |
+
+(Reviews were consolidated from 5 agents to 3 to save usage; the brief's "separate reviewer agents attack each
+document" is still met because each doc is attacked by a reviewer who did not write it.)
 
 ---
 

@@ -13,6 +13,7 @@ import type { Effect, EffectAtoms, EffectKey } from '@schema/effect';
 import { atomOf, dayOf, daysLeft, repTier, watchOf, TICKS_PER_DAY } from './conditions';
 import { enterMode, type StepCtx } from './ctx';
 import { defaultRarity, isStackable } from './newRun';
+import { grantXp } from './progression';
 import type { ItemInstance, LocationState, QuestState } from './types/state';
 import { clamp } from './util/math';
 
@@ -259,10 +260,7 @@ const APPLIERS: Appliers = {
     else counters.goldSpent -= delta;
     ctx.emit({ t: 'goldChanged', delta, total: player.gold });
   },
-  xp: (n, ctx) => {
-    ctx.s.player.xp += n; // TODO(U21): level-ups (progression.ts)
-    ctx.emit({ t: 'xpGained', amount: n });
-  },
+  xp: (n, ctx) => void grantXp(ctx, n), // U21: level-ups, refills (progression.ts)
   resonance: (n, ctx, _key, source) => {
     const p = ctx.profileDraft();
     p.resonance = Math.max(0, p.resonance + n);

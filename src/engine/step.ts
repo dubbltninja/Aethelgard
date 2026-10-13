@@ -18,6 +18,7 @@ import {
   waitHandler,
 } from './reducers/explore';
 import { clockHook } from './reducers/loop';
+import { characterPostStep, inventoryHandlers } from './reducers/inventory';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { GameEvent } from './types/events';
 import type { Profile } from './types/profile';
@@ -62,14 +63,14 @@ export const HANDLERS: HandlerTable = {
   wait: waitHandler,
   letGo: pending('U30'),
   keepVigil: pending('U30'),
-  use: pending('U21'),
-  equip: pending('U21'),
-  unequip: pending('U21'),
-  drop: pending('U21'),
-  allocateStat: pending('U21'),
-  unlockAbility: pending('U21'),
-  readBook: pending('U21'),
-  respec: pending('U21'),
+  use: inventoryHandlers.use,
+  equip: inventoryHandlers.equip,
+  unequip: inventoryHandlers.unequip,
+  drop: inventoryHandlers.drop,
+  allocateStat: inventoryHandlers.allocateStat,
+  unlockAbility: inventoryHandlers.unlockAbility,
+  readBook: inventoryHandlers.readBook,
+  respec: inventoryHandlers.respec,
   buy: pending('U34'),
   sell: pending('U34'),
   craft: pending('U34'),
@@ -101,6 +102,7 @@ export const HANDLERS: HandlerTable = {
 export const POST_STEP_HOOKS: readonly PostStepHook[] = [
   arrivalHook, // U20: arrival pipeline for content teleports
   clockHook, // U20: per-watch status ticks, dawn hooks, clock warnings, expiry
+  characterPostStep, // U21: Weaver mark at max Corruption; stored maxima = derive() outside combat
 ];
 
 const rejected = (state: GameState, profile: Profile, action: Action, reason: string): StepResult => ({

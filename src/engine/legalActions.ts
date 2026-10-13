@@ -14,6 +14,7 @@ import {
   takeEnumerator,
   waitEnumerator,
 } from './reducers/explore';
+import { inventoryEnumerators } from './reducers/inventory';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { Profile } from './types/profile';
 import type { GameState, Mode } from './types/state';
@@ -114,14 +115,14 @@ export const ENUMERATORS: EnumeratorTable = {
   wait: waitEnumerator, // U20
   letGo: none, // U30
   keepVigil: none, // U30
-  use: none, // U21
-  equip: none, // U21
-  unequip: none, // U21
-  drop: none, // U21
-  allocateStat: none, // U21
-  unlockAbility: none, // U21
-  readBook: none, // U21
-  respec: none, // U21
+  use: inventoryEnumerators.use, // U21
+  equip: inventoryEnumerators.equip, // U21
+  unequip: inventoryEnumerators.unequip, // U21
+  drop: inventoryEnumerators.drop, // U21
+  allocateStat: inventoryEnumerators.allocateStat, // U21
+  unlockAbility: inventoryEnumerators.unlockAbility, // U21
+  readBook: inventoryEnumerators.readBook, // U21
+  respec: inventoryEnumerators.respec, // U21
   buy: none, // U34
   sell: none, // U34
   craft: none, // U34

@@ -57,26 +57,28 @@ describe('rejection (D-043)', () => {
   test('a stub handler rejects: same state/profile references, one actionRejected event naming the unit', () => {
     const { state, profile } = frozenInputs();
     const before = snapshot(state, profile);
-    const action: Action = { type: 'move', to: 'loc_shattered_library' };
+    const action: Action = { type: 'talk', npcId: 'npc_ilyra' };
     const out = step(state, action, content, profile);
     expect(out.state).toBe(state);
     expect(out.profile).toBe(profile);
-    expect(out.events).toEqual([{ t: 'actionRejected', action, reason: "'move' is not implemented yet (U20)" }]);
+    expect(out.events).toEqual([{ t: 'actionRejected', action, reason: "'talk' is not implemented yet (U33)" }]);
     expect(snapshot(state, profile)).toBe(before);
   });
 
-  test('every Action type has a handler, and every one rejects for now (in a mode where it is allowed)', () => {
+  test('every Action type has a handler; a rejection is one event with the same references, and a stub names its unit', () => {
     const samples = sampleActions();
     expect(Object.keys(HANDLERS).sort()).toEqual(Object.keys(samples).sort());
     for (const type of Object.keys(samples) as ActionType[]) {
       const state = deepFreeze({ ...minimalState(), mode: ACTION_MODES[type][0]! });
       const profile = deepFreeze(minimalProfile());
       const out = step(state, samples[type], content, profile);
+      if (out.events[0]?.t !== 'actionRejected') continue; // an implemented reducer accepted its sample
       expect(out.state).toBe(state);
       expect(out.profile).toBe(profile);
       expect(out.events).toHaveLength(1);
       expect(out.events[0]).toMatchObject({ t: 'actionRejected', action: samples[type] });
-      expect((out.events[0] as { reason: string }).reason).toMatch(/not implemented yet \(U\d\d/);
+      const reason = (out.events[0] as { reason: string }).reason;
+      if (reason.includes('not implemented yet')) expect(reason).toMatch(/not implemented yet \(U\d\d/);
     }
   });
 
@@ -238,12 +240,18 @@ describe('determinism', () => {
     expect(run('seed-a').hash).not.toBe(run('seed-b').hash);
   });
 
-  test('the real step is deterministic too (all rejects leave the state hash unchanged)', () => {
-    const state = newRun('seed-a', 'wizard', content, minimalProfile());
-    const hash = stateHash(state);
-    let s = state;
-    for (const action of trace) s = step(s, action, content, minimalProfile()).state;
-    expect(stateHash(s)).toBe(hash);
+  test('the real step is deterministic too (same seed + same actions → same hash and events)', () => {
+    const real = () => {
+      let s: GameState = newRun('seed-a', 'wizard', content, minimalProfile());
+      const events: unknown[] = [];
+      for (const action of trace) {
+        const out = step(s, action, content, minimalProfile());
+        s = out.state;
+        events.push(...out.events);
+      }
+      return { hash: stateHash(s), events };
+    };
+    expect(real()).toEqual(real());
   });
 });
 

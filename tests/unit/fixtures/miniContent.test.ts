@@ -164,7 +164,7 @@ describe('makeState / freshProfile', () => {
 });
 
 describe('play', () => {
-  /** Stand-in reducers until U20 lands: `wait` passes a watch; `examine` writes the profile (map knowledge). */
+  /** Stand-in reducers: `wait` passes a watch; `examine` writes the profile (map knowledge). */
   const handlers: HandlerTable = {
     ...HANDLERS,
     wait: (ctx) => {
@@ -177,6 +177,8 @@ describe('play', () => {
   };
   const standIn = createStep(handlers);
   const wait: Action = { type: 'wait' };
+  /** Illegal from the fixture start: no exit leads there. */
+  const nowhere: Action = { type: 'move', to: 'loc_heartstone_depths' };
 
   test('runs the script in order, threading state and profile, collecting every event', () => {
     const start = makeState();
@@ -188,17 +190,17 @@ describe('play', () => {
     expect(start.clock.ticks).toBe(0);
   });
 
-  test('expected rejections pass (optionally matching the reason); the real step rejects unbuilt reducers', () => {
-    const out = play(makeState(), [{ reject: { type: 'move', to: 'loc_shattered_library' }, reason: /not implemented yet \(U20\)/ }]);
+  test('expected rejections pass (optionally matching the reason) through the real step', () => {
+    const out = play(makeState(), [{ reject: nowhere, reason: /^there is no way to / }]);
     expect(out.events).toHaveLength(1);
     expect(out.events[0]).toMatchObject({ t: 'actionRejected' });
     expect(play(makeState(), [{ reject: { type: 'attack', targetUid: 'c1' }, reason: 'explore mode' }]).state.meta.stepCount).toBe(0);
   });
 
   test('an unexpected outcome throws, naming the script entry', () => {
-    expect(() => play(makeState(), [wait])).toThrow('play: #0 {"type":"wait"} was rejected: \'wait\' is not implemented yet (U20)');
+    expect(() => play(makeState(), [nowhere])).toThrow(`play: #0 ${JSON.stringify(nowhere)} was rejected: there is no way to loc_heartstone_depths from here`);
     expect(() => play(makeState(), [wait, { reject: wait }], { step: standIn })).toThrow('play: #1 {"type":"wait"} was accepted; the script expected a rejection');
-    expect(() => play(makeState(), [{ reject: wait, reason: 'too tired' }])).toThrow('expected too tired');
+    expect(() => play(makeState(), [{ reject: nowhere, reason: 'too tired' }])).toThrow('expected too tired');
   });
 });
 

@@ -50,22 +50,24 @@ describe('structure', () => {
 });
 
 describe('skeleton agreement with step', () => {
-  test('nothing is legal yet in any mode, deterministically', () => {
+  test('deterministic, mode-gated, examine only on request', () => {
     for (const mode of MODES) {
-      expect(legalActions(stateIn(mode), content, minimalProfile())).toEqual([]);
-      expect(legalActions(stateIn(mode), content, minimalProfile(), { includeExamine: true })).toEqual([]);
+      const listed = legalActions(stateIn(mode), content, minimalProfile());
+      expect(legalActions(stateIn(mode), content, minimalProfile())).toEqual(listed);
+      for (const action of listed) expect(ACTION_MODES[action.type]).toContain(mode);
+      expect(listed.some((a) => a.type === 'examine')).toBe(false);
     }
   });
 
-  test('every sample action in every mode: isLegal is false and step rejects it', () => {
+  test('every sample action in every mode: isLegal ⇔ step accepts; a rejection leaves the state as it was', () => {
     const profile = deepFreeze(minimalProfile());
     for (const mode of MODES) {
       const state = stateIn(mode);
       for (const action of Object.values(sampleActions()) as Action[]) {
-        expect(isLegal(state, action, content, profile)).toBe(false);
         const out = step(state, action, content, profile);
-        expect(out.state).toBe(state);
-        expect(out.events[0]!.t).toBe('actionRejected');
+        const accepted = out.events[0]?.t !== 'actionRejected';
+        expect({ action, mode, legal: isLegal(state, action, content, profile) }).toEqual({ action, mode, legal: accepted });
+        if (!accepted) expect(out.state).toBe(state);
       }
     }
   });

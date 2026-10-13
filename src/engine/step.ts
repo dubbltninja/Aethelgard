@@ -5,6 +5,19 @@
 // with the unit's name, so the table is exhaustive from day one and `legalActions` (all-empty) agrees with it.
 import { Ctx, RejectSignal, type ContentPack, type StepCtx } from './ctx';
 import { ACTION_MODES, isActionType } from './legalActions';
+import {
+  arrivalHook,
+  chooseHandler,
+  examineHandler,
+  gatherHandler,
+  moveHandler,
+  restHandler,
+  retreatHandler,
+  takeAllHandler,
+  takeHandler,
+  waitHandler,
+} from './reducers/explore';
+import { clockHook } from './reducers/loop';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { GameEvent } from './types/events';
 import type { Profile } from './types/profile';
@@ -36,17 +49,17 @@ export const HANDLERS: HandlerTable = {
   save: pending('U22'),
   load: pending('U22'),
   returnToTitle: pending('U30'),
-  move: pending('U20'),
-  examine: pending('U20'),
-  take: pending('U20'),
-  takeAll: pending('U20'),
-  rest: pending('U20'),
-  retreat: pending('U20'),
-  gather: pending('U20'),
+  move: moveHandler,
+  examine: examineHandler,
+  take: takeHandler,
+  takeAll: takeAllHandler,
+  rest: restHandler,
+  retreat: retreatHandler,
+  gather: gatherHandler,
   talk: pending('U33'),
   enterPortal: pending('U30'),
   interact: pending('U33'),
-  wait: pending('U20'),
+  wait: waitHandler,
   letGo: pending('U30'),
   keepVigil: pending('U30'),
   use: pending('U21'),
@@ -62,7 +75,7 @@ export const HANDLERS: HandlerTable = {
   craft: pending('U34'),
   upgrade: pending('U34'),
   salvage: pending('U34'),
-  choose: pending('U33'),
+  choose: chooseHandler, // U20: the Loop 1 Apex prompt only; U33's dialogue reducer replaces it and keeps that branch
   continue: pending('U33'),
   acceptQuest: pending('U33'),
   attack: pending('U23'),
@@ -85,7 +98,10 @@ export const HANDLERS: HandlerTable = {
 };
 
 /** Post-step hooks in run order; later units append theirs here. */
-export const POST_STEP_HOOKS: readonly PostStepHook[] = [];
+export const POST_STEP_HOOKS: readonly PostStepHook[] = [
+  arrivalHook, // U20: arrival pipeline for content teleports
+  clockHook, // U20: per-watch status ticks, dawn hooks, clock warnings, expiry
+];
 
 const rejected = (state: GameState, profile: Profile, action: Action, reason: string): StepResult => ({
   state,

@@ -3,6 +3,17 @@
 // the unit that implements the action's reducer fills it in (U35 then proves legal/step agreement over fixture
 // states). `step` uses ACTION_MODES as its first gate, so the two can never disagree about modes.
 import type { ContentPack } from './ctx';
+import {
+  chooseEnumerator,
+  examineEnumerator,
+  gatherEnumerator,
+  moveEnumerator,
+  restEnumerator,
+  retreatEnumerator,
+  takeAllEnumerator,
+  takeEnumerator,
+  waitEnumerator,
+} from './reducers/explore';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { Profile } from './types/profile';
 import type { GameState, Mode } from './types/state';
@@ -90,17 +101,17 @@ export const ENUMERATORS: EnumeratorTable = {
   save: none, // U22
   load: none, // U22
   returnToTitle: none, // U30
-  move: none, // U20
-  examine: none, // U20
-  take: none, // U20
-  takeAll: none, // U20
-  rest: none, // U20
-  retreat: none, // U20
-  gather: none, // U20
+  move: moveEnumerator, // U20
+  examine: examineEnumerator, // U20
+  take: takeEnumerator, // U20
+  takeAll: takeAllEnumerator, // U20
+  rest: restEnumerator, // U20
+  retreat: retreatEnumerator, // U20
+  gather: gatherEnumerator, // U20
   talk: none, // U33
   enterPortal: none, // U30
   interact: none, // U33
-  wait: none, // U20
+  wait: waitEnumerator, // U20
   letGo: none, // U30
   keepVigil: none, // U30
   use: none, // U21
@@ -116,7 +127,7 @@ export const ENUMERATORS: EnumeratorTable = {
   craft: none, // U34
   upgrade: none, // U34
   salvage: none, // U34
-  choose: none, // U33
+  choose: chooseEnumerator, // U20 (Loop 1 Apex prompt) / U33
   continue: none, // U33
   acceptQuest: none, // U33
   attack: none, // U23

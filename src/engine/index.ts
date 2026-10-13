@@ -7,3 +7,5 @@ export * from './legalActions';
 export * from './newRun';
 export * from './conditions';
 export * from './effects';
+export * from './reducers/explore';
+export * from './reducers/loop';

@@ -45,8 +45,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U4 | Merge docs/world/* into WORLD.md + dangling-id grep | lead, low effort | ✅ merged §4–13 (4,269 lines); docs/world/ removed (in git history) |
 | U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ✅ c3f6b91 — 58 conflicts, REGISTRY-DRAFT (231 renames) |
 | U6 | Combined review of DESIGN + PLAN (blockers/majors, ≤30) — brief `briefs/review-design-plan.md` | 1 agent | ✅ bea5aea — 3 blockers, 19 majors; rulings adopted as D-066 |
-| U7 | Combined review of STORY + WORLD (blockers only, ≤30 findings) | 1 agent | ⏳ |
-| U8 | Apply review/registry fixes to DESIGN + PLAN (incl. D-065 toolchain rewrite of PLAN §3/§11) | 1 agent | ⏳ |
+| U7 | Combined review of STORY + WORLD (blockers/majors, ≤30) — brief `briefs/review-story-world.md` | 1 agent | ▶ in progress |
+| U8 | Apply review/registry fixes to DESIGN + PLAN (incl. D-065 rewrite) — brief `briefs/revise-design-plan.md` | 1 agent | ▶ in progress |
 | U9 | Apply fixes to STORY + WORLD; write BIBLE.md (continuity facts) | 1 agent | ⏳ ✦ Fable |
 | U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | lead | ⏳ |
 | U11+ | Phase 2 units — to be listed from revised PLAN §9 (engine core, combat, content per region, UI screens, art, audio, sim, tests) | — | ⏳ |

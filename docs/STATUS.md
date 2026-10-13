@@ -26,7 +26,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 |---|---|---|---|
 | U1 | WORLD §4–6 (NPCs, creatures) — brief `briefs/world-4-6.md` | 1 agent | ✅ 536d11f — 38 NPCs, 8 families, 57 creatures (9 bosses) |
 | U2 | WORLD §7–9 (items, crafting, merchants) — brief `briefs/world-7-9.md` | 1 agent | ✅ df57ae4 — 157 items, 30 recipes, 8 merchants |
-| U3 | WORLD §10–12 (encounters, map, variants) — brief `briefs/world-10-13.md` | 1 agent | ⏳ |
+| U3 | WORLD §10–12 (encounters, map, variants) — brief `briefs/world-10-13.md` | 1 agent | ▶ in progress |
 | U4 | Merge docs/world/* into WORLD.md + dangling-id grep | lead, low effort | ⏳ |
 | U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ⏳ |
 | U6 | Combined review of DESIGN + PLAN (focus: blockers only, ≤30 findings) | 1 agent | ⏳ |

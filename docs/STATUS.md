@@ -19,6 +19,16 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 - Before starting a unit: mark it `▶ in progress` here and push. After: mark `✅`, note the commit, push.
 - A session prompt like "continue from STATUS.md, do 2–3 units" = do exactly that, then stop with a one-line report.
 - Agents commit their own deliverable (docs/briefs/COMMIT.md).
+- **Model routing (adopted 2026-10-13).** Main session stays on Opus; the lead sets each agent's `model`:
+  - **Opus:** engine/combat/loop logic, all prose (dialogue, codex, scenes, quest text), balance analysis and
+    tuning decisions, reviews, continuity checks, fun reviews, final audit, and the *first* instance of any
+    repeated pattern (first region data file, first screen, first test suite).
+  - **Sonnet:** transcribing designed content into data files (locations, creatures, items, recipes, merchant
+    stock) once the schema + first example exist; replicating an established screen/component pattern;
+    writing tests from stated rules; Playwright scripts; CSS/layout; README/CONTENT docs; merges; running sims.
+  - Every Sonnet unit is followed by automated gates (typecheck, schema + cross-ref validation, tests, sims) and
+    an Opus spot-review before it is marked ✅.
+  - Optional: switch the session to Fable for the dialogue/codex writing units and the final fun/lore review.
 
 ### Unit queue (Phase 0 → Phase 1)
 

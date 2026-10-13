@@ -771,3 +771,41 @@ The lead adopts the reviewers' proposed resolutions below. Details and rationale
     to STORY §12, 14 removed) is adopted. Quests: 44 + 6 stretch (optional) + 5 class mini-quests (adopted).
 21. **Regional bosses** sit 2 levels above their band's top (DESIGN wins over WORLD's +1; WORLD stats retuned in U9).
 22. **Item tier T5** (band 16–18, proposed by WORLD §7) is adopted; DESIGN §7 gains the T5 row in U8.
+
+### D-067 · Rulings adopted from U7 (REVIEW-STORY-WORLD), 2026-10-13
+Details in `docs/reviews/REVIEW-STORY-WORLD.md`. These amend earlier decisions where they conflict.
+1. **No Apex soft-lock:** Loop 1 Apex entry offers *Face it / Not yet*; no autosave at the Loop 1 Apex or during a Horde.
+2. **Level carry-over (amends D-011):** each new loop starts at ⌊0.6 × best level reached⌋, capped at 10, with
+   ability points for that level. Inventory, gold, quests, world still reset.
+3. **Communion pressure:** `tyr_hour_presses` deals 8% max HP × (1 − Resolve/8); cannot kill while Resolve ≥ 3;
+   *Offer* never consumes items. Attacking during communion forfeits the current question.
+4. **Anchors** persist for the current loop only; only items tagged `anchorable` can be placed.
+5. **Silverwood Before:** each return to the present costs 1 Breach-Clock day; its loot and XP are granted once per loop.
+6. **Breach-anchor schematic:** each half grants its own persistent Echo; half B also obtainable at Vane's Watch;
+   heartwood also from Stone-Hide Golems and Kaelen's stock.
+7. **Ending D** requires Brak as the active companion; ending D never triggers Brak's Apex death.
+8. **Ending B**'s present-side act is the Wayfinder placing the anchor at the Apex; Ilyra and Dask appear as scene variants.
+9. **Caelum** joins inside Silverwood Before after his errand and crosses in Caelum's 2nd quest; his pin is set before he crosses.
+10. **The Conflux** in Silverwood Before holds the whole Heartstone; STORY's Before places map to events on WORLD nodes.
+11. **Lore — the thirtieth dawn:** each earlier Wayfinder's death in the shear re-steadied the drift; the Amulet prevents
+    that reset, which is why the thirtieth dawn now arrives.
+12. **Lore — the Tyrant's strikes** are the Holding's reflex; from Loop 2 Veyran restrains them against one who has crossed.
+13. **Lore — Nyx** landed at Where She Fell and knows "thirty" from Ashcombe's notes.
+14. **Ending a loop on purpose:** from Loop 2, *Let go* at any camp closes the loop as `closer_fall` (reason
+    `released`); for ending E, *Keep the vigil* skips to the last dawn.
+15. Quests started at the Threshold survive into the next loop.
+16. `echo_tyrant_jailer` requires two of its five sources (prevents an early dump of the twist; Dask alone can't give it).
+17. **Loop 1 scope:** only four non-legacy quests are open in Loop 1; the rest unlock in Loop 2+ (keeps Loop 1 near
+    the original game's size, 60–90 min).
+18. **Shadow Weaver viability:** Void treats *resist void* as neutral against Cursed targets; Unravel deals Chrono;
+    Vell's Umbra resists Void rather than being immune.
+19. **`itm_echo_bolt`** = max(0.75·ATK, 4 + 0.8·SP), 1-turn cooldown (supersedes D-066.2's numbers); the Drowned
+    lose "weak ley".
+20. **Regional boss HP** = 12 × expected physical damage per round at band top; D-066.21's +2 levels raise attack,
+    accuracy, and XP, not HP.
+
+### D-068 · Leftovers from U8, 2026-10-13
+1. Steppe road: WORLD X3's conditional road is accepted; `echo_steppe_waystones` stays.
+2. Dask leaves the party on non-flagged locations (e.g. Veridian Glowlands) and rejoins at the next flagged one.
+3. Contained Tyrant Phase 3 "takes ×1.5 damage" is provisional until simulations.
+4. Branch coverage is not gated (bun reports lines/functions only); line coverage thresholds stand.

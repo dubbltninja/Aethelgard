@@ -45,11 +45,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U4 | Merge docs/world/* into WORLD.md + dangling-id grep | lead, low effort | ✅ merged §4–13 (4,269 lines); docs/world/ removed (in git history) |
 | U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ✅ c3f6b91 — 58 conflicts, REGISTRY-DRAFT (231 renames) |
 | U6 | Combined review of DESIGN + PLAN (blockers/majors, ≤30) — brief `briefs/review-design-plan.md` | 1 agent | ✅ bea5aea — 3 blockers, 19 majors; rulings adopted as D-066 |
-| U7 | Combined review of STORY + WORLD (blockers/majors, ≤30) — brief `briefs/review-story-world.md` | 1 agent | ▶ in progress |
-| U8 | Apply review/registry fixes to DESIGN + PLAN (incl. D-065 rewrite) — brief `briefs/revise-design-plan.md` | 1 agent | ▶ in progress |
-| U9 | Apply fixes to STORY + WORLD; write BIBLE.md (continuity facts) | 1 agent | ⏳ ✦ Fable |
+| U7 | Combined review of STORY + WORLD (blockers/majors, ≤30) — brief `briefs/review-story-world.md` | 1 agent | ✅ f6d3be9 — 1 blocker, 18 majors; rulings adopted as D-067 |
+| U8 | Apply review/registry fixes to DESIGN + PLAN (incl. D-065 rewrite) — brief `briefs/revise-design-plan.md` | 1 agent | ✅ 773861e DESIGN, eebb823 PLAN — conform to D-044..D-066; PLAN §9 = unit list U11–U91 |
+| U9 | Apply fixes to STORY + WORLD (REVIEW-STORY-WORLD, REVIEW-CROSS §4 U9 handoff, registry renames, D-066/D-067/D-068); write BIBLE.md | 1–2 agents | ⏳ ✦ Fable |
 | U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | lead | ⏳ |
-| U11+ | Phase 2 units — to be listed from revised PLAN §9 (engine core, combat, content per region, UI screens, art, audio, sim, tests) | — | ⏳ |
+| U11–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9** (81 units). Copy the next few here as they start. | — | ⏳ |
 
 
 ### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)
@@ -92,7 +92,7 @@ document" is still met because each doc is attacked by a reviewer who did not wr
 | Item | State | Notes |
 |---|---|---|
 | Read the whole legacy repo | ✅ done | Findings in `DECISIONS.md` Part A |
-| `docs/DECISIONS.md` | ✅ D-001..D-066 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
+| `docs/DECISIONS.md` | ✅ D-001..D-068 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
 | `docs/DESIGN.md` (systems) | ✅ draft (20 sections) | Pre-dates Part E → needs conformance revision after review |
 | `docs/STORY.md` (narrative) | ✅ draft (16 sections) | 44 quests, 75 Echoes, 85 codex, 20 scenes, Litany, the Nine, 6 endings |
 | `docs/PLAN.md` (engineering) | ✅ draft (13 sections + App. A) | Must be rewritten for D-044 ids and **D-065 toolchain** (no Vite/vitest/ESLint/immer) |

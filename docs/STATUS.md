@@ -56,7 +56,12 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U13–U14 | step/ctx/RejectSignal/dispatch + legalActions skeleton + newRun → Condition/Effect zod + evaluate/explain/apply — brief `briefs/u13-u14.md` | 1 agent, Opus | ✅ 18e5831, db1c888 — 329 tests, engine+content 100% lines; deviations → D-072 |
 | U15 | Schemas: region, location, encounter, item, affix, recipe, status — brief `briefs/u15.md` | Sonnet | ✅ a19b4dc (spot-reviewed; lead added `anchorable`) |
 | U16 | Schemas: creature, ability, class, companion, specials — brief `briefs/u16.md` | Opus | ✅ 2108d18 — 477 tests total; D-072 |
-| U17–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (75 remaining; next U17). Copy the next few here as they start. | — | ⏳ |
+| U17 | Remaining schemas + buildContentPack + GameConfig — brief `briefs/u17.md` | Sonnet | ▶ in progress |
+| U18 | Fixture pack + test helpers — brief `briefs/u18.md` | Opus | ⏳ queued this session |
+| U19 | validateContent rules 1–22 + CLI (C1 contract freeze) — brief `briefs/u19.md` | Sonnet | ⏳ queued this session |
+| U20 | Explore & time reducers — brief `briefs/u20.md` | Opus (parallel with U21) | ⏳ queued this session |
+| U21 | Derived stats, progression, inventory — brief `briefs/u21.md` | Opus (parallel with U20) | ⏳ queued this session |
+| U22–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (70 remaining after U17–U21). Copy the next few here as they start. | — | ⏳ |
 
 
 ### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)

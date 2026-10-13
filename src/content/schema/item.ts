@@ -102,6 +102,8 @@ const ItemObject = Base.extend({
   droppable: z.boolean().optional(),
   /** Rarity tier-up (DESIGN §8.3). Default: weapon | armor | trinket. */
   upgradeable: z.boolean().optional(),
+  /** May be placed as an Anchor in the Silverwood Before Conflux (D-016, D-067.4). Anchors last one loop. */
+  anchorable: z.boolean().default(false),
   requirements: z
     .object({ classIds: z.array(ClassId).optional(), level: z.number().int().optional(), when: ConditionSchema.optional() })
     .strict()

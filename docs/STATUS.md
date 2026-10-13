@@ -1,7 +1,7 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Scaffold, engine types and Rng done; next units U13 (step/dispatch/legalActions skeleton) and U14 (Condition/Effect schemas + evaluator), both Opus. Unit list: PLAN §9.2. No application code exists yet.
+**Current phase:** Phase 1 (implementation). Engine skeleton, conditions/effects, and content schemas (U10–U16) done; next U17 (remaining schemas + buildContentPack, Sonnet) then U18. Unit list: PLAN §9.2. No application code exists yet.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-065), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
@@ -52,9 +52,9 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | Opus agent | ✅ 97f9a34, 0b8639e, 7f0d932 — `npm run check` green offline incl. e2e smoke (desktop+mobile, /Aethelgard/) |
 | U11–U12 | Engine types (PLAN §4.2–4.5) → Rng xoshiro128** + util (hash, clone/deepFreeze) + first engine tests — brief `briefs/u11-u12.md` | 1 agent, Opus | ✅ 640cf45, 6c8ddd5 — 106 tests, src/engine 100% lines; D-071 |
 | U13–U14 | step/ctx/RejectSignal/dispatch + legalActions skeleton + newRun → Condition/Effect zod + evaluate/explain/apply — brief `briefs/u13-u14.md` | 1 agent, Opus | ✅ 18e5831, db1c888 — 329 tests, engine+content 100% lines; deviations → D-072 |
-| U15 | Schemas: region, location, encounter, item, affix, recipe, status — brief `briefs/u15.md` | Sonnet (after U14) | ▶ in progress |
-| U16 | Schemas: creature, ability, class, companion, specials — brief `briefs/u16.md` | Opus (after U14, parallel with U15) | ▶ in progress |
-| U17–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (75 remaining). Copy the next few here as they start. | — | ⏳ |
+| U15 | Schemas: region, location, encounter, item, affix, recipe, status — brief `briefs/u15.md` | Sonnet | ✅ a19b4dc (spot-reviewed; lead added `anchorable`) |
+| U16 | Schemas: creature, ability, class, companion, specials — brief `briefs/u16.md` | Opus | ✅ 2108d18 — 477 tests total; D-072 |
+| U17–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (75 remaining; next U17). Copy the next few here as they start. | — | ⏳ |
 
 
 ### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)
@@ -97,14 +97,14 @@ document" is still met because each doc is attacked by a reviewer who did not wr
 | Item | State | Notes |
 |---|---|---|
 | Read the whole legacy repo | ✅ done | Findings in `DECISIONS.md` Part A |
-| `docs/DECISIONS.md` | ✅ D-001..D-071 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
+| `docs/DECISIONS.md` | ✅ D-001..D-072 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
 | `docs/DESIGN.md` (systems) | ✅ revised U8 | conforms to D-044..D-066; U9.5 touch-ups pending |
 | `docs/STORY.md` (narrative) | ✅ revised U9 | 44 quests (+5 class, +6 optional), 103 Echoes, 87 codex, 21 scenes, Litany, the Nine, 6 endings |
 | `docs/PLAN.md` (engineering) | ✅ revised U8 | D-065 toolchain; §9 = unit list U11–U91 |
 | `docs/WORLD.md` | ✅ revised U9 | bosses retuned (D-067.20), ids per registry/STORY; §13 = changelog + still-open |
 | Reviews | ⏳ round 1 in flight | see §2 |
 | `docs/BIBLE.md` | ✅ 74641cb | timeline 44 rows, people, who-knows-what (23 facts), places (85), things, terminology, rules, 18 open risks |
-| Phase 1+ (code) | ▶ scaffold done (U10) | next: U13 step/legalActions skeleton, U14 Condition/Effect — see PLAN §9.2 |
+| Phase 1+ (code) | ▶ scaffold done (U10) | next: U17 remaining schemas + buildContentPack (Sonnet), U18 fixture pack — see PLAN §9.2 |
 
 ### Environment facts (verified 2026-10-10)
 - **npm registry is blocked** by egress policy (proxy 403; no DNS). Do not retry or route around it.

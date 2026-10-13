@@ -75,6 +75,12 @@ describe('ItemSchema: DESIGN §7.7 legacy items', () => {
     for (const item of legacy) expect(messages(item)).toEqual([]);
   });
 
+  test('anchorable defaults to false and can be set (D-067.4)', () => {
+    const base = legacy[0]!;
+    expect(ItemSchema.parse(base).anchorable).toBe(false);
+    expect(ItemSchema.parse({ ...base, anchorable: true }).anchorable).toBe(true);
+  });
+
   test('rebalanced numbers survive parsing', () => {
     const byId = new Map(legacy.map((i) => [i.id, ItemSchema.parse(i)]));
     expect(byId.get('item_ironclad_plate_armor')?.stats).toMatchObject({ armor: 6, ward: -2 });

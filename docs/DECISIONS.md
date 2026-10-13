@@ -853,3 +853,27 @@ Accepted as implemented:
    `round`, `pct`). `stateHash` = FNV-1a over sorted-key JSON, excluding `recentLog`.
 5. xoshiro128** reference: state [1,2,3,4] → first output 0x2D00 (11520). PLAN §4.1 corrected.
 6. State fields stay plain `string` ids (typed aliases exist in `types/ids.ts`); content validation enforces id shapes.
+
+### D-072 · Implementation details accepted from U13–U16, 2026-10-13
+**Engine (U13/U14):** `step` rejects wrong-mode actions before dispatch via `ACTION_MODES`; `MODE_TRANSITIONS` adds
+title→threshold, explore/threshold→title, dialogue→combat, dialogue→ending. `createStep(handlers, hooks)` and
+`enumerateLegal(table, …)` exist for tests. `ctx.ts` declares a narrow structural `ContentPack` that U17 replaces with
+a re-export of the real type. `newRun` takes an optional player name; attunements, loop-start Echo effects and gear
+max-HP/MP arrive in U31/U32/U21. Conditions: `evaluate`/`explain` take optional `{questId}`; `killed.sinceStage` uses a
+kill count snapshotted in `QuestState.counters['kills:<cr>']`; `quests_completed`/`factions_trusted` are computed live
+and read-only. Effects: `apply` takes optional `{source}`; flags/counters emit no events; out-of-combat `damage`
+floors at 1 HP; `passWatches` is a no-op while the clock is frozen; effects owned by later units reject with a message
+naming the unit (`startCombat` U23, `startDialogue` U33, `unlockRecipe` U34, combat-scope kinds U26/U27).
+Condition/effect validation uses a custom one-key union for readable errors; ranges require min ≤ max; `endLoop`
+reason only with `closer_fall`.
+**Schemas (U15):** `Encounter.optionalWhen`; item `stats.evasion`; `weaponType` required on weapons; per-type
+defaults resolved by transform (stack 10 consumables / 5 tomes / 99 materials; quest items bound); records `.strict()`;
+new `AffixSchema` (percent fields are fractions); roads use `dir: 'path'`; encounters field ≤ 3 enemies.
+Lead fix: `ItemSchema.anchorable` (default false) per D-067.4.
+**Schemas (U16):** creature `pattern` defaults `[]` and must be empty when phases exist; `CombatWhen` accepts world
+Condition atoms; new atoms `targetIsBoss`, `targetHasActed`; `StatusApply.power` and `.when`; `Move.spell` (+10
+accuracy); phases gain `damageDealtRampPerRound`, `skipWhen`, `adds[].reinforce`; ability `levelReq`/`costHalf`/
+`cooldown` default from tier (companions: from kind), contradictions error; class resource event `basic_crit`;
+companion `stats.evasion`, `statusImmunities`; stricter id prefixes. `SPECIALS` registry has 15 ids tagged by usage;
+U26's engine copy must match. DESIGN §4.12's worked example follows the pattern notation (its prose turn numbers are
+off by one); `tyr_chrono_strike`'s telegraph line is provisional (WORLD gives only the wind-up).

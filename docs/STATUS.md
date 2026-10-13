@@ -24,8 +24,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 
 | # | Unit | Mode | State |
 |---|---|---|---|
-| U1 | WORLD §4–6 (NPCs, creatures) — brief `briefs/world-4-6.md` | 1 agent | ▶ in progress |
-| U2 | WORLD §7–9 (items, crafting, merchants) — brief `briefs/world-7-9.md` | 1 agent | ▶ in progress |
+| U1 | WORLD §4–6 (NPCs, creatures) — brief `briefs/world-4-6.md` | 1 agent | ✅ 536d11f — 38 NPCs, 8 families, 57 creatures (9 bosses) |
+| U2 | WORLD §7–9 (items, crafting, merchants) — brief `briefs/world-7-9.md` | 1 agent | ✅ df57ae4 — 157 items, 30 recipes, 8 merchants |
 | U3 | WORLD §10–12 (encounters, map, variants) — brief `briefs/world-10-13.md` | 1 agent | ⏳ |
 | U4 | Merge docs/world/* into WORLD.md + dangling-id grep | lead, low effort | ⏳ |
 | U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ⏳ |
@@ -35,6 +35,19 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U9 | Apply fixes to STORY + WORLD; write BIBLE.md (continuity facts) | 1 agent | ⏳ |
 | U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | lead | ⏳ |
 | U11+ | Phase 2 units — to be listed from revised PLAN §9 (engine core, combat, content per region, UI screens, art, audio, sim, tests) | — | ⏳ |
+
+
+### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)
+- Boss HP ≈3.5–4.5× fodder (DESIGN §19 turn targets) instead of brief's 6–8×; Attack = 5 + 1.5·L (DESIGN). Likely accept.
+- Drowned Reach boss = Bell-Warden; Oriel = unique Drowned Archivist in Sunken Archives (not a boss).
+- Communion: STORY's opening Echo `echo_tyrant_speaks`; "reject if Resolve < 3 at any Movement end" makes Movement I demand perfection — soften.
+- Breach-anchor 300 g fee + Ironclad-Trusted gate can block ending B → proposal: fee 0, rep gate waived while `q_the_mending`/`q_iron_silence` active.
+- Each Heartstone choice should yield 2 fragments (Mireya's dam + anchor in one loop).
+- No Skyreach merchant; Ironclad Camp has no Loop-1 vendor; orrery key target undefined; Borin's forge-mark has no source.
+- Item tier T5 (band 16–18) proposed by W-B — DESIGN only had T1–T4. Item count 157 vs 139 budget (trim list in §7–9 OQ6; optional).
+- Litany pages kept as quest items granting verse Echoes (page1→v1, page2→v8, page3→v3) — STORY §12 must add sources.
+- Engine needs effect kinds: summon, revive, riposte (creature intents).
+- Hesper Dunn has no STORY quest; Sedge called "crafter" but DESIGN says Borin is the only crafter.
 
 (Reviews were consolidated from 5 agents to 3 to save usage; the brief's "separate reviewer agents attack each
 document" is still met because each doc is attacked by a reviewer who did not write it.)

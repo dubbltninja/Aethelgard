@@ -58,9 +58,9 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U16 | Schemas: creature, ability, class, companion, specials — brief `briefs/u16.md` | Opus | ✅ 2108d18 — 477 tests total; D-072 |
 | U17 | Remaining schemas + buildContentPack + GameConfig — brief `briefs/u17.md` | Sonnet | ✅ 86ea0a2 (spot-reviewed: XP table, sell ratio vs DESIGN) — 561 tests |
 | U18 | Fixture pack + test helpers — brief `briefs/u18.md` | Opus | ✅ 20575d6 — fixture pack (2 regions, 6 locs, 4 creatures incl. 3-phase communion boss), helpers; 577 tests |
-| U19 | validateContent rules 1–22 + CLI (C1 contract freeze) — brief `briefs/u19.md` | Sonnet | ▶ in progress |
-| U20 | Explore & time reducers — brief `briefs/u20.md` | Opus (parallel with U21) | ⏳ queued this session |
-| U21 | Derived stats, progression, inventory — brief `briefs/u21.md` | Opus (parallel with U20) | ⏳ queued this session |
+| U19 | validateContent rules 1–22 + CLI (C1 contract freeze) — brief `briefs/u19.md` | Sonnet | ✅ bbbae0d (spot-reviewed) — **C1 contract freeze**; 716 tests; D-073 |
+| U20 | Explore & time reducers — brief `briefs/u20.md` | Opus (parallel with U21) | ▶ in progress |
+| U21 | Derived stats, progression, inventory — brief `briefs/u21.md` | Opus (parallel with U20) | ▶ in progress |
 | U22–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (70 remaining after U17–U21). Copy the next few here as they start. | — | ⏳ |
 
 
@@ -104,7 +104,7 @@ document" is still met because each doc is attacked by a reviewer who did not wr
 | Item | State | Notes |
 |---|---|---|
 | Read the whole legacy repo | ✅ done | Findings in `DECISIONS.md` Part A |
-| `docs/DECISIONS.md` | ✅ D-001..D-072 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
+| `docs/DECISIONS.md` | ✅ D-001..D-073 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
 | `docs/DESIGN.md` (systems) | ✅ revised U8 | conforms to D-044..D-066; U9.5 touch-ups pending |
 | `docs/STORY.md` (narrative) | ✅ revised U9 | 44 quests (+5 class, +6 optional), 103 Echoes, 87 codex, 21 scenes, Litany, the Nine, 6 endings |
 | `docs/PLAN.md` (engineering) | ✅ revised U8 | D-065 toolchain; §9 = unit list U11–U91 |

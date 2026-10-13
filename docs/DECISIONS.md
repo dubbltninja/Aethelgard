@@ -877,3 +877,22 @@ accuracy); phases gain `damageDealtRampPerRound`, `skipWhen`, `adds[].reinforce`
 companion `stats.evasion`, `statusImmunities`; stricter id prefixes. `SPECIALS` registry has 15 ids tagged by usage;
 U26's engine copy must match. DESIGN §4.12's worked example follows the pattern notation (its prose turn numbers are
 off by one); `tyr_chrono_strike`'s telegraph line is provisional (WORLD gives only the wind-up).
+
+### D-073 · U17–U19 details; C1 contract freeze, 2026-10-13
+**C1 reached (U19, bbbae0d).** From here, §4/§5 types and schemas change only through a DECISIONS entry plus the
+owning unit (PLAN §9.1).
+- **U17:** `ContentPack.factions` is `Partial<Record<…>>`; `recipesByStation` has the single key `emberforge`;
+  `Merchant.repFaction` accepts `best` (Kaelen); `EndingSchema.reasons` adds `released`; typed-prefix ids in all new
+  schemas (dialogue `speaker` stays plain); exhaustive config objects (`tierTexts`, `rarityStatMult`,
+  `companionCooldownByKind`); `upgradeCostMult` keyed by target rarity; `fodderXp.eliteMult` 1.8, `anomalyMult` 1.3;
+  per-record checks (stage/node refs, `merchantId === id`, `codexLine` ≤ 40 words). `GameConfigSchema`,
+  `ContentIssue`/`ContentReport` live in `schema/contentPack.ts`.
+- **U18:** the fixture pack is deliberately small (1 quest, 1 scene, 1 ending, 18 items); its boss is the Unveiled
+  Tyrant cut to 3 phases with a communion subset (U29 appends Echo-gated answers and outcomes A/B); fixture
+  `apexGate` = 1 quest; no forge station yet (U34 adds one).
+- **U19:** `validateContent(pack, {strict, pending, registries})`. Non-strict (default; tests, fixture pack) skips
+  completeness-count rules; strict runs them; the CLI runs strict and reports count failures as *pending* warnings while
+  the real pack has zero locations, errors afterwards. Rules 4–5 (UI/audio registries) run only when registries are
+  injected, as warnings. Config refs checked once the pack has locations. Closers exempt from the `{ending}` effect rule.
+  Rule-21 expects **103** Echoes. Rule-13 also checks ability-tier prerequisites. `buildContentPack` validates by
+  default (`validate: false` to skip).

@@ -1,0 +1,5 @@
+# Line endings (PLAN §3.4 whitespace rule): LF everywhere, on every platform.
+* text=auto eol=lf
+
+# Lint fixtures carry deliberate CRLF/whitespace violations: store and check out byte-for-byte.
+tests/fixtures/lint/** -text

@@ -207,3 +207,14 @@ marimo/_lsp/
 __marimo__/
 
 savegame.*json
+
+# Node / The Unraveling (U10)
+node_modules/
+dist/
+dist-e2e/
+.dev/
+coverage/
+test-results/
+playwright-report/
+package-lock.json
+.DS_Store

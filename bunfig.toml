@@ -1,0 +1,18 @@
+# bun configuration (PLAN §3.3). `npm test` = `bun test && bun tools/coverage-gate.ts`.
+
+# Build-time constants for code run by bun (tests, tools); tools/build.ts and tools/dev.ts set their own.
+[define]
+__DEV__ = "true"
+__E2E__ = "false"
+__VERSION__ = "\"test\""
+
+[test]
+root = "tests/unit"
+# U18 enables the preload when it adds tests/preload.ts (soft-assert collector, fixture registry):
+# preload = ["./tests/preload.ts"]
+coverage = true
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"
+coverageSkipTestFiles = true
+# No coverageThreshold here: bun 1.4.2 applies it to every file, not globally. The global floor (lines 80 %,
+# functions 75 %) and the per-directory bars of PLAN §1.1 are enforced by tools/coverage-gate.ts (`npm test`).

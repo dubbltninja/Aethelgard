@@ -158,8 +158,8 @@ export function changeLimit(ctx: StepCtx, watches: number, source: string): void
 
 /**
  * Time passes by `watches` (no-op while the clock is frozen in Silverwood Before): one watchAdvanced per watch and a
- * dayAdvanced at each dawn crossed. TODO(U20): dawn hooks (restock, per-day uses, encounterHp), status ticks per
- * watch, clock warnings and expiry — U20's clock owns them and may replace this function.
+ * dayAdvanced at each dawn crossed. Dawn hooks, per-watch status ticks, clock warnings and expiry run afterwards in
+ * U20's post-step clock hook (`reducers/loop.ts`).
  */
 export function advanceTime(ctx: StepCtx, watches: number): void {
   const clock = ctx.s.clock;
@@ -315,7 +315,7 @@ const APPLIERS: Appliers = {
       s.world.discovered.push(to);
       ctx.emit({ t: 'locationDiscovered', locationId: to });
     }
-    ctx.emit({ t: 'locationEntered', locationId: to, firstVisit, regionId: def.regionId }); // TODO(U20): entry hooks
+    ctx.emit({ t: 'locationEntered', locationId: to, firstVisit, regionId: def.regionId }); // arrival hooks: U20 post-step
   },
   unlockExit: ({ from, to }, ctx) => {
     need(ctx.content.locations[from], `location '${from}'`);

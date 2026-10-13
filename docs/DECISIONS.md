@@ -896,3 +896,24 @@ owning unit (PLAN §9.1).
   injected, as warnings. Config refs checked once the pack has locations. Closers exempt from the `{ending}` effect rule.
   Rule-21 expects **103** Echoes. Rule-13 also checks ability-tier prerequisites. `buildContentPack` validates by
   default (`validate: false` to skip).
+
+### D-074 · U20/U21 details, 2026-10-13
+- **Time pipeline:** time effects resolve in post-step hooks — arrival hook, then clock hook, then U21's
+  `characterPostStep`. `ARRIVAL_HOOKS` (U23 encounters — no roll on `retreat`/`notYet`; U30 Horde spread),
+  `DAWN_HOOKS` (U34 restock). `enterStartLocation` must be called by newGame/newLoop (U30/U31).
+- **Apex prompt:** *Face it / Not yet* is engine-native (`scene_apex_prompt`, choices `face_it`/`not_yet`) through a
+  minimal `choose` handler that U33 must preserve when it implements dialogue. `letGo`/`keepVigil` belong to U30
+  (`skipToLastDawn` ready in `loop.ts`).
+- **Expiry:** sets `flag_clock_expired`, starts the Horde (cause `expiry`, delay 3, portal opens), deferred until combat
+  ends; spread/Ilyra/Echo grants are U30's.
+- **Warnings** use whole days to the limit rounded up (fire on Days 20/25/28/29); only the most urgent crossed threshold
+  fires per step.
+- **Explore interpretations:** retreat costs the edge's watches; gather 1 unit/action up to `perDay`; `once:false`
+  items respawn on rest; DoTs tick per watch and rest clears them; 40-slot pack excludes quest/key items; examining a
+  location reveals hidden items; short rest is free; wild-camp ambush is U23's.
+- **Character:** `characterPostStep` applies the Weaver mark when Corruption reaches 6 (Remnants −10, clock −4 watches)
+  and keeps stored max HP/MP synced with `derive()` outside combat (current values shift by the same delta, ≥ 1 HP).
+  Mastery is read-only during a loop; U30 writes this loop's unlocks and `bestLevel` at loop end. Respec at camp/wild
+  rests, refunds exactly this loop's costs. %-reductions and %-HP self-costs round down (self-cost ≥ 1); slotless
+  quest/key items apply their stats (Amulet +1 MAG, grants `itm_echo_bolt`). Helpers `resourceGain`, `abilityCost`,
+  `playerAbilityCost` for U26. U20's `slotsUsed` and U21's pack counting overlap — consolidate in U22 or later.

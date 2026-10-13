@@ -24,8 +24,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 
 | # | Unit | Mode | State |
 |---|---|---|---|
-| U1 | WORLD §4–6 (NPCs, creatures) — brief `briefs/world-4-6.md` | 1 agent | ⏳ |
-| U2 | WORLD §7–9 (items, crafting, merchants) — brief `briefs/world-7-9.md` | 1 agent | ⏳ |
+| U1 | WORLD §4–6 (NPCs, creatures) — brief `briefs/world-4-6.md` | 1 agent | ▶ in progress |
+| U2 | WORLD §7–9 (items, crafting, merchants) — brief `briefs/world-7-9.md` | 1 agent | ▶ in progress |
 | U3 | WORLD §10–12 (encounters, map, variants) — brief `briefs/world-10-13.md` | 1 agent | ⏳ |
 | U4 | Merge docs/world/* into WORLD.md + dangling-id grep | lead, low effort | ⏳ |
 | U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ⏳ |

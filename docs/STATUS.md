@@ -47,7 +47,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U6 | Combined review of DESIGN + PLAN (blockers/majors, ≤30) — brief `briefs/review-design-plan.md` | 1 agent | ✅ bea5aea — 3 blockers, 19 majors; rulings adopted as D-066 |
 | U7 | Combined review of STORY + WORLD (blockers/majors, ≤30) — brief `briefs/review-story-world.md` | 1 agent | ✅ f6d3be9 — 1 blocker, 18 majors; rulings adopted as D-067 |
 | U8 | Apply review/registry fixes to DESIGN + PLAN (incl. D-065 rewrite) — brief `briefs/revise-design-plan.md` | 1 agent | ✅ 773861e DESIGN, eebb823 PLAN — conform to D-044..D-066; PLAN §9 = unit list U11–U91 |
-| U9 | Apply fixes to STORY + WORLD (REVIEW-STORY-WORLD, REVIEW-CROSS §4 U9 handoff, registry renames, D-066/D-067/D-068); write BIBLE.md | 1–2 agents | ⏳ ✦ Fable |
+| U9 | Apply fixes to STORY + WORLD (REVIEW-STORY-WORLD, REVIEW-CROSS §4 U9 handoff, registry renames, D-066/D-067/D-068); write BIBLE.md | 2 agents (Fable) — briefs `briefs/revise-story-bible.md`, `briefs/revise-world.md` | ▶ in progress ✦ |
 | U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | lead | ⏳ |
 | U11–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9** (81 units). Copy the next few here as they start. | — | ⏳ |
 

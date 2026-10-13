@@ -48,8 +48,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U7 | Combined review of STORY + WORLD (blockers/majors, ≤30) — brief `briefs/review-story-world.md` | 1 agent | ✅ f6d3be9 — 1 blocker, 18 majors; rulings adopted as D-067 |
 | U8 | Apply review/registry fixes to DESIGN + PLAN (incl. D-065 rewrite) — brief `briefs/revise-design-plan.md` | 1 agent | ✅ 773861e DESIGN, eebb823 PLAN — conform to D-044..D-066; PLAN §9 = unit list U11–U91 |
 | U9 | Apply fixes to STORY + WORLD (REVIEW-STORY-WORLD, REVIEW-CROSS §4 U9 handoff, registry renames, D-066/D-067/D-068); write BIBLE.md | 2 agents (Fable) | ✅ STORY 1f76fdd, BIBLE 74641cb, WORLD 4e9f8e3; leftovers ruled in D-069 |
-| U9.5 | DESIGN/PLAN touch-ups from D-069 (§4.11 press formula, §12.1 Ilyra Loop 2+, §11.3 line, Listen lash, new effect kinds + `road` edges + `passWatches`, `flag_tyrant_dead`, class quests Loop 2+); re-run the owner-id grep | 1 agent, **Sonnet** | ⏳ |
-| U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | lead | ⏳ |
+| U9.5 | DESIGN/PLAN touch-ups from D-069 (§4.11 press formula, §12.1 Ilyra Loop 2+, §11.3 line, Listen lash, new effect kinds + `road` edges + `passWatches`, `flag_tyrant_dead`, class quests Loop 2+); re-run the owner-id grep | 1 agent, **Sonnet** | ▶ in progress — brief `briefs/u09-5.md` |
+| U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | Opus agent | ▶ in progress — brief `briefs/u10.md` |
 | U11–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9** (81 units). Copy the next few here as they start. | — | ⏳ |
 
 

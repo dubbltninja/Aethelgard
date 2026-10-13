@@ -21,9 +21,10 @@ import {
 import { clone, deepFreeze } from '@engine/util/clone';
 import { stateHash } from '@engine/util/hash';
 import { minimalProfile, minimalState } from './types/handmade';
-import { sampleActions, standInPack } from './standInPack';
+import { fixturePack } from '@tests/fixtures/miniContent';
+import { sampleActions } from './standInPack';
 
-const content = standInPack();
+const content = fixturePack();
 const frozenInputs = () => ({ state: deepFreeze(minimalState()), profile: deepFreeze(minimalProfile()) });
 const snapshot = (...values: unknown[]) => JSON.stringify(values);
 const MODES: Mode[] = ['title', 'explore', 'combat', 'dialogue', 'threshold', 'ending'];

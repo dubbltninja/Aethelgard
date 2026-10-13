@@ -18,9 +18,10 @@ import {
 } from '@engine/index';
 import { deepFreeze } from '@engine/util/clone';
 import { minimalProfile, minimalState } from './types/handmade';
-import { sampleActions, standInPack } from './standInPack';
+import { fixturePack } from '@tests/fixtures/miniContent';
+import { sampleActions } from './standInPack';
 
-const content = standInPack();
+const content = fixturePack();
 const MODES: Mode[] = ['title', 'explore', 'combat', 'dialogue', 'threshold', 'ending'];
 const stateIn = (mode: Mode) => deepFreeze({ ...minimalState(), mode });
 

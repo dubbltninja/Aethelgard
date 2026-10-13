@@ -51,9 +51,9 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U9.5 | DESIGN/PLAN touch-ups from D-069 (§4.11 press formula, §12.1 Ilyra Loop 2+, §11.3 line, Listen lash, new effect kinds + `road` edges + `passWatches`, `flag_tyrant_dead`, class quests Loop 2+); re-run the owner-id grep | 1 agent, **Sonnet** | ✅ 918f5bd (spot-reviewed) |
 | U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | Opus agent | ✅ 97f9a34, 0b8639e, 7f0d932 — `npm run check` green offline incl. e2e smoke (desktop+mobile, /Aethelgard/) |
 | U11–U12 | Engine types (PLAN §4.2–4.5) → Rng xoshiro128** + util (hash, clone/deepFreeze) + first engine tests — brief `briefs/u11-u12.md` | 1 agent, Opus | ✅ 640cf45, 6c8ddd5 — 106 tests, src/engine 100% lines; D-071 |
-| U13–U14 | step/ctx/RejectSignal/dispatch + legalActions skeleton + newRun → Condition/Effect zod + evaluate/explain/apply — brief `briefs/u13-u14.md` | 1 agent, Opus | ▶ in progress |
-| U15 | Schemas: region, location, encounter, item, affix, recipe, status — brief `briefs/u15.md` | Sonnet (after U14) | ⏳ queued this session |
-| U16 | Schemas: creature, ability, class, companion, specials — brief `briefs/u16.md` | Opus (after U14, parallel with U15) | ⏳ queued this session |
+| U13–U14 | step/ctx/RejectSignal/dispatch + legalActions skeleton + newRun → Condition/Effect zod + evaluate/explain/apply — brief `briefs/u13-u14.md` | 1 agent, Opus | ✅ 18e5831, db1c888 — 329 tests, engine+content 100% lines; deviations → D-072 |
+| U15 | Schemas: region, location, encounter, item, affix, recipe, status — brief `briefs/u15.md` | Sonnet (after U14) | ▶ in progress |
+| U16 | Schemas: creature, ability, class, companion, specials — brief `briefs/u16.md` | Opus (after U14, parallel with U15) | ▶ in progress |
 | U17–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (75 remaining). Copy the next few here as they start. | — | ⏳ |
 
 

@@ -368,7 +368,7 @@ STORY §12 is the catalog (D-062). Titles are STORY's; DESIGN §10.5 titles are 
 
 ### 6.2 Echoes to ADD to STORY §12 (26)
 
-Each is needed by DESIGN or WORLD and has no STORY equivalent. U9 writes the codex line and confirms the source. Lean option (lead): the five `*_bond` Echoes and the three gate-convenience Echoes (`echo_heartstone_path`, `echo_hollow_path`, `echo_ironclad_passwords`) could instead be engine rules (loyalty memory; remembered gate edges in map memory) — see REVIEW-CROSS C-23.
+Each is needed by DESIGN or WORLD and has no STORY equivalent. U9 writes the codex line and confirms the source. Lean option (lead): the five `*_bond` Echoes and the three gate-convenience Echoes (`echo_heartstone_path`, `echo_hollow_path`, `echo_ironclad_passwords`) could instead be engine rules (loyalty memory; remembered gate edges in map memory) — see REVIEW-CROSS C-13.
 
 | proposed id | proposed title | needed by | proposed source | effect |
 |---|---|---|---|---|
@@ -1050,7 +1050,7 @@ W §7 (132 rows) + the two legacy shard materials. With the 22 `mat_*` and 4 reg
 
 ### 16. Recipes (30)
 
-`recipe_breach_anchor` gates: see REVIEW-CROSS C-27.
+`recipe_breach_anchor` gates: see REVIEW-CROSS C-04 (fee 0; Neutral during the quest; requires `echo_anchor_schema`; `echo_void_resonance` moves to the B consent).
 
 | id | display name | owner (seen in) | aliases to replace (where) | action |
 |---|---|---|---|---|
@@ -1238,7 +1238,7 @@ W §13.7 X4 also proposes `flag_heartstone_exploited`, `flag_brak_kept_away`, `f
 | `flag_before_day_2` | W | — | ok |
 | `flag_before_day_3` | W | — | ok |
 | `flag_brak_kept_away` | W | — | ok |
-| `flag_cleansed_lanternreed` | D | — | ok |
+| `flag_corruption_cleansed` | — | `flag_cleansed_lanternreed` (D §6.7) | rename-in-D (cleansing is Elder Wen's at the Breathing Pool, D-064) |
 | `flag_clock_expired` | W | — | ok |
 | `flag_entered_before_via_apex` | W | — | ok |
 | `flag_entered_before_via_nexus` | W | — | ok |

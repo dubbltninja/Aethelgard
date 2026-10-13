@@ -26,8 +26,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 |---|---|---|---|
 | U1 | WORLD §4–6 (NPCs, creatures) — brief `briefs/world-4-6.md` | 1 agent | ✅ 536d11f — 38 NPCs, 8 families, 57 creatures (9 bosses) |
 | U2 | WORLD §7–9 (items, crafting, merchants) — brief `briefs/world-7-9.md` | 1 agent | ✅ df57ae4 — 157 items, 30 recipes, 8 merchants |
-| U3 | WORLD §10–12 (encounters, map, variants) — brief `briefs/world-10-13.md` | 1 agent | ▶ in progress |
-| U4 | Merge docs/world/* into WORLD.md + dangling-id grep | lead, low effort | ⏳ |
+| U3 | WORLD §10–12 (encounters, map, variants) — brief `briefs/world-10-13.md` | 1 agent | ✅ fa12115 — 73 nodes/92 edges, Loop 1 timing fits (Apex Day 22) |
+| U4 | Merge docs/world/* into WORLD.md + dangling-id grep | lead, low effort | ✅ merged §4–13 (4,269 lines); docs/world/ removed (in git history) |
 | U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ⏳ |
 | U6 | Combined review of DESIGN + PLAN (focus: blockers only, ≤30 findings) | 1 agent | ⏳ |
 | U7 | Combined review of STORY + WORLD (blockers only, ≤30 findings) | 1 agent | ⏳ |
@@ -48,6 +48,12 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 - Litany pages kept as quest items granting verse Echoes (page1→v1, page2→v8, page3→v3) — STORY §12 must add sources.
 - Engine needs effect kinds: summon, revive, riposte (creature intents).
 - Hesper Dunn has no STORY quest; Sedge called "crafter" but DESIGN says Borin is the only crafter.
+- U3: forced fights limited to bosses/story gates only with a proposed "scatter" rule (fled fixed groups
+  scatter for the loop, +2 watches, no XP/loot) — needs DESIGN §4.7 acceptance. Heartstone **Destroy** (−10 days)
+  makes the thorough Loop 1 miss the Day 20 limit; Ending E fails under Frayed Clock — proposals in WORLD §10.10.
+  Proposed 3-move Horde delay for clock-expiry Hordes. Lamplighters' Rest unreachable for pacifists in Loop 1.
+  8 gate Echoes missing from STORY §12. Dask on Glowlands conflicts D-059 vs DESIGN §12.8.
+- U4 dangling id: `loc_veil_sanctum` is referenced in STORY/DESIGN but not defined in WORLD.
 
 (Reviews were consolidated from 5 agents to 3 to save usage; the brief's "separate reviewer agents attack each
 document" is still met because each doc is attacked by a reviewer who did not write it.)
@@ -75,7 +81,7 @@ document" is still met because each doc is attacked by a reviewer who did not wr
 | `docs/DESIGN.md` (systems) | ✅ draft (20 sections) | Pre-dates Part E → needs conformance revision after review |
 | `docs/STORY.md` (narrative) | ✅ draft (16 sections) | 44 quests, 75 Echoes, 85 codex, 20 scenes, Litany, the Nine, 6 endings |
 | `docs/PLAN.md` (engineering) | ✅ draft (13 sections + App. A) | Must be rewritten for D-044 ids and **D-065 toolchain** (no Vite/vitest/ESLint/immer) |
-| `docs/WORLD.md` | ⚠️ §1–3 only | §4–13 being written in 3 parallel parts into `docs/world/` (round 1) |
+| `docs/WORLD.md` | ✅ complete draft, §1–13 | §13 collects errata + open questions from the three authors |
 | Reviews | ⏳ round 1 in flight | see §2 |
 | `docs/BIBLE.md` | ⏳ | after revisions |
 | Phase 1+ (code) | ⏳ | after revisions; toolchain verified (D-065) |

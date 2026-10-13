@@ -19,6 +19,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 - Before starting a unit: mark it `▶ in progress` here and push. After: mark `✅`, note the commit, push.
 - A session prompt like "continue from STATUS.md, do 2–3 units" = do exactly that, then stop with a one-line report.
 - Agents commit their own deliverable (docs/briefs/COMMIT.md).
+- **✦ Fable reminder (Tim asked for this, 2026-10-13).** Units marked **✦ Fable** in the queue benefit most from
+  Fable 5.1 (prose quality, lore coherence, fun judgment). **Before starting a ✦ unit, the lead must tell Tim in its
+  reply: "Next unit is a ✦ Fable unit — consider switching with /model claude-fable-5-1 before the next prompt."**
+  ✦ units: U9 (STORY/WORLD revision + BIBLE), every quest-dialogue / scene / codex writing unit in Phase 2,
+  the three fun-review rounds, and the final lore + fun audit. Switch back to Opus afterwards.
 - **Model routing (adopted 2026-10-13).** Main session stays on Opus; the lead sets each agent's `model`:
   - **Opus:** engine/combat/loop logic, all prose (dialogue, codex, scenes, quest text), balance analysis and
     tuning decisions, reviews, continuity checks, fun reviews, final audit, and the *first* instance of any
@@ -38,11 +43,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U2 | WORLD §7–9 (items, crafting, merchants) — brief `briefs/world-7-9.md` | 1 agent | ✅ df57ae4 — 157 items, 30 recipes, 8 merchants |
 | U3 | WORLD §10–12 (encounters, map, variants) — brief `briefs/world-10-13.md` | 1 agent | ✅ fa12115 — 73 nodes/92 edges, Loop 1 timing fits (Apex Day 22) |
 | U4 | Merge docs/world/* into WORLD.md + dangling-id grep | lead, low effort | ✅ merged §4–13 (4,269 lines); docs/world/ removed (in git history) |
-| U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ⏳ |
-| U6 | Combined review of DESIGN + PLAN (focus: blockers only, ≤30 findings) | 1 agent | ⏳ |
+| U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ▶ in progress |
+| U6 | Combined review of DESIGN + PLAN (blockers/majors, ≤30) — brief `briefs/review-design-plan.md` | 1 agent | ▶ in progress |
 | U7 | Combined review of STORY + WORLD (blockers only, ≤30 findings) | 1 agent | ⏳ |
 | U8 | Apply review/registry fixes to DESIGN + PLAN (incl. D-065 toolchain rewrite of PLAN §3/§11) | 1 agent | ⏳ |
-| U9 | Apply fixes to STORY + WORLD; write BIBLE.md (continuity facts) | 1 agent | ⏳ |
+| U9 | Apply fixes to STORY + WORLD; write BIBLE.md (continuity facts) | 1 agent | ⏳ ✦ Fable |
 | U10 | Scaffold: move Python to legacy/, package.json, tsconfig, link-local-deps, build/dev/lint scripts, React type shim, CI + Pages workflows, hello-world page builds | lead | ⏳ |
 | U11+ | Phase 2 units — to be listed from revised PLAN §9 (engine core, combat, content per region, UI screens, art, audio, sim, tests) | — | ⏳ |
 

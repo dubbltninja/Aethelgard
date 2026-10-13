@@ -830,3 +830,16 @@ Details in `docs/reviews/REVIEW-STORY-WORLD.md`. These amend earlier decisions w
 10. Chosen-not-ruled items in WORLD §13.2 (Anso takes present gold; cross-band escorts; the Orrery Key opens the
     Nexus orrery housing with `echo_eye_of_masque` or the Lens; Skyreach rest under the Spire Loom; infected-Library
     legacy behaviour) are accepted as written.
+
+### D-070 · Scaffold deviations (U10) and U9.5 interpretations, 2026-10-13
+Accepted as implemented:
+1. Coverage floors live in `tools/coverage-gate.ts` (global 80% lines / 75% functions plus per-directory bars), not
+   `bunfig.toml` — bun 1.4.2 applies `coverageThreshold` per file. bunfig defines `__DEV__`, `__E2E__`, `__VERSION__`.
+2. `validate`, `sim`, `sim:balance` are explicit STUB scripts until their units land; `build` = `validate` + esbuild.
+3. Playwright serves `dist-e2e/` under `/Aethelgard/` so every e2e run proves relative asset URLs.
+4. Lint: `content-literals` checks only top-level table ids; `src/main.tsx` is an `app` layer with `ui` imports;
+   `import type` edges ignored for engine-cycle detection; lint covers `public/`, `.github/`, root configs; any
+   trailing blank line is flagged; `@ts-nocheck` treated like `@ts-ignore`. `.gitattributes` forces LF.
+5. U9.5 interpretations: `q_preserve_or_heal` "±8" = `passWatches` 8 (forward only); carry-over `bestLevel` = max of
+   `classMastery[*].bestLevel` (min 1); *Not yet* at the Loop 1 Apex returns the player to the previous node.
+   New actions `letGo`/`keepVigil`; `MoveSchema.effects` holds combat-scope effect kinds.

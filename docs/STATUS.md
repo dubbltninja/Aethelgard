@@ -43,8 +43,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U2 | WORLD §7–9 (items, crafting, merchants) — brief `briefs/world-7-9.md` | 1 agent | ✅ df57ae4 — 157 items, 30 recipes, 8 merchants |
 | U3 | WORLD §10–12 (encounters, map, variants) — brief `briefs/world-10-13.md` | 1 agent | ✅ fa12115 — 73 nodes/92 edges, Loop 1 timing fits (Apex Day 22) |
 | U4 | Merge docs/world/* into WORLD.md + dangling-id grep | lead, low effort | ✅ merged §4–13 (4,269 lines); docs/world/ removed (in git history) |
-| U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ▶ in progress |
-| U6 | Combined review of DESIGN + PLAN (blockers/majors, ≤30) — brief `briefs/review-design-plan.md` | 1 agent | ▶ in progress |
+| U5 | Cross-doc review + id registry — brief `briefs/review-cross.md` | 1 agent | ✅ c3f6b91 — 58 conflicts, REGISTRY-DRAFT (231 renames) |
+| U6 | Combined review of DESIGN + PLAN (blockers/majors, ≤30) — brief `briefs/review-design-plan.md` | 1 agent | ✅ bea5aea — 3 blockers, 19 majors; rulings adopted as D-066 |
 | U7 | Combined review of STORY + WORLD (blockers only, ≤30 findings) | 1 agent | ⏳ |
 | U8 | Apply review/registry fixes to DESIGN + PLAN (incl. D-065 toolchain rewrite of PLAN §3/§11) | 1 agent | ⏳ |
 | U9 | Apply fixes to STORY + WORLD; write BIBLE.md (continuity facts) | 1 agent | ⏳ ✦ Fable |
@@ -92,7 +92,7 @@ document" is still met because each doc is attacked by a reviewer who did not wr
 | Item | State | Notes |
 |---|---|---|
 | Read the whole legacy repo | ✅ done | Findings in `DECISIONS.md` Part A |
-| `docs/DECISIONS.md` | ✅ D-001..D-065 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
+| `docs/DECISIONS.md` | ✅ D-001..D-066 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
 | `docs/DESIGN.md` (systems) | ✅ draft (20 sections) | Pre-dates Part E → needs conformance revision after review |
 | `docs/STORY.md` (narrative) | ✅ draft (16 sections) | 44 quests, 75 Echoes, 85 codex, 20 scenes, Litany, the Nine, 6 endings |
 | `docs/PLAN.md` (engineering) | ✅ draft (13 sections + App. A) | Must be rewritten for D-044 ids and **D-065 toolchain** (no Vite/vitest/ESLint/immer) |

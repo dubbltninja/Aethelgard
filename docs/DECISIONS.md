@@ -728,3 +728,46 @@ with coverage). Not available: Vite, vitest, ESLint, Prettier, immer, jsdom, Tes
 - **Formatting:** no Prettier; `.editorconfig` plus lint whitespace rules.
 **Why.** Meets every quality bar with tools that run here; nothing the brief asks for depends on Vite
 specifically. Recorded for the final report so Tim knows why Vite is absent.
+
+### D-066 · Rulings adopted from U5 (REVIEW-CROSS) and U6 (REVIEW-DESIGN-PLAN), 2026-10-13
+The lead adopts the reviewers' proposed resolutions below. Details and rationale are in
+`docs/reviews/REVIEW-DESIGN-PLAN.md` (rulings 1–18) and `docs/reviews/REVIEW-CROSS.md` (C-01..C-58);
+`docs/reviews/REGISTRY-DRAFT.md` is the canonical id registry until BIBLE.md supersedes it.
+1. **Contained Tyrant** retuned for a level-11 party: 460 HP; "Remember" once per phase; boss Rewind restores
+   ≤10% max HP and is removed by Void or Ley damage; adds = 2 Temporal Aberrations at 40% HP (1 if solo);
+   phase triggers count rounds. Target 12–18 rounds.
+2. **`itm_echo_bolt`** (Amulet, every class): 10 MP, Ley, max(0.9·ATK, 4 + 0.8·SP); removes Rewind.
+3. **Wizard economy:** regen 3 + ⌊level/4⌋ MP per turn (not 10%); Fireball 10 MP, 1.2·SP + 3, Burn 60%;
+   Burn tick 1 + 0.2·SP; Echo Bolt 10 MP; Void Lance 1.3·SP + 3.
+4. **Status timing:** a status applied during its holder's own turn skips that turn's countdown. DoT ticks apply
+   resistance but never armor, ward, or Guard.
+5. **Self-costs** (Blood price, HP costs) require current HP > cost and can never kill.
+6. **Communion:** Resolve 0–8, starts at 1; rejection checked only at the end of Movements II and III;
+   F ≥ 3, A ≥ 6, B = 8 (plus D-054's B requirements). Replaces DESIGN 0–100 and STORY 0–9.
+7. **Closers:** both Loop 1 closers lead straight to Loop 2 Day 1 (no Threshold). Clock expiry starts the
+   Horde (D-060) with a **3-move delay**; DESIGN's scripted Fall / `fall_clock` are removed. Death in any Horde
+   = Fall. `closer_escape` = any portal flight in any loop; `closer_fall` carries reason `death|expiry|rejected`.
+8. **Clock floor:** clock modifiers can never set the limit below current day + 3 dawns. Ending E's gate is
+   "the last dawn before collapse" (`daysLeft ≤ 1`), not Day 29 (fixes Frayed Clock).
+9. **Silverwood Before** has its own Day 1–3 counter (resets on re-entry); the Breach Clock is frozen inside.
+10. **Breach-anchor:** 0 gold; its Ironclad rep gate is Neutral while `q_the_mending` or `q_iron_silence` is
+    active; 3 ember ore (not 5). `echo_void_resonance` moves from the recipe to ending B's consent check (ending D
+    no longer needs a Weavers loop). Every Heartstone choice yields **2 fragments**.
+11. **Fleeing:** only bosses and story gates block flight; a fled fixed group scatters for the loop
+    (+2 watches, no XP/loot). This makes the pacifist routes in WORLD §10 valid.
+12. **Companions** have no MP; abilities use cooldowns. Dask obeys only the D-059 `temporallyUnstable` flag
+    (Loop 2+; not on Veridian Glowlands unless flagged).
+13. **Keys:** in combat, panel hotkeys require Shift; Drop = Delete with confirm; WASD only on the map.
+14. **Enemy AI:** DESIGN's ordered-pattern intents win over PLAN's weighted-random; boss phase triggers are an
+    OR-list (HP%, round, event).
+15. **Units:** PLAN §4.10 numbers are replaced by DESIGN's; ability points and mastery are stored in half-points;
+    the clock is stored in ticks (watches). Clock effects are always expressed in watches.
+16. **One canonical condition/effect set** (PLAN §5 revised to cover every shape DESIGN/STORY/WORLD use).
+17. **Metrics:** Loop 1 completion = Escape rate; DESIGN §19 is the single balance-target table.
+18. **E2E:** a dev-only `loadScenario(id)` jumps to named states (boss fight, loop reset, ending); recorded action
+    traces are used only for the determinism test.
+19. **Amulet** never resets (D-047 stands; DESIGN §10.3 is corrected).
+20. **Echo catalog:** STORY §12 remains the catalog; REGISTRY's mapping (41 rows → existing STORY Echoes, 26 added
+    to STORY §12, 14 removed) is adopted. Quests: 44 + 6 stretch (optional) + 5 class mini-quests (adopted).
+21. **Regional bosses** sit 2 levels above their band's top (DESIGN wins over WORLD's +1; WORLD stats retuned in U9).
+22. **Item tier T5** (band 16–18, proposed by WORLD §7) is adopted; DESIGN §7 gains the T5 row in U8.

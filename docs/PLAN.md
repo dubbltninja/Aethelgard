@@ -905,6 +905,8 @@ export type Action =
   | { type: 'enterPortal' }                               // Library portal during a Horde → closer_escape
   | { type: 'interact'; eventId: string }                 // content-defined interactable (altar, Heartstone, anchor)
   | { type: 'wait' }                                      // advance one watch in place (only where location.rest or tags has 'waitable')
+  | { type: 'letGo' }                                     // D-067.14: at any camp from Loop 2 → endLoop({ closer: 'closer_fall', reason: 'released' })
+  | { type: 'keepVigil' }                                 // D-067.14: at a camp; ending E — skips the clock to the last dawn (daysLeft 1)
   // inventory / character
   | { type: 'use'; uid: string; targetUid?: string }
   | { type: 'equip'; uid: string; slot?: EquipSlot }
@@ -1220,14 +1222,20 @@ export type Effect =
   | { gold: number } | { xp: number } | { resonance: number }
   | { heal: { hp?: number | 'full'; mp?: number | 'full' } } | { damage: { hp: number } } | { corruption: number }
   | { clockWatches: number }            // moves the Breach Clock LIMIT by n watches (−10 days = −40), floored (DESIGN §10.1)
-  | { passWatches: number }             // time passes (an event's timeCost)
+  | { passWatches: number }             // time passes by n ≥ 1 watches (an event's timeCost); the limit is untouched. D-069.5: q_preserve_or_heal 8, Bell Vault descent 4
   | { spawn: { creature: `cr_${string}`; location?: `loc_${string}` } }
   | { teleport: `loc_${string}` }
   | { unlockExit: { from: `loc_${string}`; to: `loc_${string}` } }
   | { scatter: { location: `loc_${string}` } }                     // DESIGN §4.7
+  // combat scope (D-069.9): legal only in creature data — Move.effects, PhaseSchema.onEnter (validator rejects them in quest/dialogue/event effects)
+  | { multiHit: { hits: number } }                                 // the Move resolves as n separate hits (own accuracy/crit/armor each) at its per-hit power; ≡ power.hits (crown_seven 7 × 0.3×)
+  | { stripBuffs: { kinds: ('shield' | 'regen' | 'haste' | 'rewind')[]; target?: 'target' | 'self' | 'all_enemies' | 'all_allies' | 'ally' } }   // removes the listed beneficial statuses (tide_take: all four; umbra_unname: shield)
+  | { healOnDamage: { pct: number } }                              // user heals pct (0–1) of the damage the Move actually dealt, after shields/mitigation (lantern_drink 0.5, lamprey_drink 1)
+  | { surviveRounds: { rounds: number; line?: string } }           // encounter-level: the party WINS standing at the end of round n; no XP/loot (cr_unraveling_tide: 10)
+  | { leaveCombat: true }                                          // the acting creature withdraws (no XP, no loot, not a kill): redundant_leave, reach_withdraw
   | { recruit: string } | { dismiss: string }                      // plain companion ids
   | { startCombat: string } | { startDialogue: string }            // encounter id / dialogue id
-  | { endLoop: { closer: 'closer_escape' | 'closer_fall'; reason?: 'death' | 'expiry' | 'rejected' } }
+  | { endLoop: { closer: 'closer_escape' | 'closer_fall'; reason?: 'death' | 'expiry' | 'rejected' | 'released' } }
   | { ending: `ending_${string}` }
   | { unlockRecipe: `recipe_${string}` } | { unlockCodex: `codex_${string}` }
   | { counter: { name: string; delta: number } }
@@ -1236,6 +1244,8 @@ export type Effect =
 export const EffectSchema: z.ZodType<Effect> = z.lazy(() => z.union([ /* one strict object per variant, same pattern as ConditionSchema */ ]));
 export const Effects = z.array(EffectSchema).default([]);
 ```
+
+D-069.9 adds the six engine kinds `multiHit`, `stripBuffs`, `healOnDamage`, `surviveRounds`, `leaveCombat` and `passWatches` to the canonical set (`passWatches` already existed; the first five are combat-scope). `surviveRounds` is applied when the phase is entered: it sets `combat.survive = { rounds, line }`, and ending round n with the party standing ends the fight as a win (no XP or loot). `MoveSchema` (§5.4) carries an `effects: Effects` field for the combat-scope atoms; its `power.hits` and `leaveCombat: true` are authoring shorthand that normalise to `multiHit` and `leaveCombat`.
 
 The previous draft's extra atoms (`visited`, `gold`, `eventFired`, `exitUnlocked`, `equipped`, `ability`, `attunement`, `endingReached`, `hordeActive`, `heartstone`, `tyrant`, `hpPct`, `locationFlag`, `codex`, `achievement`, `always`/`never`; effects `questComplete`, `lockExit`, `applyStatus`, `setLocationFlag`, `npc`, `reveal`, `horde`, `heartstone`, `tyrant`, `restock`, `swapCompanion`, `log`, `if`, `random`, `learnAbility`, `abilityPoints`, `statPoints`, `stat`, `achievement`) are **withdrawn**: they are either flags/counters by another name or engine behaviour. A content unit that needs a new atom proposes it as a DESIGN §13.3 change first (lead ruling), then adds it here.
 
@@ -1277,9 +1287,11 @@ DESIGN §10.1–10.3 is the specification; this is the engine shape.
 - **Time.** `clock.ticks` advances by one per travel (an exit's `watches` may be 2, e.g. the Skyreach ascent) and by `passWatches` effects; a full rest moves to the next dawn tick; crossing a dawn emits `dayAdvanced`, restocks merchants (D-057), resets per-day `uses`, clears `encounterHp`, and ticks out-of-combat statuses per watch. `clockWarning` fires at 10/5/2/1 dawns before `limitTicks`.
 - **Limit changes.** `clockWatches` effects change `limitTicks`, clamped to `≥ dayStartTick(ticks) + 12` (the floor) and recorded in `clock.modifiers`; `mod_frayed_clock` sets the base to 80 ticks and halves other modifiers toward zero.
 - **Expiry.** When `ticks ≥ limitTicks`: `clock.expired = true`, `flag_clock_expired` is set, the Horde starts from `loc_temporal_breach_apex` with `hordeCause: 'expiry'` and a **3-move delay** (`hordeDelay = 3`), and the Library portal opens. If a fight is in progress, expiry is applied when it ends. There is no scripted Fall and no `fall_clock` (D-066 #7).
-- **Silverwood Before.** On entering `region_silverwood_before`: `clock.frozen = true`, `before = { day: 1, resets }`; Before edges cost 0; a full rest at the Garret advances `before.day`; resting on Day 3 runs the Last Bell reset (unless `q_stop_the_ritual` is resolved): `resets += 1`, Before-local flags/ground items/encounters reset, Echoes/inventory/anchors persist. Leaving sets `before = null`, `frozen = false`.
-- **Closers.** `enterPortal` is legal only when `world.hordeActive && currentLocationId === 'loc_shattered_library'` → `endLoop({ closer: 'closer_escape' })`. Death while `hordeActive` → `closer_fall` with reason `expiry` (expiry Horde) or `death` (Tyrant Horde). Death in Loop 2+ outside a Horde → `closer_fall`/`death`. Communion rejection + leave → `closer_fall`/`rejected`. Loop 1 death outside a Horde → FALLEN game-over (shell returns to title; the profile keeps Echoes/codex; D-049).
+- **Silverwood Before.** On entering `region_silverwood_before`: `clock.frozen = true`, `before = { day: 1, resets }`; Before edges cost 0; a full rest at the Garret advances `before.day`; resting on Day 3 runs the Last Bell reset (unless `q_stop_the_ritual` is resolved): `resets += 1`, Before-local flags/ground items/encounters reset, Echoes/inventory/anchors persist. Leaving sets `before = null`, `frozen = false`; **each return to the present costs 1 Breach-Clock day** (`passWatches` 4 on the exit, D-067.5), and the Before's loot and XP are granted **once per loop** (a per-loop `counters` entry cleared by the reset, so a re-entry or an echo reset never pays twice).
+- **Closers.** `enterPortal` is legal only when `world.hordeActive && currentLocationId === 'loc_shattered_library'` → `endLoop({ closer: 'closer_escape' })`. Death while `hordeActive` → `closer_fall` with reason `expiry` (expiry Horde) or `death` (Tyrant Horde). Death in Loop 2+ outside a Horde → `closer_fall`/`death`. Communion rejection + leave → `closer_fall`/`rejected`. **`letGo`** (D-067.14) is legal at any camp from Loop 2: it ends the loop at once as `closer_fall`/`released` (no Horde); **`keepVigil`** sets `ticks` to the last dawn before `limitTicks` (`daysLeft` 1) so ending E's gate (DESIGN §10.1) is reachable. Loop 1 death outside a Horde → FALLEN game-over (shell returns to title; the profile keeps Echoes/codex; D-049).
 - **Next loop.** Loop 1 closers go **straight to Loop 2 Day 1** (no Threshold; D-049); Loop 2+ closers and endings go to the Threshold. `newLoop` = `newRun({ seed: `${profile.profileId}:${profile.loopCounter}`, classId, profile, content })`: applies equipped Attunements, modifiers, mastery, map memory (greyed), starts at `loc_whispering_ruins` Day 1 Dawn with the **Amulet of Echoes on the Wayfinder from Loop 2** (D-047).
+- **Level carry-over (D-067.2, amends D-011).** `newRun` starts `player.level = max(1, min(10, ⌊0.6 × bestLevel⌋))`, where `bestLevel` is the maximum of `profile.classMastery[*].bestLevel` (best 13 → 7, 17 → 10), with the stat points and ability points of that level granted as on a normal level-up (`apHalf` accordingly). Inventory, gold, quests and the world still reset; quests started at the Threshold survive (D-067.15).
+- **Flags at reset.** `endLoop` clears every `flag_*`, including `flag_tyrant_dead` (D-069.6), which the combat reducer sets when either Tyrant (`cr_chronos_tyrant_contained` / `cr_chronos_tyrant_unveiled`) dies in combat; conditions read it as `{ flag: 'flag_tyrant_dead' }`.
 
 ### 4.12 Saves
 
@@ -1295,7 +1307,7 @@ export const migrations: Record<number, (old: unknown) => unknown>;   // v→v+1
 export interface ProfileFile { kind: 'profile'; version: number; profile: Profile }
 ```
 
-Storage keys follow DESIGN §14.1: `aethelgard.run.slot1|slot2|slot3`, `aethelgard.run.auto`, `aethelgard.profile`, plus `aethelgard.settings.mirror` (settings duplicated so a corrupt profile still restores accessibility settings) and the two-phase `.tmp`/`.bak` writes of DESIGN §14.4. Autosave at `autosaveCheckpoint` events when `settings.autosave`. Export = `Blob` download; import = file input → `deserialize` → `load` action. Loading a run whose `profileLoopAtSave` is older than `profile.loopCounter` is allowed; the next `endLoop` sets `loopCounter = max(profile, run) + 1` so the counter never rewinds. The state must round-trip: `deserialize(serialize(s)).state` deep-equals `s` (tested with sim snapshots).
+Storage keys follow DESIGN §14.1: `aethelgard.run.slot1|slot2|slot3`, `aethelgard.run.auto`, `aethelgard.profile`, plus `aethelgard.settings.mirror` (settings duplicated so a corrupt profile still restores accessibility settings) and the two-phase `.tmp`/`.bak` writes of DESIGN §14.4. Autosave at `autosaveCheckpoint` events when `settings.autosave` — **except** at the Loop 1 Apex and while `world.hordeActive` (D-067.1): `step` suppresses the checkpoint event there, so a reload can never land inside the Apex prompt or a Horde. Entering `loc_temporal_breach_apex` in Loop 1 opens a *Face it / Not yet* prompt (ordinary `choose` actions): *Not yet* returns to the previous node with nothing started, *Face it* proceeds to the Contained Tyrant. Export = `Blob` download; import = file input → `deserialize` → `load` action. Loading a run whose `profileLoopAtSave` is older than `profile.loopCounter` is allowed; the next `endLoop` sets `loopCounter = max(profile, run) + 1` so the counter never rewinds. The state must round-trip: `deserialize(serialize(s)).state` deep-equals `s` (tested with sim snapshots).
 
 ### 4.13 `loadScenario(id)` — dev/e2e only (D-066 #18)
 
@@ -1378,6 +1390,8 @@ export const ExitSchema = z.object({
   travelWatches: z.number().int().min(0).max(8).default(1),
   oneWay: z.boolean().default(false),
   dangerText: z.string().optional(),            // shown when the destination is horde-infected
+  kind: z.enum(['path', 'road']).default('path'),   // D-069.9: 'road' = conditional road (Steppe waystones: loc_scorched_gate ↔ loc_reedmarch_descent, 1 watch)
+  gate: ConditionSchema.optional(),             // required iff kind === 'road': the road does not exist (not drawn, not in graph distance or pathfinding) until the gate holds, e.g. { echo: 'echo_steppe_waystones' }; then it is a normal two-way exit unless oneWay
 }).strict();
 
 export const EncounterGroupSchema = z.object({ creatureId: Id, count: z.number().int().min(1).max(3).default(1) }).strict();
@@ -1490,7 +1504,8 @@ export const MoveSchema = z.object({
   shield: z.object({ power: PowerSchema }).strict().optional(),     // self shield (tyr_brace, tyr_aulde_sings)
   heal: z.object({ power: PowerSchema, target: z.enum(['self', 'ally', 'lowest_ally']) }).strict().optional(),
   cleanseSelf: z.boolean().default(false),
-  leaveCombat: z.boolean().default(false),       // reach_withdraw
+  leaveCombat: z.boolean().default(false),       // reach_withdraw (shorthand for the { leaveCombat: true } effect)
+  effects: Effects,                              // combat-scope atoms: multiHit, stripBuffs, healOnDamage, leaveCombat (PLAN §4.9, D-069.9)
   special: PId('').optional(),                   // engine-coded scriptId, validated against SPECIALS (src/engine/combat/specials.ts)
 }).strict();
 
@@ -1694,7 +1709,7 @@ export const ClassSchema = Base.extend({
   starterItems: z.array(z.object({ itemId: Id, equip: z.boolean().default(false), count: z.number().int().default(1) }).strict()),
   startingAbilities: z.array(Id).default([]),
   startingGold: z.number().int().default(30),
-  uniqueQuestId: PId('q_class_').optional(),     // D-008: one class mini-quest (q_class_<class>)
+  uniqueQuestId: PId('q_class_').optional(),     // D-008: one class mini-quest (q_class_<class>); Loop 2+ only (D-069.7: its Quest.availableWhen includes { loop: { min: 2 } }; validator)
   dialogueTag: Id,                                // used by `{ class: id }` conditions and text tokens
   sigil: z.string(),
   legacy: z.boolean().default(false),
@@ -2090,11 +2105,11 @@ Returns `{ errors: Issue[]; warnings: Issue[] }` with `Issue = { table, id, path
 **Structural rules (errors)**
 
 6. Duplicate ids within a table; ids not matching `Id`.
-7. Exits: no exit to self; every non-`oneWay` exit has a reverse exit on the destination (warning if missing; error if the destination has *no* way back and is not tagged `one_way_ok`); directions unique per location.
+7. Exits: no exit to self; every non-`oneWay` exit has a reverse exit on the destination (warning if missing; error if the destination has *no* way back and is not tagged `one_way_ok`); directions unique per location. `kind: 'road'` ⇔ `gate` present (D-069.9), and the reverse road carries the same `gate`; the reachability BFS (8) treats a road as an exit whose gate is satisfiable.
 8. Reachability: BFS from `config.startLocationId` over exits treating all `when` as satisfiable reaches every location whose region has no `unlockWhen` and that is not tagged `threshold`; Threshold locations are reachable from `still_shore`. Also a *Loop-1 reachability* pass with conditions evaluated against a synthetic Loop-1 state (loop = 1, no echoes) must reach every legacy location.
 9. Quest graph: `firstStage` exists; every stage reachable from it; at least one terminal stage with `outcome: 'complete'`; no stage both `outcome` and `next`; branches' `when` not all `never`; `objectives` ids unique.
 10. Dialogue graph: every node reachable from some entry; nodes without choices have `next`; no infinite `continue` cycles without a choice (cycle detection on `next` edges ignoring choice edges); `choice.hotkey` unique per node; speaker ids resolve to NPC/companion ids.
-11. Creatures: `role: 'boss'` ⇒ `phases.length` 2–4 and `fleeable: false`; every phase's `pattern` non-empty; `hpBelow` triggers strictly decreasing across phases; `summon`/`adds` creatures resolve; regional bosses at band top + 2 (D-066 #21, warning); `level` within region band ± 2 wherever a non-boss is placed (warning).
+11. Creatures: `role: 'boss'` ⇒ `phases.length` 2–4 and `fleeable: false`; every phase's `pattern` non-empty; `hpBelow` triggers strictly decreasing across phases; `summon`/`adds` creatures resolve; regional bosses at band top + 2 (D-066 #21, warning); `level` within region band ± 2 wherever a non-boss is placed (warning). The combat-scope effect kinds (`multiHit`, `stripBuffs`, `healOnDamage`, `surviveRounds`, `leaveCombat`; 4.9) appear only in `moves[].effects` / `phases[].onEnter`; `surviveRounds` only in a boss's first phase, and `rounds` ≥ 1.
 12. Items: slot required for equipment types; `weaponType` only for weapons; `onUse` non-empty for consumables; value > 0 for sellable items; `rarityRule: 'rolled'` only for weapon/armor/trinket.
 13. Abilities: per class exactly 3 branches × 5 tiers = 15 abilities (D-008); tier gates 1/4/8/12/16; `costHalf` 2 (T1–T4) or 4 (capstone); MP > 0 unless the ability is a resource converter (`wvr_blood_pact`); power or heal or shield or statuses or special non-empty; `itm_echo_bolt` exists and is granted by `item_amulet_of_echoes` (D-047).
 14. Statuses: all 19 `CANONICAL_STATUSES` present (18 + `status_rested`); stackable ⇒ maxStacks > 1.
@@ -3040,7 +3055,7 @@ Threshold locations: `loc_still_shore`, `loc_gallery_of_loops`, `loc_loom`, `loc
 - Legacy quests (names preserved, ids prefixed): `q_echo_crystal` "Echoes in the Library", `q_lost_scroll` "The Scholar's Lost Scroll", `q_clear_path` "Clear the Barren Peaks", `q_blighted_outpost` "The Blighted Outpost", `q_void_shards` "Whispers of the Void", `q_echoing_heartbeat` "The Echoing Heartbeat".
 - Merchants are keyed by NPC id (WORLD §9): `npc_kaelen_stonehand`, `npc_borin_stonefist` (buy/sell/upgrade), plus WORLD's other six.
 - Legacy flags → new state: `kept_echo_crystal` → `flag_kept_echo_crystal`; `heartstone_outcome` → `world.heartstone`; `chronos_tyrant_defeated` → `world.tyrant = 'defeated'`; `defeated_wildling` → `{ killed: { id: 'cr_wildling_brute' } }`; `ilyra_at_portal` → `world.npcOverrides.npc_ilyra.location = 'loc_shattered_library'` + `flag_portal_open`; `heartstone_unlocked` → quest `q_echoing_heartbeat` active; `apex_first_entry` → location flag + `echo_apex_resonance` grant; `spellbooks_read_count` → `player.corruption`.
-- Endings: `ending_wardens_vigil` (A), `ending_mending` (B), `ending_weavers_dawn` (C), `ending_iron_silence` (D), `ending_long_archive` (E), `ending_unbound` (F); closers `closer_escape` and `closer_fall` (reason `death` | `expiry` | `rejected`). There is no `loop1_death` closer: a Loop 1 non-Horde death is the FALLEN game-over (D-049).
+- Endings: `ending_wardens_vigil` (A), `ending_mending` (B), `ending_weavers_dawn` (C), `ending_iron_silence` (D), `ending_long_archive` (E), `ending_unbound` (F); closers `closer_escape` and `closer_fall` (reason `death` | `expiry` | `rejected` | `released`). There is no `loop1_death` closer: a Loop 1 non-Horde death is the FALLEN game-over (D-049).
 - Statuses: the 19 canonical `status_*` ids in §5.8. Damage types: `physical|fire|storm|ley|void|chrono`. Stats: `strength|magic|agility`.
 
 ### A.6 Echo ids referenced by DECISIONS.md (must exist)
@@ -3066,5 +3081,14 @@ Revision U8 (2026-10-13) applies D-065, D-066, `docs/reviews/REVIEW-DESIGN-PLAN.
 - **§11 (replaced):** CI with setup-node 22 + `npm install` (exact pins, no lockfile, no npm cache), `oven-sh/setup-bun`, version check, Playwright Chromium install keyed on `playwright/package.json`, smoke + full e2e + dispatch sim; Pages deploys `dist/` (relative URLs) from `main`; local equivalence table.
 - **§12–§13:** risks updated (structuredClone cost, offline drift, type-shim gaps); open questions reduced to four.
 - **Appendix A:** every id per D-044 / REGISTRY-DRAFT; Tyrant split (D-051); closers without `loop1_death`; Echo list per D-044/D-048/D-054.
+
+### Changelog (U9.5)
+
+Touch-ups from D-067 / D-068 / D-069.
+- **§4.9:** Effect kinds `multiHit`, `stripBuffs`, `healOnDamage`, `surviveRounds`, `leaveCombat` (combat scope) added, `passWatches` clarified (D-069.5, D-069.9); `endLoop` reason `released`.
+- **§4.4 / §4.11:** actions `letGo` and `keepVigil` (D-067.14); Silverwood Before return costs 1 day, loot once per loop (D-067.5); level carry-over in `newRun` (D-067.2); `flag_tyrant_dead` set on either Tyrant's death, cleared at reset (D-069.6).
+- **§4.12:** no autosave at the Loop 1 Apex or during a Horde; *Face it / Not yet* prompt (D-067.1).
+- **§5.3 / §5.19:** `ExitSchema` gains `kind: 'path' | 'road'` and `gate` (conditional road, D-069.9) with validator rules.
+- **§5.4 / §5.7:** `MoveSchema.effects`; class mini-quests are Loop 2+ (D-069.7).
 
 *End of PLAN.md v1.1.*

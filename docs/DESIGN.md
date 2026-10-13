@@ -57,7 +57,7 @@ Day 1, Dawn, Whispering Ruins, Amulet of Echoes at your feet → explore the ele
 | Exit | Loop | Where it leads |
 |---|---|---|
 | **The Escape** `closer_escape` (any portal flight during a Horde: after the Tyrant dies in combat, or after the Breach Clock expires) | 1+ | Loop 1: straight to Loop 2 Day 1 in the Whispering Ruins, no Threshold (D-049); Loop 2+: Threshold |
-| **The Fall** `closer_fall` (reason `death` \| `expiry` \| `rejected`): death in any Horde, death in Loop 2+, or communion rejection | 1+ | Loop 1 (Horde death only): straight to Loop 2 Day 1 (D-066 #7); Loop 2+: Threshold |
+| **The Fall** `closer_fall` (reason `death` \| `expiry` \| `rejected` \| `released`): death in any Horde, death in Loop 2+, communion rejection, or *Let go* at a camp (Loop 2+, D-067.14) | 1+ | Loop 1 (Horde death only): straight to Loop 2 Day 1 (D-066 #7); Loop 2+: Threshold |
 | **True ending A–F** (D-018) | 2+ | Ending sequence → epilogues → Threshold (New Game+ offered) |
 | Death in Loop 1 outside a Horde | 1 | FALLEN game-over → load/restart (no Threshold); Echoes and codex gained are still written to the profile (D-049) |
 
@@ -398,15 +398,16 @@ Rules: `enterWhen` is an **OR-list** (D-066 #14): the phase is entered when any 
 
 D-054 / D-066 #6. Available against `cr_chronos_tyrant_unveiled` (Loop 2+) once the player holds `echo_tyrant_speaks`, or from the moment the player chooses **Listen** (STORY §8.3). The Tyrant never attacks first from Loop 2, so communion can open on turn 1; the player may also switch to it at any phase transition, entering the Movement that matches the phase (a player who fought into Phase 2 starts at Movement II). The encounter screen is the combat screen; the ability bar gains a seventh toggle **Commune** (free action) that swaps the bar for four **dialogue actions**, each costing the player's turn.
 
-**Resolve** is an integer **0–8** that starts at **1** (D-066 #6), shown as eight pips. While a Movement runs the Tyrant's combat pattern is paused: its intent alternates a **question** pseudo-intent (no damage; STORY §8.3 owns the questions, WORLD §6.8 the ids `tyr_q_*`) with `tyr_hour_presses` (Chrono `0.6·SP` × (1 − Resolve/16)). Movement I has three questions, Movement II six (five askers plus Hallow's silence), Movement III one (the choice); a Movement ends when its last question has been answered.
+**Resolve** is an integer **0–8** that starts at **1** (D-066 #6), shown as eight pips. While a Movement runs the Tyrant's combat pattern is paused: its intent alternates a **question** pseudo-intent (no damage; STORY §8.3 owns the questions, WORLD §6.8 the ids `tyr_q_*`) with `tyr_hour_presses` (D-067.3: Chrono, **8% of the player's max HP × (1 − Resolve/8)**; it **cannot kill while Resolve ≥ 3** — it stops at 1 HP — so communion is never a gear check). Movement I has three questions, Movement II six (five askers plus Hallow's silence), Movement III one (the choice); a Movement ends when its last question has been answered.
 
 | Action | Effect on Resolve | Notes |
 |---|---|---|
 | **Speak** (answer the current question; answers require Echoes, STORY §8.3) | matching Echo answer **+1**; `echo_hallow_said_stop` (Hallow's silence) **+2**; `echo_ritual_inevitable` for Masque **+2**; the honest "to kill you" +1; a **lie −2** | each answer once per encounter |
-| **Listen** | **+1**, once per Movement; the Tyrant speaks a codex fragment (unlocks `codex_*` entries) | its next pseudo-intent is a full-strength `tyr_time_lash` instead of `tyr_hour_presses` |
-| **Offer** (present an item; not consumed) | `item_chronos_lens` +1; `item_stabilized_heartstone` +1; `item_breach_anchor` +2 (sets `flag_anchor_offered`); `item_heartstone_core` **−2** (it recoils) | each item once per encounter |
+| **Listen** | **+1**, once per Movement; the Tyrant speaks a codex fragment (unlocks `codex_*` entries) | no damage rider (D-069.8); the only communion damage is `tyr_hour_presses` |
+| **Offer** (present an item; **never consumes** it, D-067.3) | `item_chronos_lens` +1; `item_stabilized_heartstone` +1; `item_breach_anchor` +2 (sets `flag_anchor_offered`); `item_heartstone_core` **−2** (it recoils) | each item once per encounter |
 | **Resist** | +0; acts as Guard | |
 
+- **Attacking during communion forfeits the current question** (D-067.3): that question is skipped unanswered (no Resolve gain).
 - A companion in Support stance adds **+1 once per Movement** — Dask or Caelum only (WORLD §6.8).
 - "It is tired": below 30% Tyrant HP every gain is +1 more.
 - Corruption ≥ 3 satisfies Korr's question (+1) but costs −1 at the next asker (STORY §8.3).
@@ -1005,7 +1006,7 @@ Core lists and theme pools beyond these lines are WORLD §9.2's (D-062: WORLD ow
 | 1 | All eastern regions hatched; ambient audio detunes | "One dawn." | red, bold |
 | 0 (limit) | **Clock expiry → the Horde** (§10.2) | **Clock expiry → the Horde** | — |
 
-**Silverwood Before clock** (D-066 #9). Inside `region_silverwood_before` the Breach Clock is frozen. The run state carries `before = { day: 1 | 2 | 3, resets: number }`, set to Day 1 on every entry. Before edges cost 0 watches; **resting at the Garret** advances the Before day (and is the Before's only full rest); resting there on Day 3 brings Last Bell dusk: the ninth verse is spoken and the echo **resets to Day 1** (`resets + 1`, one attempt of `q_stop_the_ritual` per reset, STORY §9) unless that quest has been resolved. On a reset, Before-local flags, items on the ground and enemies reset; Echoes, inventory, Conflux anchors (`flag_conflux_anchored`, `flag_cradle_pin_anchored`) and Caelum's memory persist. The engine mirrors the day into `flag_before_day_1..3` for WORLD's world-state variants; conditions read it as `{ beforeDay: n }` and `{ beforeResets: { min } }` (§13.3). Merchants in the Before restock at each Before day.
+**Silverwood Before clock** (D-066 #9). Inside `region_silverwood_before` the Breach Clock is frozen. The run state carries `before = { day: 1 | 2 | 3, resets: number }`, set to Day 1 on every entry. Before edges cost 0 watches; **resting at the Garret** advances the Before day (and is the Before's only full rest); resting there on Day 3 brings Last Bell dusk: the ninth verse is spoken and the echo **resets to Day 1** (`resets + 1`, one attempt of `q_stop_the_ritual` per reset, STORY §9) unless that quest has been resolved. On a reset, Before-local flags, items on the ground and enemies reset; Echoes, inventory, Conflux anchors (`flag_conflux_anchored`, `flag_cradle_pin_anchored`) and Caelum's memory persist. The engine mirrors the day into `flag_before_day_1..3` for WORLD's world-state variants; conditions read it as `{ beforeDay: n }` and `{ beforeResets: { min } }` (§13.3). Merchants in the Before restock at each Before day. **Returning to the present** from the Before costs **1 Breach-Clock day** (4 watches, a `passWatches` effect on the exit edge; D-067.5), and the Before's loot and XP are granted **once per loop** — a re-entry after a return or an echo reset does not pay them out again.
 
 ### 10.2 The Fall (clock expiry)
 
@@ -1013,6 +1014,10 @@ Clock expiry is **not** a cutscene (D-060, D-066 #7). At the limit the sky tears
 
 - reaches the portal → `closer_escape`; or
 - dies in the Horde → `closer_fall` with reason `expiry` (a death in the post-Tyrant Horde has reason `death`).
+
+**Ending a loop on purpose** (D-067.14). From **Loop 2**, every camp offers **Let go**: it closes the loop at once as `closer_fall` with reason `released` (no death, no Horde; the Threshold follows as for any Loop 2+ Fall). For ending E, **Keep the vigil** at a camp skips the clock to the last dawn (`daysLeft` 1), so the final stage's gate (§10.1) is reachable without waiting out the days.
+
+**No Apex soft-lock** (D-067.1). Entering `loc_temporal_breach_apex` in Loop 1 asks **Face it / Not yet**: *Not yet* returns the player to the previous node with nothing started; *Face it* commits to the Contained Tyrant. The game does **not** autosave at the Loop 1 Apex or while a Horde is active (§14.2), so a reload can never land the player in a fight or a spreading Horde with no way back.
 
 In **Loop 1** both closers lead straight to Loop 2 Day 1 in the Whispering Ruins, with no Threshold (D-049); the Gallery shows Loop 1 retroactively and Loop 1's Resonance is banked, first spendable at the end of Loop 2. This is the alternate route to Loop 2 (D-005), so a Loop 1 player who never reaches the Apex still reaches Loop 2. An expiry grants `echo_thirtieth_dawn` and `echo_amulet_memory` if missing (STORY §12 sources), and sets `flag_clock_expired` for WORLD's variants.
 
@@ -1022,7 +1027,7 @@ At any loop end the engine runs `endLoop(reason)`:
 
 1. Compute the run summary (§15.3) and append it to `profile.runHistory`.
 2. **Copy to the profile layer** (persists, D-011): new `echoes` (set union), `codex` unlocks, `bestiary` (seen/killed counts, revealed resistances, pattern knowledge level), `mapMemory` (every node visited in any loop + known exits + known camps/merchants), `achievements`, `classMastery[class]` (abilities unlocked this loop → mastered; `loopsPlayed++`; `bestLevel`; endings), `resonance` (+ this loop's tally), `attunements` (unchanged), `loopCounter++`, `lifetimeStats`, `settings`, `modifiers` (as set at the Loom), `lastClass`, `seedBase`.
-3. **Discard** (resets): level, XP, stat points, AP, abilities, HP/MP, inventory and equipment **except the Amulet of Echoes, which is never reset** (D-047, D-066 #19: it is on the Wayfinder's neck at Day 1 of every loop from Loop 2, the "Amulet warm" cue), gold, Corruption, quests and stages, flags (`flag_*`), world state (items on ground, enemies, unlocked exits, infection, Heartstone state), companions (recruited, active, loyalty, KO), faction reputation, merchant stock, clock, combat state, `rng` (reseeded as `hash(seedBase, loopCounter)`).
+3. **Discard** (resets): XP, stat points, AP, abilities, HP/MP, and level — except that the new loop **starts at level ⌊0.6 × best level reached⌋, capped at 10 (never below 1), with the ability points for that level** (D-067.2, amending D-011; e.g. best 13 → 7, best 17 → 10; applies to every loop start, including the Threshold-less Loop 1 → 2), inventory and equipment **except the Amulet of Echoes, which is never reset** (D-047, D-066 #19: it is on the Wayfinder's neck at Day 1 of every loop from Loop 2, the "Amulet warm" cue), gold, Corruption, quests and stages (quests *started at the Threshold* survive into the next loop, D-067.15), flags (`flag_*`, including `flag_tyrant_dead`, which is set when either Tyrant dies in combat and cleared here, D-069.6), world state (items on ground, enemies, unlocked exits, infection, Heartstone state), companions (recruited, active, loyalty, KO), faction reputation, merchant stock, clock, combat state, `rng` (reseeded as `hash(seedBase, loopCounter)`).
 4. Loop 1 → Loop 2: skip the Threshold and start Loop 2 Day 1 directly (D-049); Loop 2+: enter the Threshold with `threshold.pending = { closer|ending, reason?, echoesGained[], resonanceGained }`.
 5. `profile.loopCounter = max(profile.loopCounter, run.loop) + 1`, so loading an older run save never rewinds the counter; run saves record `profileLoopAtSave` (§14.1).
 
@@ -1170,7 +1175,7 @@ The Threshold is first visited at the end of Loop 2 (D-049); its Gallery then sh
 Keyboard: `←/→` between the four places, `Enter` select, `Esc` back; on mobile the four places are bottom tabs.
 
 ### 10.9 Class change between loops
-Free at the Far Light (D-008). The Wayfinder re-manifests: new class base stats, kit, 1 AP, 30 gold (+`att_full_purse`). Mastery is per class. Echoes are class-agnostic; the five class mini-quests (`q_class_ranger`, `q_class_wizard`, `q_class_elf`, `q_class_ironclad_warden`, `q_class_shadow_weaver`; D-008, added to STORY §11 outside D-045's 44) are available only while playing that class and grant the class's badge. A handful of dialogue lines check `{ class: id }` (D-008).
+Free at the Far Light (D-008). The Wayfinder re-manifests: new class base stats, kit, 1 AP, 30 gold (+`att_full_purse`). Mastery is per class. Echoes are class-agnostic; the five class mini-quests (`q_class_ranger`, `q_class_wizard`, `q_class_elf`, `q_class_ironclad_warden`, `q_class_shadow_weaver`; D-008, added to STORY §11 outside D-045's 44) are available only while playing that class, **only from Loop 2** (D-069.7; Loop 1 has just four non-legacy quests open, D-067.17), and grant the class's badge. A handful of dialogue lines check `{ class: id }` (D-008).
 
 ---
 
@@ -1208,7 +1213,7 @@ Re-cut to STORY §11's structure (REVIEW-CROSS C-16: STORY owns which choices ex
 | Shadow Weavers | +45 (keep, shards, exploit) | `q_hollow_choir` +15; `q_unlidded_eye` +20 (Loop 2+) | Nyx +5 / +10 / +15 | +10 | ~120 | 10–40 |
 | Ironclad Nomads | +50 (peaks, outpost, destroy, refuse) | `q_day_of_teeth` +25 (Loop 2+) | Brak +5 / +10 / +15 | +10 | ~115 | 25–45 |
 
-Sworn (60) in one loop requires the faction chain plus most legacy choices in its favour — a deliberate commitment that costs the others (§11.5). Checked per faction for a Loop 2+ run with no start Echo: Remnants 40 + 25 + 30 − cross costs ≈ 80; Weavers 45 + 35 + 30 − ≈ 95; Ironclad 50 + 25 + 30 − ≈ 90 — each reaches 60 in one loop. In Loop 1 only the Weavers can (via `q_hollow_choir`), which is intended.
+Sworn (60) in one loop requires the faction chain plus most legacy choices in its favour — a deliberate commitment that costs the others (§11.5). Checked per faction for a Loop 2+ run with no start Echo: Remnants 40 + 25 + 30 − cross costs ≈ 80; Weavers 45 + 35 + 30 − ≈ 95; Ironclad 50 + 25 + 30 − ≈ 90 — each reaches 60 in one loop. In Loop 1 any faction can reach Sworn (D-069.4).
 
 ### 11.4 Tier effects
 
@@ -1234,7 +1239,7 @@ Every faction chain quest completion costs the two other factions −3 (quest 1)
 
 | id | Name | Where | Condition (Loop 1 unless noted) | Role |
 |---|---|---|---|---|
-| `ilyra` | Ilyra | Whispering Ruins | after `q_echo_crystal` resolved (either way) and `q_lost_scroll` accepted; Remnants ≥ Neutral | support / Ley caster |
+| `ilyra` | Ilyra | Whispering Ruins | **Loop 2+** (D-069.4; STORY wins) — after `q_echo_crystal` resolved (either way) and `q_lost_scroll` accepted; Remnants ≥ Neutral | support / Ley caster |
 | `brak` | Brak | Ironclad Camp | after `q_clear_path`; Ironclad ≥ Neutral | bruiser / tank |
 | `nyx` | Nyx | Chasm of Whispers | after `q_void_shards` (given) or Loop 2+ with `echo_nyx_is_of_the_nine`; Weavers ≥ Neutral | Void caster |
 | `dask` | Dask | Shimmering Pass | **Loop 2+ only** (glimpsed but not spoken to in Loop 1, STORY §4.4; REVIEW-CROSS C-09); `echo_flickering_man` makes it immediate | Chrono phantom; **location-restricted** (D-013, D-059): may only be active in locations flagged `temporallyUnstable` (§12.8); elsewhere he "flickers out" (auto-dismissed to the roster, rejoins when you re-enter one) |
@@ -1420,10 +1425,15 @@ This is the **one canonical set** (D-066 #16); PLAN §4.9's zod schemas implemen
 | economy | `{ gold: n }` · `{ xp: n }` · `{ resonance: n }` | |
 | body | `{ heal: { hp?, mp? } }` · `{ damage: { hp } }` · `{ corruption: n }` | |
 | clock limit | `{ clockWatches: n }` | moves the Breach Clock **limit** by n watches (−10 days = −40), subject to the clock floor (§10.1) |
-| time passes | `{ passWatches: n }` | advances the current time (the `timeCost` of events) |
+| time passes | `{ passWatches: n }` | advances the current time by n watches (n ≥ 1; the `timeCost` of events) without touching the limit; crossing a dawn fires the usual dawn effects. D-069.5: the dropped clock effects become `passWatches` — `q_preserve_or_heal` 8, the Bell Vault descent 4 |
+| combat hits | `{ multiHit: { hits: n } }` | **combat scope.** The enclosing Move resolves as n separate hits, each at the Move's per-hit power with its own accuracy, crit and armor roll (`crown_seven`: 7 × 0.3×); same as `power.hits` |
+| combat strip | `{ stripBuffs: { kinds: ("shield" \| "regen" \| "haste" \| "rewind")[], target? } }` | **combat scope.** Removes the listed beneficial statuses from the Move's target (`target` as `StatusApply`, default the Move's target): `tide_take` all four, `umbra_unname` shield, `moth_eat_a_second` haste |
+| combat drain | `{ healOnDamage: { pct: n } }` | **combat scope.** The user heals `pct` (0–1) of the damage the Move actually dealt, after shields and mitigation (`lantern_drink` 0.5, `lamprey_drink` 1.0) |
+| combat survive | `{ surviveRounds: { rounds: n, line? } }` | **combat scope; encounter-level** (a boss's first phase `onEnter`). The party **wins by standing at the end of round n**: the fight ends, with the optional `line`, and grants **no XP or loot**. The Unraveling Tide is `{ surviveRounds: { rounds: 10 } }` (D-069.9); it is a survival fight, not a regional boss, so D-067.20's HP rule does not retune it |
+| combat leave | `{ leaveCombat: true }` | **combat scope.** The acting creature withdraws from the fight (no XP, no loot, not a kill): `redundant_leave`, `reach_withdraw` |
 | world | `{ spawn: { creature, location? } }` · `{ teleport: "loc_x" }` · `{ unlockExit: { from, to } }` · `{ scatter: { location } }` (§4.7) | |
 | companions | `{ recruit: "<companion>" }` · `{ dismiss: "<companion>" }` | |
-| flow | `{ startCombat: "<encounter>" }` · `{ startDialogue: "<dialogue>" }` · `{ endLoop: { closer: "closer_escape" \| "closer_fall", reason? } }` · `{ ending: "ending_x" }` | |
+| flow | `{ startCombat: "<encounter>" }` · `{ startDialogue: "<dialogue>" }` · `{ endLoop: { closer: "closer_escape" \| "closer_fall", reason? } }` · `{ ending: "ending_x" }` | `reason` ∈ `death` \| `expiry` \| `rejected` \| `released` (D-067.14) |
 | unlocks | `{ unlockRecipe: "recipe_x" }` · `{ unlockCodex: "codex_x" }` | |
 | counters | `{ counter: { name, delta } }` · `{ resolve: n }` | `resolve` is communion-only and clamped 0–8 |
 
@@ -1440,6 +1450,8 @@ This is the **one canonical set** (D-066 #16); PLAN §4.9's zod schemas implemen
 11. **Ending B eligibility** (`ending_mending`, at the Movement III consent): `{ all: [{ resolve: { min: 8 } }, { echo: "echo_heartstone_resonance" }, { echo: "echo_litany_complete" }, { echo: "echo_void_resonance" }, { echo: "echo_anchor_mechanic" }, { item: { id: "item_breach_anchor" } }, { counter: { name: "factions_trusted", min: 2 } }, { flag: "flag_conflux_anchored" }, { flag: "flag_cradle_pin_anchored" }] }` (D-018, D-054).
 12. **Ending E's last stage** (`q_long_archive`): `{ all: [{ location: "loc_heartstone_depths" }, { clock: { daysLeft: { max: 1 } } }] }` (D-066 #8).
 13. **Silverwood Before**: `{ all: [{ beforeDay: 2 }, { location: "loc_cistern_gardens" }] }`; Caelum's third-reset line `{ beforeResets: { min: 3 } }`.
+
+**Combat-scope** effects (`multiHit`, `stripBuffs`, `healOnDamage`, `surviveRounds`, `leaveCombat`; D-069.9) are legal only in creature definitions — a Move's `effects`, a phase's `onEnter` — and `validateContent()` rejects them in quest, dialogue and event effects.
 
 Effects are applied atomically within one `step`; every effect emits an `events[]` entry the UI renders (toasts, log lines, Echo fanfare).
 
@@ -1496,7 +1508,7 @@ Saves are disposable until the first full-screen integration checkpoint; from th
 State notes (REVIEW-DESIGN-PLAN F19): `player.statuses` holds out-of-combat Poison/Bleed/Curse (they tick per watch, §4.5); `player.uses` records per-loop/per-day usage (Second Wind, free inn rest, Remembered Steps, respec once per day); `status_rested` lives in `player.statuses`; `world.gather` tracks gathering nodes; `world.encounterHp` keeps a fled boss/story-gate encounter's HP until dawn; `before` is the Silverwood Before counter (`{ day, resets }` or `null`, §10.1). Companions carry cooldowns, not MP.
 
 ### 14.2 Slots, autosave, timing
-Three manual slots + one autosave (D-034). **Autosave** writes after every location change, after every combat (win or flee), at every loop transition, and on entering the Threshold; it never writes mid-combat (a reload resumes at the pre-combat node with the encounter intact). Manual save is allowed anywhere outside combat/dialogue. Each slot shows the `summary`. Deleting a run never touches the profile; deleting the profile asks twice and exports first.
+Three manual slots + one autosave (D-034). **Autosave** writes after every location change, after every combat (win or flee), at every loop transition, and on entering the Threshold; it never writes mid-combat (a reload resumes at the pre-combat node with the encounter intact), **nor at the Loop 1 Apex or while a Horde is active** (D-067.1, §10.2). Manual save is allowed anywhere outside combat/dialogue. Each slot shows the `summary`. Deleting a run never touches the profile; deleting the profile asks twice and exports first.
 
 ### 14.3 Export / import
 Export: `Blob` download `aethelgard-<kind>-<slot>-<yyyymmdd-hhmm>.json` (pretty-printed). Import: file picker → `JSON.parse` → zod `SaveSchema` (strict) → migrate → preview card → confirm overwrite of the chosen slot. A profile import merges by default (set-union of Echoes/codex/achievements, max of mastery, sum of Resonance capped at the sum of observable sources) and offers "replace" as a second option.
@@ -1843,3 +1855,13 @@ Revision U8 (2026-10-13) applies `docs/reviews/REVIEW-DESIGN-PLAN.md` (as ruled 
 - **§16:** keyboard map (Shift-panels in combat, Delete-to-drop, WASD map-only, Tab in merchant); Resolve pips; Horde forecast; in-repo a11y checks replace axe-core (D-065).
 - **§19:** #1 Escape rate; #11 explorer 11–13 / speedrunner ≥ 9; #12 per-class bands (casters 55–80%); new #19 Contained Tyrant scenario sims at L11/L13 and #20 Unveiled; declared the single balance-target table.
 - **§20:** resolved questions folded; four remaining open items.
+
+### Changelog (U9.5)
+
+Touch-ups from D-067 / D-068 / D-069.
+- **§2 / §10.2:** `closer_fall` reason `released`; *Let go* at any camp from Loop 2 and *Keep the vigil* for ending E (D-067.14); Loop 1 Apex *Face it / Not yet* (D-067.1).
+- **§4.11:** `tyr_hour_presses` = 8% max HP × (1 − Resolve/8), cannot kill while Resolve ≥ 3; *Offer* never consumes; attacking forfeits the current question (D-067.3); *Listen* carries no damage rider (D-069.8).
+- **§10.1 / §10.3 / §10.9:** Silverwood Before return costs 1 day, loot once per loop (D-067.5); level carry-over ⌊0.6 × best level⌋, cap 10 (D-067.2); `flag_tyrant_dead` cleared at reset (D-069.6); Threshold-started quests survive (D-067.15); class mini-quests Loop 2+ (D-069.7).
+- **§11.3 / §12.1:** any faction can reach Sworn in Loop 1; Ilyra recruitable from Loop 2 (D-069.4).
+- **§13.3:** effect kinds `multiHit`, `stripBuffs`, `healOnDamage`, `surviveRounds` (Unraveling Tide), `leaveCombat` added, `passWatches` examples (`q_preserve_or_heal` 8, Bell Vault 4; D-069.5, D-069.9); `endLoop` reason `released`.
+- **§14.2:** no autosave at the Loop 1 Apex or during a Horde.

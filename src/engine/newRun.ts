@@ -3,7 +3,9 @@
 // modifiers toggled in the profile (incl. a `clock_base_watches` rule such as Frayed Clock), and the level
 // carry-over of D-067.2 (bestLevel rule D-070.5). Pure. Later units add: equipped Attunements (U31), loop-start Echo
 // effects (U32), gear-derived maxima (U21 `derived.ts`), quests started at the Threshold (U30/U31).
-import type { ClassView, ContentPack, ItemView } from './ctx';
+import type { Class } from '@schema/class';
+import type { Item } from '@schema/item';
+import type { ContentPack } from './ctx';
 import { seedFromString } from './rng';
 import type { Profile } from './types/profile';
 import type { EquipSlot, Equipment, GameState, ItemInstance, Rarity } from './types/state';
@@ -16,6 +18,11 @@ export const BASE_LIMIT_TICKS = 116;
 /** D-067.2: ⌊0.6 × best level⌋, never below 1, capped at 10. */
 export const CARRY_OVER_RATIO = 0.6;
 export const CARRY_OVER_CAP = 10;
+
+/** The parts of a class record that `baseMaxima` reads. */
+export type ClassView = Pick<Class, 'baseStats' | 'growth'>;
+/** The parts of an item record that starter-item creation reads. */
+export type ItemView = Partial<Pick<Item, 'type' | 'slot' | 'stackable' | 'fixedRarity' | 'fixedAffixes'>>;
 
 export interface NewRunOptions {
   playerName?: string;

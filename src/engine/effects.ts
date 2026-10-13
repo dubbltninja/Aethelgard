@@ -143,7 +143,7 @@ export function enterStage(ctx: StepCtx, questId: string, stage: string): void {
 /** Moves the Breach Clock limit by `watches`, with Frayed Clock halving and the floor (DESIGN §10.1, PLAN §4.11). */
 export function changeLimit(ctx: StepCtx, watches: number, source: string): void {
   const { s, content } = ctx;
-  const halve = s.meta.modifiers.some((id) => content.modifiers[id]?.rules?.some((rule) => rule.halveOthers) ?? false);
+  const halve = s.meta.modifiers.some((id) => content.modifiers[id]?.rules.some((rule) => rule.kind === 'clock_base_watches' && rule.halveOthers) ?? false);
   const delta = halve ? Math.trunc(watches / 2) : watches;
   const clock = s.clock;
   const floor = clock.ticks - (clock.ticks % TICKS_PER_DAY) + TICKS_PER_DAY * (content.config.clock?.floorDawns ?? DEFAULT_FLOOR_DAWNS);

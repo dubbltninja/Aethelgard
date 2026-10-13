@@ -2,87 +2,17 @@
 // (a structuredClone, D-065), the profile (read the original until a reducer asks for a draft, then a lazy clone),
 // the events sink, a lazy Rng cursor over `state.rng`, and the content pack. `RejectSignal` is how a reducer says
 // "illegal action": `step` catches it and returns its inputs unchanged plus one `actionRejected` event (D-043).
+import type { ContentPack } from '@schema/contentPack';
 import { Rng } from './rng';
-import type { FactionId, GameState, LogEntry, Mode, Rarity } from './types/state';
+import type { GameState, LogEntry, Mode } from './types/state';
 import type { GameEvent } from './types/events';
 import type { Profile } from './types/profile';
 import { clone } from './util/clone';
 
-// ---- ContentPack: the engine's structural view of PLAN §4.8 ---------------------------------------------------------
-// The real `ContentPack` (zod-parsed tables, `src/content/schema/contentPack.ts`) lands in U17. Until then the engine
-// is typed against this subset: only the tables and fields U13/U14 read, every field optional where the schema
-// supplies a default. The parsed pack is a structural superset, so U17 can replace this block with
-// `export type { ContentPack } from '@schema/contentPack'` without touching any reducer.
-
-/** Anything with an optional display name (used by `explain()` and log lines; falls back to the id). */
-export interface NamedView {
-  name?: string;
-}
-
-export interface ClassView extends NamedView {
-  baseStats: { hp: number; mp: number; strength: number; magic: number; agility: number };
-  growth: { hp: number; mp: number };
-  starterItems?: readonly { itemId: string; equip?: boolean; count?: number }[];
-  startingAbilities?: readonly string[];
-  startingGold?: number;
-}
-
-export interface ItemView extends NamedView {
-  type?: string;
-  slot?: 'weapon' | 'armor' | 'trinket';
-  stackable?: boolean;
-  maxStack?: number;
-  rarityRule?: 'rolled' | 'fixed';
-  fixedRarity?: Rarity;
-  fixedAffixes?: readonly string[];
-}
-
-export interface LocationView extends NamedView {
-  regionId: string;
-  encounters?: readonly { id: string; once?: boolean; fleeable?: boolean }[];
-}
-
-export interface QuestView extends NamedView {
-  stages: readonly { id: string; journal?: string }[];
-  firstStage?: string;
-  /** Contributes to the engine counter `quests_completed` (D-048); default true. */
-  countsForApex?: boolean;
-}
-
-export interface CompanionView extends NamedView {
-  stats: { hp: number };
-  startingLoyalty?: number;
-}
-
-export interface ModifierView extends NamedView {
-  rules?: readonly { kind: string; watches?: number; halveOthers?: boolean }[];
-}
-
-export interface ConfigView {
-  startLocationId: string;
-  /** Amulet of Echoes: carried from Loop 2 (`fromLoop: 2`, D-047). */
-  startItems?: readonly { itemId: string; fromLoop?: number }[];
-  clock?: { baseLimitTicks?: number; floorDawns?: number };
-  /** Lower bound of each reputation tier (D-014): ≤−40 hostile, −39..−10 wary, −9..19 neutral, 20..59, ≥60. */
-  repTiers?: { hostile: number; wary: number; neutral: number; trusted: number; sworn: number };
-  corruptionMax?: number;
-}
-
-export interface ContentPack {
-  version: string;
-  config: ConfigView;
-  classes: Record<string, ClassView>;
-  items: Record<string, ItemView>;
-  locations: Record<string, LocationView>;
-  quests: Record<string, QuestView>;
-  companions: Record<string, CompanionView>;
-  creatures: Record<string, NamedView>;
-  echoes: Record<string, NamedView>;
-  codex: Record<string, NamedView>;
-  endings: Record<string, NamedView>;
-  modifiers: Record<string, ModifierView>;
-  factions: Partial<Record<FactionId, NamedView>>;
-}
+// ---- ContentPack ------------------------------------------------------------------------------------------------------
+// The real, zod-parsed pack (PLAN §4.8), built by `buildContentPack()` in src/content/index.ts. U13/U14 were typed against
+// a structural stand-in until U17 landed this schema.
+export type { ContentPack } from '@schema/contentPack';
 
 // ---- RejectSignal ----------------------------------------------------------------------------------------------------
 

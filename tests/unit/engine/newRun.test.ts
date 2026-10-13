@@ -155,9 +155,9 @@ describe('equipping starter items', () => {
           ...base.classes.ranger!,
           starterItems: [
             { itemId: 'item_silver_ring', equip: true, count: 3 },
-            { itemId: 'item_hunting_bow', equip: true },
-            { itemId: 'item_apprentice_staff', equip: true },
-            { itemId: 'item_chronos_lens', equip: true },
+            { itemId: 'item_hunting_bow', equip: true, count: 1 },
+            { itemId: 'item_apprentice_staff', equip: true, count: 1 },
+            { itemId: 'item_chronos_lens', equip: true, count: 1 },
           ],
         },
       },

@@ -3,6 +3,7 @@
 import type { Action, ActionType, ContentPack } from '@engine/index';
 
 export function standInPack(): ContentPack {
+  // Partial records, cast: the real pack comes from buildContentPack (U18's fixture); these tests read only the fields below.
   return {
     version: '0.0.0-standin',
     config: {
@@ -81,7 +82,7 @@ export function standInPack(): ContentPack {
       mod_glass: { name: 'Glass', rules: [{ kind: 'damage_mult' }] },
     },
     factions: { remnants: { name: 'The Remnants' }, weavers: { name: 'The Weavers' }, ironclad: { name: 'The Ironclad' } },
-  };
+  } as unknown as ContentPack;
 }
 
 /** One well-formed sample of every Action type (typed: a missing or extra type fails tsc). */

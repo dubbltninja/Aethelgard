@@ -843,3 +843,13 @@ Accepted as implemented:
 5. U9.5 interpretations: `q_preserve_or_heal` "±8" = `passWatches` 8 (forward only); carry-over `bestLevel` = max of
    `classMastery[*].bestLevel` (min 1); *Not yet* at the Loop 1 Apex returns the player to the previous node.
    New actions `letGo`/`keepVigil`; `MoveSchema.effects` holds combat-scope effect kinds.
+
+### D-071 · Engine-type details from U11/U12, 2026-10-13
+1. `onFlee` (flee mode: `scatter|hold|previous`) and `onFleeEffects` (effect list) are separate fields in
+   `CombatState` and the encounter schema (PLAN §4.2/§5.3 had a duplicate key; fixed).
+2. `EndingPending.reason` and `RunRecord.reason` include `released` (D-067.14).
+3. `GameStateSchema` lives in `src/engine/types/schema.ts` (saves import it from there); `RngState` in `types/state.ts`.
+4. `GameEvent`'s discriminant is `t`. Helpers `ActionOf`/`EventOf`; `Rng.float(min,max)`; `util/math.ts` (`clamp`,
+   `round`, `pct`). `stateHash` = FNV-1a over sorted-key JSON, excluding `recentLog`.
+5. xoshiro128** reference: state [1,2,3,4] → first output 0x2D00 (11520). PLAN §4.1 corrected.
+6. State fields stay plain `string` ids (typed aliases exist in `types/ids.ts`); content validation enforces id shapes.

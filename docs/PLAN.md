@@ -565,7 +565,7 @@ export function seedFromString(seed: string): RngState {
 }
 ```
 
-Reference vectors for the unit test: `seedFromString('aethelgard')` must produce a fixed tuple recorded in `tests/unit/engine/rng.test.ts` on first run (golden), and `new Rng([1,2,3,4]).nextU32()` must equal the C reference implementation's first output for that state (`0x00000B40`... computed once by the test author with the C code and pinned).
+Reference vectors for the unit test: `seedFromString('aethelgard')` must produce a fixed tuple recorded in `tests/unit/engine/rng.test.ts` on first run (golden), and `new Rng([1,2,3,4]).nextU32()` must equal the C reference implementation's first output for that state (`0x00002D00` = 11520, verified in U12 against the reference and an inline implementation).
 
 ### 4.2 `GameState` (`src/engine/types/state.ts`)
 
@@ -771,7 +771,7 @@ export interface CombatState {
   resourceGainedThisTurn: number;
   onVictory: unknown[];              // Effect[] copied from the encounter (typed as Effect in effects.ts)
   onDefeat: unknown[];
-  onFlee: unknown[];
+  onFleeEffects: unknown[];   // renamed in U11 (was a duplicate `onFlee` key; D-071)
   pendingSelection: { abilityId?: string; itemUid?: string } | null;  // UI-only hint: awaiting target pick
 }
 
@@ -1406,7 +1406,7 @@ export const EncounterSchema = Base.extend({
   onFlee: z.enum(['scatter', 'hold', 'previous']).default('scatter'),   // fixed groups scatter; wandering → previous (DESIGN §4.7)
   ambush: z.boolean().default(false),
   intro: z.string().optional(),
-  onVictory: Effects, onDefeat: Effects, onFlee: Effects,
+  onVictory: Effects, onDefeat: Effects, onFleeEffects: Effects,
   elite: z.boolean().default(false),            // Horde Rising modifier upgrades non-elites
 });
 

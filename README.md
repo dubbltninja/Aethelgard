@@ -1,3 +1,5 @@
+> **Moved:** the original Python game now lives in [`legacy/`](legacy/README.md) — run it with `python3 legacy/echoes_of_aethelgard.py` (the paths below are relative to that folder).
+
 Echoes of Aethelgard - Text RPG
 
 How to play:

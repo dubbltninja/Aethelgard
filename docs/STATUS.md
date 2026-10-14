@@ -61,7 +61,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U19 | validateContent rules 1–22 + CLI (C1 contract freeze) — brief `briefs/u19.md` | Sonnet | ✅ bbbae0d (spot-reviewed) — **C1 contract freeze**; 716 tests; D-073 |
 | U20 | Explore & time reducers — brief `briefs/u20.md` | Opus | ✅ 948f0bb — explore/time reducers, Apex prompt, clock hooks; D-074 |
 | U21 | Derived stats, progression, inventory — brief `briefs/u21.md` | Opus | ✅ d49d451 — derived/progression/inventory; DESIGN §3.3 values exact; 862 tests |
-| U22–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (70 remaining; next U22). Copy the next few here as they start. | — | ⏳ |
+| U22 | Saves: serialize/migrate/storage keys/round-trips — brief `briefs/u22.md` | Sonnet (parallel with U23) | ▶ in progress |
+| U23 | Combat core: initiative, turn loop, basic attacks, damage pipeline — brief `briefs/u23.md` | Opus (parallel with U22) | ▶ in progress |
+| U24 | Statuses + interplay + timing — brief `briefs/u24.md` | Opus | ⏳ queued this session |
+| U25 | Enemy intents — brief `briefs/u25.md` | Opus | ⏳ queued this session |
+| U26–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (66 remaining after U22–U25). Copy the next few here as they start. | — | ⏳ |
 
 
 ### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)

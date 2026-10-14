@@ -1,7 +1,7 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). U10–U30 + U26b done: the whole engine core (explore, time, character, saves, combat, companions, communion, Horde, loop reset). Next: U31 Threshold, then quests/dialogue/economy units — see PLAN §9.2. Unit list: PLAN §9.2. No application code exists yet.
+**Current phase:** Phase 1 (implementation). U10–U34 + U26b done: every engine system exists. Next: U35 (legalActions completeness → C2 engine milestone), then content and sim units — see PLAN §9.2. Unit list: PLAN §9.2. No application code exists yet.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-065), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
@@ -73,9 +73,9 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U30 | Horde, portal, closers, endLoop/reset, Loop 1→2, Loop 1 defeat→title — brief `briefs/u30.md` | Opus | ✅ 4876abf — Horde/portal/closers/reset, Loop 1→2 through `step`, Loop 1 defeat→title; 1427 tests; D-082 |
 | U31 | Threshold: Attunements, modifiers, class change, NG+ — brief `briefs/u31.md` | Opus | ✅ b6b9238 — Loom, modifiers, class change, NG+; D-083 |
 | U32 | Silverwood Before counter; loop-start Echo effects — brief `briefs/u32.md` | Opus | ✅ cf45c9b — Before rules, Anchors, Echo grants/loop-start effects; 1487 tests; D-083 |
-| U33 | Quests + dialogue reducers — brief `briefs/u33.md` | Opus (parallel with U34) | ▶ in progress |
-| U34 | Economy + crafting — brief `briefs/u34.md` | Opus (parallel with U33) | ▶ in progress |
-| U35–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (57 remaining after U31–U34). Copy the next few here as they start. | — | ⏳ |
+| U33 | Quests + dialogue reducers — brief `briefs/u33.md` | Opus | ✅ dcf1d10 — quest stage machine, dialogue, recruitment, camp scenes; D-084 |
+| U34 | Economy + crafting — brief `briefs/u34.md` | Opus | ✅ 06a4c51 — merchants, pricing, restock, Emberforge craft/upgrade/salvage, Breach-anchor; 1579 tests; D-084 |
+| U35–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (57 remaining; next U35 = C2 engine milestone). Copy the next few here as they start. | — | ⏳ |
 
 
 ### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)
@@ -118,14 +118,14 @@ document" is still met because each doc is attacked by a reviewer who did not wr
 | Item | State | Notes |
 |---|---|---|
 | Read the whole legacy repo | ✅ done | Findings in `DECISIONS.md` Part A |
-| `docs/DECISIONS.md` | ✅ D-001..D-083 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
+| `docs/DECISIONS.md` | ✅ D-001..D-084 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
 | `docs/DESIGN.md` (systems) | ✅ revised U8 | conforms to D-044..D-066; U9.5 touch-ups pending |
 | `docs/STORY.md` (narrative) | ✅ revised U9 | 44 quests (+5 class, +6 optional), 103 Echoes, 87 codex, 21 scenes, Litany, the Nine, 6 endings |
 | `docs/PLAN.md` (engineering) | ✅ revised U8 | D-065 toolchain; §9 = unit list U11–U91 |
 | `docs/WORLD.md` | ✅ revised U9 | bosses retuned (D-067.20), ids per registry/STORY; §13 = changelog + still-open |
 | Reviews | ⏳ round 1 in flight | see §2 |
 | `docs/BIBLE.md` | ✅ 74641cb | timeline 44 rows, people, who-knows-what (23 facts), places (85), things, terminology, rules, 18 open risks |
-| Phase 1+ (code) | ▶ scaffold done (U10) | next: U31–U34 — see PLAN §9.2 |
+| Phase 1+ (code) | ▶ scaffold done (U10) | next: U35–U38 — see PLAN §9.2 |
 
 ### Environment facts (verified 2026-10-10)
 - **npm registry is blocked** by egress policy (proxy 403; no DNS). Do not retry or route around it.

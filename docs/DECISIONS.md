@@ -1094,3 +1094,32 @@ owning unit (PLAN §9.1).
 - **Contradiction resolved:** WORLD §3.11/§12.1 `ev_conflux_sundering` (sent home at Last Bell's dusk) is superseded by
   DESIGN §10.1/STORY §9.1 (the echo resets to First Bell in place). `q_echo_crystal`'s shortcut stage is whatever content's
   `shortcuts.skipTo` names. Before merchants restock per Before day → U34 (hook `beforeDayAdvanced`).
+
+### D-084 · U33/U34 details, 2026-10-14
+**Quests and dialogue (U33):**
+- Quest stage transitions and the scene open/node/close cycle live in `effects.ts` (the `startDialogue`/`questAdvance`
+  effects need them inside a step; lint forbids import cycles); the reducers handle sweep, talk, choose, continue,
+  accept, camp scenes, interact. The quest sweep is the first post-step hook; flags set by later hooks are swept next step.
+- Rules: objectives stay done once met for the current stage; a stage with no `advanceWhen` and no required objective
+  moves only by a holding branch or `questAdvance` (a plain `next` waits — schema/PLAN §5.9 over DESIGN §13.1's
+  "next defaults to the following stage"); a quest found active on an ending stage ends at the sweep; once-per-profile
+  quests count done via `discoveries` `quest:<id>` or a past run.
+- Companion reactions: first match for the standing companion, shown at scene end as a dialogue log line. Choice-less
+  nodes voiced by an absent companion are skipped. `flag_scene_done_<scene>` blocks only non-repeatable scenes. A camp
+  scene opens automatically after a full rest (+2 loyalty).
+- **Content rule:** every scene's entry rule list must end with an unconditional rule (`{all: []}`) — validator rule 10
+  only treats rule nodes as reachable.
+- Companion's Trust: loyalty gains ×1.25 (round half up); `loyalty_start` added at recruitment; bond-Echo starts add on top.
+- **Follow-up:** `talk` is explore-only in `ACTION_MODES`; Dask's conversations at the Threshold (D-012) need `talk`
+  allowed in threshold mode — do it in the Threshold content/UI unit.
+**Economy and crafting (U34):**
+- C1 additions: `revive: Pct` effect (D-080); `upgrade.affixId?` (player picks one of three offered affixes when a
+  tier-up opens a slot, DESIGN §8.3).
+- Stock draws use a separate stream per merchant and day (restocks never move the run Rng). A merchant is stocked on the
+  player's (or its NPC's) arrival; stock gates read at restock, prices/refusal live. Wary hides the theme pool; Kaelen at
+  all-Hostile prices as Wary. Known recipes live in `player.uses['recipe:<id>']`. An upgrade costs 1 watch when it is the
+  visit's first forge job. Kaelen's Echo discount is an engine table. Before merchants restock on each Before day.
+- **Content-schema gaps (decide in the first content unit that needs them):** merchants have no "buys category" field
+  (every stall buys anything sellable); stock affix bias and "fixed Rare (affix_x)" gear lines aren't expressible;
+  salvage names an affix material only for "of the Void"; "Trusted or `echo_borin_oath`" is written as a `requires`
+  condition (fine).

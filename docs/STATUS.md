@@ -63,8 +63,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U21 | Derived stats, progression, inventory — brief `briefs/u21.md` | Opus | ✅ d49d451 — derived/progression/inventory; DESIGN §3.3 values exact; 862 tests |
 | U22 | Saves: serialize/migrate/storage keys/round-trips — brief `briefs/u22.md` | Sonnet | ✅ 2a15731 (spot-reviewed: keys per DESIGN §14.1) — 50 round-trips |
 | U23 | Combat core: initiative, turn loop, basic attacks, damage pipeline — brief `briefs/u23.md` | Opus | ✅ a432c77 — §4.12 worked example matches in scope; 1065 tests; D-075 (**Loop 1 defeat → title follow-up for U30**) |
-| U24 | Statuses + interplay + timing — brief `briefs/u24.md` | Opus | ▶ in progress |
-| U25 | Enemy intents — brief `briefs/u25.md` | Opus | ⏳ queued this session |
+| U24 | Statuses + interplay + timing — brief `briefs/u24.md` | Opus | ✅ 8fbce81 — 19 statuses + 18 interplay rows; 1132 tests; D-076 (DESIGN §4.12 corrected) |
+| U25 | Enemy intents — brief `briefs/u25.md` | Opus | ▶ in progress |
 | U26–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (66 remaining after U22–U25). Copy the next few here as they start. | — | ⏳ |
 
 
@@ -108,7 +108,7 @@ document" is still met because each doc is attacked by a reviewer who did not wr
 | Item | State | Notes |
 |---|---|---|
 | Read the whole legacy repo | ✅ done | Findings in `DECISIONS.md` Part A |
-| `docs/DECISIONS.md` | ✅ D-001..D-075 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
+| `docs/DECISIONS.md` | ✅ D-001..D-076 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
 | `docs/DESIGN.md` (systems) | ✅ revised U8 | conforms to D-044..D-066; U9.5 touch-ups pending |
 | `docs/STORY.md` (narrative) | ✅ revised U9 | 44 quests (+5 class, +6 optional), 103 Echoes, 87 codex, 21 scenes, Litany, the Nine, 6 endings |
 | `docs/PLAN.md` (engineering) | ✅ revised U8 | D-065 toolchain; §9 = unit list U11–U91 |

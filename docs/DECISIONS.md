@@ -937,3 +937,15 @@ owning unit (PLAN §9.1).
 - **Follow-up (must not be lost):** a Loop 1 death outside a Horde leaves the state in combat mode, phase `defeat`, with
   **no legal actions** — there is no combat→title transition yet. The closer/game-over unit (U30) or the UI shell must
   add an explicit `acknowledgeDefeat` → title (Loop 1 classic FALLEN screen, D-049) so bots and players are never stuck.
+
+### D-076 · U24 status details; worked-example correction, 2026-10-13
+- **DESIGN §4.12 corrected:** the Shade's Mark (3 turns, applied round 2) expires at the end of its round-4 turn under
+  §4.5 + D-066 #4, so round 5's crit deals **27**, not 31 (still lethal). The rules are canon; the example was wrong.
+- Shield pool lives in `StatusInstance.tick` (no contract change). `beginCombat` and the clock hook share
+  `tickCarriedWatch` (built on `dotDamage`), so out-of-combat ticks also apply gear resistance. Stun recovery window is
+  stored as cooldown key `status_stun`. Taunt sits on the taunted creature (source = taunter). Refresh resets duration
+  to the new application and keeps the stronger tick. DoT ticks bypass Shield and trigger no interplay; D-067.18
+  applies to Curse ticks. Immolate deals 3 × tick × remaining turns at once. Interplay row 1 Shocks every other living
+  combatant on the target's side. Phase beats Mark (consuming Phase removes the Mark). "Immune" is log-only (no event).
+- API for later units: `applyStatusRows(…, evalWhen)`, `cleanse`, `blocksAction(…, 'flee')`, `tauntedBy`; Doom Sigil
+  timer is TODO(U26) in `startTurn`.

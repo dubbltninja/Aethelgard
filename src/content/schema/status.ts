@@ -48,7 +48,7 @@ export const StatusModifiersSchema = z
     skipTurn: z.boolean().default(false),
     untargetable: z.boolean().default(false),
     forcedTargetUidFromSource: z.boolean().default(false),
-    /** Shield: uses `StatusInstance.power` when set. */
+    /** Shield: the remaining pool is tracked in `StatusInstance.tick` (D-076). */
     absorbFlat: z.number().default(0),
     blockActions: z.array(BlockedAction).default([]),
   })

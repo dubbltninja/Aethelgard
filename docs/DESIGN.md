@@ -439,10 +439,10 @@ Initiative: Ranger 9+2 = 11, Shade 5+3 = 8, Brute 3+1 = 4. Order every round: Ra
 | 3 | Shade | Fade → gains **Phase (1)**. | — | **Rake → Ranger 4–6** |
 | 3 | Brute | Maul: hit. 17.6 × 1.05 = 18.48 − 2 = 16.48; Guard ×0.5 = 8.24 → **8**. | Ranger 124 → 116 | pointer → branch: hp 100% → **Strike → Ranger 8–10** |
 | 4 | Ranger | `rgr_rend` → Brute (8 MP → 40). Weaken still active (expires end of this turn). Needs ≤ 88; hit. 18 × 0.98 = 17.64 × 0.75 = 13.23 − 3 armor = 10.23 → **10**. Bleed ×1 (3 turns, tick `round(1+0.2·18)` = **5**). Venom Coat → **Poison (4 turns, tick `round(1+0.15·18)` = 4)**. | Brute 64 → 54 | — |
-| 4 | Shade | Rake: hit. 7 × 0.90 = 6.3 − 2 = 4.3 → **4**. (Its Phase, applied during its own round-3 turn, skipped that turn's countdown, protected it through the Ranger's round-4 turn unused, and expires at the end of this turn.) | Ranger 116 → 112 | **Rake → Ranger 4–6** |
+| 4 | Shade | Rake: hit. 7 × 0.90 = 6.3 − 2 = 4.3 → **4**. (Its Phase, applied during its own round-3 turn, skipped that turn's countdown, protected it through the Ranger's round-4 turn unused, and expires at the end of this turn.) | Ranger 116 → 112 | **Wail → Ranger 5–6, may Weaken** (§4.2 pointer; corrected in U25 — never played) |
 | 4 | Brute | Start of turn: Bleed 5 + Poison 4 = **9**. Strike: needs ≤ 82; rolls 88 → **miss**. | Brute 54 → 45 | **Strike → Ranger 8–10** |
 | 5 | Ranger | Basic attack (sword) → Shade (its Mark expired at the end of its round-4 turn, §4.5 / D-066 #4, so the attack rolls to hit: hit). 18 × 1.02 = 18.36; crit roll 07 ≤ 9 → **crit** ×1.5 = 27.54; −1 armor = 26.54 → **27** (corrected in U24; still lethal). Focus +12 → 52. | Shade 17 → **0, dies**; intent removed | — |
-| 5 | Brute | Ticks 9. Strike: hit. 11 × 0.91 = 10.01 − 2 = 8.01 → **8**. | Brute 45 → 36; Ranger 112 → 104 | **Maul → Ranger 14–17** |
+| 5 | Brute | Ticks 9. Strike: hit. 11 × 0.91 = 10.01 − 2 = 8.01 → **8**. | Brute 45 → 36; Ranger 112 → 104 | **Strike → Ranger 8–10** (§4.2 pointer; corrected in U25 — never played) |
 | 6 | Ranger | `rgr_piercing_arrow` → Brute (12 MP → 40). Hit. 1.5×18 = 27 × 1.04 = 28.08; no crit; ignores armor → **28**. | Brute 36 → 8 | — |
 | 6 | Brute | Start of turn: Bleed 5 (3rd and last tick) + Poison 4 = 9 ≥ 8 → **dies before acting**. Log: "The Brute bleeds out before it can swing." | Brute 8 → 0 | — |
 

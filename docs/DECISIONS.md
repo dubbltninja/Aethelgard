@@ -949,3 +949,15 @@ owning unit (PLAN §9.1).
   combatant on the target's side. Phase beats Mark (consuming Phase removes the Mark). "Immune" is log-only (no event).
 - API for later units: `applyStatusRows(…, evalWhen)`, `cleanse`, `blocksAction(…, 'flee')`, `tauntedBy`; Doom Sigil
   timer is TODO(U26) in `startTurn`.
+
+### D-077 · U25 intent details, 2026-10-13
+- **DESIGN §4.12 corrected again:** the next-intent previews after the Shade's round-4 turn and the Brute's round-5 turn
+  follow the §4.2 pointer: Wail 5–6 and Strike 8–10 (were Rake and Maul). Neither is played; all fight numbers stand.
+- **Generation timing (DESIGN §4.2, not "start of round"):** each enemy rolls an opening intent before turn 1, then its
+  next intent immediately after its own turn (after its end-of-turn countdown). At the start of every player turn,
+  intents are re-aimed (Taunt, or dead target → next valid pick) and re-projected; the move is never re-chosen. A hidden
+  intent is revealed if its enemy acts before the player's next turn.
+- No contract changes: area intents carry tag `ALL`; wind-up countdowns live in the creature cooldown table under
+  `windup:<move>`; the pattern pointer is an instruction address in a compiled program; `turnsTaken` counts every
+  combatant's turns. Summon (respects `max` and the 3-enemy cap) and revive are implemented; move `effects`,
+  `special`, `riposte` → U26; `leaveCombat` → U27.

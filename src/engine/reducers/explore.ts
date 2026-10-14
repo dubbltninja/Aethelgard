@@ -18,6 +18,7 @@ import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { addItem, advanceTime, apply, applyAll, locationState } from '../effects';
 import { encounterArrivalHook } from './combat';
 import { companionArrivalHook, restCompanions } from '../combat/companionAi';
+import { hordeArrivalHook } from '../horde';
 import type { Enumerator } from '../legalActions';
 import { defaultRarity } from '../newRun';
 import type { PostStepHook } from '../step';
@@ -134,10 +135,10 @@ export function npcsAt(s: GameState, content: ContentPack, locationId: string): 
 /** `wait` is allowed where the location says so (schema `waitable`, a rest spot, or the `waitable` tag). */
 const isWaitable = (loc: Location): boolean => loc.waitable || loc.rest !== undefined || loc.tags.includes('waitable');
 
-/** The rest spot here, if any is usable now (`rest.when`). */
+/** The rest spot here, if any is usable now (`rest.when`); none while a Horde runs (WORLD §12.1 `ws_horde`, U30). */
 function restSpot(s: GameState, content: ContentPack, profile: Pr): NonNullable<Location['rest']> | undefined {
   const rest = currentLocation(s, content)?.rest;
-  if (rest === undefined || (rest.when !== undefined && !evaluate(rest.when, s, profile, content))) return undefined;
+  if (rest === undefined || s.world.hordeActive || (rest.when !== undefined && !evaluate(rest.when, s, profile, content))) return undefined;
   return rest;
 }
 
@@ -230,6 +231,7 @@ export type ArrivalHook = (ctx: StepCtx, arrival: Arrival) => void;
  * or moves the player ends the chain.
  */
 export const ARRIVAL_HOOKS: readonly ArrivalHook[] = [
+  hordeArrivalHook, // U30: the lash on an infected node, else the spread; before Dask's rule reads the infection (horde.ts)
   companionArrivalHook, // U28: Dask flickers out / rejoins (D-059, D-068.2) before any encounter rolls (combat/companionAi.ts)
   encounterArrivalHook, // U23: spawned / fixed / wandering encounters (reducers/combat.ts)
 ];

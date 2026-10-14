@@ -4,10 +4,11 @@
 // a missing one is a programmer error and throws.
 //
 // Minimal implementations, marked TODO(Uxx) where the owning system adds behaviour later:
-// xp (level-ups U21), giveItem (rolled rarity/affixes U27/U34), heal/damage (combat snapshots U23, death U30),
+// xp (level-ups U21), giveItem (rolled rarity/affixes U27/U34), heal/damage (combat snapshots U23; never lethal, D-072),
 // passWatches (dawn hooks, warnings and expiry U20), teleport (entry hooks U20), questAdvance (outcomes/rewards U33),
-// recruit (bond-Echo loyalty start U32; max HP by level: combat/companionAi.ts `companionPostStep`, U28), endLoop/ending
-// (RunRecord, Resonance, profile writes U30).
+// recruit (bond-Echo loyalty start U32; max HP by level: combat/companionAi.ts `companionPostStep`, U28). endLoop/ending
+// enter ending mode; the loop's end (RunRecord, Resonance, profile writes) runs after the step's effects in U30's
+// `loopEndHook` (reducers/loop.ts).
 // startCombat starts the encounter (U23, combat/turnOrder.ts; the fight plays from the combat post-step hook).
 // Not yet applicable — they reject the action, naming the unit: startDialogue (U33),
 // unlockRecipe (U34: no known-recipe state yet) and the five combat-scope atoms (U26/U27; D-069.9).
@@ -293,7 +294,7 @@ const APPLIERS: Appliers = {
   damage: ({ hp }, ctx) => {
     const player = ctx.s.player;
     const before = player.hp;
-    player.hp = Math.max(1, before - hp); // TODO(U30): out-of-combat damage never kills until death handling lands
+    player.hp = Math.max(1, before - hp); // out-of-combat damage never kills (D-072); the Horde's lash is horde.ts
     ctx.s.counters.damageTaken += before - player.hp;
     ctx.log(`You take ${before - player.hp} damage.`, 'event');
   },
@@ -388,13 +389,13 @@ const APPLIERS: Appliers = {
   startCombat: (id, ctx) => startEncounterById(ctx, id), // U23
   startDialogue: notYet('U33'),
   endLoop: ({ closer, reason }, ctx) => {
-    // TODO(U30): RunRecord, Resonance, Echo/profile writes and the loopEnded event (DESIGN §10.3)
+    // the loop's end (RunRecord, Resonance, profile writes, `loopEnded`): reducers/loop.ts `loopEndHook`, after this step
     ctx.s.pendingEnding = reason === undefined ? { outcome: closer, slideIndex: 0 } : { outcome: closer, reason, slideIndex: 0 };
     enterMode(ctx, 'ending');
   },
   ending: (id, ctx) => {
     need(ctx.content.endings[id], `ending '${id}'`);
-    ctx.s.pendingEnding = { outcome: id, slideIndex: 0 }; // TODO(U30): profile endingsReached, mastery, Resonance
+    ctx.s.pendingEnding = { outcome: id, slideIndex: 0 }; // endingsReached, mastery, Resonance: `loopEndHook` (U30)
     enterMode(ctx, 'ending');
     ctx.emit({ t: 'endingReached', endingId: id });
   },

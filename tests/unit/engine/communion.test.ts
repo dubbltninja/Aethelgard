@@ -464,7 +464,7 @@ describe('no communion Movement in Phase 4 (DESIGN §4.10); the Movements and th
     expect(ofType(r.all, 'damageDealt').filter((e) => e.sourceUid === tyrant(r).uid).every((e) => e.refId === 'tyr_hour_presses')).toBe(true);
   });
 
-  test('a kill during communion ends it: the fight is won as usual (the Horde is U30\'s), the Tyrant no longer communing', () => {
+  test('a kill during communion ends it: the fight is won as usual, the Tyrant defeated, the Horde begins (U30)', () => {
     const c0 = act(arrive({ echoes: ['echo_tyrant_speaks'] }), TOGGLE);
     const c1 = patch(c0, (_s, c) => {
       const t = c.enemies[0]!;
@@ -474,7 +474,8 @@ describe('no communion Movement in Phase 4 (DESIGN §4.10); the Movements and th
     const won = act(c1, attack(c1));
     expect(won.s.mode).toBe('explore');
     expect(won.s.flags.flag_tyrant_dead).toBe(true);
-    expect(won.s.world.tyrant).toBe('waiting');
+    expect(won.s.world.tyrant).toBe('defeated');
+    expect(won.s.world.hordeActive).toBe(true);
     expect(ofType(won.last, 'combatEnded').map((e) => e.result)).toEqual(['victory']);
   });
 });

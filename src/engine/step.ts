@@ -17,7 +17,16 @@ import {
   takeHandler,
   waitHandler,
 } from './reducers/explore';
-import { clockHook } from './reducers/loop';
+import {
+  acknowledgeEndingHandler,
+  clockHook,
+  keepVigilHandler,
+  letGoHandler,
+  loopEndHook,
+  newGameHandler,
+  returnToTitleHandler,
+} from './reducers/loop';
+import { enterPortalHandler, hordePostStep } from './horde';
 import { characterPostStep, inventoryHandlers } from './reducers/inventory';
 import {
   abilityHandler,
@@ -59,11 +68,11 @@ const pending =
     ctx.reject(`'${action.type}' is not implemented yet (${unit})`);
 
 export const HANDLERS: HandlerTable = {
-  newGame: pending('U30'),
-  chooseClass: pending('U30/U31'),
+  newGame: newGameHandler, // U30
+  chooseClass: pending('U31'), // the title's class choice is part of `newGame`
   save: saveHandler, // U22
   load: loadHandler, // U22
-  returnToTitle: pending('U30'),
+  returnToTitle: returnToTitleHandler, // U30 (also the Loop 1 FALLEN acknowledgement, D-075)
   move: moveHandler,
   examine: examineHandler,
   take: takeHandler,
@@ -72,11 +81,11 @@ export const HANDLERS: HandlerTable = {
   retreat: retreatHandler,
   gather: gatherHandler,
   talk: pending('U33'),
-  enterPortal: pending('U30'),
+  enterPortal: enterPortalHandler, // U30 (horde.ts)
   interact: pending('U33'),
   wait: waitHandler,
-  letGo: pending('U30'),
-  keepVigil: pending('U30'),
+  letGo: letGoHandler, // U30
+  keepVigil: keepVigilHandler, // U30
   use: inventoryHandlers.use,
   equip: inventoryHandlers.equip,
   unequip: inventoryHandlers.unequip,
@@ -102,7 +111,7 @@ export const HANDLERS: HandlerTable = {
   setStance: setStanceHandler, // U28
   commune: communeHandler, // U29 (communion.ts)
   swapCompanion: swapCompanionHandler, // U28
-  acknowledgeEnding: pending('U30'),
+  acknowledgeEnding: acknowledgeEndingHandler, // U30
   thresholdGo: pending('U31'),
   thresholdSpend: pending('U31'),
   thresholdRefund: pending('U31'),
@@ -119,6 +128,8 @@ export const POST_STEP_HOOKS: readonly PostStepHook[] = [
   characterPostStep, // U21: Weaver mark at max Corruption; stored maxima = derive() outside combat
   companionPostStep, // U28: companion max HP by level; Dask's places (D-059) outside a fight
   combatPostStep, // U23: a fight started this step plays until the player's first turn
+  hordePostStep, // U30: a Tyrant killed in a fight that is over starts the Horde (horde.ts)
+  loopEndHook, // U30: a step that entered ending mode closes the loop (reducers/loop.ts)
 ];
 
 const rejected = (state: GameState, profile: Profile, action: Action, reason: string): StepResult => ({

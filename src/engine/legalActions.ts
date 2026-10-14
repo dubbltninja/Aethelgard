@@ -16,6 +16,14 @@ import {
 } from './reducers/explore';
 import { inventoryEnumerators } from './reducers/inventory';
 import {
+  acknowledgeEndingEnumerator,
+  keepVigilEnumerator,
+  letGoEnumerator,
+  newGameEnumerator,
+  returnToTitleEnumerator,
+} from './reducers/loop';
+import { enterPortalEnumerator } from './horde';
+import {
   abilityEnumerator,
   attackEnumerator,
   communeEnumerator,
@@ -42,7 +50,7 @@ export const ACTION_MODES: { readonly [K in ActionType]: readonly Mode[] } = {
   chooseClass: ['title', 'threshold'],
   save: ['explore', 'threshold'],
   load: ['title'],
-  returnToTitle: ['explore', 'threshold', 'ending'],
+  returnToTitle: ['explore', 'threshold', 'ending', 'combat'], // combat: the Loop 1 FALLEN screen only (D-075)
   move: ['explore'],
   examine: ['explore'],
   take: ['explore'],
@@ -109,11 +117,11 @@ export type EnumeratorTable = { readonly [K in ActionType]: Enumerator<K> };
 const none = (): never[] => [];
 
 export const ENUMERATORS: EnumeratorTable = {
-  newGame: none, // U30
-  chooseClass: none, // U30 (title) / U31 (Far Light)
+  newGame: newGameEnumerator, // U30
+  chooseClass: none, // U31 (Far Light; the title's class choice is part of `newGame`)
   save: saveEnumerator, // U22
   load: none, // U22
-  returnToTitle: none, // U30
+  returnToTitle: returnToTitleEnumerator, // U30
   move: moveEnumerator, // U20
   examine: examineEnumerator, // U20
   take: takeEnumerator, // U20
@@ -122,11 +130,11 @@ export const ENUMERATORS: EnumeratorTable = {
   retreat: retreatEnumerator, // U20
   gather: gatherEnumerator, // U20
   talk: none, // U33
-  enterPortal: none, // U30
+  enterPortal: enterPortalEnumerator, // U30 (horde.ts)
   interact: none, // U33
   wait: waitEnumerator, // U20
-  letGo: none, // U30
-  keepVigil: none, // U30
+  letGo: letGoEnumerator, // U30
+  keepVigil: keepVigilEnumerator, // U30
   use: inventoryEnumerators.use, // U21
   equip: inventoryEnumerators.equip, // U21
   unequip: inventoryEnumerators.unequip, // U21
@@ -152,7 +160,7 @@ export const ENUMERATORS: EnumeratorTable = {
   setStance: setStanceEnumerator, // U28
   commune: communeEnumerator, // U29
   swapCompanion: swapCompanionEnumerator, // U28
-  acknowledgeEnding: none, // U30
+  acknowledgeEnding: acknowledgeEndingEnumerator, // U30
   thresholdGo: none, // U31
   thresholdSpend: none, // U31
   thresholdRefund: none, // U31

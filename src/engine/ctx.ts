@@ -113,13 +113,14 @@ export function makeCtx(draft: GameState, profile: Profile, content: ContentPack
 
 /**
  * Allowed `s.mode` changes. PLAN §4.6's list, plus the edges its own rules need: title→threshold (`load` of a
- * Threshold save), explore/threshold→title (`returnToTitle`, §4.7), dialogue→combat (`startCombat` from dialogue,
- * boss talk returning to the fight) and dialogue→ending (an `ending`/`endLoop` effect in a choice).
+ * Threshold save), explore/threshold→title (`returnToTitle`, §4.7), combat→title (`returnToTitle` from the Loop 1
+ * FALLEN screen, D-049/D-075), dialogue→combat (`startCombat` from dialogue, boss talk returning to the fight) and
+ * dialogue→ending (an `ending`/`endLoop` effect in a choice).
  */
 export const MODE_TRANSITIONS: Readonly<Record<Mode, readonly Mode[]>> = {
   title: ['explore', 'threshold'],
   explore: ['combat', 'dialogue', 'ending', 'title'],
-  combat: ['explore', 'dialogue', 'ending'],
+  combat: ['explore', 'dialogue', 'ending', 'title'],
   dialogue: ['explore', 'combat', 'threshold', 'ending'],
   ending: ['threshold', 'explore', 'title'],
   threshold: ['explore', 'dialogue', 'title'],

@@ -38,7 +38,7 @@ describe('structure', () => {
     expect([...ACTION_MODES.save].sort()).toEqual(['explore', 'threshold']);
     expect(ACTION_MODES.load).toEqual(['title']);
     expect(ACTION_MODES.newGame).toEqual(['title']);
-    expect([...ACTION_MODES.returnToTitle].sort()).toEqual(['ending', 'explore', 'threshold']);
+    expect([...ACTION_MODES.returnToTitle].sort()).toEqual(['combat', 'ending', 'explore', 'threshold']); // combat: the Loop 1 FALLEN screen (U30)
   });
 
   test('isActionType accepts exactly the Action types', () => {
@@ -101,6 +101,7 @@ describe('enumeration over a stand-in table', () => {
       { type: 'move', to: 'loc_whispering_ruins' },
       { type: 'rest', kind: 'full' },
       { type: 'rest', kind: 'short' },
+      { type: 'returnToTitle' }, // U30
       { type: 'wait' },
     ]);
     const withExamine = enumerateLegal(table, state, content, minimalProfile(), { includeExamine: true });

@@ -88,7 +88,7 @@ export function standInPack(): ContentPack {
 /** One well-formed sample of every Action type (typed: a missing or extra type fails tsc). */
 export function sampleActions(): { [K in ActionType]: Extract<Action, { type: K }> } {
   return {
-    newGame: { type: 'newGame', name: 'Wayfinder', classId: 'ranger', seed: 's' },
+    newGame: { type: 'newGame', name: 'Wayfinder', classId: 'ranger' }, // the listed form (U30); a custom name/seed is a payload, like `load`
     chooseClass: { type: 'chooseClass', classId: 'wizard' },
     save: { type: 'save', slot: 1 },
     load: { type: 'load', save: {} },

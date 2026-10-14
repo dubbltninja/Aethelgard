@@ -452,7 +452,7 @@ describe('defeat (DESIGN §4.7, D-049, D-066 #7)', () => {
     patched(fight(state(o), sp, playerFirst(1), prof), (c) => void (c.party[0]!.hp = 1));
   const die = (s: GameState, prof = profile) => act(s, { type: 'guard' }, HIT(), prof);
 
-  test('Loop 1: FALLEN — the fight stays on screen in phase defeat, nothing is legal, the shell takes over', () => {
+  test('Loop 1: FALLEN — the fight stays on screen in phase defeat; only the way back to the title is legal (U30, D-075)', () => {
     const out = die(dying({}));
     const s = out.state;
     expect(s.mode).toBe('combat');
@@ -462,7 +462,7 @@ describe('defeat (DESIGN §4.7, D-049, D-066 #7)', () => {
     expect(s.flags.flag_fell).toBe(true);
     expect(ofType(out.events, 'playerDied')).toEqual([{ t: 'playerDied', loop: 1 }]);
     expect(ofType(out.events, 'combatEnded')).toEqual([{ t: 'combatEnded', result: 'defeat', rounds: 1, xp: 0, gold: 0, loot: [] }]);
-    expect(legalActions(s, content, profile)).toEqual([]);
+    expect(legalActions(s, content, profile)).toEqual([{ type: 'returnToTitle' }]);
     expect(scriptedStep(s, { type: 'guard' }, [], content, profile).rejected).toBe('you have fallen');
   });
 

@@ -4,21 +4,27 @@
 // a missing one is a programmer error and throws.
 //
 // Minimal implementations, marked TODO(Uxx) where the owning system adds behaviour later:
-// xp (level-ups U21), giveItem (rolled rarity/affixes U27/U34), heal/damage (combat snapshots U23; never lethal, D-072),
+// xp (level-ups U21), heal/damage (combat snapshots U23; never lethal, D-072),
 // passWatches (dawn hooks, warnings and expiry U20), teleport (entry hooks U20), questAdvance (outcomes/rewards U33),
 // recruit (bond-Echo loyalty start: echoes.ts `echoPostStep`, U32; max HP by level: combat/companionAi.ts
 // `companionPostStep`, U28). grantEcho: once per loop, never beside an `exclusiveWith` Echo, then `onGrant` (U32).
 // endLoop/ending enter ending mode; the loop's end (RunRecord, Resonance, profile writes) runs after the step's
 // effects in U30's `loopEndHook` (reducers/loop.ts).
 // startCombat starts the encounter (U23, combat/turnOrder.ts; the fight plays from the combat post-step hook).
-// Not yet applicable — they reject the action, naming the unit: startDialogue (U33),
-// unlockRecipe (U34: no known-recipe state yet) and the five combat-scope atoms (U26/U27; D-069.9).
+// U34: giveItem rolls each piece of 'rolled' gear that names no rarity (rarity.ts, in the band where the Wayfinder
+// stands); unlockRecipe marks a recipe known for the loop (`player.uses['recipe:<id>']`, which `requiresItemRead`
+// reads, reducers/crafting.ts); revive brings a knocked-out companion round at a share of its max HP, in a fight or
+// out of one (combat/revive.ts; Lanternreed Salts, D-080).
+// Not yet applicable — they reject the action, naming the unit: startDialogue (U33) and the five combat-scope atoms
+// (U26/U27; D-069.9).
 import type { Effect, EffectAtoms, EffectKey } from '@schema/effect';
+import { reviveCompanion } from './combat/revive';
 import { startEncounterById } from './combat/turnOrder';
 import { atomOf, dayOf, daysLeft, repTier, watchOf, TICKS_PER_DAY } from './conditions';
 import { enterMode, type StepCtx } from './ctx';
 import { defaultRarity, isStackable } from './newRun';
 import { grantXp } from './progression';
+import { lootBand, rollPiece } from './rarity';
 import { scaleXp } from './runRules';
 import type { ItemInstance, LocationState, QuestState } from './types/state';
 import { clamp } from './util/math';
@@ -75,10 +81,13 @@ export function leaveOnGround(ctx: StepCtx, locationId: string, item: ItemInstan
   ls.flags[`${LEFT_ON_GROUND}${item.uid}`] = dayOf(ctx.s.clock.ticks);
 }
 
+/** `player.uses` key prefix of a recipe known this loop (`unlockRecipe`; U34, reducers/crafting.ts `requiresItemRead`). */
+export const KNOWN_RECIPE = 'recipe:';
+
 /** Adds `count` of an item to the inventory (stacking up to maxStack); returns the touched instances. */
 export function addItem(ctx: StepCtx, itemId: string, count: number, rarity?: ItemInstance['rarity']): ItemInstance[] {
   const def = need(ctx.content.items[itemId], `item '${itemId}'`);
-  const r = rarity ?? defaultRarity(def); // TODO(U27/U34): roll rarity for rarityRule 'rolled' (config.rarityWeights)
+  const r = rarity ?? defaultRarity(def); // rolled gear draws its rarity before it gets here (giveItem, loot, stock)
   const inventory = ctx.s.player.inventory;
   const touched: ItemInstance[] = [];
   const make = (qty: number): ItemInstance => {
@@ -246,6 +255,17 @@ const APPLIERS: Appliers = {
     ctx.emit({ t: 'questFailed', questId: id });
   },
   giveItem: ({ item, count = 1, rarity }, ctx, _key, source) => {
+    const def = need(ctx.content.items[item], `item '${item}'`);
+    if (rarity === undefined && def.rarityRule === 'rolled') {
+      // U34 (D-079): each piece draws its rarity in the band where the Wayfinder stands, then its affixes (rarity.ts)
+      const band = lootBand(ctx.content, ctx.s.world.currentLocationId, ctx.s.player.level);
+      for (let i = 0; i < count; i++) {
+        const piece: ItemInstance = { uid: ctx.uid('i'), itemId: item, qty: 1, ...rollPiece(ctx, def, band) };
+        ctx.s.player.inventory.push(piece);
+        ctx.emit({ t: 'itemGiven', item: { ...piece, affixes: [...piece.affixes] }, source });
+      }
+      return;
+    }
     const touched = addItem(ctx, item, count, rarity);
     const first = touched[0] as ItemInstance;
     ctx.emit({ t: 'itemGiven', item: { ...first, qty: count, affixes: [...first.affixes] }, source });
@@ -407,7 +427,18 @@ const APPLIERS: Appliers = {
     enterMode(ctx, 'ending');
     ctx.emit({ t: 'endingReached', endingId: id });
   },
-  unlockRecipe: notYet('U34', 'is not implemented yet (no known-recipe state)'),
+  unlockRecipe: (id, ctx) => {
+    // U34: known for this loop (a pattern read, a scene); `requiresItemRead` recipes need it (reducers/crafting.ts)
+    const def = need(ctx.content.recipes[id], `recipe '${id}'`);
+    const uses = ctx.s.player.uses;
+    if (uses[`${KNOWN_RECIPE}${id}`] !== undefined) return;
+    uses[`${KNOWN_RECIPE}${id}`] = { loop: ctx.s.meta.loop };
+    ctx.log(`You learn how to make the ${def.name}.`, 'event');
+  },
+  revive: (pct, ctx, _key, source) => {
+    // U34 (D-080): Lanternreed Salts — the knocked-out companion comes round at `pct` of its max HP
+    if (!reviveCompanion(ctx, pct, source)) ctx.log('No one here needs bringing round.', 'event');
+  },
   unlockCodex: (id, ctx) => {
     need(ctx.content.codex[id], `codex entry '${id}'`);
     if (ctx.profile.codexUnlocked.includes(id)) return;

@@ -12,9 +12,10 @@
 //   combat                custom `second_wind` (reducers/combat.ts), `reveal_resistances` (Echo-Sense, combat/rewards.ts)
 //   explore               custom `travel_regen` { hpPct, mpPct } (Light Step), `remembered_steps`, `free_inn_rest` (Old
 //                         Road) — reducers/explore.ts
-//   not read yet          shop_discount_pct and custom `forge_discount` { pct } (economy/crafting, U34), custom
-//                         `foresight` (intents), custom `loyalty_gain` { pct } and loyalty_start (recruitment and the
-//                         loyalty effect, U32/U33), rest_heal_pct, flee_pct (no DESIGN row uses them)
+//   prices and fees       shop_discount_pct (Kaelen's Ledger: reducers/economy.ts `ledgerDiscount`), custom
+//                         `forge_discount` { pct } (Borin's Favor: reducers/crafting.ts `forgeDiscount`) — U34
+//   not read yet          custom `foresight` (intents), custom `loyalty_gain` { pct } and loyalty_start (recruitment
+//                         and the loyalty effect, U32/U33), rest_heal_pct, flee_pct (no DESIGN row uses them)
 // Modifiers (`meta.modifiers`, copied from the profile's toggles when the run starts): `clock_base_watches` (newRun) and
 // its halving (effects.ts `changeLimit`, and the Attunement clock above), `damage_multiplier` (combat/damage.ts on hits,
 // `modifierDamageMult` on DoT ticks), `xp_sources` (no kill XP; the other XP ×2, VOW_XP_MULT), `disable_attunements`
@@ -61,7 +62,7 @@ export const ATT_SCRIPT = {
   freeInnRest: 'free_inn_rest',
   /** Foresight (not read yet): intents one turn earlier. */
   foresight: 'foresight',
-  /** Borin's Favor (not read yet, U34): `{ pct: 0.15 }` off Emberforge fees. */
+  /** Borin's Favor: `{ pct: 0.15 }` off Emberforge fees (reducers/crafting.ts `forgeDiscount`, U34). */
   forgeDiscount: 'forge_discount',
   /** Companion's Trust (not read yet, U32/U33): `{ pct: 0.25 }` more loyalty gained. */
   loyaltyGain: 'loyalty_gain',

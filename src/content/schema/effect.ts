@@ -70,6 +70,8 @@ export const EFFECT_ATOMS = {
   // companions, flow, unlocks, counters
   recruit: CompanionId,
   dismiss: CompanionId,
+  /** U34 (D-080, C1 addition): the knocked-out companion comes round at this share of its max HP (Lanternreed Salts 0.3). */
+  revive: Pct,
   /** Encounter id. */
   startCombat: Id,
   /** Dialogue id. */

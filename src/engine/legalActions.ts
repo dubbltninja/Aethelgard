@@ -15,6 +15,8 @@ import {
   waitEnumerator,
 } from './reducers/explore';
 import { inventoryEnumerators } from './reducers/inventory';
+import { buyEnumerator, sellEnumerator } from './reducers/economy';
+import { craftEnumerator, salvageEnumerator, upgradeEnumerator } from './reducers/crafting';
 import {
   acknowledgeEndingEnumerator,
   keepVigilEnumerator,
@@ -153,11 +155,11 @@ export const ENUMERATORS: EnumeratorTable = {
   unlockAbility: inventoryEnumerators.unlockAbility, // U21
   readBook: inventoryEnumerators.readBook, // U21
   respec: inventoryEnumerators.respec, // U21
-  buy: none, // U34
-  sell: none, // U34
-  craft: none, // U34
-  upgrade: none, // U34
-  salvage: none, // U34
+  buy: buyEnumerator, // U34
+  sell: sellEnumerator, // U34
+  craft: craftEnumerator, // U34
+  upgrade: upgradeEnumerator, // U34
+  salvage: salvageEnumerator, // U34
   choose: chooseEnumerator, // U20 (Loop 1 Apex prompt) / U33
   continue: none, // U33
   acceptQuest: none, // U33

@@ -38,6 +38,7 @@ const VALID: { [K in EffectKey]: Effect[] } = {
   areaMove: [{ areaMove: 'tyr_shear' }],
   recruit: [{ recruit: 'caelum' }],
   dismiss: [{ dismiss: 'dask' }],
+  revive: [{ revive: 0.3 }],
   startCombat: [{ startCombat: 'enc_library_wraiths' }],
   startDialogue: [{ startDialogue: 'scene_ilyra_watchword' }],
   endLoop: [{ endLoop: { closer: 'closer_escape' } }, { endLoop: { closer: 'closer_fall', reason: 'released' } }],
@@ -79,6 +80,7 @@ const INVALID: { [K in EffectKey]: [unknown, string][] } = {
   areaMove: [[{ areaMove: 'Shear All' }, 'areaMove'], [{ areaMove: { move: 'tyr_shear' } }, 'areaMove']],
   recruit: [[{ recruit: 'npc_brak' }, 'recruit: Invalid enum value']],
   dismiss: [[{ dismiss: 'kaelen' }, 'dismiss']],
+  revive: [[{ revive: 1.5 }, 'revive'], [{ revive: '30%' }, 'revive: Expected number']],
   startCombat: [[{ startCombat: 'Library Wraiths' }, 'startCombat']],
   startDialogue: [[{ startDialogue: 3 }, 'startDialogue']],
   endLoop: [
@@ -94,12 +96,12 @@ const INVALID: { [K in EffectKey]: [unknown, string][] } = {
 };
 
 describe('EffectSchema', () => {
-  test('the atom set is exactly DESIGN §13.3’s (incl. D-069.9’s six engine kinds and U26b’s areaMove)', () => {
+  test('the atom set is exactly DESIGN §13.3’s (incl. D-069.9’s six engine kinds, U26b’s areaMove and U34’s revive)', () => {
     expect([...EFFECT_KEYS].sort()).toEqual(
       [
         'setFlag', 'clearFlag', 'grantEcho', 'questStart', 'questAdvance', 'questFail', 'giveItem', 'takeItem', 'rep', 'loyalty',
         'gold', 'xp', 'resonance', 'heal', 'damage', 'corruption', 'clockWatches', 'passWatches', 'spawn', 'teleport',
-        'unlockExit', 'scatter', 'multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat', 'areaMove', 'recruit', 'dismiss',
+        'unlockExit', 'scatter', 'multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat', 'areaMove', 'recruit', 'dismiss', 'revive',
         'startCombat', 'startDialogue', 'endLoop', 'ending', 'unlockRecipe', 'unlockCodex', 'counter', 'resolve',
       ].sort(),
     );

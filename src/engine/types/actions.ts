@@ -58,8 +58,11 @@ export type Action =
   | { type: 'buy'; merchantId: string; uid: string; qty?: number }
   | { type: 'sell'; merchantId: string; uid: string; qty?: number }
   | { type: 'craft'; recipeId: string }
-  /** Rarity tier-up (DESIGN §8.3). */
-  | { type: 'upgrade'; uid: string }
+  /**
+   * Rarity tier-up (DESIGN §8.3). U34 (C1 addition): `affixId` picks the new affix slot's affix from the three offered
+   * (reducers/crafting.ts `upgradeQuote`); required exactly when the tier-up adds a slot.
+   */
+  | { type: 'upgrade'; uid: string; affixId?: string }
   /** DESIGN §8.4. */
   | { type: 'salvage'; uid: string }
   // dialogue

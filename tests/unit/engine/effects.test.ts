@@ -361,7 +361,24 @@ const OBSERVED: { [K in EffectKey]: () => void } = {
     ]);
     expect(() => run([{ ending: 'ending_nope' }])).toThrow("unknown ending 'ending_nope'");
   },
-  unlockRecipe: () => rejectedWith(run([{ unlockRecipe: 'recipe_breach_anchor' }]), "effect 'unlockRecipe' is not implemented yet (no known-recipe state) (U34)"),
+  unlockRecipe: () => {
+    // U34: the recipe is known for the loop (`player.uses`, read by reducers/crafting.ts `requiresItemRead`), once
+    const pack = fixturePack();
+    const twice: Effect[] = [{ unlockRecipe: 'recipe_glyphbound_lantern' }, { unlockRecipe: 'recipe_glyphbound_lantern' }];
+    const out = run(twice, makeState(), freshProfile(), undefined, pack);
+    expect(out.state.player.uses['recipe:recipe_glyphbound_lantern']).toEqual({ loop: 1 });
+    expect(out.events).toEqual([{ t: 'log', text: 'You learn how to make the Glyphbound Lantern.', kind: 'event' }]);
+    expect(() => run([{ unlockRecipe: 'recipe_ghost' }], makeState(), freshProfile(), undefined, pack)).toThrow("unknown recipe 'recipe_ghost'");
+  },
+  revive: () => {
+    // U34 (D-080): out of a fight the knocked-out companion comes round at the share of its max HP; no one down: a line
+    const pack = fixturePack();
+    const s = makeState({ patch: (st) => void (st.companions = { activeId: 'ilyra', recruited: { ilyra: { id: 'ilyra', recruited: true, loyalty: 0, hp: 0, hpMax: 80, ko: true, dead: false, stance: 'guarded', cooldowns: {}, waitingAt: null, arcFlags: {} } } }) });
+    const out = run([{ revive: 0.3 }], s, freshProfile(), undefined, pack);
+    expect(out.state.companions.recruited.ilyra).toMatchObject({ ko: false, hp: 24 });
+    expect(out.events).toEqual([{ t: 'log', text: 'Ilyra comes round (24 HP).', kind: 'event' }]);
+    expect(run([{ revive: 0.3 }], clone(out.state), freshProfile(), undefined, pack).events).toEqual([{ t: 'log', text: 'No one here needs bringing round.', kind: 'event' }]);
+  },
   unlockCodex: () => {
     const out = run([{ unlockCodex: 'codex_breach' }]);
     expect(out.profile.codexUnlocked).toEqual(['codex_breach']);

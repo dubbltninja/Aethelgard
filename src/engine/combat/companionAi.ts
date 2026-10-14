@@ -51,7 +51,7 @@ import type { Profile } from '../types/profile';
 import type { Combatant, CombatState, CompanionRunState, GameState, Stance } from '../types/state';
 import { round } from '../util/math';
 import { pickTargets, resolveAbility, signatureActions, signatureProblem, useSignature, type Picked } from './abilities';
-import { hasStatus, resolveHit, roundHalfUp, type HitSpec } from './damage';
+import { hasStatus, resolveHit, type HitSpec } from './damage';
 import { TAG_ALL } from './intents';
 import { setTimer, type CombatOps } from './specials';
 import { STATUS, blocksAction, statusImmunities } from './statuses';
@@ -291,30 +291,8 @@ export function companionKnockedOut(ctx: StepCtx, c: Combatant): void {
 
 // ---- revive ----------------------------------------------------------------------------------------------------------------
 
-/**
- * Revives the knocked-out companion at `pct` of its max HP (DESIGN §12.6: Last Bastion 40 %, Lanternreed Salts 30 %),
- * in a fight (it stands again, statuses cleared, and takes its turns from the next round) or outside one (the active
- * companion if it is down, else the first one down). False when no one is down.
- */
-export function reviveCompanion(ctx: StepCtx, pct: number, source: string): boolean {
-  const combat = ctx.s.combat;
-  if (combat !== null) {
-    const down = combat.party.find((c) => c.kind === 'companion' && !c.alive && !c.fledOrGone);
-    if (!down) return false;
-    Object.assign(down, { alive: true, hp: Math.max(1, roundHalfUp(down.hpMax * pct)), statuses: [], guarding: false });
-    ctx.emit({ t: 'healed', targetUid: down.uid, amount: down.hp, source });
-    combatLog(combat, `${down.name} stands up again (${down.hp} HP).`, 'heal');
-    return true;
-  }
-  const { recruited, activeId } = ctx.s.companions;
-  const active = activeId === null ? undefined : recruited[activeId];
-  const down = active?.ko && !active.dead ? active : Object.values(recruited).find((c) => c.ko && !c.dead);
-  if (!down) return false;
-  down.ko = false;
-  down.hp = Math.max(1, round(down.hpMax * pct));
-  ctx.log(`${ctx.content.companions[down.id]?.name ?? down.id} comes round (${down.hp} HP).`, 'event');
-  return true;
-}
+// `reviveCompanion` lives in ./revive.ts (U34: shared with the `revive` item effect without an import cycle).
+export { reviveCompanion } from './revive';
 
 /**
  * A rest (reducers/explore.ts): every companion standing recovers `pct` of its max HP (at least 1); a knocked-out one is

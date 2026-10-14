@@ -32,14 +32,15 @@
 // Echo-Sense (U31, DESIGN §10.7 `att_echo_sense`): while it is active, every creature in sight at a player turn has its
 // resistances revealed at once (`revealed` ≥ 'resist'). The kill XP bonus also counts Quick Study (`xp_pct`): at most
 // +20 % from all sources (runRules.ts `xpBonus`).
-import { MAX_AFFIXES, type Item } from '@schema/item';
+import type { Item } from '@schema/item';
 import type { Creature } from '@schema/creature';
 import type { Effect } from '@schema/effect';
 import { claimBeforeSpoils } from '../before';
 import { evaluate } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
-import { RARITY_ORDER, derive } from '../derived';
+import { derive } from '../derived';
 import { addItem, apply, applyAll, leaveOnGround } from '../effects';
+import { lootBand, rollAffixes, rollRarity } from '../rarity';
 import { PACK_SLOTS, inSatchel, packSlotsUsed } from '../reducers/inventory';
 import { ATT_SCRIPT, attunementScript, xpBonus } from '../runRules';
 import type { BestiaryEntry } from '../types/profile';
@@ -58,8 +59,6 @@ export interface Spoils {
 
 /** `profile.discoveries` key prefix of a first bestiary entry (DESIGN §10.6). */
 export const BESTIARY_DISCOVERY = 'kill:';
-/** DESIGN §7.3: the chance that Uncommon gear rolls its one affix. */
-export const UNCOMMON_AFFIX_CHANCE = 0.5;
 
 // ---- XP -----------------------------------------------------------------------------------------------------------------
 
@@ -100,49 +99,8 @@ export function expectedKillXp(def: Pick<Creature, 'role' | 'level'>, content: C
 
 // ---- rarity and affixes -------------------------------------------------------------------------------------------------------
 
-/** The band a drop rolls its rarity in: the fight location's level band minimum, else its region's, else `fallback`. */
-export function lootBand(content: ContentPack, locationId: string, fallback: number): number {
-  const loc = content.locations[locationId];
-  return loc?.levelBand?.min ?? (loc ? content.regions[loc.regionId]?.levelBand.min : undefined) ?? fallback;
-}
-
-/** DESIGN §7.2: one weighted draw over the rarity weights of the highest `minBand` ≤ `band`. */
-export function rollRarity(ctx: StepCtx, band: number): Rarity {
-  const rows = ctx.content.config.rarityWeights;
-  const row = [...rows].reverse().find((r) => r.minBand <= band) ?? rows[0];
-  if (!row) return 'common';
-  return ctx.rng.weighted(RARITY_ORDER.map((r) => ({ weight: row.weights[r], value: r })));
-}
-
-/** DESIGN §7.3: how many affixes a piece of `rarity` rolls (Uncommon draws its 50 %, Epic draws one or two). */
-export function affixCount(ctx: StepCtx, rarity: Rarity): number {
-  switch (rarity) {
-    case 'uncommon':
-      return ctx.rng.chance(UNCOMMON_AFFIX_CHANCE) ? 1 : 0;
-    case 'rare':
-      return 1;
-    case 'epic':
-      return ctx.rng.int(1, 2);
-    case 'legendary':
-      return 2;
-    default:
-      return 0;
-  }
-}
-
-/** A piece's affixes: its `fixedAffixes`, then distinct rolled ones that act on its slot (by id order), within §7.3's cap. */
-export function rollAffixes(ctx: StepCtx, def: Item, rarity: Rarity): string[] {
-  const out: string[] = [...def.fixedAffixes];
-  const kind = def.slot;
-  if (!kind) return out;
-  const want = Math.min(affixCount(ctx, rarity), MAX_AFFIXES[rarity] - out.length);
-  const pool = Object.values(ctx.content.affixes)
-    .filter((a) => a[kind] !== undefined && !out.includes(a.id))
-    .map((a) => a.id)
-    .sort();
-  for (let i = 0; i < want && pool.length > 0; i++) out.push(pool.splice(ctx.rng.int(0, pool.length - 1), 1)[0] as string);
-  return out;
-}
+// The rolls live in the leaf module ../rarity.ts (U34: the `giveItem` effect and merchant stock share them); re-exported.
+export { UNCOMMON_AFFIX_CHANCE, affixCount, lootBand, rollAffixes, rollRarity } from '../rarity';
 
 // ---- the pack -----------------------------------------------------------------------------------------------------------------
 

@@ -40,6 +40,8 @@ import {
   toggleModifierHandler,
 } from './reducers/threshold';
 import { characterPostStep, inventoryHandlers } from './reducers/inventory';
+import { buyHandler, economyPostStep, sellHandler } from './reducers/economy';
+import { craftHandler, salvageHandler, upgradeHandler } from './reducers/crafting';
 import {
   abilityHandler,
   attackHandler,
@@ -106,11 +108,11 @@ export const HANDLERS: HandlerTable = {
   unlockAbility: inventoryHandlers.unlockAbility,
   readBook: inventoryHandlers.readBook,
   respec: inventoryHandlers.respec,
-  buy: pending('U34'),
-  sell: pending('U34'),
-  craft: pending('U34'),
-  upgrade: pending('U34'),
-  salvage: pending('U34'),
+  buy: buyHandler, // U34 (reducers/economy.ts)
+  sell: sellHandler, // U34
+  craft: craftHandler, // U34 (reducers/crafting.ts)
+  upgrade: upgradeHandler, // U34
+  salvage: salvageHandler, // U34
   choose: chooseHandler, // U20: the Loop 1 Apex prompt only; U33's dialogue reducer replaces it and keeps that branch
   continue: pending('U33'),
   acceptQuest: pending('U33'),
@@ -144,6 +146,7 @@ export const POST_STEP_HOOKS: readonly PostStepHook[] = [
   echoPostStep, // U32: bond starts and shortcuts for this step's recruits/quests; echo_tyrant_jailer; loop-end Echoes
   loopEndHook, // U30: a step that entered ending mode closes the loop (reducers/loop.ts)
   thresholdPostStep, // U31: the loop's Resonance tally and modifier multiplier, the Still Shore, the Threshold autosave
+  economyPostStep, // U34: the Before's merchants restock each Before day; a merchant met for the first time gets its stock
 ];
 
 const rejected = (state: GameState, profile: Profile, action: Action, reason: string): StepResult => ({

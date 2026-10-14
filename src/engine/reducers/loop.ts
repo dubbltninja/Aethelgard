@@ -28,6 +28,7 @@ import { clone } from '../util/clone';
 import { tickCarriedWatch } from '../combat/turnOrder';
 import { FLAG_TYRANT_DEAD } from './combat';
 import { enterStartLocation, fireEvents } from './explore';
+import { restockAtDawn } from './economy';
 import { RESPEC_REST_KINDS } from './inventory';
 
 /** Set at expiry for WORLD's world-state variants (DESIGN §10.2). */
@@ -130,7 +131,13 @@ export const expireGroundLoot: DawnHook = (ctx, day) => {
  * Dawn hooks in run order; later units append theirs (one line each): U34 the merchant restock (D-057, every dawn;
  * `MerchantState.lastRestockDay` < day marks a stale stock), U32 Before-local resets if any.
  */
-export const DAWN_HOOKS: readonly DawnHook[] = [resetDailyUses, clearEncounterHp, fireDawnEvents, expireGroundLoot];
+export const DAWN_HOOKS: readonly DawnHook[] = [
+  resetDailyUses,
+  clearEncounterHp,
+  fireDawnEvents,
+  expireGroundLoot,
+  restockAtDawn, // U34: every merchant already met restocks (D-057; reducers/economy.ts)
+];
 
 // ---- warnings and expiry -----------------------------------------------------------------------------------------------
 

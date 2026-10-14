@@ -71,7 +71,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U28 | Companions in combat — brief `briefs/u28.md` | Opus | ✅ 9d65492 — stances/cooldowns/signature/KO/Dask; 1359 tests; D-080 |
 | U29 | Communion engine — brief `briefs/u29.md` | Opus | ✅ 3dbf7c5 — communion to F/A/B; 1388 tests; D-081 |
 | U30 | Horde, portal, closers, endLoop/reset, Loop 1→2, Loop 1 defeat→title — brief `briefs/u30.md` | Opus | ✅ 4876abf — Horde/portal/closers/reset, Loop 1→2 through `step`, Loop 1 defeat→title; 1427 tests; D-082 |
-| U31–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (61 remaining; next U31). Copy the next few here as they start. | — | ⏳ |
+| U31 | Threshold: Attunements, modifiers, class change, NG+ — brief `briefs/u31.md` | Opus (parallel with U32) | ▶ in progress |
+| U32 | Silverwood Before counter; loop-start Echo effects — brief `briefs/u32.md` | Opus (parallel with U31) | ▶ in progress |
+| U33 | Quests + dialogue reducers — brief `briefs/u33.md` | Opus (parallel with U34) | ⏳ queued this session |
+| U34 | Economy + crafting — brief `briefs/u34.md` | Opus (parallel with U33) | ⏳ queued this session |
+| U35–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (57 remaining after U31–U34). Copy the next few here as they start. | — | ⏳ |
 
 
 ### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)

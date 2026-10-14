@@ -1022,3 +1022,23 @@ owning unit (PLAN §9.1).
 - **Lead fixes:** `DRAIN_SHARES.comp_nyx_drink = 0.6`; stale focus/hold text in `abilities.ts`.
 - **Open for later units:** Lanternreed Salts need a `revive` effect (out-of-combat item effect calling
   `reviveCompanion`) — add in the items/crafting unit (U34) with a C1 note.
+
+### D-081 · U29 communion details, 2026-10-14
+- Communion can open only on the player's first turn of the fight, or the first player turn after the Tyrant enters a
+  Movement phase. While communing, companions Guard (Dask/Caelum in Support add +1 Resolve on their turn); adds still act.
+- Any player action that hits or debuffs an enemy forfeits the current question; a forfeit can end Movement III, and at
+  Resolve ≥ 3 the Tyrant is still spared.
+- After Movement III at Resolve ≥ 3 the Tyrant is spared and the turn holds for a **Resolution**: the only legal action
+  is Speak with an eligible outcome `choiceId`; its effects (incl. `ending`) apply while communion is active so
+  `{resolve}` conditions hold; the fight then closes as a victory with no spoils and no `onVictory`; encounter cleared.
+  (DESIGN says combat ends before the Resolution; this ordering is required for `{resolve}` and is canon.)
+- "Leave" after rejection = `flee` with no roll → `closer_fall` (reason `rejected`) + `echo_tyrant_rejected`.
+- Every Listen grants `echo_tyrant_speaks`; Korr's −1 applies when the next question appears. Movement end fires the
+  `communionMovementEnd` phase trigger; entering a phase with no Movement (Phase 4) closes communion.
+- **Listen's cost:** per D-069.8/STORY §8.3 the next press is not reduced by Resolve (no separate lash). WORLD §6.8/§13.2's
+  `tyr_time_lash` after Listen is **superseded** — the content unit for the Tyrant must not transcribe it.
+- Resist "acts as Guard", but the press ignores Guard (resistance step only) — Resist matters only against adds; flag for
+  the balance pass.
+- C1 addition: `CommunionSpec.movements[].listen?: { effects }` (codex fragments a Listen unlocks).
+- Not done: `ach_commune` (achievement engine is a later unit); STORY's "Mireya present: automatic" is expressed by
+  gating an answer on her in content. Question ids are recorded in the Tyrant's bestiary `intentsSeen` (harmless).

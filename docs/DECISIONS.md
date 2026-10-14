@@ -961,3 +961,23 @@ owning unit (PLAN §9.1).
   `windup:<move>`; the pattern pointer is an instruction address in a compiled program; `turnsTaken` counts every
   combatant's turns. Summon (respects `max` and the 3-enemy cap) and revive are implemented; move `effects`,
   `special`, `riposte` → U26; `leaveCombat` → U27.
+
+### D-078 · U26 details and follow-ups, 2026-10-13
+- **Scripted abilities:** ten rows that fields + the 15 specials cannot express are scripted by id in `ABILITY_SCRIPTS`
+  (Venom Coat, Doom Sigil, Smoke Bomb, Veilwalk, Iron Guard, Field Dressing, Steady Breath, Exsanguinate, Collapse,
+  Unravel). **~25 rows are still unscripted** (listed in the header of `abilities.ts`: Hunter's Eye crit, Crescendo,
+  Moment Between, Apex Predator, Unbroken, …) — they currently resolve only their data fields. **Follow-up unit U26b**
+  (Opus) scripts every remaining row and adds a test that every ability in DESIGN §5 has either full data expression or
+  a script; it must land before balance simulations.
+- Fight timers live in cooldown tables under prefixed keys (`coat:`, `delay:`, `counter:`, `riposte:`,
+  `guard_value:NN`, `foresight`); the UI shows only ability-id keys as cooldowns. Cooldowns set on the caster's own
+  turn get +1 (a 1-turn cooldown blocks exactly the next turn). Throwables work via `grantAbility` on consumables
+  (damage attributed to the `itm_` ability id). Drain shares (50%, Feast 60%) and Blood Pact 30% are engine constants.
+- Flee: a fleeable `hold` encounter records HP and moves to the previous node (no re-roll there); `hold` only appears on
+  unfleeable fights in DESIGN, so this path is defensive. The bound mage rolls at first cast. Counters/ripostes trigger
+  on any connecting rolled Physical single-target hit (no melee/ranged distinction in data).
+- **Warden Guard:** DESIGN wins over PLAN §8.1 — plain Guard is 50% (+8 Grit); 65% only with Iron Guard.
+- **Companion commands `focus`/`hold`:** DESIGN never defines them; U28 either defines them (record a DECISIONS entry)
+  or removes them from `Action` via a C1 change note. Only the signature command exists today.
+- Crushing Blow's −5 accuracy is not expressible (no ability accuracy field) — U26b scripts it.
+- §4.12 worked example now reproduces exactly through the reducer (all six rounds).

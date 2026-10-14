@@ -23,3 +23,4 @@ export * from './combat/abilities';
 export * from './combat/flee';
 export * from './combat/phases';
 export * from './combat/rewards';
+export * from './combat/companionAi';

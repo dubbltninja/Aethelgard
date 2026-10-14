@@ -15,7 +15,7 @@
 // Status rules that change a number live here (U24, DESIGN §4.5–4.6): Phase evades a single-target non-Chrono attack
 // (hit% 0, interplay 10); Void treats `resist` as neutral against a Cursed target (D-067.18, hits and ticks); step 6
 // is the interplay table's multipliers (rows 1, 2, 9, 13); step 7 adds Shock's +25 % Storm and a boss phase's damage
-// taken / per-round ramp (U27, `phaseMults`). The Shield pool is the
+// taken / per-round ramp (U27, `phaseMults`), and a Trusted companion's +10 % (U28; its heals too). The Shield pool is the
 // Shield instance's `StatusInstance.tick` (the status's stored magnitude, like a DoT's tick or Regen's heal).
 // What a status rule *does* to statuses (removals, spreads, stacks) is combat/statuses.ts `afterHit`.
 //
@@ -170,6 +170,12 @@ function runMultipliers(r: PipelineRead, attacker: Combatant, target: Combatant)
   return out;
 }
 
+/** DESIGN §12.2 / §12.5: a companion at loyalty ≥ 75 is Trusted: +10 % to its damage (step 7) and healing (U28). */
+export const TRUSTED_LOYALTY = 75;
+export const TRUSTED_MULT = 1.1;
+export const isTrusted = (s: GameState, c: Pick<Combatant, 'kind' | 'refId'>): boolean =>
+  c.kind === 'companion' && (s.companions.recruited[c.refId]?.loyalty ?? 0) >= TRUSTED_LOYALTY;
+
 /** `guard_value:<percent>` in the player's cooldown table: an ability's stronger Guard this round (Iron Guard 65 %; U26). */
 export const GUARD_VALUE_KEY = 'guard_value:';
 
@@ -243,6 +249,7 @@ function statusStepMults(r: PipelineRead, attacker: Combatant, target: Combatant
     const pct = derive(r.s.player, r.content).damagePct[spec.type] ?? 0;
     if (pct !== 0) out.push({ name: 'gear', value: 1 + pct });
   }
+  if (isTrusted(r.s, attacker)) out.push({ name: 'trusted', value: TRUSTED_MULT });
   for (const pct of statusMods(target, r.content).incoming) out.push({ name: 'target status', value: 1 + pct });
   if (spec.type === 'physical' && hasStatus(target, STATUS_ARMOR_BREAK)) out.push({ name: 'armor break', value: ARMOR_BREAK_PHYSICAL_MULT });
   if (spec.type === 'storm' && hasStatus(target, STATUS_SHOCK)) out.push({ name: 'shock', value: SHOCK_STORM_MULT });
@@ -464,6 +471,7 @@ export function resolveHeal(ctx: PipelineCtx, source: Combatant, target: Combata
   const variance = drawVariance(ctx.rng);
   x *= variance;
   steps.push({ name: 'variance', value: x });
+  if (isTrusted(ctx.s, source)) x *= TRUSTED_MULT;
   for (const pct of statusMods(target, ctx.content).healing) x *= 1 + pct;
   steps.push({ name: 'status', value: x });
   const rounded = Math.max(0, roundHalfUp(x));

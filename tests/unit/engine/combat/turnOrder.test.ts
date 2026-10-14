@@ -74,8 +74,9 @@ describe('beginCombat: the snapshot (DESIGN §4.1 Setup, §3.2)', () => {
     expect(player).toMatchObject({ kind: 'player', refId: 'ranger', level: 4, hp: 144, hpMax: 144, mp: 57, mpMax: 57, atk: 14, sp: 6, agi: 8, accuracy: 94, evasion: 4, crit: 9, critMult: 1.5, initiative: 12 });
     expect(player?.statuses.map((st) => st.statusId)).toEqual(['status_poison']);
     expect(ctx.s.player.statuses).toEqual([]);
-    // Ilyra at the player's level 4 (DESIGN §12.3): ATK 6 + 0.5·3, SP 10 + 3, armor/ward +1, AGI 7 fixed
-    expect(ilyra).toMatchObject({ kind: 'companion', refId: 'ilyra', level: 4, hp: 80, hpMax: 80, mp: 0, atk: 7.5, sp: 13, armor: 2, ward: 4, agi: 7, accuracy: 88, evasion: 3, crit: 8, initiative: 11 });
+    // Ilyra at the player's level 4 (DESIGN §12.3): HP 80 + 6·3 (her full 80 moves up with it), ATK 6 + 0.5·3, SP 10 + 3,
+    // armor/ward +1, AGI 7 fixed
+    expect(ilyra).toMatchObject({ kind: 'companion', refId: 'ilyra', level: 4, hp: 98, hpMax: 98, mp: 0, atk: 7.5, sp: 13, armor: 2, ward: 4, agi: 7, accuracy: 88, evasion: 3, crit: 8, initiative: 11 });
     // Corrupted Shade: accuracy 85 + 2, evasion 2, crit 5 + 2, initiative AGI 5 + d4
     expect(combat.enemies.map((e) => [e.name, e.hp, e.atk, e.accuracy, e.evasion, e.crit, e.initiative])).toEqual([
       ['Corrupted Shade A', 36, 7, 87, 2, 7, 8],

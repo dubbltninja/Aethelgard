@@ -19,7 +19,18 @@ import {
 } from './reducers/explore';
 import { clockHook } from './reducers/loop';
 import { characterPostStep, inventoryHandlers } from './reducers/inventory';
-import { abilityHandler, attackHandler, combatPostStep, companionCommandHandler, fleeHandler, guardHandler, itemHandler } from './reducers/combat';
+import {
+  abilityHandler,
+  attackHandler,
+  combatPostStep,
+  companionCommandHandler,
+  fleeHandler,
+  guardHandler,
+  itemHandler,
+  setStanceHandler,
+  swapCompanionHandler,
+} from './reducers/combat';
+import { companionPostStep } from './combat/companionAi';
 import { loadHandler, saveHandler } from './saves/reducers';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { GameEvent } from './types/events';
@@ -86,10 +97,10 @@ export const HANDLERS: HandlerTable = {
   guard: guardHandler, // U23 (Guard abilities such as Iron Guard: U26 abilities)
   item: itemHandler, // U26
   flee: fleeHandler, // U26
-  companionCommand: companionCommandHandler, // U26: the signature (DESIGN §4.1 `C`); stance AI and the rest U28
-  setStance: pending('U28'),
+  companionCommand: companionCommandHandler, // U26: the signature (DESIGN §4.1 `C`); U28: its cost, focus/hold orders
+  setStance: setStanceHandler, // U28
   commune: pending('U29'),
-  swapCompanion: pending('U28'),
+  swapCompanion: swapCompanionHandler, // U28
   acknowledgeEnding: pending('U30'),
   thresholdGo: pending('U31'),
   thresholdSpend: pending('U31'),
@@ -105,6 +116,7 @@ export const POST_STEP_HOOKS: readonly PostStepHook[] = [
   arrivalHook, // U20: arrival pipeline for content teleports
   clockHook, // U20: per-watch status ticks, dawn hooks, clock warnings, expiry
   characterPostStep, // U21: Weaver mark at max Corruption; stored maxima = derive() outside combat
+  companionPostStep, // U28: companion max HP by level; Dask's places (D-059) outside a fight
   combatPostStep, // U23: a fight started this step plays until the player's first turn
 ];
 

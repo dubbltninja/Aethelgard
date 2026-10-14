@@ -12,6 +12,7 @@
 //
 // No enemy acts here: `beginCombat` leaves the fight in phase 'start' and the combat reducer (reducers/combat.ts) runs
 // turns, so content effects (`startCombat`) can start a fight without importing the reducer.
+import type { Companion } from '@schema/companion';
 import type { Effect } from '@schema/effect';
 import type { Encounter } from '@schema/encounter';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
@@ -161,25 +162,42 @@ function playerCombatant(ctx: StepCtx, carried: StatusInstance[]): Combatant {
   };
 }
 
-/** The active companion at the player's level (DESIGN §4.9, §12.3): ATK/SP grow per level, armor/ward +1 per 4 levels. */
+/** DESIGN §12.3: a companion's max HP at the player's level (L1 + per level). */
+export const companionHpMax = (def: Pick<Companion, 'stats' | 'perLevel'>, level: number): number => round(def.stats.hp + def.perLevel.hp * (Math.max(1, level) - 1));
+
+/**
+ * D-059 / D-066 #12 / DESIGN §12.8: a location-restricted companion (Dask) may stand only where the location is
+ * `temporallyUnstable` or Horde-infected; every other companion anywhere (U28, combat/companionAi.ts).
+ */
+export function companionAllowedAt(s: GameState, content: ContentPack, companionId: string, locationId: string): boolean {
+  if (!content.companions[companionId]?.requiresTemporallyUnstable) return true;
+  return (content.locations[locationId]?.temporallyUnstable ?? false) || s.world.infected.includes(locationId);
+}
+
+/**
+ * The active companion at the player's level (DESIGN §4.9, §12.3): HP/ATK/SP grow per level (current HP moves with a max
+ * that grew since the record was last synced), armor/ward +1 per 4 levels. None where it cannot stand (Dask, U28).
+ */
 function companionCombatant(ctx: StepCtx): Combatant | null {
   const { s, content } = ctx;
   const id = s.companions.activeId;
   const run = id === null ? undefined : s.companions.recruited[id];
   const def = id === null ? undefined : content.companions[id];
   if (!run || !def || run.ko || run.dead || run.hp <= 0) return null;
+  if (!companionAllowedAt(s, content, def.id, s.world.currentLocationId)) return null;
   const level = s.player.level;
   const steps = Math.floor(level / 4);
   const agi = def.stats.agi;
   const { config } = content;
+  const hpMax = companionHpMax(def, level);
   return {
     uid: ctx.uid('c'),
     kind: 'companion',
     refId: def.id,
     name: def.name,
     level,
-    hp: run.hp,
-    hpMax: run.hpMax,
+    hp: Math.min(hpMax, Math.max(1, run.hp + hpMax - run.hpMax)),
+    hpMax,
     mp: 0,
     mpMax: 0,
     atk: def.stats.atk + def.perLevel.atk * (level - 1),

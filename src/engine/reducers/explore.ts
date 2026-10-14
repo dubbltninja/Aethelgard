@@ -17,6 +17,7 @@ import { WATCH_NAMES, dayOf, evaluate, explain, watchOf } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { addItem, advanceTime, apply, applyAll, locationState } from '../effects';
 import { encounterArrivalHook } from './combat';
+import { companionArrivalHook, restCompanions } from '../combat/companionAi';
 import type { Enumerator } from '../legalActions';
 import { defaultRarity } from '../newRun';
 import type { PostStepHook } from '../step';
@@ -229,6 +230,7 @@ export type ArrivalHook = (ctx: StepCtx, arrival: Arrival) => void;
  * or moves the player ends the chain.
  */
 export const ARRIVAL_HOOKS: readonly ArrivalHook[] = [
+  companionArrivalHook, // U28: Dask flickers out / rejoins (D-059, D-068.2) before any encounter rolls (combat/companionAi.ts)
   encounterArrivalHook, // U23: spawned / fixed / wandering encounters (reducers/combat.ts)
 ];
 
@@ -511,7 +513,8 @@ function clearDots(ctx: StepCtx): void {
 /**
  * `rest` at a rest spot (DESIGN §2.1, §9.5, §10.1). Short: 1 watch, +30 % HP/MP. Full: to the next dawn (a whole day at
  * dawn), heal by the spot's `healPct` (full by default), pay its `cost` (inn 10 g) and, at an inn, `status_rested`.
- * Both clear the out-of-combat DoTs, recover companions, respawn `once: false` items here and fire `rest` events.
+ * Both clear the out-of-combat DoTs, heal companions by the same share (a KO'd one comes round only at a full rest, at
+ * 50 %), respawn `once: false` items here and fire `rest` events.
  * While the clock is frozen (Silverwood Before) no time passes; the Before-day advance at the Garret is U32's.
  */
 export function restHandler(ctx: StepCtx, a: ActionOf<'rest'>): void {
@@ -535,11 +538,7 @@ export function restHandler(ctx: StepCtx, a: ActionOf<'rest'>): void {
   const mpBefore = player.mp;
   player.hp = Math.min(player.hpMax, player.hp + round(player.hpMax * pct));
   player.mp = Math.min(player.mpMax, player.mp + round(player.mpMax * pct));
-  for (const c of Object.values(s.companions.recruited)) {
-    if (c.dead) continue;
-    c.ko = false;
-    c.hp = Math.min(c.hpMax, Math.max(1, c.hp + round(c.hpMax * pct)));
-  }
+  restCompanions(ctx, full, pct); // U28: a knocked-out companion comes round only at a full rest, at 50 % (DESIGN §12.6)
   if (full && spot.kind === 'inn' && ctx.content.statuses[RESTED_STATUS] !== undefined) {
     const rested: StatusInstance = { statusId: RESTED_STATUS, stacks: 1, duration: 1, sourceUid: null, appliedOnOwnTurn: false };
     player.statuses = [...player.statuses.filter((st) => st.statusId !== RESTED_STATUS), rested];

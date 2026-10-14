@@ -15,7 +15,16 @@ import {
   waitEnumerator,
 } from './reducers/explore';
 import { inventoryEnumerators } from './reducers/inventory';
-import { abilityEnumerator, attackEnumerator, companionCommandEnumerator, fleeEnumerator, guardEnumerator, itemEnumerator } from './reducers/combat';
+import {
+  abilityEnumerator,
+  attackEnumerator,
+  companionCommandEnumerator,
+  fleeEnumerator,
+  guardEnumerator,
+  itemEnumerator,
+  setStanceEnumerator,
+  swapCompanionEnumerator,
+} from './reducers/combat';
 import { saveEnumerator } from './saves/reducers';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { Profile } from './types/profile';
@@ -138,10 +147,10 @@ export const ENUMERATORS: EnumeratorTable = {
   guard: guardEnumerator, // U23
   item: itemEnumerator, // U26
   flee: fleeEnumerator, // U26
-  companionCommand: companionCommandEnumerator, // U26 (signature; U28 the rest)
-  setStance: none, // U28
+  companionCommand: companionCommandEnumerator, // U26 (signature) / U28 (cost, focus, hold)
+  setStance: setStanceEnumerator, // U28
   commune: none, // U29
-  swapCompanion: none, // U28
+  swapCompanion: swapCompanionEnumerator, // U28
   acknowledgeEnding: none, // U30
   thresholdGo: none, // U31
   thresholdSpend: none, // U31

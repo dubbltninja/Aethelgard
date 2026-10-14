@@ -157,7 +157,7 @@ describe('rest', () => {
     expect(step(poor, full, pack, freshProfile()).events[0]).toMatchObject({ reason: 'a bed here costs 10 gold' });
   });
 
-  test('any rest clears the out-of-combat DoTs; companions recover from KO', () => {
+  test('any rest clears the out-of-combat DoTs; only a full rest brings a KO\'d companion round, at 50 % (DESIGN §12.6, U28)', () => {
     const s = makeState({
       patch: (st) => {
         st.player.statuses = [dot('status_poison', 3, 4), dot('status_bleed', 2, 3, 2)];
@@ -173,8 +173,8 @@ describe('rest', () => {
     expect(out.state.player.statuses).toEqual([]);
     expect(ofType(out.events, 'statusExpired').map((e) => e.statusId)).toEqual(['status_poison', 'status_bleed']);
     expect(ofType(out.events, 'statusTicked')).toEqual([]);
-    expect(out.state.companions.recruited.ilyra).toMatchObject({ ko: false, hp: 24 });
-    expect(play(s, [full]).state.companions.recruited.ilyra).toMatchObject({ ko: false, hp: 80 });
+    expect(out.state.companions.recruited.ilyra).toMatchObject({ ko: true, hp: 0 });
+    expect(play(s, [full]).state.companions.recruited.ilyra).toMatchObject({ ko: false, hp: 40 });
   });
 
   test('`once: false` items respawn when the player rests at their location', () => {

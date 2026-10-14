@@ -518,13 +518,16 @@ describe("the companion's signature command (DESIGN §4.1 `C`, §4.9, D-066 #12)
     const cmd: Action = { type: 'companionCommand', command: 'signature' };
     expect(signatureActions(content, s.combat!)).toEqual([cmd]);
     const out = act(s, cmd, MISS); // Ilyra still takes her own turn: her dart misses
-    expect(ofType(out.events, 'abilityUsed')).toEqual([{ t: 'abilityUsed', uid: ally(s).uid, abilityId: 'comp_ilyra_archive_light' }]);
+    expect(ofType(out.events, 'abilityUsed')).toEqual([
+      { t: 'abilityUsed', uid: ally(s).uid, abilityId: 'comp_ilyra_archive_light' },
+      { t: 'abilityUsed', uid: ally(s).uid, abilityId: 'comp_ilyra_ley_dart' }, // her own turn (U28)
+    ]);
     expect([findStatus(me(out.state), 'status_shield')?.tick, findStatus(ally(out.state), 'status_shield')?.tick]).toEqual([25, 25]);
     expect(findStatus(me(out.state), 'status_weaken')).toBeUndefined();
     expect(me(out.state).mp).toBe(me(s).mp);
     expect(ally(out.state).cooldowns.comp_ilyra_archive_light).toBe(3);
     expect(rejected(quiet(out.state), cmd)).toBe('Archive Light is recharging (3)');
-    expect(rejected(s, { type: 'companionCommand', command: 'focus' })).toBe("the 'focus' command is not defined (DESIGN §4.1 knows the signature; U28)");
+    expect(rejected(s, { type: 'companionCommand', command: 'focus' })).toBe('Ilyra has no focus to clear'); // U28 defines focus/hold (D-078)
     const alone = fight(state(), one(SHADE));
     expect(rejected(alone, cmd)).toBe('You have no companion standing');
     expect(signatureActions(content, alone.combat!)).toEqual([]);

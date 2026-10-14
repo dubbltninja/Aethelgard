@@ -6,8 +6,10 @@
 //                   (combat/statuses.ts: a combatant killed by them does not act), class `turn_start` resource
 //   action        — a Stunned combatant loses it; else the player's (`attack`, `guard` here; `ability`, `item`, `flee`
 //                   and the companion's signature command: U26, combat/abilities.ts and combat/flee.ts), the companion's
-//                   (placeholder until U28 companion AI, marked below), or the enemy's committed intent (combat/intents.ts,
-//                   U25)
+//                   by stance (U28, combat/companionAi.ts `companionTurn`), or the enemy's committed intent
+//                   (combat/intents.ts, U25)
+// Free actions on the player's turn (U28, DESIGN §4.1; D-078): a stance change (once per turn) and one companion order
+// (`focus` / `hold`); neither ends the turn. Outside a fight: `setStance` and `swapCompanion` (DESIGN §12.1).
 //   end of turn   — ability cooldowns count down, then status durations (D-066 #4) and expiry; the turn is counted
 //                   (`pattern.turnsTaken`); an enemy then generates its next intent (after a Stun: from the next step)
 // and at the end of each round the round counter goes up and the order is re-sorted (boss phases, U27: checked there
@@ -51,12 +53,10 @@ import {
   combatItemActions,
   fieldAbilityActions,
   fireDelayed,
-  signatureActions,
   springTraps,
   useCombatItem,
   useFieldAbility,
   usePlayerAbility,
-  useSignature,
 } from '../combat/abilities';
 import { consumeShield, resolveHit, rollPct, type HitResult, type HitSpec } from '../combat/damage';
 import { attemptFlee, fleeOutcome, fleeProblem } from '../combat/flee';
@@ -65,6 +65,20 @@ import { STATUS, afterHit, applyStatus, blocksAction, endOfTurnStatuses, isBoss,
 import { afterStunnedTurn, executeIntent, generateIntent, openingIntents, refreshIntents } from '../combat/intents';
 import { checkPhases, openPhases, survivalRounds } from '../combat/phases';
 import { noteIntentsSeen, recordKill, recordSeen, rollSpoils, type Spoils } from '../combat/rewards';
+import {
+  changeStance,
+  commandActions,
+  commandProblem,
+  commandSignature,
+  companionKnockedOut,
+  companionTurn,
+  giveOrder,
+  stanceActions,
+  stanceProblem,
+  swapActions,
+  swapCompanion,
+  swapProblem,
+} from '../combat/companionAi';
 import {
   CARRIED_STATUSES,
   beginCombat,
@@ -151,7 +165,7 @@ export function moveSpec(moveId: string, move: Move): HitSpec | null {
   return spec;
 }
 
-/** The companion's strike: its `attack`-kind auto ability, else `1.0·ATK` of its damage type. */
+/** The companion's usual hit: its `attack`-kind auto ability, else `1.0·ATK` of its damage type (UI previews; U28's turn: companionAi.ts). */
 export function companionAttackSpec(content: ContentPack, companionId: string): HitSpec {
   const def = content.companions[companionId];
   for (const id of def?.abilities ?? []) {
@@ -212,6 +226,7 @@ function knockOut(ctx: StepCtx, combat: CombatState, target: Combatant): void {
   } else if (target.kind === 'companion') {
     ctx.emit({ t: 'companionKo', companionId: target.refId });
     combatLog(combat, `${target.name} is down.`, 'info');
+    companionKnockedOut(ctx, target); // −2 loyalty, orders dropped (U28, DESIGN §12.5)
   }
 }
 
@@ -318,14 +333,6 @@ function endRound(ctx: StepCtx, combat: CombatState): void {
   if (combat.enemies.length !== enemies) startRound(combat, ctx.content);
 }
 
-/** TODO(U28): replaced by the stance AI (DESIGN §4.9). Placeholder: its strike at the leftmost living enemy. */
-function companionPlaceholderAction(ctx: StepCtx, combat: CombatState, companion: Combatant): void {
-  const target = combat.enemies.find(isActive);
-  if (!target) return;
-  const spec = companionAttackSpec(ctx.content, companion.refId);
-  applyHit(ctx, combat, companion, target, spec, resolveHit(ctx, companion, target, spec), spec.source === 'basic' ? 'basic' : 'ability');
-}
-
 /**
  * Plays turns until the player must act or the fight is over (DESIGN §4.1). Called by the post-step hook for a fight
  * in phase 'start', and by every player action after its effect.
@@ -369,7 +376,7 @@ export function runCombat(ctx: StepCtx): void {
     }
     if (actor.kind === 'player') return;
     if (actor.kind === 'companion') {
-      companionPlaceholderAction(ctx, combat, actor);
+      companionTurn(OPS, ctx, combat, actor); // DESIGN §4.9 by stance (U28)
       endTurn(ctx, combat, actor);
     } else {
       const phase = actor.phase;
@@ -397,7 +404,7 @@ export const combatPostStep: PostStepHook = (ctx) => {
 
 // ---- the end of a fight --------------------------------------------------------------------------------------------------
 
-/** Copies the party snapshots back: player HP/MP and surviving out-of-combat DoTs, the companion's HP and KO. */
+/** Copies the party snapshots back: player HP/MP and surviving out-of-combat DoTs, the companion's HP (and max) and KO. */
 function syncBack(ctx: StepCtx, combat: CombatState): void {
   const { player, companions } = ctx.s;
   const p = playerOf(combat);
@@ -408,6 +415,7 @@ function syncBack(ctx: StepCtx, combat: CombatState): void {
   for (const c of combat.party) {
     const run = c.kind === 'companion' ? companions.recruited[c.refId] : undefined;
     if (!run) continue;
+    run.hpMax = c.hpMax;
     run.hp = Math.max(0, c.hp);
     if (!c.alive) run.ko = true;
   }
@@ -596,17 +604,47 @@ export const itemEnumerator: Enumerator<'item'> = (s, content) => {
   return combat ? combatItemActions(s, content, combat) : [];
 };
 
-/** `companionCommand` (signature): the companion's signature on the player's action (DESIGN §4.1 `C`, §4.9). */
+// ---- the companion (U28, combat/companionAi.ts) ------------------------------------------------------------------------------
+
+/**
+ * `companionCommand` (DESIGN §4.1 `C`, §4.9; D-053, D-078): `signature` on the player's action (its self-cost, then
+ * U26's resolution, then the loyalty cooldown cut); `focus` / `hold` are free orders, one per turn — the turn goes on.
+ */
 export const companionCommandHandler: Handler<'companionCommand'> = (ctx: StepCtx, a: ActionOf<'companionCommand'>): void => {
   const combat = requirePlayerTurn(ctx);
-  useSignature(OPS, ctx, combat, a);
+  const why = commandProblem(ctx.content, combat, a);
+  if (why !== null) ctx.reject(why);
+  if (a.command !== 'signature') {
+    giveOrder(ctx, combat, a);
+    return;
+  }
+  commandSignature(OPS, ctx, combat, a);
   finishPlayerTurn(ctx, combat, playerOf(combat));
 };
 
 export const companionCommandEnumerator: Enumerator<'companionCommand'> = (s, content) => {
   const combat = playerTurnCombat(s);
-  return combat ? signatureActions(content, combat) : [];
+  return combat ? commandActions(content, combat) : [];
 };
+
+/** `setStance` (DESIGN §4.1 free action, §12.2): the active companion's stance; in a fight once per player turn. */
+export const setStanceHandler: Handler<'setStance'> = (ctx: StepCtx, a: ActionOf<'setStance'>): void => {
+  if (ctx.s.mode === 'combat') requirePlayerTurn(ctx);
+  const why = stanceProblem(ctx.s, a.stance);
+  if (why !== null) ctx.reject(why);
+  changeStance(ctx, a.stance);
+};
+
+export const setStanceEnumerator: Enumerator<'setStance'> = (s) => (s.mode === 'combat' && playerTurnCombat(s) === null ? [] : stanceActions(s));
+
+/** `swapCompanion` (DESIGN §12.1): at a rest spot, or with the companion present. */
+export const swapCompanionHandler: Handler<'swapCompanion'> = (ctx: StepCtx, a: ActionOf<'swapCompanion'>): void => {
+  const why = swapProblem(ctx.s, ctx.content, ctx.profile, a.companionId);
+  if (why !== null) ctx.reject(why);
+  swapCompanion(ctx, a.companionId);
+};
+
+export const swapCompanionEnumerator: Enumerator<'swapCompanion'> = (s, content, profile) => swapActions(s, content, profile);
 
 /** A successful flee (DESIGN §4.7): the fight closes with no XP or loot, then the encounter's `onFlee` (combat/flee.ts). */
 function finishFled(ctx: StepCtx, combat: CombatState): void {

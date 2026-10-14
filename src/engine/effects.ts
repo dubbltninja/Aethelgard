@@ -6,7 +6,8 @@
 // Minimal implementations, marked TODO(Uxx) where the owning system adds behaviour later:
 // xp (level-ups U21), giveItem (rolled rarity/affixes U27/U34), heal/damage (combat snapshots U23, death U30),
 // passWatches (dawn hooks, warnings and expiry U20), teleport (entry hooks U20), questAdvance (outcomes/rewards U33),
-// recruit (level scaling U28), endLoop/ending (RunRecord, Resonance, profile writes U30).
+// recruit (bond-Echo loyalty start U32; max HP by level: combat/companionAi.ts `companionPostStep`, U28), endLoop/ending
+// (RunRecord, Resonance, profile writes U30).
 // startCombat starts the encounter (U23, combat/turnOrder.ts; the fight plays from the combat post-step hook).
 // Not yet applicable — they reject the action, naming the unit: startDialogue (U33),
 // unlockRecipe (U34: no known-recipe state yet) and the five combat-scope atoms (U26/U27; D-069.9).
@@ -351,7 +352,7 @@ const APPLIERS: Appliers = {
       id,
       recruited: true,
       loyalty: def.startingLoyalty ?? 0,
-      hp: def.stats.hp, // TODO(U28): level scaling (perLevel) and the bond-Echo loyalty start
+      hp: def.stats.hp, // level 1: companionPostStep (U28) moves max HP to the player's level; TODO(U32): bond-Echo loyalty start
       hpMax: def.stats.hp,
       ko: false,
       dead: false,

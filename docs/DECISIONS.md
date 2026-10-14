@@ -917,3 +917,23 @@ owning unit (PLAN §9.1).
   rests, refunds exactly this loop's costs. %-reductions and %-HP self-costs round down (self-cost ≥ 1); slotless
   quest/key items apply their stats (Amulet +1 MAG, grants `itm_echo_bolt`). Helpers `resourceGain`, `abilityCost`,
   `playerAbilityCost` for U26. U20's `slotsUsed` and U21's pack counting overlap — consolidate in U22 or later.
+
+### D-075 · U22/U23 details, 2026-10-13
+- **Saves (U22):** `SaveFile` carries `savedAt` (string supplied by the UI; the engine never reads a clock).
+  `deserialize` accepts object or text and returns `{state, migratedFrom, warnings, file}`; unknown items/abilities/
+  quests drop with warnings, unknown class/location is fatal. `canAutosave(state)`: explore/threshold only, no open
+  dialogue, no Horde, not at the Loop 1 Apex; the `settings.autosave` check is the store's. `save` emits
+  `saveRequested`; `load` (title mode only) replaces the state and refuses combat/dialogue/ending saves. Storage keys
+  follow DESIGN §14.1: `aethelgard.run.slot1|2|3|auto`, `aethelgard.profile`, `aethelgard.settings.mirror` (PLAN text
+  corrected). Extras: profile file, two-phase write (.tmp/.bak), backup restore, export file names. The profile
+  merge-on-import (DESIGN §14.3) is UI-side.
+- **Combat core (U23):** hit roll = `int(0,99) < chance` (PLAN form); certain chances draw nothing (Mark skips the roll).
+  `beginCombat` lives in `turnOrder.ts` (avoids a cycle with `effects.ts`) and ticks Poison/Bleed/Curse for watches
+  travelled in the same step. Guard is a real action; class-resource events guard/turn_start/hit_taken/dodge/crit
+  (taunt → U26). Rested is consumed when a fight starts. Shield pool read from `StatusInstance.tick` until U24 decides.
+  Enemy/companion turns are placeholders (TODO U25/U28). Not done: wild-camp ambush (DESIGN unspecified — leave out
+  unless a later review asks), anomaly spawns (needs a region link; U-content units), loot rarity/full pack/bestiary
+  (U26/U27).
+- **Follow-up (must not be lost):** a Loop 1 death outside a Horde leaves the state in combat mode, phase `defeat`, with
+  **no legal actions** — there is no combat→title transition yet. The closer/game-over unit (U30) or the UI shell must
+  add an explicit `acknowledgeDefeat` → title (Loop 1 classic FALLEN screen, D-049) so bots and players are never stuck.

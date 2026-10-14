@@ -2166,7 +2166,7 @@ export function useIsLegal(action: Action): boolean;
 export function useGameEvents(handler: (events: GameEvent[], state: GameState) => void): void;  // effect-scoped subscription (audio, toasts, announcer)
 ```
 
-`dispatch` wraps `step`; when `step` emits `saveRequested` the store calls `shell.save`; when it emits `autosaveCheckpoint` and `settings.autosave` is on, the store writes the autosave slot (throttled to one write per checkpoint type per step). The store catches engine exceptions, logs them with the action and a state hash, shows a recoverable error toast ("The Breach stuttered — your last action was undone") and keeps the previous state; in dev it rethrows. Settings changes go directly to the profile (they are not gameplay) and mirror to `aethelgard.v1.settings.mirror`.
+`dispatch` wraps `step`; when `step` emits `saveRequested` the store calls `shell.save`; when it emits `autosaveCheckpoint` and `settings.autosave` is on, the store writes the autosave slot (throttled to one write per checkpoint type per step). The store catches engine exceptions, logs them with the action and a state hash, shows a recoverable error toast ("The Breach stuttered — your last action was undone") and keeps the previous state; in dev it rethrows. Settings changes go directly to the profile (they are not gameplay) and mirror to `aethelgard.settings.mirror`.
 
 ### 6.2 Routing by `state.mode`
 

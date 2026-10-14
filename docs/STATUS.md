@@ -65,7 +65,9 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U23 | Combat core: initiative, turn loop, basic attacks, damage pipeline — brief `briefs/u23.md` | Opus | ✅ a432c77 — §4.12 worked example matches in scope; 1065 tests; D-075 (**Loop 1 defeat → title follow-up for U30**) |
 | U24 | Statuses + interplay + timing — brief `briefs/u24.md` | Opus | ✅ 8fbce81 — 19 statuses + 18 interplay rows; 1132 tests; D-076 (DESIGN §4.12 corrected) |
 | U25 | Enemy intents — brief `briefs/u25.md` | Opus | ✅ 6c62235 — intents, cadence words, worked example end-to-end; 1179 tests; D-077 |
-| U26–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (66 remaining; next U26). Copy the next few here as they start. | — | ⏳ |
+| U26 | Player abilities, class resources, Guard, combat items, flee/scatter, specials — brief `briefs/u26.md` | Opus | ▶ in progress |
+| U27 | Boss phases, adds, Rewind cap; rewards, loot, bestiary — brief `briefs/u27.md` | Opus | ⏳ queued this session |
+| U28–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (64 remaining after U26–U27). Copy the next few here as they start. | — | ⏳ |
 
 
 ### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)

@@ -981,3 +981,19 @@ owning unit (PLAN §9.1).
   or removes them from `Action` via a C1 change note. Only the signature command exists today.
 - Crushing Blow's −5 accuracy is not expressible (no ability accuracy field) — U26b scripts it.
 - §4.12 worked example now reproduces exactly through the reducer (all six rounds).
+
+### D-079 · U27 details, 2026-10-14
+- Kill XP = the creature's authored `xp` × the loop nudge; WORLD's numbers already include elite ×1.8 / anomaly ×1.3, so
+  the engine does not multiply again (`expectedKillXp` keeps the formula for content checks).
+- Phase triggers: `round: n` means the phase begins with round n; one event satisfying several later phases enters each
+  in order; a phase whose trigger never held is passed over for good (phases never go backwards). Example: a Contained
+  Tyrant still in Phase 1 at round 12 skips Phase 2's adds. Ramp counts rounds spent in the phase.
+- Survival fights read their goal from content plus a `phase:<i>` marker in `pattern.firedOnce` (no C1 change).
+- Bestiary: kills written at the kill, `seen` at fight end, intents recorded each player turn; the first kill reveals
+  resistances for the whole family. `att_echo_sense` → U31. `recordSpared` (communion, U29) emits no bestiary event
+  (no `spared` field in the event).
+- Overflow loot lies on the ground (dawn expiry not yet implemented). `giveItem` does not roll rarity yet (U34 reuses
+  `rollRarity`/`rollAffixes`).
+- **Combat leftovers folded into U26b:** `affix_of_echoes` (+10% kill XP); a data shape for phase `onEnter` area damage
+  (DESIGN §4.10 mentions an "AoE" with no schema form — add a combat-scope effect or a phase field via a C1 note);
+  ground-loot dawn expiry.

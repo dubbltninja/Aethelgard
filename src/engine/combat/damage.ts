@@ -168,9 +168,21 @@ function runMultipliers(r: PipelineRead, attacker: Combatant, target: Combatant)
   return out;
 }
 
-/** The Guard fraction protecting `target`: the player's gear may raise it (affix_of_the_warden); else config (0.5). */
+/** `guard_value:<percent>` in the player's cooldown table: an ability's stronger Guard this round (Iron Guard 65 %; U26). */
+export const GUARD_VALUE_KEY = 'guard_value:';
+
+/**
+ * The Guard fraction protecting `target`: the player's gear may raise it (affix_of_the_warden), and so may an ability's
+ * Guard this round (GUARD_VALUE_KEY, the best one wins); else config (0.5).
+ */
 export function guardValueOf(r: PipelineRead, target: Combatant): number {
-  return target.kind === 'player' ? derive(r.s.player, r.content).guardValue : r.content.config.guardValue;
+  if (target.kind !== 'player') return r.content.config.guardValue;
+  let value = derive(r.s.player, r.content).guardValue;
+  const table = r.s.combat?.cooldowns ?? {};
+  for (const key of Object.keys(table)) {
+    if (key.startsWith(GUARD_VALUE_KEY) && (table[key] ?? 0) > 0) value = Math.max(value, Number(key.slice(GUARD_VALUE_KEY.length)) / 100);
+  }
+  return value;
 }
 
 /** Who a resistance step or a status rule reads: resistances, and statuses when the holder has any. */

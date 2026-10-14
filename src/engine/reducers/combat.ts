@@ -4,9 +4,10 @@
 // and `runCombat` plays turns in initiative order until it is the player's turn or the fight is over:
 //   start of turn — `turnStarted`, Guard drops ("until the guarder's next turn begins"), start-of-turn status ticks
 //                   (combat/statuses.ts: a combatant killed by them does not act), class `turn_start` resource
-//   action        — a Stunned combatant loses it; else the player's (`attack`, `guard` here; abilities, items, flee U26;
-//                   companion command U28), the companion's (placeholder until U28 companion AI, marked below), or the
-//                   enemy's committed intent (combat/intents.ts, U25)
+//   action        — a Stunned combatant loses it; else the player's (`attack`, `guard` here; `ability`, `item`, `flee`
+//                   and the companion's signature command: U26, combat/abilities.ts and combat/flee.ts), the companion's
+//                   (placeholder until U28 companion AI, marked below), or the enemy's committed intent (combat/intents.ts,
+//                   U25)
 //   end of turn   — ability cooldowns count down, then status durations (D-066 #4) and expiry; the turn is counted
 //                   (`pattern.turnsTaken`); an enemy then generates its next intent (after a Stun: from the next step)
 // and at the end of each round the round counter goes up and the order is re-sorted (boss phase checks: U27). Before
@@ -15,7 +16,10 @@
 // The fight ends when every enemy is down (victory: XP via progression, gold and loot rolls, the creatures' and the
 // encounter's effects, autosave) or the player is (defeat: Loop 1 outside a Horde is the classic FALLEN game over,
 // D-049 — the state stays in combat, phase 'defeat', with no legal action and the shell returns to the title; any
-// other death is The Fall, `closer_fall`, D-066 #7). A knocked-out companion does not end the fight (DESIGN §4.7).
+// other death is The Fall, `closer_fall`, D-066 #7), or on a successful flee (U26: phase 'fled', no XP/loot, then the
+// encounter's `onFlee`, combat/flee.ts). A knocked-out companion does not end the fight (DESIGN §4.7).
+// U26 hooks: a delayed hit (Doom Sigil) fires at the start of its target's turn; traps set at the node spring when the
+// fight opens; every hit that lands gives counter stances and ripostes their answer (combat/specials.ts).
 //
 // Arrival encounters (ARRIVAL_HOOKS, reducers/explore.ts; DESIGN §4.7–4.8, WORLD §3 and §10.0), in order: a group a
 // `spawn` effect placed here; the location's fixed encounters (not scattered or cleared, `when` holds, not bypassable
@@ -38,8 +42,23 @@ import type { ActionOf } from '../types/actions';
 import type { CloserReason } from '../types/ids';
 import type { Combatant, CombatState, GameState, ItemInstance } from '../types/state';
 import { round } from '../util/math';
+import {
+  applyCoats,
+  combatAbilityActions,
+  combatItemActions,
+  fieldAbilityActions,
+  fireDelayed,
+  signatureActions,
+  springTraps,
+  useCombatItem,
+  useFieldAbility,
+  usePlayerAbility,
+  useSignature,
+} from '../combat/abilities';
 import { consumeShield, resolveHit, rollPct, type HitResult, type HitSpec } from '../combat/damage';
-import { STATUS, afterHit, applyStatus, endOfTurnStatuses, isBoss, skipsTurn, startOfTurnStatuses } from '../combat/statuses';
+import { attemptFlee, fleeOutcome, fleeProblem } from '../combat/flee';
+import { expireStances, reactToHit, type CombatOps, type HitKind } from '../combat/specials';
+import { STATUS, afterHit, applyStatus, blocksAction, endOfTurnStatuses, isBoss, skipsTurn, startOfTurnStatuses } from '../combat/statuses';
 import { afterStunnedTurn, executeIntent, generateIntent, openingIntents, refreshIntents } from '../combat/intents';
 import {
   CARRIED_STATUSES,
@@ -71,7 +90,7 @@ export const WARDEN_CLASS_ID = 'ironclad_warden';
 const APEX_LOCATION_ID = 'loc_temporal_breach_apex';
 
 type WeaponType = NonNullable<Item['weaponType']>;
-type DamageKind = 'basic' | 'ability' | 'item' | 'intent';
+type DamageKind = HitKind;
 
 // ---- basic attacks (DESIGN §5.7) ----------------------------------------------------------------------------------------
 
@@ -230,7 +249,11 @@ export function applyHit(ctx: StepCtx, combat: CombatState, attacker: Combatant,
   afterHit(ctx, combat, attacker, target, spec, result); // interplay that changes statuses (U24, DESIGN §4.6)
   // TODO(U27): HP-threshold boss phase triggers are checked here, after every damage event (DESIGN §4.10).
   if (target.hp <= 0) knockOut(ctx, combat, target);
+  else reactToHit(ctx, combat, OPS, attacker, target, spec, result); // counter stances and ripostes answer (U26)
 }
+
+/** The reducer's operations the combat modules call back into (U26: abilities, items, flee, specials, intents). */
+const OPS: CombatOps = { applyHit, gainResource, addMp };
 
 // ---- turns ---------------------------------------------------------------------------------------------------------------
 
@@ -238,10 +261,11 @@ export function applyHit(ctx: StepCtx, combat: CombatState, attacker: Combatant,
 function startTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
   combat.phase = actor.kind === 'player' ? 'playerTurn' : actor.kind === 'companion' ? 'companionTurn' : 'enemyTurn';
   actor.guarding = false;
+  expireStances(combat, actor); // counter stances, ripostes, Iron Guard end with the round (U26)
   if (actor.kind === 'player') combat.resourceGainedThisTurn = 0;
   ctx.emit({ t: 'turnStarted', uid: actor.uid, round: combat.round });
-  // start-of-turn ticks: DoTs, Regen, Rewind (U24, combat/statuses.ts); a combatant killed here does not act.
-  // TODO(U26): the Doom Sigil timer (an ability's delayed hit) is checked here too.
+  // start-of-turn ticks: DoTs, Regen, Rewind (U24, combat/statuses.ts), then the Doom Sigil timer (U26, a delayed hit);
+  // a combatant killed here does not act.
   const ticks = startOfTurnStatuses(ctx, combat, actor);
   if (actor.hp <= 0) {
     const how = ticks.ticks.some((t) => t.statusId === STATUS.bleed) ? 'bleeds out' : 'succumbs';
@@ -249,6 +273,8 @@ function startTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
     knockOut(ctx, combat, actor);
     return;
   }
+  fireDelayed(OPS, ctx, combat, actor);
+  if (!isActive(actor)) return;
   if (actor.kind === 'player') gainResource(ctx, combat, actor, 'turn_start');
 }
 
@@ -287,7 +313,10 @@ function companionPlaceholderAction(ctx: StepCtx, combat: CombatState, companion
  */
 export function runCombat(ctx: StepCtx): void {
   const opening = ctx.s.combat;
-  if (opening?.phase === 'start') openingIntents(ctx, opening); // DESIGN §4.1 Setup: every enemy's first intent (U25)
+  if (opening?.phase === 'start') {
+    openingIntents(ctx, opening); // DESIGN §4.1 Setup: every enemy's first intent (U25)
+    springTraps(OPS, ctx, opening); // traps set at this node (U26)
+  }
   for (let n = 0; n < MAX_COMBAT_TURNS; n++) {
     const combat = ctx.s.combat;
     if (combat === null || combat.phase === 'victory' || combat.phase === 'defeat' || combat.phase === 'fled') return;
@@ -320,7 +349,7 @@ export function runCombat(ctx: StepCtx): void {
       companionPlaceholderAction(ctx, combat, actor);
       endTurn(ctx, combat, actor);
     } else {
-      const played = executeIntent(ctx, combat, actor, applyHit); // DESIGN §4.2 (U25)
+      const played = executeIntent(ctx, combat, actor, applyHit, OPS); // DESIGN §4.2 (U25)
       endTurn(ctx, combat, actor);
       generateIntent(ctx, combat, actor, played); // the next intent, once this turn is over
     }
@@ -512,6 +541,7 @@ export const attackHandler: Handler<'attack'> = (ctx: StepCtx, a: ActionOf<'atta
   if (result.hit && !result.immune && basic.stunChance > 0 && isActive(target) && !isBoss(ctx.content, target) && rollPct(ctx.rng, Math.round(basic.stunChance * 100))) {
     applyStatus(ctx, combat, player, target, STATUS.stun, { duration: 1 });
   }
+  if (result.hit && !result.immune) applyCoats(ctx, combat, player, target, null); // Venom Coat (U26)
   finishPlayerTurn(ctx, combat, player);
 };
 
@@ -519,6 +549,7 @@ export const attackHandler: Handler<'attack'> = (ctx: StepCtx, a: ActionOf<'atta
 export const guardHandler: Handler<'guard'> = (ctx: StepCtx): void => {
   const combat = requirePlayerTurn(ctx);
   const player = playerOf(combat);
+  if (blocksAction(ctx.content, player, 'guard')) ctx.reject('You cannot guard now');
   player.guarding = true;
   ctx.emit({ t: 'guarded', uid: player.uid });
   combatLog(combat, `${player.name} guards.`, 'info');
@@ -534,7 +565,81 @@ export const attackEnumerator: Enumerator<'attack'> = (s, content) => {
   return combat.enemies.filter(isActive).map((e) => ({ type: 'attack', targetUid: e.uid }));
 };
 
-export const guardEnumerator: Enumerator<'guard'> = (s) => (playerTurnCombat(s) ? [{ type: 'guard' }] : []);
+export const guardEnumerator: Enumerator<'guard'> = (s, content) => {
+  const combat = playerTurnCombat(s);
+  return combat && !blocksAction(content, playerOf(combat), 'guard') ? [{ type: 'guard' }] : [];
+};
+
+// ---- abilities, items, flee, the companion's signature (U26) ----------------------------------------------------------------
+
+/** `ability`: in a fight, the turn's action (combat/abilities.ts); out of combat, a `field` ability (DESIGN §5.1). */
+export const abilityHandler: Handler<'ability'> = (ctx: StepCtx, a: ActionOf<'ability'>): void => {
+  if (ctx.s.mode !== 'combat') return useFieldAbility(ctx, a);
+  const combat = requirePlayerTurn(ctx);
+  usePlayerAbility(OPS, ctx, combat, a);
+  finishPlayerTurn(ctx, combat, playerOf(combat));
+};
+
+export const abilityEnumerator: Enumerator<'ability'> = (s, content) => {
+  if (s.mode === 'explore') return fieldAbilityActions(s, content);
+  const combat = playerTurnCombat(s);
+  return combat ? combatAbilityActions(s, content, combat) : [];
+};
+
+/** `item`: a consumable as the turn's action (DESIGN §7.9). */
+export const itemHandler: Handler<'item'> = (ctx: StepCtx, a: ActionOf<'item'>): void => {
+  const combat = requirePlayerTurn(ctx);
+  useCombatItem(OPS, ctx, combat, a);
+  finishPlayerTurn(ctx, combat, playerOf(combat));
+};
+
+export const itemEnumerator: Enumerator<'item'> = (s, content) => {
+  const combat = playerTurnCombat(s);
+  return combat ? combatItemActions(s, content, combat) : [];
+};
+
+/** `companionCommand` (signature): the companion's signature on the player's action (DESIGN §4.1 `C`, §4.9). */
+export const companionCommandHandler: Handler<'companionCommand'> = (ctx: StepCtx, a: ActionOf<'companionCommand'>): void => {
+  const combat = requirePlayerTurn(ctx);
+  useSignature(OPS, ctx, combat, a);
+  finishPlayerTurn(ctx, combat, playerOf(combat));
+};
+
+export const companionCommandEnumerator: Enumerator<'companionCommand'> = (s, content) => {
+  const combat = playerTurnCombat(s);
+  return combat ? signatureActions(content, combat) : [];
+};
+
+/** A successful flee (DESIGN §4.7): the fight closes with no XP or loot, then the encounter's `onFlee` (combat/flee.ts). */
+function finishFled(ctx: StepCtx, combat: CombatState): void {
+  const { s } = ctx;
+  combat.phase = 'fled';
+  syncBack(ctx, combat);
+  s.combat = null;
+  enterMode(ctx, 'explore');
+  s.counters.fled += 1;
+  ctx.emit({ t: 'combatEnded', result: 'fled', rounds: combat.round, xp: 0, gold: 0, loot: [] });
+  applyAll(combat.onFleeEffects as Effect[], ctx, { source: `encounter:${combat.encounterId}` });
+  fleeOutcome(ctx, combat);
+  if (s.mode === 'explore' && s.world.currentLocationId === combat.locationId) autosaveAfterCombat(ctx);
+}
+
+/** `flee` (DESIGN §4.1 `F`, §4.7): a failed roll wastes the turn and makes the next try +15 %. */
+export const fleeHandler: Handler<'flee'> = (ctx: StepCtx): void => {
+  const combat = requirePlayerTurn(ctx);
+  const why = fleeProblem(ctx.content, combat);
+  if (why !== null) ctx.reject(why);
+  if (attemptFlee(ctx, combat)) finishFled(ctx, combat);
+  else finishPlayerTurn(ctx, combat, playerOf(combat));
+};
+
+export const fleeEnumerator: Enumerator<'flee'> = (s, content) => {
+  const combat = playerTurnCombat(s);
+  return combat && fleeProblem(content, combat) === null ? [{ type: 'flee' }] : [];
+};
+
+/** The arrival after a flee (placed at the previous node) rolls no encounter (DESIGN §4.7). */
+const fledThisStep = (ctx: StepCtx): boolean => ctx.events.some((e) => e.t === 'combatEnded' && e.result === 'fled');
 
 // ---- arrival encounters --------------------------------------------------------------------------------------------------
 
@@ -578,7 +683,7 @@ export function arrivalEncounter(ctx: StepCtx, arrival: Arrival): EncounterSpec 
 
 /** ARRIVAL_HOOKS entry (reducers/explore.ts): starts the arrival's fight; it plays from the combat post-step hook. */
 export const encounterArrivalHook: ArrivalHook = (ctx, arrival) => {
-  if (arrival.via === 'retreat' || arrival.via === 'notYet' || ctx.s.combat !== null) return;
+  if (arrival.via === 'retreat' || arrival.via === 'notYet' || ctx.s.combat !== null || fledThisStep(ctx)) return;
   const spec = arrivalEncounter(ctx, arrival);
   if (spec) beginCombat(ctx, spec);
 };

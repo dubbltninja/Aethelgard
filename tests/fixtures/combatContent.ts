@@ -4,9 +4,12 @@
 //                       Brute, the Traveler's Sword and the other weapon types, the Elf / Warden / Weaver classes, the
 //                       Mistwood Path (a return node on the Mistwood wandering pool, east of the Ruins), a table
 //                       encounter for `startCombat`, and the Glass / Pacifist modifiers.
+//                       U26 appends DESIGN §5 ability rows for all five classes (at least three per class), a throwable
+//                       (Ember Flask), and a Duelist whose moves carry the U26 move parts (riposte, effects, specials).
 //   ScriptedRng, D    — an Rng that returns queued draws (the example's printed rolls), and the draw for each roll kind.
 //   scriptedStep      — `step`'s accept path (handlers, post-step hooks) over a ScriptedRng.
 import { buildContentPack, type ContentPack, type ContentTables } from '@content/index';
+import type { AbilityInput } from '@schema/ability';
 import type { ClassInput } from '@schema/class';
 import type { CreatureInput } from '@schema/creature';
 import type { EncounterInput } from '@schema/encounter';
@@ -155,6 +158,148 @@ const modifiers = [
   { id: 'mod_pacifist', name: "Pacifist's Vow", description: 'Kill XP 0.', rules: [{ kind: 'xp_sources', allow: ['quest', 'discovery'] }], icon: 'vow' },
 ] satisfies ModifierInput[];
 
+// ---- U26: abilities, a throwable, the Duelist -------------------------------------------------------------------------------
+
+export const DUELIST = 'cr_fixture_duelist';
+
+type A = AbilityInput;
+const cls = (id: string, ownerId: string, branch: string, tier: number, name: string, rest: Omit<A, 'id' | 'ownerId' | 'branch' | 'tier' | 'name' | 'description'>): A => ({
+  id, ownerId, branch, tier, name, description: `Fixture: DESIGN §5 ${name}.`, ...rest,
+});
+const R = (id: string, branch: string, tier: number, name: string, rest: Omit<A, 'id' | 'ownerId' | 'branch' | 'tier' | 'name' | 'description'>) => cls(id, 'ranger', branch, tier, name, rest);
+const W = (id: string, branch: string, tier: number, name: string, rest: Omit<A, 'id' | 'ownerId' | 'branch' | 'tier' | 'name' | 'description'>) => cls(id, 'wizard', branch, tier, name, rest);
+const E = (id: string, branch: string, tier: number, name: string, rest: Omit<A, 'id' | 'ownerId' | 'branch' | 'tier' | 'name' | 'description'>) => cls(id, 'elf', branch, tier, name, rest);
+const K = (id: string, branch: string, tier: number, name: string, rest: Omit<A, 'id' | 'ownerId' | 'branch' | 'tier' | 'name' | 'description'>) => cls(id, 'ironclad_warden', branch, tier, name, rest);
+const V = (id: string, branch: string, tier: number, name: string, rest: Omit<A, 'id' | 'ownerId' | 'branch' | 'tier' | 'name' | 'description'>) => cls(id, 'shadow_weaver', branch, tier, name, rest);
+const notBoss = { targetIsBoss: false } as const;
+const boss = { targetIsBoss: true } as const;
+
+/** DESIGN §5.2–5.6 rows (the fixture pack already has Marked Shot, Rend, Piercing Arrow, Fireball, Echo Bolt, Temporal Drag). */
+export const u26Abilities: AbilityInput[] = [
+  // Ranger (§5.2)
+  R('rgr_venom_coat', 'wildcraft', 1, 'Venom Coat', { mp: 6, target: 'self', statuses: [{ status: 'status_poison', chance: 1, duration: 4 }] }),
+  R('rgr_riposte_stance', 'steel', 2, 'Riposte Stance', { mp: 8, target: 'self', damageType: 'physical', power: { coef: 0.8, stat: 'atk' }, special: 'counter_stance', cooldown: 3 }),
+  R('rgr_field_dressing', 'wildcraft', 2, 'Field Dressing', { mp: 10, target: 'self_or_ally', heal: { base: 18, coef: 0.8, stat: 'maxStrAgi', target: 'ally' }, outOfCombat: [{ heal: { hp: 20 } }] }),
+  R('rgr_hunters_eye', 'hunt', 3, "Hunter's Eye", { mp: 10, target: 'self', special: 'foresight', cooldown: 4 }),
+  R('rgr_hamstring', 'steel', 3, 'Hamstring', {
+    mp: 10, target: 'enemy', damageType: 'physical', power: { coef: 0.9, stat: 'atk' },
+    statuses: [{ status: 'status_slow', duration: 2 }, { status: 'status_bleed', duration: 3, when: { targetHas: 'status_bleed' } }],
+  }),
+  R('rgr_snare_trap', 'wildcraft', 3, 'Snare Trap', {
+    mp: 12, target: 'enemy', damageType: 'physical', power: { coef: 0.5, stat: 'atk' }, special: 'trap', cooldown: 3,
+    statuses: [{ status: 'status_stun', duration: 1, when: notBoss }, { status: 'status_slow', duration: 2, when: boss }],
+  }),
+  R('rgr_pinning_shot', 'hunt', 4, 'Pinning Shot', { mp: 14, target: 'enemy', damageType: 'physical', power: { coef: 1.0, stat: 'atk' }, interrupt: true, statuses: [{ status: 'status_slow', duration: 2 }], cooldown: 3 }),
+  R('rgr_whirling_steel', 'steel', 4, 'Whirling Steel', { mp: 16, target: 'all_enemies', damageType: 'physical', power: { coef: 0.85, stat: 'atk' }, statuses: [{ status: 'status_bleed', duration: 3, when: { targetHas: 'status_bleed' } }] }),
+  R('rgr_smoke_bomb', 'wildcraft', 4, 'Smoke Bomb', { mp: 12, target: 'all_enemies', statuses: [{ status: 'status_blind', duration: 2 }], cooldown: 3 }),
+  R('rgr_killing_shot', 'hunt', 5, 'Killing Shot', { mp: 24, target: 'enemy', damageType: 'physical', power: { coef: 2.2, stat: 'atk' }, special: 'mark_execute', onKill: { refundMp: 24 }, cooldown: 4 }),
+  R('rgr_exsanguinate', 'steel', 5, 'Exsanguinate', { mp: 20, target: 'enemy', damageType: 'physical', power: { coef: 1.4, stat: 'atk' }, cooldown: 4 }),
+  // Wizard (§5.3)
+  W('wiz_static_lash', 'storm', 1, 'Static Lash', { mp: 8, target: 'enemy', damageType: 'storm', spell: true, power: { base: 2, coef: 1.1, stat: 'sp' }, statuses: [{ status: 'status_shock', chance: 0.5, duration: 2 }] }),
+  W('wiz_lightning_bolt', 'storm', 2, 'Lightning Bolt', { mp: 14, target: 'enemy', damageType: 'storm', spell: true, power: { base: 4, coef: 1.7, stat: 'sp' }, special: 'chain', statuses: [{ status: 'status_shock', duration: 2 }] }),
+  W('wiz_cinder_shield', 'pyre', 2, 'Cinder Shield', { mp: 10, target: 'self', shield: { base: 10, coef: 1.5, stat: 'sp', turns: 3 }, cooldown: 3 }),
+  W('wiz_flame_wave', 'pyre', 3, 'Flame Wave', { mp: 18, target: 'all_enemies', damageType: 'fire', spell: true, power: { base: 3, coef: 1.0, stat: 'sp' }, statuses: [{ status: 'status_burn', chance: 0.6, duration: 3 }] }),
+  W('wiz_rewind', 'chronomancy', 3, 'Rewind', { mp: 14, target: 'self_or_ally', special: 'rewind', cooldown: 4 }),
+  W('wiz_immolate', 'pyre', 4, 'Immolate', { mp: 16, target: 'enemy', damageType: 'fire', spell: true, power: { coef: 1.2, stat: 'sp' } }),
+  W('wiz_stutter', 'chronomancy', 4, 'Stutter', {
+    mp: 16, target: 'enemy', damageType: 'chrono', spell: true, power: { coef: 0.6, stat: 'sp' }, interrupt: true, cooldown: 3,
+    statuses: [{ status: 'status_stun', duration: 1, when: notBoss }, { status: 'status_slow', duration: 2, when: boss }],
+  }),
+  W('wiz_pyre_of_the_nine', 'pyre', 5, 'Pyre of the Nine', {
+    mp: 30, target: 'all_enemies', damageType: 'fire', spell: true, power: { base: 10, coef: 2.0, stat: 'sp' }, selfCost: { hpPctMax: 0.1 }, cooldown: 4,
+    statuses: [{ status: 'status_burn', duration: 3 }, { status: 'status_armor_break', duration: 2 }],
+  }),
+  // Elf (§5.4)
+  E('elf_twin_strike', 'bladesong', 1, 'Twin Strike', { mp: 8, target: 'enemy', damageType: 'physical', power: { coef: 0.65, stat: 'atk', hits: 2 } }),
+  E('elf_ley_mend', 'leyweave', 1, 'Ley Mend', { mp: 8, target: 'self_or_ally', heal: { base: 14, coef: 1.2, stat: 'sp', target: 'ally' }, outOfCombat: [{ heal: { hp: 20 } }] }),
+  E('elf_shadowstep', 'shadowstep', 1, 'Shadowstep', { mp: 6, target: 'self', special: 'phase', cooldown: 2 }),
+  E('elf_ambush', 'shadowstep', 2, 'Ambush', {
+    mp: 12, target: 'enemy', damageType: 'physical', power: { coef: 1.6, stat: 'atk' },
+    bonuses: [{ when: { any: [{ selfHas: 'status_phase' }, { targetHasActed: false }] }, mult: 1.5 }],
+  }),
+  E('elf_barkskin', 'leyweave', 2, 'Barkskin', {
+    mp: 10, target: 'self_or_ally', shield: { base: 12, coef: 1.4, stat: 'sp', turns: 3 }, cooldown: 3,
+    statuses: [{ status: 'status_regen', duration: 3, power: { base: 4, coef: 0.4, stat: 'sp' } }],
+  }),
+  E('elf_thornlash', 'leyweave', 3, 'Thornlash', { mp: 12, target: 'enemy', damageType: 'ley', spell: true, power: { base: 4, coef: 1.3, stat: 'sp' }, statuses: [{ status: 'status_bleed', duration: 3 }] }),
+  E('elf_blink_strike', 'shadowstep', 3, 'Blink Strike', { mp: 12, target: 'enemy', damageType: 'physical', power: { coef: 1.1, stat: 'atk' }, statuses: [{ status: 'status_weaken', duration: 2 }] }),
+  E('elf_silverwood_bloom', 'leyweave', 4, 'Silverwood Bloom', {
+    mp: 16, target: 'party', special: 'cleanse', cooldown: 4,
+    statuses: [{ status: 'status_regen', duration: 3, power: { base: 6, coef: 0.3, stat: 'sp' } }, { status: 'status_soaked', duration: 3, target: 'all_enemies' }],
+  }),
+  E('elf_veilwalk', 'shadowstep', 4, 'Veilwalk', { mp: 14, target: 'party', special: 'phase', cooldown: 4 }),
+  // Ironclad Warden (§5.5)
+  K('wrd_iron_guard', 'bulwark', 1, 'Iron Guard', { mp: 6, target: 'self', special: 'guard' }),
+  K('wrd_challenge', 'bulwark', 2, 'Challenge', { mp: 8, target: 'all_enemies', statuses: [{ status: 'status_taunt', duration: 2 }], cooldown: 2 }),
+  K('wrd_shield_wall', 'bulwark', 3, 'Shield Wall', { mp: 12, target: 'party', shield: { base: 18, coef: 1.2, stat: 'atk', turns: 3 }, cooldown: 3 }),
+  K('wrd_crushing_blow', 'breaker', 1, 'Crushing Blow', { mp: 8, target: 'enemy', damageType: 'physical', power: { coef: 1.3, stat: 'atk' }, statuses: [{ status: 'status_armor_break', duration: 3 }] }),
+  K('wrd_concussive_slam', 'breaker', 2, 'Concussive Slam', {
+    mp: 12, target: 'enemy', damageType: 'physical', power: { coef: 1.0, stat: 'atk' }, cooldown: 3,
+    statuses: [{ status: 'status_stun', chance: 0.75, duration: 1, when: notBoss }, { status: 'status_weaken', duration: 2, when: boss }],
+  }),
+  K('wrd_earthbreaker', 'breaker', 3, 'Earthbreaker', { mp: 16, target: 'all_enemies', damageType: 'physical', power: { coef: 0.9, stat: 'atk' }, statuses: [{ status: 'status_slow', duration: 2 }] }),
+  K('wrd_executioners_arc', 'breaker', 4, "Executioner's Arc", {
+    mp: 16, target: 'enemy', damageType: 'physical', power: { coef: 1.6, stat: 'atk' },
+    bonuses: [{ when: { any: [{ targetHas: 'status_armor_break' }, { targetHas: 'status_stun' }] }, mult: 1.5 }],
+  }),
+  K('wrd_steady_breath', 'iron_will', 1, 'Steady Breath', { mp: 6, target: 'self', heal: { base: 10, coef: 0.6, stat: 'atk' }, outOfCombat: [{ heal: { hp: 15 } }] }),
+  // Shadow Weaver (§5.6)
+  V('wvr_hex_of_frailty', 'hex', 1, 'Hex of Frailty', { mp: 8, target: 'enemy', damageType: 'void', spell: true, power: { base: 2, coef: 0.9, stat: 'sp' }, statuses: [{ status: 'status_weaken', duration: 2 }] }),
+  V('wvr_mark_of_the_void', 'hex', 2, 'Mark of the Void', { mp: 10, target: 'enemy', damageType: 'void', spell: true, power: { coef: 0.8, stat: 'sp' }, statuses: [{ status: 'status_curse', duration: 3 }] }),
+  V('wvr_wither', 'hex', 3, 'Wither', {
+    mp: 16, target: 'all_enemies', damageType: 'void', spell: true, power: { coef: 0.8, stat: 'sp' },
+    statuses: [{ status: 'status_weaken', chance: 0.6, duration: 2 }, { status: 'status_slow', duration: 2, when: { targetHas: 'status_curse' } }],
+  }),
+  V('wvr_doom_sigil', 'hex', 4, 'Doom Sigil', { mp: 14, target: 'enemy', damageType: 'void', spell: true, power: { coef: 3.0, stat: 'sp' }, statuses: [{ status: 'status_stun', duration: 1, when: { targetHas: 'status_curse' } }], cooldown: 4 }),
+  V('wvr_siphon', 'drain', 1, 'Siphon', { mp: 8, target: 'enemy', damageType: 'void', spell: true, power: { base: 2, coef: 1.0, stat: 'sp' }, special: 'drain' }),
+  V('wvr_blood_pact', 'drain', 2, 'Blood Pact', { mp: 0, target: 'self', selfCost: { hpPctMax: 0.15 }, special: 'resource_convert', cooldown: 2 }),
+  V('wvr_void_lance', 'unmaking', 1, 'Void Lance', { mp: 10, target: 'enemy', damageType: 'void', spell: true, power: { base: 3, coef: 1.3, stat: 'sp' }, selfCost: { hpPctMax: 0.08 } }),
+  V('wvr_unravel', 'unmaking', 2, 'Unravel', { mp: 12, target: 'enemy', damageType: 'chrono', spell: true, power: { coef: 1.1, stat: 'sp' } }),
+  V('wvr_breach_echo', 'unmaking', 3, 'Breach Echo', { mp: 10, target: 'self', special: 'phase', selfCost: { hpPctMax: 0.05 }, cooldown: 3 }),
+  V('wvr_collapse', 'unmaking', 4, 'Collapse', { mp: 20, target: 'all_enemies', damageType: 'void', spell: true, power: { base: 2, coef: 1.3, stat: 'sp' }, selfCost: { hpPctMax: 0.12 } }),
+  V('wvr_unmaking_word', 'unmaking', 5, 'The Unmaking Word', {
+    mp: 30, target: 'enemy', damageType: 'void', spell: true, power: { base: 10, coef: 3.2, stat: 'sp' }, selfCost: { hpPctCur: 0.4 }, special: 'unmaking', onKill: { refundMp: 20 }, cooldown: 5,
+  }),
+  // a throwable's ability (DESIGN §7.9 `item_ember_flask`: Fire 25 + Burn)
+  { id: 'itm_ember_flask', ownerId: 'item_ember_flask', name: 'Ember Flask', description: 'Fixture: Fire 25 + Burn.', target: 'enemy', damageType: 'fire', power: { base: 25, coef: 0, stat: 'atk' }, statuses: [{ status: 'status_burn', duration: 3 }] },
+];
+
+const u26Items = [
+  {
+    id: 'item_ember_flask', name: 'Ember Flask', type: 'consumable', tier: 1, description: 'Fixture: a stoppered flask of forge-fire.',
+    onUse: [{ counter: { name: 'flasks_thrown', delta: 1 } }], passives: [{ kind: 'grantAbility', abilityId: 'itm_ember_flask' }], value: 15, art: { icon: 'flask' },
+  },
+] satisfies ItemInput[];
+
+/** A creature whose moves carry U26's move parts: riposte, multiHit, healOnDamage, stripBuffs and move specials. */
+const duelist = {
+  id: DUELIST,
+  name: 'Fixture Duelist',
+  description: 'Fixture: every U26 move part on one body.',
+  family: 'fam_wilds',
+  role: 'fodder',
+  level: 3,
+  stats: { hp: 60, atk: 10, sp: 10, armor: 1, ward: 1, agi: 4 },
+  moves: {
+    duel_set: { name: 'Set', line: 'It sets its feet and waits for you to strike.', riposte: { power: { coef: 1.0, stat: 'atk' }, turns: 1 } },
+    duel_lunge: { name: 'Lunge', line: 'Two quick cuts.', type: 'physical', power: { coef: 0.5, stat: 'atk' }, effects: [{ multiHit: { hits: 2 } }] },
+    duel_drink: { name: 'Drink', line: 'It bites and drinks.', type: 'physical', power: { coef: 1.0, stat: 'atk' }, effects: [{ healOnDamage: { pct: 0.5 } }] },
+    duel_take: { name: 'Take', line: 'It pulls the ward off you.', effects: [{ stripBuffs: { kinds: ['shield', 'regen'] } }] },
+    duel_parry: { name: 'Parry', line: 'It strikes and stays on guard.', type: 'physical', power: { coef: 0.5, stat: 'atk' }, special: 'counter_stance' },
+    duel_leech: { name: 'Leech', line: 'Void runs from you to it.', type: 'void', power: { coef: 1.0, stat: 'sp' }, special: 'drain' },
+    duel_arc: { name: 'Arc', line: 'Lightning jumps between you.', type: 'storm', power: { coef: 1.0, stat: 'sp' }, special: 'chain' },
+    duel_press: { name: 'The Hour Presses', line: 'The hour leans on you.', special: 'hour_presses' },
+    duel_dead_spell: { name: 'Dead Spell', line: 'Something not its own.', special: 'bound_mage' },
+    duel_mend: { name: 'Mend', line: 'It cleans its wounds.', special: 'cleanse' },
+    duel_guard: { name: 'Brace', line: 'It braces.', special: 'guard' },
+  },
+  pattern: [{ move: 'duel_lunge', target: 'player' }],
+  gold: { min: 1, max: 1 },
+  xp: 10,
+  bestiary: { voice: 'wayfinder_notes', summary: 'Fixture: U26 move parts.' },
+  sigil: { base: 'duelist' },
+} satisfies CreatureInput;
+
 /** The combat tables: the fixture's plus the records above (the Ruins gain an exit east to the Mistwood Path). */
 export function combatTables(patch: (t: { locations: LocationInput[] }) => void = () => {}): ContentTables {
   const locations: LocationInput[] = miniContentTables.locations.map((loc) =>
@@ -166,8 +311,9 @@ export function combatTables(patch: (t: { locations: LocationInput[] }) => void 
     ...miniContentTables,
     regions: [...miniContentTables.regions, mistwood],
     locations,
-    creatures: [...miniContentTables.creatures, wildlingBrute],
-    items: [...miniContentTables.items, ...items],
+    creatures: [...miniContentTables.creatures, wildlingBrute, duelist],
+    items: [...miniContentTables.items, ...items, ...u26Items],
+    abilities: [...miniContentTables.abilities, ...u26Abilities],
     classes: [...miniContentTables.classes, ...classes],
     encounters: [...miniContentTables.encounters, ...encounters],
     modifiers: [...miniContentTables.modifiers, ...modifiers],

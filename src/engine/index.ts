@@ -18,3 +18,6 @@ export * from './combat/turnOrder';
 export * from './reducers/combat';
 export * from './combat/statuses';
 export * from './combat/intents';
+export * from './combat/specials';
+export * from './combat/abilities';
+export * from './combat/flee';

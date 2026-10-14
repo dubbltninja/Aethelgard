@@ -113,7 +113,7 @@ describe('arrival encounters (ARRIVAL_HOOKS)', () => {
     expect(s.combat?.enemies.map((e) => e.name)).toEqual(['Corrupted Shade A', 'Corrupted Shade B']);
     expect(currentActor(s.combat!)?.kind).toBe('player');
     expect(ofType(out.events, 'autosaveCheckpoint')).toEqual([]);
-    expect(legalActions(s, content, profile).map((a) => a.type)).toEqual(['attack', 'attack', 'guard']);
+    expect(legalActions(s, content, profile).map((a) => a.type)).toEqual(['attack', 'attack', 'flee', 'guard', 'item']); // U26: flee, the Tonic
   });
 
   test('no roll on Retreat or Not yet (DESIGN §4.7)', () => {
@@ -872,6 +872,36 @@ describe('DESIGN §4.12 worked example — Ranger L4 vs Wildling Brute + Corrupt
     const announced = [e0, r1.events, r2.events, r3.events, r4.events, r5.events, r6.events].flatMap((ev) => ofType(ev, 'intentRevealed').map((e) => e.intent.moveId));
     expect(announced).toEqual(['brute_strike', 'shade_rake', 'shade_wail', 'brute_strike', 'shade_fade', 'brute_maul', 'shade_rake', 'brute_strike', 'shade_wail', 'brute_strike', 'brute_strike']);
   });
-  test.todo('U26: ability costs Venom Coat 6 → 51, Marked Shot 8 → 43, Rend 8 → 40, Piercing Arrow 12 → 40 (final 104/148 HP, 40/57 MP)');
+  test('U26: the six rounds through the real reducer — Venom Coat 6 → 51, Marked Shot 8 → 43, Guard +5 → 48, Rend 8 → 40, the crit +12 → 52, Piercing Arrow 12 → 40 (final 104/148 HP, 40/57 MP)', () => {
+    const s0 = clone(opening().s);
+    s0.player.abilitiesUnlocked.push('rgr_venom_coat', 'rgr_marked_shot', 'rgr_rend', 'rgr_piercing_arrow');
+    const [B, S] = [enemy(s0, 0).uid, enemy(s0, 1).uid];
+    const hpmp = (x: GameState) => [me(x).hp, me(x).mp];
+    const foeHp = (x: GameState, i: number) => enemy(x, i).hp;
+    // round 1: Venom Coat (self, no draw); Rake misses (90 vs 83); Strike 10
+    const r1 = act(s0, { type: 'ability', abilityId: 'rgr_venom_coat' }, [D.pct(90), D.pct(37), D.variance(1.07), D.pct(80)]);
+    expect(hpmp(r1.state)).toEqual([138, 51]);
+    expect(ofType(r1.events, 'abilityUsed')).toEqual([{ t: 'abilityUsed', uid: me(s0).uid, abilityId: 'rgr_venom_coat' }]);
+    // round 2: Marked Shot 19 + Mark; the coating's Poison on the Shade: Immune; Wail 5 + Weaken (32 < 50); Strike 9
+    const r2 = act(r1.state, { type: 'ability', abilityId: 'rgr_marked_shot', targetUid: S }, [D.pct(50), D.variance(1.03), D.pct(50), D.pct(50), D.variance(1.02), D.pct(50), D.pct(32), D.pct(10), D.variance(0.98), D.pct(50)]);
+    expect([...hpmp(r2.state), foeHp(r2.state, 1)]).toEqual([124, 43, 17]);
+    expect(r2.state.combat?.log.map((l) => l.text)).toContain('Corrupted Shade: Immune to Poison.');
+    // round 3: Guard (+5 Focus); Fade; Maul on the Guard 8
+    const r3 = act(r2.state, { type: 'guard' }, [D.pct(20), D.variance(1.05), D.pct(50)]);
+    expect(hpmp(r3.state)).toEqual([116, 48]);
+    // round 4: Rend 10 (Bleed 5) and the coating's last turn: Poison (4 per tick, 4 turns); Rake 4; the Brute ticks 9 and misses
+    const r4 = act(r3.state, { type: 'ability', abilityId: 'rgr_rend', targetUid: B }, [D.pct(60), D.variance(0.98), D.pct(50), D.pct(50), D.variance(0.9), D.pct(50), D.pct(88)]);
+    expect(findStatus(enemy(r4.state, 0), 'status_poison')).toMatchObject({ tick: 4, duration: 3 });
+    expect([...hpmp(r4.state), foeHp(r4.state, 0)]).toEqual([112, 40, 45]);
+    // round 5: the sword crits the Shade (27, dead; the coating has worn off), Focus +12; the Brute ticks 9, Strike 8
+    const r5 = act(r4.state, { type: 'attack', targetUid: S }, [D.pct(50), D.variance(1.02), D.pct(7), D.pct(10), D.variance(0.91), D.pct(50)]);
+    expect([...hpmp(r5.state), foeHp(r5.state, 0)]).toEqual([104, 52, 36]);
+    // round 6: Piercing Arrow 28 (36 → 8, 12 MP); the Brute bleeds out before it acts
+    const r6 = act(r5.state, { type: 'ability', abilityId: 'rgr_piercing_arrow', targetUid: B }, [D.pct(30), D.variance(1.04), D.pct(50), D.int(14, 11, 18), D.yes, D.no, D.yes, D.int(9, 7, 12), D.yes]);
+    expect(ofType(r6.events, 'damageDealt')[0]).toMatchObject({ amount: 28, kind: 'ability', refId: 'rgr_piercing_arrow' });
+    expect(r6.state.player).toMatchObject({ hp: 104, hpMax: 148, mp: 40, mpMax: 57, xp: 112 });
+    expect(ofType(r6.events, 'combatEnded')[0]).toMatchObject({ result: 'victory', rounds: 6, xp: 112, gold: 23 });
+    expect(r6.state.counters.abilitiesUsed).toEqual({ rgr_venom_coat: 1, rgr_marked_shot: 1, rgr_rend: 1, rgr_piercing_arrow: 1 });
+  });
   test.todo('U27: bestiary — Corrupted Shade kills 1 (resistances now shown), Wildling Brute kills 1');
 });

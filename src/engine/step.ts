@@ -19,7 +19,7 @@ import {
 } from './reducers/explore';
 import { clockHook } from './reducers/loop';
 import { characterPostStep, inventoryHandlers } from './reducers/inventory';
-import { attackHandler, combatPostStep, guardHandler } from './reducers/combat';
+import { abilityHandler, attackHandler, combatPostStep, companionCommandHandler, fleeHandler, guardHandler, itemHandler } from './reducers/combat';
 import { loadHandler, saveHandler } from './saves/reducers';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { GameEvent } from './types/events';
@@ -82,11 +82,11 @@ export const HANDLERS: HandlerTable = {
   continue: pending('U33'),
   acceptQuest: pending('U33'),
   attack: attackHandler, // U23
-  ability: pending('U26'),
-  guard: guardHandler, // U23 (Guard abilities such as Iron Guard: U26)
-  item: pending('U26'),
-  flee: pending('U26'),
-  companionCommand: pending('U28'),
+  ability: abilityHandler, // U26 (in a fight, and `field` abilities out of one)
+  guard: guardHandler, // U23 (Guard abilities such as Iron Guard: U26 abilities)
+  item: itemHandler, // U26
+  flee: fleeHandler, // U26
+  companionCommand: companionCommandHandler, // U26: the signature (DESIGN §4.1 `C`); stance AI and the rest U28
   setStance: pending('U28'),
   commune: pending('U29'),
   swapCompanion: pending('U28'),

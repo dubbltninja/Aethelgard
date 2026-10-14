@@ -42,11 +42,13 @@
 // pointer holds meanwhile. The countdown lives in the creature's cooldown table under `windup:<move id>` (its turn end
 // counts it down, like Stun's recovery window). Stun and interrupt break a wind-up.
 //
-// Execution: the hits (each `resolveHit` → the reducer's `applyHit`; `power.hits` hits per target, an area move per
-// living party member in party order), then per struck target its 'target' status rows if a hit connected (a dead
-// target rolls nothing); a non-damaging move's 'target' rows land without a hit roll. Then cleanseSelf (debuffs), heal,
-// self Shield, ally Shield, the other status rows, summon (at most `max` of that creature and 3 enemies alive), revive.
-// TODO(U26): a move's combat-scope `effects` (multiHit, stripBuffs, healOnDamage), `special` scripts and `riposte`.
+// Execution: the move's special may replace all of it (hour_presses, bound_mage; U26 specials.ts); else the hits (each
+// `resolveHit` → the reducer's `applyHit`; `power.hits` — or a `multiHit` effect — hits per target, an area move per
+// living party member in party order; a creature a counter-hit downs stops), then per struck target its 'target' status
+// rows if a hit connected (a dead target rolls nothing); a non-damaging move's 'target' rows land without a hit roll.
+// Then cleanseSelf (debuffs), heal, self Shield, ally Shield, the other status rows, summon (at most `max` of that
+// creature and 3 enemies alive), revive; then (U26, specials.ts `finishMove`) the special's `after`, the combat-scope
+// effects (stripBuffs, healOnDamage) and `riposte`.
 // TODO(U27): `leaveCombat`.
 //
 // Events: `intentRevealed` carries a copy of the intent whenever one is generated (hidden ones too: the UI masks them
@@ -58,6 +60,7 @@ import type { ContentPack, StepCtx } from '../ctx';
 import type { Rng } from '../rng';
 import type { Combatant, CombatState, Intent } from '../types/state';
 import { damageRange, hasStatus, resolveHeal, resolveHit, roundHalfUp, type HitResult, type HitSpec, type RangeOptions } from './damage';
+import { beginMove, finishMove, moveHits, replaceMove, type CombatOps, type HitKind } from './specials';
 import { STATUS, applyStatus, applyStatusRows, cleanse, isBoss, skipsTurn, tauntedBy, type WhenEval } from './statuses';
 import { MAX_ENEMIES, combatLog, combatantByUid, enemyCombatant, isActive, sortTurnOrder } from './turnOrder';
 
@@ -85,7 +88,7 @@ export type IntentAim = 'single' | 'all' | 'self' | 'ally';
 /** What CombatWhen evaluation reads: no rng, no Rng-bearing context needed. */
 export type IntentRead = Pick<StepCtx, 's' | 'profile' | 'content'>;
 /** The combat reducer's hit application (reducers/combat.ts `applyHit`), passed in to keep the import graph acyclic. */
-export type HitApplier = (ctx: StepCtx, combat: CombatState, attacker: Combatant, target: Combatant, spec: HitSpec, result: HitResult, kind: 'intent') => void;
+export type HitApplier = (ctx: StepCtx, combat: CombatState, attacker: Combatant, target: Combatant, spec: HitSpec, result: HitResult, kind: HitKind) => void;
 
 // ---- the program ---------------------------------------------------------------------------------------------------------
 
@@ -347,7 +350,7 @@ export function projectIntent(r: IntentRead, combat: CombatState, c: Combatant, 
   const target = aim === 'all' ? pickFoe(combat, c, 'player') : intentTarget(combat, c, intent);
   if (!move || !spec || !target || sideOf(combat, c).includes(target)) return [0, 0];
   const [lo, hi] = damageRange(r, c, target, spec, opts);
-  const hits = move.power?.hits ?? 1;
+  const hits = moveHits(move);
   return [lo * hits, hi * hits];
 }
 
@@ -594,9 +597,10 @@ function revive(ctx: StepCtx, combat: CombatState, c: Combatant, moveId: string,
 
 /**
  * The enemy turn's action (DESIGN §4.1, §4.2): plays the stored intent and consumes it — see the file header for the
- * order. No intent (cancelled, holding, unknown creature or move): it holds still. Returns the intent played.
+ * order. No intent (cancelled, holding, unknown creature or move): it holds still. Returns the intent played. `more` is
+ * the reducer's resource operations for the U26 parts (counter-hits, drains); tests may leave it out.
  */
-export function executeIntent(ctx: StepCtx, combat: CombatState, c: Combatant, applyHit: HitApplier): Intent | null {
+export function executeIntent(ctx: StepCtx, combat: CombatState, c: Combatant, applyHit: HitApplier, more?: Omit<CombatOps, 'applyHit'>): Intent | null {
   const intent = combat.intents[c.uid] ?? null;
   delete combat.intents[c.uid];
   const move = intent ? ctx.content.creatures[c.refId]?.moves[intent.moveId] : undefined;
@@ -615,16 +619,20 @@ export function executeIntent(ctx: StepCtx, combat: CombatState, c: Combatant, a
     evalCombatWhen(ctx, combat, when, { self: c, target: recipient, turn: c.pattern.turnsTaken + 1, round: combat.round });
   const targetRows = move.statuses.filter((row) => row.target === 'target');
   const otherRows = move.statuses.filter((row) => row.target !== 'target');
+  const ops: CombatOps = { applyHit, gainResource: more?.gainResource ?? (() => 0), addMp: more?.addMp ?? (() => 0) };
+  const use = beginMove(ctx, combat, ops, c, intent.moveId, move, aimed, struck, spec); // U26: the special's `before`
   if (!spec) combatLog(combat, `${c.name}: ${move.line}`, 'intent');
+  if (replaceMove(use, move)) return intent; // U26: hour_presses, bound_mage
 
+  const hits = moveHits(move);
   for (const t of struck) {
     let landed = spec === null;
-    for (let h = 0; spec && h < (move.power?.hits ?? 1) && isActive(t); h++) {
+    for (let h = 0; spec && h < hits && isActive(t) && isActive(c); h++) {
       const r = resolveHit(ctx, c, t, spec);
       applyHit(ctx, combat, c, t, spec, r, 'intent');
       landed ||= r.hit && !r.immune;
     }
-    if (landed && isActive(t) && targetRows.length > 0) applyStatusRows(ctx, combat, c, t, targetRows, evalRow);
+    if (landed && isActive(t) && isActive(c) && targetRows.length > 0) applyStatusRows(ctx, combat, c, t, targetRows, evalRow);
   }
   if (!isActive(c)) return intent;
   if (move.cleanseSelf) {
@@ -640,5 +648,6 @@ export function executeIntent(ctx: StepCtx, combat: CombatState, c: Combatant, a
   if (otherRows.length > 0) applyStatusRows(ctx, combat, c, aimed, otherRows, evalRow);
   if (move.summon) summon(ctx, combat, c, move.summon);
   if (move.revive) revive(ctx, combat, c, intent.moveId, move.revive.hpPct);
+  finishMove(use, move); // U26: special `after`, stripBuffs, healOnDamage, riposte
   return intent;
 }

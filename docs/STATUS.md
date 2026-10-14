@@ -67,8 +67,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U25 | Enemy intents — brief `briefs/u25.md` | Opus | ✅ 6c62235 — intents, cadence words, worked example end-to-end; 1179 tests; D-077 |
 | U26 | Player abilities, class resources, Guard, combat items, flee/scatter, specials — brief `briefs/u26.md` | Opus | ✅ 35cba4f — 1249 tests; §4.12 exact; D-078 (**~25 abilities unscripted → U26b**) |
 | U27 | Boss phases, adds, Rewind cap; rewards, loot, bestiary — brief `briefs/u27.md` | Opus | ✅ 1da1fe4 — phases/adds/Rewind/rewards/loot/bestiary; 3-phase Tyrant fought end to end; 1282 tests; D-079 |
-| U26b | Combat leftovers: script the ~25 remaining DESIGN §5 abilities (list in `abilities.ts` header) + completeness test; Crushing Blow accuracy; `affix_of_echoes`; phase `onEnter` area damage shape; ground-loot dawn expiry (D-078, D-079) | Opus | ⏳ before balance sims |
-| U28–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (64 remaining + U26b; next U28). Copy the next few here as they start. | — | ⏳ |
+| U26b | Combat leftovers: script the ~25 remaining DESIGN §5 abilities (list in `abilities.ts` header) + completeness test; Crushing Blow accuracy; `affix_of_echoes`; phase `onEnter` area damage shape; ground-loot dawn expiry (D-078, D-079) | Opus | ▶ in progress (parallel with U28) — brief `briefs/u26b.md` |
+| U28 | Companions in combat — brief `briefs/u28.md` | Opus | ▶ in progress (parallel with U26b) |
+| U29 | Communion engine — brief `briefs/u29.md` | Opus | ⏳ queued this session |
+| U30 | Horde, portal, closers, endLoop/reset, Loop 1→2, Loop 1 defeat→title — brief `briefs/u30.md` | Opus | ⏳ queued this session |
+| U31–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (61 remaining after U28–U30). Copy the next few here as they start. | — | ⏳ |
 
 
 ### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)

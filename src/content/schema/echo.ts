@@ -12,6 +12,16 @@ export const ECHO_CODEX_LINE_MAX_WORDS = 40;
 export const ECHO_CATEGORIES = ['lore', 'route', 'shortcut', 'dialogue', 'ending', 'character', 'secret'] as const;
 export const EchoCategory = z.enum(ECHO_CATEGORIES);
 
+/**
+ * Echoes the engine grants by itself (horde.ts, reducers/loop.ts, communion.ts, reducers/inventory.ts) rather than through a
+ * content effect. The validator treats them as granted (D-082). Keep in sync with the engine (a test checks the literals).
+ */
+export const ENGINE_GRANTED_ECHOES: readonly string[] = [
+  'echo_amulet_memory', 'echo_brak_death', 'echo_brak_lives', 'echo_horde_path', 'echo_korr_marginalia',
+  'echo_thirtieth_dawn', 'echo_tyrant_rejected', 'echo_tyrant_speaks',
+  'echo_ending_a', 'echo_ending_b', 'echo_ending_c', 'echo_ending_d', 'echo_ending_e', 'echo_ending_f',
+];
+
 export const EchoSchema = Base.extend({
   id: EchoId,
   name: Text,
@@ -23,8 +33,8 @@ export const EchoSchema = Base.extend({
   exclusiveWith: z.array(EchoId).default([]),
   /** E.g. `unlockCodex`, reveal. */
   onGrant: Effects,
-  /** First-time Resonance. */
-  resonance: z.number().int().min(0).default(5),
+  /** First-time Resonance. DESIGN §10.6 pays nothing for Echoes, so the default is 0 (D-082). */
+  resonance: z.number().int().min(0).default(0),
   /** Documentation: 'dialogue:nyx_truth:choice_know' | 'quest:…' | 'event:…'. The validator cross-checks that some content grants it. */
   obtainedBy: z.array(Text).min(1),
   /** Loop Timeline grouping label. */

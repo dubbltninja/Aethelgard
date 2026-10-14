@@ -603,7 +603,8 @@ const EXAMPLES: Example[] = [
   {
     rule: 'rule-16',
     title: 'an Echo nothing grants',
-    report: () => viaTables((t) => { const e = row(t.locations, apex).events?.find((x) => x.id === 'ev_apex_listen'); if (e) e.effects = []; }),
+    // echo_tyrant_speaks is engine-granted (D-082), so the example uses a content-only Echo nobody grants.
+    report: () => viaTables((t) => { t.echoes.push({ id: 'echo_orphan', name: 'Orphan', codexLine: 'Nothing grants me.', category: 'lore', obtainedBy: ['event:none'] }); }),
     says: ['no grantEcho effect and no quest reward grants this Echo'],
   },
   {

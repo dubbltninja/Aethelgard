@@ -16,7 +16,7 @@ const expectIssue = (schema: Parameters<typeof issuesOf>[0], value: unknown, pat
 describe('EchoSchema', () => {
   test('STORY §12 echo_litany_verse_1 parses with defaults', () => {
     const e = EchoSchema.parse(echoLitanyVerse1);
-    expect(e).toMatchObject({ name: 'The Witness', category: 'lore', exclusiveWith: [], onGrant: [], resonance: 5, requiredForEndings: [], timelineGroup: 'litany' });
+    expect(e).toMatchObject({ name: 'The Witness', category: 'lore', exclusiveWith: [], onGrant: [], resonance: 0, requiredForEndings: [], timelineGroup: 'litany' });
     expect(e.obtainedBy).toHaveLength(3);
   });
 

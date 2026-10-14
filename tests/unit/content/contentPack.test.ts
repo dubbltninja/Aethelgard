@@ -112,7 +112,7 @@ describe('one record per table', () => {
     expect(Object.keys(pack.npcs)).toEqual(['npc_ilyra', 'npc_kaelen_stonehand']);
     expect(Object.keys(pack.merchants)).toEqual(['npc_kaelen_stonehand']);
     expect(pack.merchants.npc_kaelen_stonehand?.npcId).toBe('npc_kaelen_stonehand');
-    expect(pack.echoes.echo_litany_verse_1?.resonance).toBe(5);
+    expect(pack.echoes.echo_litany_verse_1?.resonance).toBe(0); // D-082
     expect(pack.codex.codex_ninefold_circle?.voice).toBe('remnant_archive');
     expect(pack.achievements.ach_two_oaths?.resonance).toBe(10);
     expect(Object.keys(pack.attunements)).toEqual(['att_steady_hand', 'att_steady_hours']);

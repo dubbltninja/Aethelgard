@@ -19,6 +19,7 @@ import { CODEX_BODY_MAX_WORDS, wordCount } from '@schema/codex';
 import { TABLE_NAMES, type ContentIssue, type ContentPack, type ContentReport, type TableName } from '@schema/contentPack';
 import { BOSS_PHASES, walkSteps } from '@schema/creature';
 import { COMBAT_SCOPE_EFFECTS } from '@schema/effect';
+import { ENGINE_GRANTED_ECHOES } from '@schema/echo';
 import { CLOSER_IDS, TRUE_ENDING_IDS } from '@schema/ending';
 import { EQUIPMENT_TYPES, ITEM_SOURCE_RE } from '@schema/item';
 import type { Exit, Location } from '@schema/location';
@@ -1349,7 +1350,7 @@ function rule15(v: Validation): void {
 function rule16(v: Validation): void {
   const { pack, scan } = v;
   const R = 'rule-16';
-  const granted = new Set(scan.echoGrants);
+  const granted = new Set([...scan.echoGrants, ...ENGINE_GRANTED_ECHOES]);
   const gating = new Set(scan.echoUsed);
   for (const q of Object.values(pack.quests)) {
     for (const id of q.rewards.echoes) granted.add(id);

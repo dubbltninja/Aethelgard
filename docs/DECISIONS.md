@@ -1042,3 +1042,24 @@ owning unit (PLAN §9.1).
 - C1 addition: `CommunionSpec.movements[].listen?: { effects }` (codex fragments a Listen unlocks).
 - Not done: `ach_commune` (achievement engine is a later unit); STORY's "Mireya present: automatic" is expressed by
   gating an answer on her in content. Question ids are recorded in the Tyrant's bestiary `intentsSeen` (harmless).
+
+### D-082 · U30 details and rulings, 2026-10-14
+- **Defeat acknowledgement:** a Loop 1 death outside a Horde shows the FALLEN screen; the only legal action is
+  `returnToTitle` (legal in combat mode only while the fight is in phase `defeat`) — resolves the D-075 follow-up.
+- Loop-end bookkeeping runs in a post-step `loopEndHook` (avoids an effects↔loop import cycle; catches same-step Echoes).
+  The reset happens on the last `acknowledgeEnding`; for Loop 2+ the state is already the next loop in threshold mode
+  with `pendingEnding` kept (DESIGN's `threshold.pending`). U31's `newLoop` uses `nextLoopState` + `beginLoop`.
+- Horde edge delays (Mistwood→Plaza 2, Outpost→Emberforge 1) are engine constants (no exit field). Brak dies when the
+  Tyrant falls per WORLD `ws_brak_at_apex`, skipped if `echo_brak_lives` was earned this loop; the watchable stand and
+  Ilyra's portal scene are dialogue (U33) — log lines for now. Infected-node damage lands after travel regen.
+- **Resonance:** Echoes pay nothing (DESIGN §10.6); `EchoSchema.resonance` default changed 5 → **0** (C1 tweak).
+  *Let go* (`released`) pays no +10 (STORY §10.7). Modifier Resonance multipliers and a Threshold-entry autosave are not
+  implemented (no schema field / no autosave reason) — revisit in U31 if DESIGN requires them.
+- **Expiry-Horde death reason = `expiry`** (DESIGN §10.2, PLAN §4.11, STORY §4.3 over DESIGN §4.7 / WORLD R10-3).
+- ***Keep the vigil*** is offered at any camp or wild rest from Loop 2 (no Horde), per DESIGN §10.2 / D-067.14;
+  STORY/WORLD's "Ilyra offers it at the Heartstone Depths" becomes flavor: content may add her line there, the mechanic is
+  the camp action.
+- **Engine-granted Echoes:** `ENGINE_GRANTED_ECHOES` in `schema/echo.ts` lists the Echoes the engine grants itself
+  (`echo_amulet_memory`, `echo_brak_death`, `echo_brak_lives`, `echo_horde_path`, `echo_korr_marginalia`,
+  `echo_thirtieth_dawn`, `echo_tyrant_rejected`, `echo_tyrant_speaks`, `echo_ending_a`–`f`); validator rule 16 treats
+  them as granted; a test keeps the list in sync with literals in `src/engine`.

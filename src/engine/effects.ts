@@ -7,9 +7,11 @@
 // xp (level-ups U21), giveItem (rolled rarity/affixes U27/U34), heal/damage (combat snapshots U23, death U30),
 // passWatches (dawn hooks, warnings and expiry U20), teleport (entry hooks U20), questAdvance (outcomes/rewards U33),
 // recruit (level scaling U28), endLoop/ending (RunRecord, Resonance, profile writes U30).
-// Not yet applicable — they reject the action, naming the unit: startCombat (U23), startDialogue (U33),
+// startCombat starts the encounter (U23, combat/turnOrder.ts; the fight plays from the combat post-step hook).
+// Not yet applicable — they reject the action, naming the unit: startDialogue (U33),
 // unlockRecipe (U34: no known-recipe state yet) and the five combat-scope atoms (U26/U27; D-069.9).
 import type { Effect, EffectAtoms, EffectKey } from '@schema/effect';
+import { startEncounterById } from './combat/turnOrder';
 import { atomOf, dayOf, daysLeft, repTier, watchOf, TICKS_PER_DAY } from './conditions';
 import { enterMode, type StepCtx } from './ctx';
 import { defaultRarity, isStackable } from './newRun';
@@ -368,7 +370,7 @@ const APPLIERS: Appliers = {
     if (companions.activeId === id) companions.activeId = null;
     ctx.emit({ t: 'companionDismissed', companionId: id });
   },
-  startCombat: notYet('U23'),
+  startCombat: (id, ctx) => startEncounterById(ctx, id), // U23
   startDialogue: notYet('U33'),
   endLoop: ({ closer, reason }, ctx) => {
     // TODO(U30): RunRecord, Resonance, Echo/profile writes and the loopEnded event (DESIGN §10.3)

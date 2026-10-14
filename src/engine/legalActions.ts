@@ -15,6 +15,7 @@ import {
   waitEnumerator,
 } from './reducers/explore';
 import { inventoryEnumerators } from './reducers/inventory';
+import { attackEnumerator, guardEnumerator } from './reducers/combat';
 import { saveEnumerator } from './saves/reducers';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { Profile } from './types/profile';
@@ -132,9 +133,9 @@ export const ENUMERATORS: EnumeratorTable = {
   choose: chooseEnumerator, // U20 (Loop 1 Apex prompt) / U33
   continue: none, // U33
   acceptQuest: none, // U33
-  attack: none, // U23
+  attack: attackEnumerator, // U23
   ability: none, // U26
-  guard: none, // U23
+  guard: guardEnumerator, // U23
   item: none, // U26
   flee: none, // U26
   companionCommand: none, // U28

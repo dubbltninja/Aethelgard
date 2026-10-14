@@ -18,6 +18,8 @@ import {
 import { clone, deepFreeze } from '@engine/util/clone';
 import { fullState, minimalProfile, minimalState } from './types/handmade';
 import { standInPack } from './standInPack';
+import { freshProfile, makeState } from '@tests/fixtures/helpers';
+import { fixturePack } from '@tests/fixtures/miniContent';
 
 const content = deepFreeze(standInPack());
 
@@ -329,7 +331,17 @@ const OBSERVED: { [K in EffectKey]: () => void } = {
     const keep = run([{ dismiss: 'mireya' }], clone(two));
     expect(keep.state.companions.activeId).toBe('brak');
   },
-  startCombat: () => rejectedWith(run([{ startCombat: 'enc_library_wraiths' }]), "effect 'startCombat' is not implemented yet (U23)"),
+  startCombat: () => {
+    // U23: the fight is set up here; it plays from the combat post-step hook (not part of this bare step)
+    const pack = fixturePack();
+    const out = run([{ startCombat: 'enc_library_shades' }], makeState(), freshProfile(), undefined, pack);
+    expect(out.state.mode).toBe('combat');
+    expect(out.state.combat).toMatchObject({ encounterId: 'enc_library_shades', phase: 'start', round: 1 });
+    expect(out.state.combat?.enemies.map((e) => e.refId)).toEqual(['cr_corrupted_shade', 'cr_corrupted_shade']);
+    expect(out.events.map((e) => e.t)).toEqual(['modeChanged', 'combatStarted', 'log']);
+    const twice = run([{ startCombat: 'enc_library_shades' }, { startCombat: 'enc_library_shades' }], makeState(), freshProfile(), undefined, pack);
+    rejectedWith(twice, "effect 'startCombat' while a fight is already in progress");
+  },
   startDialogue: () => rejectedWith(run([{ startDialogue: 'scene_ilyra' }]), "effect 'startDialogue' is not implemented yet (U33)"),
   endLoop: () => {
     const out = run([{ endLoop: { closer: 'closer_fall', reason: 'released' } }], withState((s) => void (s.meta.loop = 2)));
@@ -402,7 +414,7 @@ describe('applyAll', () => {
   });
 
   test('atomic: a later rejection rolls back every earlier effect', () => {
-    const out = run([{ gold: 10 }, { grantEcho: 'echo_ilyra_watchword' }, { startCombat: 'enc_library_wraiths' }]);
+    const out = run([{ gold: 10 }, { grantEcho: 'echo_ilyra_watchword' }, { startDialogue: 'scene_ilyra' }]);
     expect(out.state).toBe(out.input);
     expect(out.profile).toBe(out.inputProfile);
     expect(out.events).toHaveLength(1);

@@ -401,7 +401,10 @@ describe('out-of-combat statuses (DESIGN §4.5)', () => {
       loop: 2,
       echoes: ['echo_apex_resonance'],
       hp: 50,
-      patch: (st) => void (st.player.statuses = [dot('status_poison', 1, 4), { statusId: RESTED_STATUS, stacks: 1, duration: 1, sourceUid: null, appliedOnOwnTurn: false }]),
+      patch: (st) => {
+        st.player.statuses = [dot('status_poison', 1, 4), { statusId: RESTED_STATUS, stacks: 1, duration: 1, sourceUid: null, appliedOnOwnTurn: false }];
+        st.world.locationStates[NEXUS] = { ...emptyLs(), encountersCleared: ['enc_nexus_aberration'] }; // no arrival fight (U23)
+      },
     });
     const out = play(s, [{ type: 'move', to: NEXUS }]);
     expect(ofType(out.events, 'statusTicked')).toHaveLength(2);

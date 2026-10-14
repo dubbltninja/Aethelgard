@@ -13,3 +13,6 @@ export * from './reducers/explore';
 export * from './reducers/loop';
 export * from './reducers/inventory';
 export * from './saves';
+export * from './combat/damage';
+export * from './combat/turnOrder';
+export * from './reducers/combat';

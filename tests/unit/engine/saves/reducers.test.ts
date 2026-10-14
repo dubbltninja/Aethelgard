@@ -77,7 +77,7 @@ describe('load', () => {
   });
 
   test('replaces the state wholesale: the loaded run equals the saved one, step counter included', () => {
-    const { state: saved } = snapshot(12);
+    const { state: saved } = snapshot(10); // an explore-mode walk (since U23 some walks end in a fight, which is not resumable)
     const out = step(deepFreeze(titleState()), loadAction(fileOf(saved)), content, profile);
     expect(out.events.map((e) => e.t)).toEqual(['modeChanged', 'saveLoaded']);
     expect(out.events[0]).toEqual({ t: 'modeChanged', from: 'title', to: 'explore' });

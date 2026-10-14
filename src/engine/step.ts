@@ -19,6 +19,7 @@ import {
 } from './reducers/explore';
 import { clockHook } from './reducers/loop';
 import { characterPostStep, inventoryHandlers } from './reducers/inventory';
+import { attackHandler, combatPostStep, guardHandler } from './reducers/combat';
 import { loadHandler, saveHandler } from './saves/reducers';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { GameEvent } from './types/events';
@@ -80,9 +81,9 @@ export const HANDLERS: HandlerTable = {
   choose: chooseHandler, // U20: the Loop 1 Apex prompt only; U33's dialogue reducer replaces it and keeps that branch
   continue: pending('U33'),
   acceptQuest: pending('U33'),
-  attack: pending('U23'),
+  attack: attackHandler, // U23
   ability: pending('U26'),
-  guard: pending('U23'),
+  guard: guardHandler, // U23 (Guard abilities such as Iron Guard: U26)
   item: pending('U26'),
   flee: pending('U26'),
   companionCommand: pending('U28'),
@@ -104,6 +105,7 @@ export const POST_STEP_HOOKS: readonly PostStepHook[] = [
   arrivalHook, // U20: arrival pipeline for content teleports
   clockHook, // U20: per-watch status ticks, dawn hooks, clock warnings, expiry
   characterPostStep, // U21: Weaver mark at max Corruption; stored maxima = derive() outside combat
+  combatPostStep, // U23: a fight started this step plays until the player's first turn
 ];
 
 const rejected = (state: GameState, profile: Profile, action: Action, reason: string): StepResult => ({

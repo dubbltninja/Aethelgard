@@ -25,10 +25,28 @@ import {
   type Profile,
 } from '@engine/index';
 import { clone } from '@engine/util/clone';
-import { freshProfile, makeState, play, type ItemSpec } from '@tests/fixtures/helpers';
+import { freshProfile, makeState as makeFixtureState, play, type ItemSpec, type MakeStateOptions, type StateOverrides } from '@tests/fixtures/helpers';
 import { FIXTURE_VERSION, fixturePack, miniContentTables } from '@tests/fixtures/miniContent';
 
 const content = fixturePack();
+
+/** Explore tests walk a calm map: every fixed encounter starts out cleared (arrival fights: U23, reducers/combat.test.ts). */
+function makeState(o: StateOverrides = {}, opts: MakeStateOptions = {}): GameState {
+  return makeFixtureState(
+    {
+      ...o,
+      patch: (s) => {
+        o.patch?.(s);
+        for (const loc of Object.values((opts.content ?? content).locations)) {
+          if (loc.encounters.length === 0) continue;
+          const ls = (s.world.locationStates[loc.id] ??= emptyLocationState());
+          for (const enc of loc.encounters) if (!ls.encountersCleared.includes(enc.id)) ls.encountersCleared.push(enc.id);
+        }
+      },
+    },
+    opts,
+  );
+}
 const RUINS = 'loc_whispering_ruins';
 const LIBRARY = 'loc_shattered_library';
 const PLAZA = 'loc_silverwood_plaza';

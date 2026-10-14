@@ -16,6 +16,7 @@ import type { Item } from '@schema/item';
 import { WATCH_NAMES, dayOf, evaluate, explain, watchOf } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { addItem, advanceTime, apply, applyAll, locationState } from '../effects';
+import { encounterArrivalHook } from './combat';
 import type { Enumerator } from '../legalActions';
 import { defaultRarity } from '../newRun';
 import type { PostStepHook } from '../step';
@@ -227,7 +228,9 @@ export type ArrivalHook = (ctx: StepCtx, arrival: Arrival) => void;
  * anomaly; nothing on `retreat`/`notYet`), U30 the Horde spread and infected-entry damage. A hook that changes the mode
  * or moves the player ends the chain.
  */
-export const ARRIVAL_HOOKS: readonly ArrivalHook[] = [];
+export const ARRIVAL_HOOKS: readonly ArrivalHook[] = [
+  encounterArrivalHook, // U23: spawned / fixed / wandering encounters (reducers/combat.ts)
+];
 
 /** `locationEntered` events whose arrival pipeline already ran (move/retreat run it inline; strays go to arrivalHook). */
 const handledArrivals = new WeakSet<GameEvent>();

@@ -14,11 +14,13 @@
 //
 // Status rules that change a number live here (U24, DESIGN §4.5–4.6): Phase evades a single-target non-Chrono attack
 // (hit% 0, interplay 10); Void treats `resist` as neutral against a Cursed target (D-067.18, hits and ticks); step 6
-// is the interplay table's multipliers (rows 1, 2, 9, 13); step 7 adds Shock's +25 % Storm. The Shield pool is the
+// is the interplay table's multipliers (rows 1, 2, 9, 13); step 7 adds Shock's +25 % Storm and a boss phase's damage
+// taken / per-round ramp (U27, `phaseMults`). The Shield pool is the
 // Shield instance's `StatusInstance.tick` (the status's stored magnitude, like a DoT's tick or Regen's heal).
 // What a status rule *does* to statuses (removals, spreads, stacks) is combat/statuses.ts `afterHit`.
 //
 // Nothing here mutates: callers apply a HitResult (reducers/combat.ts `applyHit`, `consumeShield`).
+import type { Phase } from '@schema/creature';
 import type { Status } from '@schema/status';
 import type { ContentPack } from '../ctx';
 import { derive, hitChance } from '../derived';
@@ -212,6 +214,26 @@ export function interplayMults(_r: PipelineRead, _attacker: Combatant, target: C
   return out;
 }
 
+/** A boss's active phase record (DESIGN §4.10; `Combatant.phase`), if it has phases. */
+export function activePhaseOf(content: ContentPack, c: Pick<Combatant, 'kind' | 'refId' | 'phase'>): Phase | undefined {
+  return c.kind === 'enemy' ? content.creatures[c.refId]?.phases[c.phase] : undefined;
+}
+
+/**
+ * Step 7, the boss phase rows (U27, combat/phases.ts; D-072): the target's phase `damageTakenMult` (Contained Phase 3
+ * ×1.5, D-068.3) and the attacker's phase `damageDealtRampPerRound` (+x per round spent in the phase: the rounds since
+ * `pattern.phaseEnteredRound`, so the round of entry adds nothing).
+ */
+export function phaseMults(r: PipelineRead, attacker: Combatant, target: Combatant): PipelineStep[] {
+  const out: PipelineStep[] = [];
+  const taken = activePhaseOf(r.content, target)?.damageTakenMult ?? 1;
+  if (taken !== 1) out.push({ name: 'phase damage taken', value: taken });
+  const ramp = activePhaseOf(r.content, attacker)?.damageDealtRampPerRound ?? 0;
+  const rounds = Math.max(0, (r.s.combat?.round ?? 0) - attacker.pattern.phaseEnteredRound);
+  if (ramp > 0 && rounds > 0) out.push({ name: 'phase ramp', value: 1 + ramp * rounds });
+  return out;
+}
+
 /** DESIGN §4.3 step 7 — every percentage modifier, multiplicatively, in a fixed order. */
 function statusStepMults(r: PipelineRead, attacker: Combatant, target: Combatant, spec: HitSpec): PipelineStep[] {
   const out: PipelineStep[] = [];
@@ -225,6 +247,7 @@ function statusStepMults(r: PipelineRead, attacker: Combatant, target: Combatant
   if (spec.type === 'physical' && hasStatus(target, STATUS_ARMOR_BREAK)) out.push({ name: 'armor break', value: ARMOR_BREAK_PHYSICAL_MULT });
   if (spec.type === 'storm' && hasStatus(target, STATUS_SHOCK)) out.push({ name: 'shock', value: SHOCK_STORM_MULT });
   for (const m of spec.mults ?? []) out.push({ name: m.name, value: m.mult });
+  out.push(...phaseMults(r, attacker, target));
   out.push(...runMultipliers(r, attacker, target));
   return out;
 }

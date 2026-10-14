@@ -45,6 +45,7 @@ import {
   type GameState,
   type HitSpec,
   type LocationState,
+  type Profile,
   type StatusInstance,
 } from '@engine/index';
 import { clone } from '@engine/util/clone';
@@ -397,7 +398,9 @@ describe('victory (DESIGN §4.1, §6.2)', () => {
     expect(ended?.loot.map((i) => [i.itemId, i.qty])).toEqual([['item_dark_spellbook', 1], ['mat_shadow_ash', 1]]);
     const t = out.events.map((e) => e.t);
     expect(t.slice(t.indexOf('combatantDefeated'))).toEqual([
-      'combatantDefeated', 'resourceGained', 'modeChanged', 'itemGiven', 'itemGiven', 'goldChanged', 'xpGained', 'combatEnded', 'autosaveCheckpoint',
+      // U27: the kill's bestiary entry (killed, resistances shown, +3 Resonance) at the knock-out; seen at the end
+      'combatantDefeated', 'bestiaryUpdated', 'bestiaryUpdated', 'resonanceGained',
+      'resourceGained', 'modeChanged', 'itemGiven', 'itemGiven', 'goldChanged', 'xpGained', 'bestiaryUpdated', 'combatEnded', 'autosaveCheckpoint',
     ]);
     expect(ofType(out.events, 'autosaveCheckpoint')).toEqual([{ t: 'autosaveCheckpoint', reason: 'combatEnded' }]);
     // the cleared group does not come back on the next visit
@@ -538,9 +541,9 @@ describe('DESIGN §4.12 worked example — Ranger L4 vs Wildling Brute + Corrupt
    * Mistwood Path, a return encounter: pool roll (100 % in the fixture), a pair (30 %: yes), Brute then Shade by weight,
    * then the d4s Ranger 2, Brute 1, Shade 3 (the example's).
    */
-  const opening = (): { s: GameState; events: GameEvent[] } => {
-    const out = act(ranger(), { type: 'move', to: MISTWOOD }, [D.yes, 0.25, 0.75, D.d4(2), D.d4(1), D.d4(3)]);
-    return { s: out.state, events: out.events };
+  const opening = (prof = profile): { s: GameState; events: GameEvent[]; profile: Profile } => {
+    const out = act(ranger(), { type: 'move', to: MISTWOOD }, [D.yes, 0.25, 0.75, D.d4(2), D.d4(1), D.d4(3)], prof);
+    return { s: out.state, events: out.events, profile: out.profile };
   };
   const pick = (s: GameState) => ({ c: s.combat as CombatState, ranger: me(s), brute: enemy(s, 0), shade: enemy(s, 1) });
   const read = (s: GameState) => ({ s, content });
@@ -903,5 +906,36 @@ describe('DESIGN §4.12 worked example — Ranger L4 vs Wildling Brute + Corrupt
     expect(ofType(r6.events, 'combatEnded')[0]).toMatchObject({ result: 'victory', rounds: 6, xp: 112, gold: 23 });
     expect(r6.state.counters.abilitiesUsed).toEqual({ rgr_venom_coat: 1, rgr_marked_shot: 1, rgr_rend: 1, rgr_piercing_arrow: 1 });
   });
-  test.todo('U27: bestiary — Corrupted Shade kills 1 (resistances now shown), Wildling Brute kills 1');
+  test('U27: bestiary — Corrupted Shade kills 1 (resistances now shown), Wildling Brute kills 1; +3 Resonance for each first entry; the chips the Ranger saw', () => {
+    // the U26 run (same actions and draws), with the profile carried from step to step
+    const first = opening();
+    let prof = first.profile;
+    const s0 = clone(first.s);
+    s0.player.abilitiesUnlocked.push('rgr_venom_coat', 'rgr_marked_shot', 'rgr_rend', 'rgr_piercing_arrow');
+    const [B, S] = [enemy(s0, 0).uid, enemy(s0, 1).uid];
+    const go = (s: GameState, a: Action, draws: number[]) => {
+      const out = act(s, a, draws, prof);
+      prof = out.profile;
+      return out;
+    };
+    const r1 = go(s0, { type: 'ability', abilityId: 'rgr_venom_coat' }, [D.pct(90), D.pct(37), D.variance(1.07), D.pct(80)]);
+    const r2 = go(r1.state, { type: 'ability', abilityId: 'rgr_marked_shot', targetUid: S }, [D.pct(50), D.variance(1.03), D.pct(50), D.pct(50), D.variance(1.02), D.pct(50), D.pct(32), D.pct(10), D.variance(0.98), D.pct(50)]);
+    const r3 = go(r2.state, { type: 'guard' }, [D.pct(20), D.variance(1.05), D.pct(50)]);
+    const r4 = go(r3.state, { type: 'ability', abilityId: 'rgr_rend', targetUid: B }, [D.pct(60), D.variance(0.98), D.pct(50), D.pct(50), D.variance(0.9), D.pct(50), D.pct(88)]);
+    expect(prof.bestiary[SHADE]?.killed ?? 0).toBe(0);
+    const r5 = go(r4.state, { type: 'attack', targetUid: S }, [D.pct(50), D.variance(1.02), D.pct(7), D.pct(10), D.variance(0.91), D.pct(50)]);
+    // round 5: the Shade's kill is written at once (the fight goes on): killed 1, resistances shown, +3 Resonance
+    expect(ofType(r5.events, 'bestiaryUpdated')).toEqual([{ t: 'bestiaryUpdated', creatureId: SHADE, field: 'killed' }, { t: 'bestiaryUpdated', creatureId: SHADE, field: 'weakness' }]);
+    expect(ofType(r5.events, 'resonanceGained')).toEqual([{ t: 'resonanceGained', amount: 3, reason: `bestiary:${SHADE}`, total: 3 }]);
+    expect(prof.bestiary[SHADE]).toMatchObject({ killed: 1, revealed: 'resist', seen: 0 });
+    // round 6: the Brute bleeds out; the fight ends and both count as seen
+    const r6 = go(r5.state, { type: 'ability', abilityId: 'rgr_piercing_arrow', targetUid: B }, [D.pct(30), D.variance(1.04), D.pct(50), D.int(14, 11, 18), D.yes, D.no, D.yes, D.int(9, 7, 12), D.yes]);
+    expect(ofType(r6.events, 'combatEnded')[0]).toMatchObject({ result: 'victory', rounds: 6, xp: 112, gold: 23 });
+    expect(prof.bestiary).toEqual({
+      [BRUTE]: { seen: 1, killed: 1, spared: 0, revealed: 'resist', intentsSeen: ['brute_strike', 'brute_maul'] },
+      [SHADE]: { seen: 1, killed: 1, spared: 0, revealed: 'resist', intentsSeen: ['shade_rake', 'shade_wail', 'shade_fade'] },
+    });
+    expect(prof).toMatchObject({ resonance: 6, discoveries: [`kill:${SHADE}`, `kill:${BRUTE}`] });
+    expect(profile.bestiary).toEqual({}); // the caller's profile is never written (D-041, lazy draft)
+  });
 });

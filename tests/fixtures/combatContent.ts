@@ -6,6 +6,10 @@
 //                       encounter for `startCombat`, and the Glass / Pacifist modifiers.
 //                       U26 appends DESIGN §5 ability rows for all five classes (at least three per class), a throwable
 //                       (Ember Flask), and a Duelist whose moves carry the U26 move parts (riposte, effects, specials).
+//                       U27 appends the Loop 1 Contained Tyrant (DESIGN §4.10 row 1, WORLD §6.8 lines), a fixture boss
+//                       for every phase rule (skipWhen, countSolo, reinforce, an `addsDead` OR round trigger, ×2 damage
+//                       taken), a survival boss (`surviveRounds`, `leaveCombat` on entry), a fodder that withdraws
+//                       (`leaveCombat` moves), and three DESIGN §7.3 affixes for the loot rolls.
 //   ScriptedRng, D    — an Rng that returns queued draws (the example's printed rolls), and the draw for each roll kind.
 //   scriptedStep      — `step`'s accept path (handlers, post-step hooks) over a ScriptedRng.
 import { buildContentPack, type ContentPack, type ContentTables } from '@content/index';
@@ -13,6 +17,7 @@ import type { AbilityInput } from '@schema/ability';
 import type { ClassInput } from '@schema/class';
 import type { CreatureInput } from '@schema/creature';
 import type { EncounterInput } from '@schema/encounter';
+import type { AffixInput } from '@schema/affix';
 import type { ItemInput } from '@schema/item';
 import type { LocationInput } from '@schema/location';
 import type { ModifierInput } from '@schema/modifier';
@@ -29,6 +34,7 @@ import {
   type Profile,
   type StepCtx,
 } from '@engine/index';
+import type { Step } from '@schema/creature';
 import { clone } from '@engine/util/clone';
 import { FIXTURE_VERSION, miniContentTables } from './miniContent';
 
@@ -300,6 +306,195 @@ const duelist = {
   sigil: { base: 'duelist' },
 } satisfies CreatureInput;
 
+// ---- U27: bosses and phases, a withdrawing fodder, affixes ---------------------------------------------------------------------
+
+export const CONTAINED = 'cr_chronos_tyrant_contained';
+export const BELL = 'cr_fixture_bell';
+export const TIDE = 'cr_fixture_tide';
+export const RUNNER = 'cr_fixture_runner';
+export const ABERRATION = 'cr_temporal_aberration';
+
+const HOLDING_STRIKES = [
+  { w: 1, step: { move: 'tyr_grasp', target: 'player' } },
+  { w: 1, step: { move: 'tyr_shear', target: 'all' } },
+  { w: 1, step: { move: 'tyr_time_lash', target: 'player' } },
+] satisfies { w: number; step: Step }[];
+const ONCE_IN_THIS_PHASE = { move: 'tyr_remember', target: 'self', when: { oncePerFight: true } } satisfies Step;
+
+/** DESIGN §4.10 row 1 / WORLD §6.8 (D-066.1, D-068.3): 460 HP, three phases, Remember once per phase, P3 ×1.5 taken. */
+const containedTyrant = {
+  id: CONTAINED,
+  name: 'The Chronos Tyrant',
+  legacyName: 'The Chronos Tyrant',
+  description: 'A towering, amorphous figure of rippling time. Skeletal limbs and crystalline shards surface and vanish within its shifting mass.',
+  family: 'fam_unravelled',
+  role: 'boss',
+  level: 14,
+  stats: { hp: 460, atk: 24, sp: 26, armor: 6, ward: 8, agi: 4 },
+  tags: ['breach_born'],
+  resistances: { ley: 'weak', chrono: 'resist', void: 'resist' },
+  statusImmunities: ['status_stun', 'status_slow', 'status_poison', 'status_bleed'],
+  tauntImmune: true,
+  fleeable: false,
+  moves: {
+    tyr_brace: { name: 'Brace', line: 'The Tyrant braces the hour against you.', shield: { power: { coef: 0.6, stat: 'sp' } } },
+    tyr_grasp: { name: 'Grasp', line: 'A skeletal limb surfaces, reaching.', type: 'physical', power: { coef: 1.2, stat: 'atk' }, statuses: [{ status: 'status_slow', chance: 1, duration: 2 }] },
+    tyr_shear: { name: 'Shear', line: 'Time thickens around your feet.', type: 'chrono', power: { coef: 1.0, stat: 'sp' } },
+    tyr_time_lash: { name: 'Time Lash', line: 'The hour draws tight, then lashes at you.', type: 'chrono', power: { coef: 1.3, stat: 'sp' } },
+    tyr_korr_burns: { name: 'Korr Burns', line: 'Something that was a scholar burns.', type: 'fire', power: { coef: 1.0, stat: 'sp' }, statuses: [{ status: 'status_burn', chance: 0.6, duration: 3 }] },
+    tyr_vane_closes: { name: 'Vane Closes', line: 'Stone-grey hands close on your left.', type: 'physical', power: { coef: 1.1, stat: 'atk' }, statuses: [{ status: 'status_armor_break', chance: 0.6, duration: 3 }] },
+    tyr_gather: { name: 'Gather', line: 'The hour draws back like an arm. It will fall.', hidden: true, windUp: { turns: 2, then: 'tyr_chrono_strike' } },
+    tyr_chrono_strike: {
+      name: 'Chrono-Strike', line: 'The hour falls.', type: 'chrono', power: { coef: 2.0, stat: 'sp' }, hidden: true, // fixture line (WORLD gives the wind-up's)
+      statuses: [{ status: 'status_stun', duration: 1, when: { playerGuarding: false } }],
+    },
+    tyr_aulde_sings: { name: 'Aulde Sings', line: 'One clear note rises. Light settles over the mass.', shield: { power: { coef: 1.0, stat: 'sp' } } },
+    tyr_sallow_breathes: { name: 'Sallow Breathes', line: 'Green breath leaks from the mass toward you.', type: 'ley', power: { coef: 0.6, stat: 'sp' }, statuses: [{ status: 'status_poison', chance: 0.7, duration: 4 }] },
+    tyr_remember: { name: 'Remember', line: 'An eye opens in the mass and looks back a moment.', statuses: [{ status: 'status_rewind', duration: 2, target: 'self' }] },
+    tyr_unraveling: {
+      name: 'Unraveling', line: 'The Tyrant stops guarding itself. Everything here comes loose.', type: 'chrono', power: { coef: 1.1, stat: 'sp' },
+      statuses: [{ status: 'status_armor_break', chance: 1, duration: 2 }],
+    },
+  },
+  phases: [
+    { id: 'tyr_movement_1', name: 'The Holding', pattern: [{ move: 'tyr_brace', target: 'self' }, { weighted: HOLDING_STRIKES }] },
+    {
+      id: 'tyr_movement_2',
+      name: 'The Fracture',
+      enterWhen: [{ hpBelow: 0.66 }],
+      line: 'The mass splits along old seams. Things that were people surface and do not sink back.',
+      adds: [{ creatureId: ABERRATION, count: 2, countSolo: 1, hpPct: 0.4 }],
+      pattern: [
+        { move: 'tyr_korr_burns', target: 'player' },
+        { move: 'tyr_vane_closes', target: 'player' },
+        { move: 'tyr_gather', target: 'player' },
+        { move: 'tyr_aulde_sings', target: 'self' },
+        { move: 'tyr_sallow_breathes', target: 'player' },
+        ONCE_IN_THIS_PHASE,
+      ],
+    },
+    {
+      id: 'tyr_movement_3',
+      name: 'The Nine Speak',
+      enterWhen: [{ hpBelow: 0.33 }, { round: 12 }],
+      line: 'It stops guarding itself. Every wound you give it is answered by a voice.',
+      damageTakenMult: 1.5,
+      pattern: [ONCE_IN_THIS_PHASE, { move: 'tyr_unraveling', target: 'all' }],
+    },
+  ],
+  gold: { min: 0, max: 0 },
+  xp: 900,
+  onDefeat: [{ setFlag: 'flag_tyrant_dead' }],
+  bestiary: { voice: 'remnant_archive', summary: 'Year 44. The Remnants named it the Chronos Tyrant after the first Wayfinder died before it.' },
+  sigil: { base: 'tyrant', accent: 'chrono', details: ['contained'] },
+} satisfies CreatureInput;
+
+/** Every phase rule on one body: skipWhen, countSolo + reinforce, an OR-list of an event and a round, onEnter effects, ×2 taken. */
+const fixtureBell = {
+  id: BELL,
+  name: 'Fixture Bell',
+  description: 'Fixture: a bell that rings in three phases.',
+  family: 'fam_wilds',
+  role: 'boss',
+  level: 6,
+  stats: { hp: 200, atk: 10, sp: 10, armor: 0, ward: 0, agi: 0 },
+  fleeable: false,
+  moves: {
+    bell_toll: { name: 'Toll', line: 'It tolls at you.', type: 'physical', power: { coef: 1.0, stat: 'atk' } },
+    bell_ask: { name: 'Ask', line: "It lifts its head. 'Is it the hour?'" },
+    bell_ring: { name: 'Ring', line: 'It rings for everyone, all at once.', type: 'storm', power: { coef: 1.0, stat: 'sp' } },
+  },
+  phases: [
+    { id: 'bell_ask', name: 'Is It the Hour?', skipWhen: { flag: 'flag_heartstone_stabilized' }, pattern: [{ move: 'bell_ask', target: 'self' }, { move: 'bell_toll', target: 'player' }] },
+    {
+      id: 'bell_rises',
+      name: 'The Water Rises',
+      enterWhen: [{ hpBelow: 0.65 }],
+      line: 'The water in the well begins to rise.',
+      adds: [{ creatureId: SHADE, count: 2, countSolo: 1, hpPct: 0.5, reinforce: { maxAlive: 2, total: 3 } }],
+      pattern: [{ move: 'bell_toll', target: 'player' }],
+    },
+    {
+      id: 'bell_hour',
+      name: 'The Hour',
+      enterWhen: [{ event: 'addsDead' }, { round: 20 }],
+      line: "'It is the hour,' it says, in the voice of a city.",
+      onEnter: [{ setFlag: 'flag_bell_hour' }, { stripBuffs: { kinds: ['shield'] } }],
+      damageTakenMult: 2,
+      pattern: [{ move: 'bell_ring', target: 'all' }],
+    },
+  ],
+  gold: { min: 5, max: 5 },
+  xp: 100,
+  bestiary: { voice: 'wayfinder_notes', summary: 'Fixture: the phase rules.' },
+  sigil: { base: 'bell' },
+} satisfies CreatureInput;
+
+/** A survival fight (D-069.9, the Unraveling Tide's shape): hold three rounds; hurt it below half and it withdraws. */
+const fixtureTide = {
+  id: TIDE,
+  name: 'Fixture Tide',
+  description: 'Fixture: a tide you outlast.',
+  family: 'fam_unravelled',
+  role: 'boss',
+  level: 8,
+  stats: { hp: 300, atk: 4, armor: 0, ward: 0, agi: 0 },
+  fleeable: false,
+  moves: { tide_wash: { name: 'Wash', line: 'The tide washes over you.', type: 'physical', power: { coef: 1.0, stat: 'atk' } } },
+  phases: [
+    { id: 'tide_rising', name: 'Rising', onEnter: [{ surviveRounds: { rounds: 3, line: 'The Tide passes.' } }], pattern: [{ move: 'tide_wash', target: 'player' }] },
+    { id: 'tide_ebbing', name: 'Ebbing', enterWhen: [{ hpBelow: 0.5 }], onEnter: [{ leaveCombat: true }], pattern: [{ move: 'tide_wash', target: 'player' }] },
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }],
+  gold: { min: 50, max: 50 },
+  xp: 400,
+  bestiary: { voice: 'wayfinder_notes', summary: 'Fixture: survive it.' },
+  sigil: { base: 'tide' },
+} satisfies CreatureInput;
+
+/** Fodder that strikes, then withdraws (`leaveCombat` shorthand); `runner_vanish` is the effect form. */
+const fixtureRunner = {
+  id: RUNNER,
+  name: 'Fixture Runner',
+  description: 'Fixture: it never stays.',
+  family: 'fam_wilds',
+  role: 'fodder',
+  level: 2,
+  stats: { hp: 40, atk: 5, armor: 0, ward: 0, agi: 0 },
+  moves: {
+    runner_jab: { name: 'Jab', line: 'A quick jab.', type: 'physical', power: { coef: 1.0, stat: 'atk' } },
+    runner_flee: { name: 'Flee', line: 'It turns and runs.', leaveCombat: true },
+    runner_vanish: { name: 'Vanish', line: 'It is simply gone.', effects: [{ leaveCombat: true }] },
+  },
+  pattern: [{ move: 'runner_jab', target: 'player' }, { move: 'runner_flee', target: 'self' }],
+  loot: [{ itemId: 'mat_shadow_ash' }],
+  gold: { min: 3, max: 3 },
+  xp: 41,
+  bestiary: { voice: 'wayfinder_notes', summary: 'Fixture: a runner.' },
+  sigil: { base: 'runner' },
+} satisfies CreatureInput;
+
+/** DESIGN §7.3 rows for the loot rolls: two for every slot, one for armor and trinkets only. */
+export const u27Affixes = [
+  {
+    id: 'affix_of_the_gale', suffix: 'of the Gale',
+    weapon: { text: '+2 initiative', stats: { initiative: 2 } },
+    armor: { text: '+5 evasion', stats: { evasion: 5 } },
+    trinket: { text: '+2 initiative, +5 evasion', stats: { initiative: 2, evasion: 5 } },
+  },
+  {
+    id: 'affix_of_iron', suffix: 'of Iron',
+    weapon: { text: '+10% damage vs Armor Broken', passives: [{ kind: 'custom', scriptId: 'damage_vs_status', params: { status: 'status_armor_break', pct: 0.1 } }] },
+    armor: { text: '+2 armor', stats: { armor: 2 } },
+    trinket: { text: '+1 armor', stats: { armor: 1 } },
+  },
+  {
+    id: 'affix_of_vigor', suffix: 'of Vigor',
+    armor: { text: '+8% max HP', stats: { hpMaxPct: 0.08 } },
+    trinket: { text: '+5% max HP', stats: { hpMaxPct: 0.05 } },
+  },
+] satisfies AffixInput[];
+
 /** The combat tables: the fixture's plus the records above (the Ruins gain an exit east to the Mistwood Path). */
 export function combatTables(patch: (t: { locations: LocationInput[] }) => void = () => {}): ContentTables {
   const locations: LocationInput[] = miniContentTables.locations.map((loc) =>
@@ -311,12 +506,13 @@ export function combatTables(patch: (t: { locations: LocationInput[] }) => void 
     ...miniContentTables,
     regions: [...miniContentTables.regions, mistwood],
     locations,
-    creatures: [...miniContentTables.creatures, wildlingBrute, duelist],
+    creatures: [...miniContentTables.creatures, wildlingBrute, duelist, containedTyrant, fixtureBell, fixtureTide, fixtureRunner],
     items: [...miniContentTables.items, ...items, ...u26Items],
     abilities: [...miniContentTables.abilities, ...u26Abilities],
     classes: [...miniContentTables.classes, ...classes],
     encounters: [...miniContentTables.encounters, ...encounters],
     modifiers: [...miniContentTables.modifiers, ...modifiers],
+    affixes: [...miniContentTables.affixes, ...u27Affixes],
   };
 }
 
@@ -378,6 +574,8 @@ export function scriptedCtx(state: GameState, draws: readonly number[], content:
 
 export interface ScriptedResult {
   state: GameState;
+  /** The output profile (the draft if the step wrote one, else the input; U27 bestiary writes). */
+  profile: Profile;
   events: GameEvent[];
   rejected: string | null;
   /** Draws left unused. */
@@ -391,9 +589,9 @@ export function scriptedStep(state: GameState, action: Action, draws: readonly n
     (HANDLERS[action.type] as (c: StepCtx, a: Action) => void)(ctx, action);
     for (const hook of POST_STEP_HOOKS) hook(ctx);
   } catch (e) {
-    if (e instanceof RejectSignal) return { state, events: [], rejected: e.reason, left: ctx.rng.queue.length };
+    if (e instanceof RejectSignal) return { state, profile, events: [], rejected: e.reason, left: ctx.rng.queue.length };
     throw e;
   }
   ctx.s.meta.stepCount += 1;
-  return { state: ctx.s, events: ctx.events, rejected: null, left: ctx.rng.queue.length };
+  return { state: ctx.s, profile: ctx.profile as Profile, events: ctx.events, rejected: null, left: ctx.rng.queue.length };
 }

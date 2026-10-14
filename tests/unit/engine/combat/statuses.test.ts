@@ -472,6 +472,7 @@ describe('status_rewind', () => {
   test('on a boss the restore is capped at 10 % of max HP (D-066 #1); never below current HP; Void and Ley consume it', () => {
     const { ctx, combat, me, foe } = setup([{ creatureId: TYRANT, count: 1 }], { loop: 2 });
     foe.hp = 500;
+    foe.phase = 2; // already in its last phase: the strike below crosses no phase trigger (U27)
     foe.statuses = [inst(STATUS.rewind, { snapshotHp: 900, duration: 0 })];
     startOfTurnStatuses(ctx, combat, foe);
     expect(foe.hp).toBe(500 + Math.round(0.1 * foe.hpMax));

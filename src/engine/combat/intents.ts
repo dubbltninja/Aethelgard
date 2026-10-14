@@ -48,8 +48,8 @@
 // rows if a hit connected (a dead target rolls nothing); a non-damaging move's 'target' rows land without a hit roll.
 // Then cleanseSelf (debuffs), heal, self Shield, ally Shield, the other status rows, summon (at most `max` of that
 // creature and 3 enemies alive), revive; then (U26, specials.ts `finishMove`) the special's `after`, the combat-scope
-// effects (stripBuffs, healOnDamage) and `riposte`.
-// TODO(U27): `leaveCombat`.
+// effects (stripBuffs, healOnDamage) and `riposte`; last, `leaveCombat` (the move's flag or effect, D-069.9): the
+// creature withdraws (`withdrawFromCombat`: out of the fight, no XP, no loot, not a kill).
 //
 // Events: `intentRevealed` carries a copy of the intent whenever one is generated (hidden ones too: the UI masks them
 // by the flag) and whenever a refresh changes what the chip shows (revealed, re-aimed, re-projected).
@@ -649,5 +649,20 @@ export function executeIntent(ctx: StepCtx, combat: CombatState, c: Combatant, a
   if (move.summon) summon(ctx, combat, c, move.summon);
   if (move.revive) revive(ctx, combat, c, intent.moveId, move.revive.hpPct);
   finishMove(use, move); // U26: special `after`, stripBuffs, healOnDamage, riposte
+  if (isActive(c) && (move.leaveCombat || move.effects.some((e) => 'leaveCombat' in e))) withdrawFromCombat(combat, c);
   return intent;
+}
+
+/**
+ * D-069.9 `leaveCombat` (a move's, or a boss phase's onEnter): `c` withdraws — out of the fight (`fledOrGone`), its
+ * intent and wind-up dropped, statuses gone; no XP, no loot, not a kill. A fight whose enemies are all down or gone is won.
+ */
+export function withdrawFromCombat(combat: CombatState, c: Combatant): void {
+  if (!isActive(c)) return;
+  c.fledOrGone = true;
+  c.guarding = false;
+  c.statuses = [];
+  breakWindUp(c);
+  delete combat.intents[c.uid];
+  combatLog(combat, `${c.name} withdraws from the fight.`, 'info');
 }

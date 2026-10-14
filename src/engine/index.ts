@@ -21,3 +21,5 @@ export * from './combat/intents';
 export * from './combat/specials';
 export * from './combat/abilities';
 export * from './combat/flee';
+export * from './combat/phases';
+export * from './combat/rewards';

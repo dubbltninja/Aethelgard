@@ -10,14 +10,18 @@
 //                   U25)
 //   end of turn   — ability cooldowns count down, then status durations (D-066 #4) and expiry; the turn is counted
 //                   (`pattern.turnsTaken`); an enemy then generates its next intent (after a Stun: from the next step)
-// and at the end of each round the round counter goes up and the order is re-sorted (boss phase checks: U27). Before
+// and at the end of each round the round counter goes up and the order is re-sorted (boss phases, U27: checked there
+// and after every damage event, combat/phases.ts; a survival fight is won at the end of its last round). Before
 // the first turn every enemy generates its opening intent; at the start of each player turn the intents are refreshed
 // (re-aimed, re-projected, hidden ones due before the player's next turn revealed; DESIGN §4.2).
-// The fight ends when every enemy is down (victory: XP via progression, gold and loot rolls, the creatures' and the
-// encounter's effects, autosave) or the player is (defeat: Loop 1 outside a Horde is the classic FALLEN game over,
+// The fight ends when every enemy is down or gone (victory: combat/rewards.ts — XP via progression, gold, loot with rarity
+// and affix rolls, a full pack's overflow on the ground, the creatures' and the encounter's effects; autosave), when a
+// `surviveRounds` fight's last round ends (a win without spoils), or when the player is down (defeat: Loop 1 outside a
+// Horde is the classic FALLEN game over,
 // D-049 — the state stays in combat, phase 'defeat', with no legal action and the shell returns to the title; any
 // other death is The Fall, `closer_fall`, D-066 #7), or on a successful flee (U26: phase 'fled', no XP/loot, then the
-// encounter's `onFlee`, combat/flee.ts). A knocked-out companion does not end the fight (DESIGN §4.7).
+// encounter's `onFlee`, combat/flee.ts). A knocked-out companion does not end the fight (DESIGN §4.7). The bestiary
+// (U27, combat/rewards.ts): kills at the knock-out, intents seen at each player turn, creatures seen when the fight ends.
 // U26 hooks: a delayed hit (Doom Sigil) fires at the start of its target's turn; traps set at the node spring when the
 // fight opens; every hit that lands gives counter stances and ripostes their answer (combat/specials.ts).
 //
@@ -34,14 +38,13 @@ import type { Location } from '@schema/location';
 import { dayOf, evaluate } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { derive } from '../derived';
-import { addItem, apply, applyAll, locationState } from '../effects';
+import { apply, applyAll, locationState } from '../effects';
 import type { Enumerator } from '../legalActions';
 import { grantXp, resourceGain, type ResourceEventName } from '../progression';
 import type { Handler, PostStepHook } from '../step';
 import type { ActionOf } from '../types/actions';
 import type { CloserReason } from '../types/ids';
-import type { Combatant, CombatState, GameState, ItemInstance } from '../types/state';
-import { round } from '../util/math';
+import type { Combatant, CombatState, GameState } from '../types/state';
 import {
   applyCoats,
   combatAbilityActions,
@@ -60,6 +63,8 @@ import { attemptFlee, fleeOutcome, fleeProblem } from '../combat/flee';
 import { expireStances, reactToHit, type CombatOps, type HitKind } from '../combat/specials';
 import { STATUS, afterHit, applyStatus, blocksAction, endOfTurnStatuses, isBoss, skipsTurn, startOfTurnStatuses } from '../combat/statuses';
 import { afterStunnedTurn, executeIntent, generateIntent, openingIntents, refreshIntents } from '../combat/intents';
+import { checkPhases, openPhases, survivalRounds } from '../combat/phases';
+import { noteIntentsSeen, recordKill, recordSeen, rollSpoils, type Spoils } from '../combat/rewards';
 import {
   CARRIED_STATUSES,
   beginCombat,
@@ -67,7 +72,6 @@ import {
   currentActor,
   encounterSpec,
   isActive,
-  loopNudge,
   playerOf,
   spawnedSpec,
   startRound,
@@ -204,6 +208,7 @@ function knockOut(ctx: StepCtx, combat: CombatState, target: Combatant): void {
     kills[target.refId] = (kills[target.refId] ?? 0) + 1;
     if (TYRANT_IDS.includes(target.refId)) ctx.s.flags[FLAG_TYRANT_DEAD] = true;
     combatLog(combat, `${target.name} falls.`, 'info');
+    recordKill(ctx, target.refId); // the bestiary, at the moment of the kill (U27)
   } else if (target.kind === 'companion') {
     ctx.emit({ t: 'companionKo', companionId: target.refId });
     combatLog(combat, `${target.name} is down.`, 'info');
@@ -247,9 +252,9 @@ export function applyHit(ctx: StepCtx, combat: CombatState, attacker: Combatant,
   if (target.kind === 'player') counters.damageTaken += result.amount;
   if (playerHit) gainResource(ctx, combat, target, 'hit_taken');
   afterHit(ctx, combat, attacker, target, spec, result); // interplay that changes statuses (U24, DESIGN §4.6)
-  // TODO(U27): HP-threshold boss phase triggers are checked here, after every damage event (DESIGN §4.10).
   if (target.hp <= 0) knockOut(ctx, combat, target);
   else reactToHit(ctx, combat, OPS, attacker, target, spec, result); // counter stances and ripostes answer (U26)
+  checkPhases(ctx, combat); // boss phase triggers and reinforcements after every damage event (U27, DESIGN §4.10)
 }
 
 /** The reducer's operations the combat modules call back into (U26: abilities, items, flee, specials, intents). */
@@ -271,8 +276,10 @@ function startTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
     const how = ticks.ticks.some((t) => t.statusId === STATUS.bleed) ? 'bleeds out' : 'succumbs';
     combatLog(combat, `${actor.name} ${how} before it can act.`, 'damage');
     knockOut(ctx, combat, actor);
+    checkPhases(ctx, combat); // U27
     return;
   }
+  if (ticks.ticks.length > 0) checkPhases(ctx, combat); // a tick is a damage event (U27, DESIGN §4.10)
   fireDelayed(OPS, ctx, combat, actor);
   if (!isActive(actor)) return;
   if (actor.kind === 'player') gainResource(ctx, combat, actor, 'turn_start');
@@ -292,11 +299,23 @@ function endTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
   actor.pattern.turnsTaken += 1; // `first` / `everyNth` count turns (U25); `targetHasActed` reads it for anyone
 }
 
-/** DESIGN §4.1 end of round: the counter goes up and the order is re-sorted. TODO(U27): boss phase triggers. */
+/**
+ * DESIGN §4.1 end of round: a `surviveRounds` fight whose last round this was is won (D-069.9); else the counter goes up,
+ * the order is re-sorted and the boss phases are checked (round triggers; adds they spawn join this round's order).
+ */
 function endRound(ctx: StepCtx, combat: CombatState): void {
+  const survive = survivalRounds(ctx.content, combat);
+  if (survive && combat.round >= survive.rounds) {
+    ctx.log(survive.line ?? 'You hold until the end.', 'combat');
+    finishVictory(ctx, combat, true);
+    return;
+  }
   combat.phase = 'roundEnd';
   combat.round += 1;
   startRound(combat, ctx.content);
+  const enemies = combat.enemies.length;
+  checkPhases(ctx, combat);
+  if (combat.enemies.length !== enemies) startRound(combat, ctx.content);
 }
 
 /** TODO(U28): replaced by the stance AI (DESIGN §4.9). Placeholder: its strike at the leftmost living enemy. */
@@ -314,6 +333,7 @@ function companionPlaceholderAction(ctx: StepCtx, combat: CombatState, companion
 export function runCombat(ctx: StepCtx): void {
   const opening = ctx.s.combat;
   if (opening?.phase === 'start') {
+    openPhases(ctx, opening); // bosses enter their opening phase (U27)
     openingIntents(ctx, opening); // DESIGN §4.1 Setup: every enemy's first intent (U25)
     springTraps(OPS, ctx, opening); // traps set at this node (U26)
   }
@@ -336,7 +356,10 @@ export function runCombat(ctx: StepCtx): void {
       combat.turnIndex += 1; // killed by a start-of-turn tick: it does not act
       continue;
     }
-    if (actor.kind === 'player') refreshIntents(ctx, combat); // re-aim, re-project, reveal what is due (U25)
+    if (actor.kind === 'player') {
+      refreshIntents(ctx, combat); // re-aim, re-project, reveal what is due (U25)
+      noteIntentsSeen(ctx, combat); // the bestiary's intents seen (U27)
+    }
     if (skipsTurn(ctx.content, actor)) {
       combatLog(combat, `${actor.name} is stunned and loses the turn.`, 'status'); // DESIGN §4.5 Stun (U24)
       endTurn(ctx, combat, actor);
@@ -349,9 +372,11 @@ export function runCombat(ctx: StepCtx): void {
       companionPlaceholderAction(ctx, combat, actor);
       endTurn(ctx, combat, actor);
     } else {
+      const phase = actor.phase;
       const played = executeIntent(ctx, combat, actor, applyHit, OPS); // DESIGN §4.2 (U25)
       endTurn(ctx, combat, actor);
-      generateIntent(ctx, combat, actor, played); // the next intent, once this turn is over
+      // the next intent, once this turn is over — unless a phase entered during its action already reset it (U27)
+      if (actor.phase === phase) generateIntent(ctx, combat, actor, played);
     }
     combat.turnIndex += 1;
   }
@@ -371,17 +396,6 @@ export const combatPostStep: PostStepHook = (ctx) => {
 };
 
 // ---- the end of a fight --------------------------------------------------------------------------------------------------
-
-/** DESIGN §6.2 kill XP: the creature's XP × the loop nudge (§6.6), rounded half-up. */
-export function creatureXp(s: GameState, content: ContentPack, creatureId: string): number {
-  const def = content.creatures[creatureId];
-  return def ? round(def.xp * loopNudge(s, content)) : 0;
-}
-
-/** Pacifist's Vow and friends: a run modifier `xp_sources` that does not allow 'combat' zeroes kill XP (DESIGN §6.2). */
-export function combatXpAllowed(s: GameState, content: ContentPack): boolean {
-  return !s.meta.modifiers.some((id) => content.modifiers[id]?.rules.some((r) => r.kind === 'xp_sources' && !r.allow.includes('combat')) ?? false);
-}
 
 /** Copies the party snapshots back: player HP/MP and surviving out-of-combat DoTs, the companion's HP and KO. */
 function syncBack(ctx: StepCtx, combat: CombatState): void {
@@ -424,40 +438,23 @@ function autosaveAfterCombat(ctx: StepCtx): void {
 }
 
 /**
- * Victory (DESIGN §4.1, §6.2): back to explore, then per fallen enemy in slot order its gold roll, its loot rolls (each
- * `when`, then `chance`) and its `onDefeat` effects; XP through progression (level-ups refill); `combatEnded`; the
- * encounter's `onVictory` effects; an autosave. TODO(U27): bestiary kills and reveals, loot rarity rolls, a full pack.
+ * Victory (DESIGN §4.1, §6.2): back to explore; the spoils (combat/rewards.ts `rollSpoils`: per fallen enemy in slot
+ * order its gold roll, loot rolls with rarity/affixes and a full pack's overflow on the ground, `onDefeat`; none for a
+ * survival win); gold, then XP through progression (level-ups refill); the bestiary's seen counts; `combatEnded`; the
+ * encounter's `onVictory` effects; an autosave.
  */
-function finishVictory(ctx: StepCtx, combat: CombatState): void {
-  const { s, content } = ctx;
+function finishVictory(ctx: StepCtx, combat: CombatState, survived = false): void {
+  const { s } = ctx;
   combat.phase = 'victory';
   syncBack(ctx, combat);
   s.combat = null;
   enterMode(ctx, 'explore');
-  let xp = 0;
-  let gold = 0;
-  const loot: ItemInstance[] = [];
-  const xpAllowed = combatXpAllowed(s, content);
-  for (const enemy of combat.enemies.filter((e) => !e.alive)) {
-    const def = content.creatures[enemy.refId];
-    if (!def) continue;
-    if (xpAllowed) xp += creatureXp(s, content, enemy.refId);
-    gold += def.gold.min === def.gold.max ? def.gold.min : ctx.rng.int(def.gold.min, def.gold.max);
-    for (const drop of def.loot) {
-      if (drop.when !== undefined && !evaluate(drop.when, s, ctx.profile, content)) continue;
-      if (!ctx.rng.chance(drop.chance)) continue;
-      const [first] = addItem(ctx, drop.itemId, drop.count, drop.rarity);
-      if (!first) continue;
-      const item: ItemInstance = { ...first, qty: drop.count, affixes: [...first.affixes] };
-      loot.push(item);
-      ctx.emit({ t: 'itemGiven', item, source: `loot:${enemy.refId}` });
-    }
-    applyAll(def.onDefeat, ctx, { source: `creature:${enemy.refId}` });
-  }
+  const { xp, gold, loot }: Spoils = survived ? { xp: 0, gold: 0, loot: [] } : rollSpoils(ctx, combat);
   if (gold > 0) apply({ gold }, ctx, { source: `encounter:${combat.encounterId}` });
   if (xp > 0) grantXp(ctx, xp);
   s.counters.fightsWon += 1;
   clearEncounter(ctx, combat);
+  recordSeen(ctx, combat);
   ctx.emit({ t: 'combatEnded', result: 'victory', rounds: combat.round, xp, gold, loot });
   applyAll(combat.onVictory as Effect[], ctx, { source: `encounter:${combat.encounterId}` });
   autosaveAfterCombat(ctx);
@@ -474,6 +471,7 @@ function finishDefeat(ctx: StepCtx, combat: CombatState): void {
   combat.phase = 'defeat';
   syncBack(ctx, combat);
   s.counters.deathsThisLoop = 1;
+  recordSeen(ctx, combat); // U27
   ctx.emit({ t: 'playerDied', loop: s.meta.loop });
   ctx.emit({ t: 'combatEnded', result: 'defeat', rounds: combat.round, xp: 0, gold: 0, loot: [] });
   applyAll(combat.onDefeat as Effect[], ctx, { source: `encounter:${combat.encounterId}` });
@@ -618,6 +616,7 @@ function finishFled(ctx: StepCtx, combat: CombatState): void {
   s.combat = null;
   enterMode(ctx, 'explore');
   s.counters.fled += 1;
+  recordSeen(ctx, combat); // U27
   ctx.emit({ t: 'combatEnded', result: 'fled', rounds: combat.round, xp: 0, gold: 0, loot: [] });
   applyAll(combat.onFleeEffects as Effect[], ctx, { source: `encounter:${combat.encounterId}` });
   fleeOutcome(ctx, combat);

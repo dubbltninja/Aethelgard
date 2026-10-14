@@ -5,10 +5,13 @@
 //   start of turn — `turnStarted`, Guard drops ("until the guarder's next turn begins"), start-of-turn status ticks
 //                   (combat/statuses.ts: a combatant killed by them does not act), class `turn_start` resource
 //   action        — a Stunned combatant loses it; else the player's (`attack`, `guard` here; abilities, items, flee U26;
-//                   companion command U28), or the companion's / enemy's (placeholders until U28 companion AI and U25
-//                   intents, marked below)
-//   end of turn   — ability cooldowns count down, then status durations (D-066 #4) and expiry
-// and at the end of each round the round counter goes up and the order is re-sorted (boss phase checks: U27).
+//                   companion command U28), the companion's (placeholder until U28 companion AI, marked below), or the
+//                   enemy's committed intent (combat/intents.ts, U25)
+//   end of turn   — ability cooldowns count down, then status durations (D-066 #4) and expiry; the turn is counted
+//                   (`pattern.turnsTaken`); an enemy then generates its next intent (after a Stun: from the next step)
+// and at the end of each round the round counter goes up and the order is re-sorted (boss phase checks: U27). Before
+// the first turn every enemy generates its opening intent; at the start of each player turn the intents are refreshed
+// (re-aimed, re-projected, hidden ones due before the player's next turn revealed; DESIGN §4.2).
 // The fight ends when every enemy is down (victory: XP via progression, gold and loot rolls, the creatures' and the
 // encounter's effects, autosave) or the player is (defeat: Loop 1 outside a Horde is the classic FALLEN game over,
 // D-049 — the state stays in combat, phase 'defeat', with no legal action and the shell returns to the title; any
@@ -37,6 +40,7 @@ import type { Combatant, CombatState, GameState, ItemInstance } from '../types/s
 import { round } from '../util/math';
 import { consumeShield, resolveHit, rollPct, type HitResult, type HitSpec } from '../combat/damage';
 import { STATUS, afterHit, applyStatus, endOfTurnStatuses, isBoss, skipsTurn, startOfTurnStatuses } from '../combat/statuses';
+import { afterStunnedTurn, executeIntent, generateIntent, openingIntents, refreshIntents } from '../combat/intents';
 import {
   CARRIED_STATUSES,
   beginCombat,
@@ -259,6 +263,7 @@ function endTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
   // status durations count down, except a status applied during this turn (D-066 #4); expiry (U24). After the
   // cooldowns, so a Stun that wears off here opens a full 2-turn recovery window.
   endOfTurnStatuses(ctx, combat, actor);
+  actor.pattern.turnsTaken += 1; // `first` / `everyNth` count turns (U25); `targetHasActed` reads it for anyone
 }
 
 /** DESIGN §4.1 end of round: the counter goes up and the order is re-sorted. TODO(U27): boss phase triggers. */
@@ -266,22 +271,6 @@ function endRound(ctx: StepCtx, combat: CombatState): void {
   combat.phase = 'roundEnd';
   combat.round += 1;
   startRound(combat, ctx.content);
-}
-
-/** TODO(U25): replaced by intent resolution. Placeholder: the creature's first damaging move, at the player. */
-function enemyPlaceholderAction(ctx: StepCtx, combat: CombatState, enemy: Combatant): void {
-  const def = ctx.content.creatures[enemy.refId];
-  const target = combat.party.find(isActive);
-  let spec: HitSpec | null = null;
-  for (const [id, move] of Object.entries(def?.moves ?? {})) {
-    spec = moveSpec(id, move);
-    if (spec) break;
-  }
-  if (!spec || !target) {
-    combatLog(combat, `${enemy.name} holds still.`, 'info');
-    return;
-  }
-  applyHit(ctx, combat, enemy, target, spec, resolveHit(ctx, enemy, target, spec), 'intent');
 }
 
 /** TODO(U28): replaced by the stance AI (DESIGN §4.9). Placeholder: its strike at the leftmost living enemy. */
@@ -297,6 +286,8 @@ function companionPlaceholderAction(ctx: StepCtx, combat: CombatState, companion
  * in phase 'start', and by every player action after its effect.
  */
 export function runCombat(ctx: StepCtx): void {
+  const opening = ctx.s.combat;
+  if (opening?.phase === 'start') openingIntents(ctx, opening); // DESIGN §4.1 Setup: every enemy's first intent (U25)
   for (let n = 0; n < MAX_COMBAT_TURNS; n++) {
     const combat = ctx.s.combat;
     if (combat === null || combat.phase === 'victory' || combat.phase === 'defeat' || combat.phase === 'fled') return;
@@ -316,16 +307,23 @@ export function runCombat(ctx: StepCtx): void {
       combat.turnIndex += 1; // killed by a start-of-turn tick: it does not act
       continue;
     }
+    if (actor.kind === 'player') refreshIntents(ctx, combat); // re-aim, re-project, reveal what is due (U25)
     if (skipsTurn(ctx.content, actor)) {
       combatLog(combat, `${actor.name} is stunned and loses the turn.`, 'status'); // DESIGN §4.5 Stun (U24)
       endTurn(ctx, combat, actor);
+      if (actor.kind === 'enemy') afterStunnedTurn(ctx, combat, actor); // the stunned step is skipped, not replayed (U25)
       combat.turnIndex += 1;
       continue;
     }
     if (actor.kind === 'player') return;
-    if (actor.kind === 'companion') companionPlaceholderAction(ctx, combat, actor);
-    else enemyPlaceholderAction(ctx, combat, actor);
-    endTurn(ctx, combat, actor);
+    if (actor.kind === 'companion') {
+      companionPlaceholderAction(ctx, combat, actor);
+      endTurn(ctx, combat, actor);
+    } else {
+      const played = executeIntent(ctx, combat, actor, applyHit); // DESIGN §4.2 (U25)
+      endTurn(ctx, combat, actor);
+      generateIntent(ctx, combat, actor, played); // the next intent, once this turn is over
+    }
     combat.turnIndex += 1;
   }
   throw new Error('combat: the turn loop did not settle');

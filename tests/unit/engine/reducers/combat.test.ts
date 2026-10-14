@@ -31,6 +31,7 @@ import {
   legalActions,
   moveSpec,
   playerOf,
+  projectIntent,
   resolveHit,
   resolveTick,
   runCombat,
@@ -569,7 +570,9 @@ describe('DESIGN §4.12 worked example — Ranger L4 vs Wildling Brute + Corrupt
     expect(c.turnOrder).toEqual([ranger.uid, shade.uid, brute.uid]);
     expect(c).toMatchObject({ encounterId: WANDERING_ENCOUNTER_ID, onFlee: 'previous', round: 1, phase: 'playerTurn' });
     expect(ofType(events, 'combatStarted')[0]?.enemies.map((e) => e.creatureId)).toEqual([BRUTE, SHADE]);
-    // opening intents (generation is U25; the numbers are the pipeline's): Shade Rake → Ranger 4–6, Brute Strike → 8–10
+    // opening intents (U25), the pipeline's numbers: Shade Rake → Ranger 4–6, Brute Strike → Ranger 8–10
+    expect(c.intents[shade.uid]).toMatchObject({ moveId: 'shade_rake', targetUid: ranger.uid, projected: [4, 6], hidden: false, tags: [] });
+    expect(c.intents[brute.uid]).toMatchObject({ moveId: 'brute_strike', targetUid: ranger.uid, projected: [8, 10], hidden: false, tags: [] });
     expect(damageRange(read(s), shade, ranger, moveOf(SHADE, 'shade_rake'))).toEqual([4, 6]);
     expect(damageRange(read(s), brute, ranger, moveOf(BRUTE, 'brute_strike'))).toEqual([8, 10]);
   });
@@ -609,7 +612,7 @@ describe('DESIGN §4.12 worked example — Ranger L4 vs Wildling Brute + Corrupt
       Object.assign(c.enemies[1]!, { hp: 17, statuses: [status('status_mark', { duration: 2 })] });
     });
     expect(damageRange(read(r3), enemy(r3, 0), me(r3), moveOf(BRUTE, 'brute_maul'), { guard: true })).toEqual([7, 9]);
-    // the enemies' round-3 moves are Fade and Maul (U25); the placeholders here both miss
+    // this patched state keeps the opening intents (Rake, Strike): both miss here; the real round 3 (Fade, Maul) is the U25 test below
     const out = act(r3, { type: 'guard' }, [D.pct(99), D.pct(99)]);
     expect(ofType(out.events, 'resourceGained')).toEqual([{ t: 'resourceGained', uid: me(r3).uid, amount: 5, reason: 'guard' }]);
     expect(me(out.state).mp).toBe(48);
@@ -748,7 +751,7 @@ describe('DESIGN §4.12 worked example — Ranger L4 vs Wildling Brute + Corrupt
     expect(applyStatusRows(ctx, c, shade, ranger, wail).map((r) => r.outcome)).toEqual(['failed']);
     expect(applyStatusRows(ctx, c, shade, ranger, wail).map((r) => r.outcome)).toEqual(['applied']);
     expect(findStatus(ranger, 'status_weaken')).toEqual({ statusId: 'status_weaken', stacks: 1, duration: 2, sourceUid: shade.uid, appliedOnOwnTurn: false });
-    // rounds 3 and 4 through the turn loop (the Ranger guards; the placeholder enemies miss)
+    // rounds 3 and 4 through the turn loop (the Ranger guards; the enemies' committed moves miss)
     const r3 = patched(ctx.s, (cc) => Object.assign(cc, { round: 3, phase: 'playerTurn', turnIndex: 0 }));
     const after3 = act(r3, { type: 'guard' }, [...MISS, ...MISS]);
     expect(findStatus(me(after3.state), 'status_weaken')?.duration).toBe(1);
@@ -814,7 +817,61 @@ describe('DESIGN §4.12 worked example — Ranger L4 vs Wildling Brute + Corrupt
   });
 
   // Pending on later units, with the exact values DESIGN §4.12 prints:
-  test.todo('U25: intents Wail → Ranger 5–6 "may Weaken" (r1), Fade "shrouds itself" on hp 47 % < 70 % (r2), Maul 14–17 (r2), Strike 8–10 (r3), Rake 4–6 (r3, r4), Maul 14–17 (r5)');
+  /** A self-buff ability turn (U26 owns abilities): its MP, then the turn loop. */
+  const buffTurn = (s: GameState, mp: number, draws: number[]) => {
+    const ctx = scriptedCtx(s, draws, content, profile);
+    const c = ctx.s.combat as CombatState;
+    playerOf(c).mp -= mp;
+    finishPlayerTurn(ctx, c, playerOf(c));
+    expect(ctx.rng.queue).toEqual([]);
+    return { state: ctx.s, events: ctx.events };
+  };
+
+  // DESIGN §4.12 prints the Shade's round-4 chip as Rake and the Brute's round-5 chip as Maul. The §4.2 pointer over the
+  // patterns §4.12 itself prints (rake → wail → {hp < 70 %: fade | rake}; strike → strike → maul → {hp < 50 %: root_knit
+  // | strike}) commits Wail 5–6 and Strike 8–10 there; neither is ever played (the Shade dies in round 5, the Brute
+  // before acting in round 6), so every number of the fight stands. Reported to the lead by U25 (cf. D-076).
+  test('U25: the six rounds end to end through the turn loop, every chip as committed: Wail 5–6 "may Weaken" (r1), Fade "shrouds itself" at 47 % < 70 % and Maul 14–17 (r2; Guard preview 7–9), Rake 4–6 and Strike 8–10 (r3)', () => {
+    const { s: s0, events: e0 } = opening();
+    const chip = (s: GameState, i: number) => {
+      const c = s.combat as CombatState;
+      const it = c.intents[c.enemies[i]!.uid];
+      return it && [it.moveId, it.targetUid === me(s).uid ? 'Ranger' : it.targetUid, it.projected, it.tags];
+    };
+    const [B, S] = [0, 1];
+    expect([chip(s0, S), chip(s0, B)]).toEqual([['shade_rake', 'Ranger', [4, 6], []], ['brute_strike', 'Ranger', [8, 10], []]]);
+    // round 1: Venom Coat (6 MP → 51, no draw); Rake misses (90 vs 83); Strike 11 × 1.07 − 2 → 10
+    const r1 = buffTurn(s0, 6, [D.pct(90), D.pct(37), D.variance(1.07), D.pct(80)]);
+    expect([chip(r1.state, S), chip(r1.state, B)]).toEqual([['shade_wail', 'Ranger', [5, 6], ['may Weaken']], ['brute_strike', 'Ranger', [8, 10], []]]);
+    expect(me(r1.state)).toMatchObject({ hp: 138, mp: 51 });
+    // round 2: Marked Shot 19 (Venom Coat's Poison: Immune); Wail 5 and Weaken (32 < 50); Strike 9; the Shade, at 47 %, commits to Fade
+    const venom = (i: number) => (ctx: ReturnType<typeof scriptedCtx>, c: CombatState) => void applyStatus(ctx, c, playerOf(c), c.enemies[i]!, 'status_poison', { duration: 4 });
+    const r2 = abilityTurn(r1.state, 'rgr_marked_shot', S, [D.pct(50), D.variance(1.03), D.pct(50), D.pct(50), D.variance(1.02), D.pct(50), D.pct(32), D.pct(10), D.variance(0.98), D.pct(50)], venom(S));
+    expect([chip(r2.state, S), chip(r2.state, B)]).toEqual([['shade_fade', null, [0, 0], ['shrouds itself']], ['brute_maul', 'Ranger', [14, 17], []]]);
+    expect([me(r2.state).hp, enemy(r2.state, S).hp, findStatus(me(r2.state), 'status_weaken')?.duration]).toEqual([124, 17, 2]);
+    const c2 = r2.state.combat as CombatState;
+    expect(projectIntent({ s: r2.state, profile, content }, c2, enemy(r2.state, B), c2.intents[enemy(r2.state, B).uid]!, { guard: true })).toEqual([7, 9]);
+    // round 3: Guard (+5 → 48); Fade: Phase (1) on the Shade; Maul on the Guard 8; the Brute's branch at 100 % → Strike
+    const r3 = act(r2.state, { type: 'guard' }, [D.pct(20), D.variance(1.05), D.pct(50)]);
+    expect([chip(r3.state, S), chip(r3.state, B)]).toEqual([['shade_rake', 'Ranger', [4, 6], []], ['brute_strike', 'Ranger', [8, 10], []]]);
+    expect([me(r3.state).hp, me(r3.state).mp, findStatus(enemy(r3.state, S), 'status_phase')?.duration]).toEqual([116, 48, 1]);
+    expect(r3.state.combat?.log.map((l) => l.text)).toContain('Corrupted Shade: It thins until the wall shows through.');
+    // round 4: Rend 10 (Bleed 5; Venom Coat's Poison 4); Rake 4; the Brute ticks 9 and misses (88 vs 82)
+    const r4 = abilityTurn(r3.state, 'rgr_rend', B, [D.pct(60), D.variance(0.98), D.pct(50), D.pct(50), D.variance(0.9), D.pct(50), D.pct(88)], venom(B));
+    expect([chip(r4.state, S), chip(r4.state, B)]).toEqual([['shade_wail', 'Ranger', [5, 6], ['may Weaken']], ['brute_strike', 'Ranger', [8, 10], []]]);
+    expect([me(r4.state).hp, enemy(r4.state, B).hp]).toEqual([112, 45]);
+    // round 5: the sword's crit 27 kills the Shade (its chip goes with it); the Brute ticks 9, Strike 8
+    const r5 = act(r4.state, { type: 'attack', targetUid: enemy(r4.state, S).uid }, [D.pct(50), D.variance(1.02), D.pct(7), D.pct(10), D.variance(0.91), D.pct(50)]);
+    expect([chip(r5.state, S), chip(r5.state, B)]).toEqual([undefined, ['brute_strike', 'Ranger', [8, 10], []]]);
+    expect([me(r5.state).hp, me(r5.state).mp, enemy(r5.state, B).hp]).toEqual([104, 52, 36]);
+    // round 6: Piercing Arrow 28; the Brute bleeds out before it acts
+    const r6 = abilityTurn(r5.state, 'rgr_piercing_arrow', B, [D.pct(30), D.variance(1.04), D.pct(50), D.int(14, 11, 18), D.yes, D.no, D.yes, D.int(9, 7, 12), D.yes]);
+    expect(r6.state.player).toMatchObject({ hp: 104, mp: 40, xp: 112 });
+    expect(ofType(r6.events, 'combatEnded')[0]).toMatchObject({ result: 'victory', rounds: 6, xp: 112, gold: 23 });
+    // each chip was announced once, when generated: the two openings (slot order), then one per enemy turn played
+    const announced = [e0, r1.events, r2.events, r3.events, r4.events, r5.events, r6.events].flatMap((ev) => ofType(ev, 'intentRevealed').map((e) => e.intent.moveId));
+    expect(announced).toEqual(['brute_strike', 'shade_rake', 'shade_wail', 'brute_strike', 'shade_fade', 'brute_maul', 'shade_rake', 'brute_strike', 'shade_wail', 'brute_strike', 'brute_strike']);
+  });
   test.todo('U26: ability costs Venom Coat 6 → 51, Marked Shot 8 → 43, Rend 8 → 40, Piercing Arrow 12 → 40 (final 104/148 HP, 40/57 MP)');
   test.todo('U27: bestiary — Corrupted Shade kills 1 (resistances now shown), Wildling Brute kills 1');
 });

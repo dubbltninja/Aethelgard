@@ -287,8 +287,8 @@ describe('status_stun', () => {
     expect(ofType(stunned.events, 'statusApplied')).toEqual([{ t: 'statusApplied', targetUid: foeOf(shade).uid, statusId: STATUS.stun, stacks: 1, duration: 1 }]);
     expect(ofType(stunned.events, 'attackResolved')).toHaveLength(1);
     const tyrant = atPlayerTurn([{ creatureId: TYRANT, count: 1 }], () => {}, { classId: 'ironclad_warden', loop: 2 });
-    const boss = scriptedStep(tyrant, { type: 'attack', targetUid: foeOf(tyrant).uid }, [D.pct(0), D.variance(1), D.pct(99), ...MISS], content, freshProfile({ loopCounter: 2 }));
-    expect(boss.left).toBe(0); // no stun roll against a boss
+    const boss = scriptedStep(tyrant, { type: 'attack', targetUid: foeOf(tyrant).uid }, [D.pct(0), D.variance(1), D.pct(99)], content, freshProfile({ loopCounter: 2 }));
+    expect(boss.left).toBe(0); // no stun roll against a boss (and its first turn is Speak, no draw: U25)
     expect(ofType(boss.events, 'statusApplied')).toEqual([]);
   });
 });

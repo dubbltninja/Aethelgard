@@ -17,3 +17,4 @@ export * from './combat/damage';
 export * from './combat/turnOrder';
 export * from './reducers/combat';
 export * from './combat/statuses';
+export * from './combat/intents';

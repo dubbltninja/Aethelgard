@@ -344,7 +344,7 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
     turnIndex: 0,
     round: 1,
     phase: 'start',
-    intents: {}, // TODO(U25): every enemy generates its first intent here (DESIGN §4.1 Setup)
+    intents: {}, // DESIGN §4.1 Setup: the opening intents are generated when the fight first runs (combat/intents.ts, U25)
     log: [],
     cooldowns: {},
     canFlee,

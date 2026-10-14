@@ -1,7 +1,7 @@
 // U16: AbilitySchema (PLAN §5.7). Three DESIGN §5 rows per class (15), the Amulet's itm_echo_bolt (DESIGN §5.7 as
 // amended by D-067.19) and two companions' DESIGN §12.4 rows parse; derived defaults and per-record rules hold.
 import { describe, expect, test } from 'bun:test';
-import { AbilitySchema, COMPANION_KIND_COOLDOWN, TIER_LEVELS, abilityOwnerKind, type AbilityInput } from '@schema/ability';
+import { AbilitySchema, COMPANION_KIND_COOLDOWN, SCRIPTED_ABILITIES, TIER_LEVELS, abilityOwnerKind, isScriptedAbility, type AbilityInput } from '@schema/ability';
 
 const issues = (value: unknown): string[] => {
   const r = AbilitySchema.safeParse(value);
@@ -211,6 +211,11 @@ describe('invalid abilities fail with clear messages', () => {
   test('content rules: power needs a type, abilities must do something, specials by scope, combat-scope effects', () => {
     expectIssue({ ...marked, damageType: undefined }, 'damageType', 'needs a damageType');
     expectIssue({ ...marked, power: undefined, statuses: [] }, '', 'an ability must do something');
+    // U26b: an engine-scripted row may declare nothing else (Dancer's Guard: +25 evasion and dodge MP live in the engine)
+    const dancersGuard = { id: 'elf_dancers_guard', ownerId: 'elf', branch: 'bladesong', tier: 2, name: "Dancer's Guard", description: 'Never be where the blade expects.', mp: 8, target: 'self', cooldown: 3 };
+    expect(AbilitySchema.safeParse(dancersGuard).success).toBe(true);
+    expect(isScriptedAbility('elf_dancers_guard') && !isScriptedAbility('rgr_marked_shot')).toBe(true);
+    expect(SCRIPTED_ABILITIES.every((id) => abilityOwnerKind(id) === 'class')).toBe(true);
     expectIssue({ ...killing, special: 'hour_presses' }, 'special', "special 'hour_presses' is not usable on an ability");
     expectIssue({ ...killing, special: 'snipe' }, 'special', 'unknown special "snipe" for an ability');
     expectIssue({ ...marked, selfCost: {} }, 'selfCost', 'needs hpPctMax');

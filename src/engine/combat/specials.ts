@@ -27,6 +27,8 @@ import type { StepCtx } from '../ctx';
 import { locationState } from '../effects';
 import type { ResourceEventName } from '../progression';
 import type { Combatant, CombatState, DamageType } from '../types/state';
+import { buffReactions } from './buffHooks';
+import { resourceMultOf } from './buffs';
 import { GUARD_VALUE_KEY, hasStatus, resolveHit, resolveTick, roundHalfUp, statusMods, type HitResult, type HitSpec, type ScaleStat } from './damage';
 import { STATUS, applyStatus, applyStatusRows, cleanse, cooldownsOf, isBoss, isOwnTurn, removeStatus } from './statuses';
 import { combatLog, isActive } from './turnOrder';
@@ -490,6 +492,7 @@ function counterPower(ctx: StepCtx, holder: Combatant, key: string): { power: { 
  * back at the attacker with that power (Riposte Stance also +8 Focus).
  */
 export function reactToHit(ctx: StepCtx, combat: CombatState, ops: CombatOps, attacker: Combatant, target: Combatant, spec: HitSpec, result: HitResult): void {
+  buffReactions(ctx, combat, ops.applyHit, applyStatus, attacker, target, spec, result); // U26b: Last Bastion's reflect, Cinder Shield's heat
   if (!result.hit || result.immune || result.variance === null || spec.type !== 'physical' || spec.aoe || spec.source.startsWith(COUNTER_SOURCE)) return;
   if (sameSide(attacker, target) || !isActive(target) || !isActive(attacker)) return;
   const table = cooldownsOf(combat, target);
@@ -502,7 +505,7 @@ export function reactToHit(ctx: StepCtx, combat: CombatState, ops: CombatOps, at
     combatLog(combat, `${target.name} answers ${attacker.name}'s blow.`, 'damage');
     const r = resolveHit(ctx, target, attacker, cspec);
     ops.applyHit(ctx, combat, target, attacker, cspec, r, target.kind === 'enemy' ? 'intent' : 'ability');
-    const mp = COUNTER_MP[found.id] ?? 0;
+    const mp = (COUNTER_MP[found.id] ?? 0) * (resourceMultOf(target)?.value ?? 1); // U26b: Apex Predator doubles Focus
     if (mp > 0) ops.addMp(ctx, combat, target, mp, `counter:${found.id}`);
   }
 }

@@ -27,6 +27,7 @@ import { derive, hitChance } from '../derived';
 import type { Rng } from '../rng';
 import type { Combatant, DamageType, GameState, Resistance, StatusInstance } from '../types/state';
 import { clamp, round } from '../util/math';
+import { buffedResistance, critBonusOf, critMultOf, dealtMultOf, evasionBonusOf, hitCapOf, holdsNextCrit, takenMultOf } from './buffs';
 
 /** DESIGN §4.4: the four resistance steps. */
 export const RESIST_MULT: Readonly<Record<Resistance, number>> = { weak: 1.5, neutral: 1, resist: 0.5, immune: 0 };
@@ -193,13 +194,20 @@ export function guardValueOf(r: PipelineRead, target: Combatant): number {
   return value;
 }
 
-/** Who a resistance step or a status rule reads: resistances, and statuses when the holder has any. */
-export type ResistHolder = Pick<Combatant, 'resistances'> & { readonly statuses?: readonly Pick<StatusInstance, 'statusId'>[] };
+/** Who a resistance step or a status rule reads: resistances, and statuses (and buff timers, U26b) when the holder has any. */
+export type ResistHolder = Pick<Combatant, 'resistances'> & {
+  readonly statuses?: readonly Pick<StatusInstance, 'statusId'>[];
+  readonly cooldowns?: Readonly<Record<string, number>>;
+};
 
-/** DESIGN §4.4 step 5 for `type` against `target`; D-067.18: Void treats `resist` as neutral against a Cursed target. */
+/**
+ * DESIGN §4.4 step 5 for `type` against `target`; D-067.18: Void treats `resist` as neutral against a Cursed target; then
+ * the holder's scripted buffs (U26b, combat/buffs.ts: Null Plate's step, Iron Silence's immunity).
+ */
 export function effectiveResistance(target: ResistHolder, type: DamageType): Resistance {
   const r = target.resistances[type] ?? 'neutral';
-  return r === 'resist' && type === 'void' && (target.statuses?.some((st) => st.statusId === STATUS_CURSE) ?? false) ? 'neutral' : r;
+  const base = r === 'resist' && type === 'void' && (target.statuses?.some((st) => st.statusId === STATUS_CURSE) ?? false) ? 'neutral' : r;
+  return buffedResistance(target, type, base);
 }
 
 /** DESIGN §4.2/§4.5: Phase makes the next single-target attack against its holder miss; AoE and Chrono ignore it (row 10). */
@@ -279,14 +287,14 @@ export function hitChanceOf(content: ContentPack, attacker: Combatant, target: C
   if (phaseEvades(target, spec)) return 0;
   if (spec.cannotMiss || hasStatus(target, STATUS_MARK)) return 100;
   const accuracy = attacker.accuracy + statusMods(attacker, content).accuracy + (spec.spell ? config.spellAccuracyBonus : 0) + (spec.accuracy ?? 0);
-  const evasion = target.evasion + statusMods(target, content).evasion;
+  const evasion = target.evasion + statusMods(target, content).evasion + evasionBonusOf(target); // + scripted buffs (U26b)
   return hitChance(accuracy, evasion, config);
 }
 
-/** DESIGN §3.2 crit% for this hit (capped at `config.critCap`). */
+/** DESIGN §3.2 crit% for this hit (capped at `config.critCap`); scripted buffs add theirs (U26b: Hunter's Eye, Shadowstep's held crit). */
 export function critChanceOf(content: ContentPack, attacker: Combatant, spec: HitSpec): number {
-  if (spec.guaranteedCrit) return 100;
-  return clamp(attacker.crit + statusMods(attacker, content).crit + (spec.critBonus ?? 0), 0, content.config.critCap);
+  if (spec.guaranteedCrit || holdsNextCrit(attacker, spec.source)) return 100;
+  return clamp(attacker.crit + statusMods(attacker, content).crit + critBonusOf(attacker) + (spec.critBonus ?? 0), 0, content.config.critCap);
 }
 
 /** One percentage roll: `rng.int(0, 99) < pct`; ≥ 100 and ≤ 0 draw nothing. */
@@ -327,7 +335,7 @@ function compute(r: PipelineRead, attacker: Combatant, target: Combatant, spec: 
   x *= rolled.variance;
   push('variance', x);
   // 4 crit
-  if (rolled.crit) x *= attacker.critMult;
+  if (rolled.crit) x *= critMultOf(attacker); // a buff may raise it (U26b: Hunter's Eye ×1.75)
   push('crit', x);
   // 5 resistance / weakness (immune short-circuits to 0; D-067.18 Void vs Cursed)
   const resistance = effectiveResistance(target, spec.type);
@@ -341,6 +349,7 @@ function compute(r: PipelineRead, attacker: Combatant, target: Combatant, spec: 
   for (const m of interplayMults(r, attacker, target, spec)) x *= m.value;
   push('interplay', x);
   for (const m of statusStepMults(r, attacker, target, spec)) x *= m.value;
+  x *= dealtMultOf(attacker, spec.type) * takenMultOf(target); // scripted buffs (U26b: Heart of the Grove, Iron Guard)
   push('status', x);
   const beforeMitigation = x;
   // 8 flat reduction (skipped by ignores_armor and Armor Break)
@@ -360,7 +369,7 @@ function compute(r: PipelineRead, attacker: Combatant, target: Combatant, spec: 
   x -= absorbed;
   push('shield', x);
   // 11 clamp & round: half-up, min 1 for a connecting non-immune hit (0 when the Shield took all of it), max hpMax
-  const amount = absorbed > 0 && x <= 0 ? 0 : Math.min(target.hpMax, Math.max(1, roundHalfUp(x)));
+  const amount = absorbed > 0 && x <= 0 ? 0 : Math.min(target.hpMax, hitCapOf(target) ?? target.hpMax, Math.max(1, roundHalfUp(x))); // U26b: Unbroken's cap
   push('final', amount);
   return { immune: false, amount, absorbed, shieldBroken, mitigated, steps };
 }

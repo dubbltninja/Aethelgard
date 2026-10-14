@@ -35,6 +35,7 @@ const VALID: { [K in EffectKey]: Effect[] } = {
   healOnDamage: [{ healOnDamage: { pct: 0.5 } }],
   surviveRounds: [{ surviveRounds: { rounds: 10 } }, { surviveRounds: { rounds: 3, line: 'The tide recedes.' } }],
   leaveCombat: [{ leaveCombat: true }],
+  areaMove: [{ areaMove: 'tyr_shear' }],
   recruit: [{ recruit: 'caelum' }],
   dismiss: [{ dismiss: 'dask' }],
   startCombat: [{ startCombat: 'enc_library_wraiths' }],
@@ -75,6 +76,7 @@ const INVALID: { [K in EffectKey]: [unknown, string][] } = {
   healOnDamage: [[{ healOnDamage: { pct: 1.5 } }, 'healOnDamage.pct']],
   surviveRounds: [[{ surviveRounds: { rounds: 0 } }, 'surviveRounds.rounds'], [{ surviveRounds: { rounds: 2, line: '' } }, 'surviveRounds.line']],
   leaveCombat: [[{ leaveCombat: false }, 'leaveCombat']],
+  areaMove: [[{ areaMove: 'Shear All' }, 'areaMove'], [{ areaMove: { move: 'tyr_shear' } }, 'areaMove']],
   recruit: [[{ recruit: 'npc_brak' }, 'recruit: Invalid enum value']],
   dismiss: [[{ dismiss: 'kaelen' }, 'dismiss']],
   startCombat: [[{ startCombat: 'Library Wraiths' }, 'startCombat']],
@@ -92,12 +94,12 @@ const INVALID: { [K in EffectKey]: [unknown, string][] } = {
 };
 
 describe('EffectSchema', () => {
-  test('the atom set is exactly DESIGN §13.3’s (incl. D-069.9’s six engine kinds)', () => {
+  test('the atom set is exactly DESIGN §13.3’s (incl. D-069.9’s six engine kinds and U26b’s areaMove)', () => {
     expect([...EFFECT_KEYS].sort()).toEqual(
       [
         'setFlag', 'clearFlag', 'grantEcho', 'questStart', 'questAdvance', 'questFail', 'giveItem', 'takeItem', 'rep', 'loyalty',
         'gold', 'xp', 'resonance', 'heal', 'damage', 'corruption', 'clockWatches', 'passWatches', 'spawn', 'teleport',
-        'unlockExit', 'scatter', 'multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat', 'recruit', 'dismiss',
+        'unlockExit', 'scatter', 'multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat', 'areaMove', 'recruit', 'dismiss',
         'startCombat', 'startDialogue', 'endLoop', 'ending', 'unlockRecipe', 'unlockCodex', 'counter', 'resolve',
       ].sort(),
     );
@@ -125,7 +127,7 @@ describe('EffectSchema', () => {
   });
 
   test('combat-scope atoms (D-069.9)', () => {
-    expect([...COMBAT_SCOPE_EFFECTS]).toEqual(['multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat']);
+    expect([...COMBAT_SCOPE_EFFECTS]).toEqual(['multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat', 'areaMove']);
     expect(isCombatScope('multiHit')).toBe(true);
     expect(isCombatScope('passWatches')).toBe(false);
   });

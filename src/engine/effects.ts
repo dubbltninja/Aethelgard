@@ -59,6 +59,19 @@ export function locationState(ctx: StepCtx, locationId: string): LocationState {
   return states[locationId];
 }
 
+/** `LocationState.flags` key `ground:<item uid>` → the Breach-Clock day it was left (U26b; reducers/loop.ts `expireGroundLoot`). */
+export const LEFT_ON_GROUND = 'ground:';
+
+/**
+ * Leaves `item` on the ground at `locationId` — a drop, a full pack's spoils — marked with today's day: DESIGN §7.8, it
+ * persists at the node until the next dawn. (A location's own content items are not marked and stay.)
+ */
+export function leaveOnGround(ctx: StepCtx, locationId: string, item: ItemInstance): void {
+  const ls = locationState(ctx, locationId);
+  ls.items.push(item);
+  ls.flags[`${LEFT_ON_GROUND}${item.uid}`] = dayOf(ctx.s.clock.ticks);
+}
+
 /** Adds `count` of an item to the inventory (stacking up to maxStack); returns the touched instances. */
 export function addItem(ctx: StepCtx, itemId: string, count: number, rarity?: ItemInstance['rarity']): ItemInstance[] {
   const def = need(ctx.content.items[itemId], `item '${itemId}'`);
@@ -343,6 +356,7 @@ const APPLIERS: Appliers = {
   healOnDamage: combatScope('U26'),
   surviveRounds: combatScope('U27'),
   leaveCombat: combatScope('U27'),
+  areaMove: combatScope('U26b'),
   recruit: (id, ctx) => {
     const def = need(ctx.content.companions[id], `companion '${id}'`);
     const companions = ctx.s.companions;

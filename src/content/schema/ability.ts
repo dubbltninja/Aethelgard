@@ -51,6 +51,25 @@ export const COMPANION_KIND_COOLDOWN = {
 
 export const AbilityTarget = z.enum(['enemy', 'all_enemies', 'self', 'ally', 'self_or_ally', 'party']);
 
+/**
+ * Class abilities whose DESIGN §5 row the engine scripts by id (`src/engine/combat/abilities.ts` ABILITY_SCRIPTS; content
+ * cannot import the engine, so this copy is mirrored and an engine test asserts the two lists are equal). A scripted row
+ * may have nothing else to declare (Dancer's Guard, Unbroken, The Moment Between …), so it is exempt from "an ability must
+ * do something" (PLAN §5.19 rule 13; U26b, C1 note). Adding a script = add its id here AND in ABILITY_SCRIPTS.
+ */
+export const SCRIPTED_ABILITIES = [
+  'rgr_hunters_eye', 'rgr_venom_coat', 'rgr_field_dressing', 'rgr_smoke_bomb', 'rgr_exsanguinate', 'rgr_apex_predator',
+  'wiz_cinder_shield', 'wiz_skyfall',
+  'elf_dancers_guard', 'elf_flurry', 'elf_crescendo', 'elf_final_verse', 'elf_heart_of_the_grove', 'elf_shadowstep', 'elf_blink_strike',
+  'elf_veilwalk', 'elf_moment_between',
+  'wrd_iron_guard', 'wrd_unbroken', 'wrd_last_bastion', 'wrd_crushing_blow', 'wrd_mountainfall', 'wrd_steady_breath', 'wrd_null_plate',
+  'wrd_spellbreaker', 'wrd_oathbound', 'wrd_iron_silence',
+  'wvr_doom_sigil', 'wvr_ninefold_hex', 'wvr_leech_veil', 'wvr_soul_tether', 'wvr_breach_echo', 'wvr_collapse', 'wvr_unravel',
+] as const;
+const SCRIPTED: ReadonlySet<string> = new Set(SCRIPTED_ABILITIES);
+/** Does the engine script this ability's row (SCRIPTED_ABILITIES)? */
+export const isScriptedAbility = (id: string): boolean => SCRIPTED.has(id);
+
 export type AbilityOwnerKind = 'class' | 'companion' | 'item';
 /** Which table owns an ability id, from its prefix; undefined for a malformed id. */
 export function abilityOwnerKind(id: string): AbilityOwnerKind | undefined {
@@ -156,8 +175,8 @@ function checkAbility(a: AbilityShape, ctx: z.RefinementCtx): void {
   }
 
   if (a.power && a.damageType === undefined) issue(['damageType'], 'an ability with power needs a damageType');
-  if (!a.power && !a.heal && !a.shield && a.statuses.length === 0 && a.special === undefined) {
-    issue([], 'an ability must do something: power, heal, shield, statuses or special (PLAN §5.19 rule 13)');
+  if (!a.power && !a.heal && !a.shield && a.statuses.length === 0 && a.special === undefined && !isScriptedAbility(a.id)) {
+    issue([], 'an ability must do something: power, heal, shield, statuses, special or an engine script (PLAN §5.19 rule 13)');
   }
   if (a.selfCost && Object.keys(a.selfCost).length === 0) issue(['selfCost'], 'selfCost needs hpPctMax, hpPctCur and/or hpPerHit');
   noCombatScope(a.outOfCombat, ['outOfCombat'], ctx);

@@ -24,3 +24,5 @@ export * from './combat/flee';
 export * from './combat/phases';
 export * from './combat/rewards';
 export * from './combat/companionAi';
+export * from './combat/buffs';
+export * from './combat/buffHooks';

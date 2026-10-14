@@ -19,6 +19,7 @@ import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { DAMAGE_TYPES, derive } from '../derived';
 import type { Combatant, CombatState, DamageType, GameState, Resistance, SpawnedEncounter, StatusInstance } from '../types/state';
 import { round } from '../util/math';
+import { actsFirst } from './buffs';
 import { dotDamage, statusMods } from './damage';
 
 /** DESIGN §4.1: the initiative die, rolled once per fight. */
@@ -415,13 +416,16 @@ export function effectiveInitiative(c: Combatant, content: ContentPack): number 
   return c.initiative + statusMods(c, content).initiative;
 }
 
-/** DESIGN §4.1: living combatants by initiative, descending; ties player → companion → enemies by slot. */
+/**
+ * DESIGN §4.1: living combatants by initiative, descending; ties player → companion → enemies by slot. A combatant whose
+ * buff says so goes first whatever its initiative (U26b, combat/buffs.ts: Blink Strike's "you act first next round").
+ */
 export function sortTurnOrder(combat: CombatState, content: ContentPack): string[] {
   const slot = (c: Combatant): number => (c.kind === 'enemy' ? combat.enemies.indexOf(c) : combat.party.indexOf(c));
   return allCombatants(combat)
     .filter(isActive)
-    .map((c) => ({ c, init: effectiveInitiative(c, content) }))
-    .sort((a, b) => b.init - a.init || KIND_RANK[a.c.kind] - KIND_RANK[b.c.kind] || slot(a.c) - slot(b.c))
+    .map((c) => ({ c, init: effectiveInitiative(c, content), first: actsFirst(c) ? 1 : 0 }))
+    .sort((a, b) => b.first - a.first || b.init - a.init || KIND_RANK[a.c.kind] - KIND_RANK[b.c.kind] || slot(a.c) - slot(b.c))
     .map((x) => x.c.uid);
 }
 

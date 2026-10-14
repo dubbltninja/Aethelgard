@@ -12,7 +12,7 @@ import type { Item } from '@schema/item';
 import { dayOf, evaluate, explain, hasEcho } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
 import { EQUIP_SLOTS, STAT_NAMES, syncMaxima } from '../derived';
-import { apply, applyAll, changeLimit, locationState } from '../effects';
+import { apply, applyAll, changeLimit, leaveOnGround } from '../effects';
 import type { Enumerator } from '../legalActions';
 import { RESPEC_GOLD_PER_LEVEL, masteredFor, respecPlan, unlockCostHalf, unlockProblem, type RespecPlan } from '../progression';
 import type { Handler } from '../step';
@@ -207,13 +207,13 @@ function drop(ctx: StepCtx, action: ActionOf<'drop'>): void {
   const { s } = ctx;
   const { inst } = h;
   const qty = action.qty ?? inst.qty;
-  const ground = locationState(ctx, s.world.currentLocationId).items;
+  const here = s.world.currentLocationId;
   if (qty === inst.qty) {
     s.player.inventory.splice(s.player.inventory.indexOf(inst), 1);
-    ground.push(inst);
+    leaveOnGround(ctx, here, inst);
   } else {
     inst.qty -= qty;
-    ground.push({ ...copy(inst), uid: ctx.uid('i'), qty });
+    leaveOnGround(ctx, here, { ...copy(inst), uid: ctx.uid('i'), qty });
   }
   ctx.emit({ t: 'itemLost', itemId: inst.itemId, qty, reason: 'dropped' });
 }

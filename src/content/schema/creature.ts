@@ -171,6 +171,9 @@ export const MoveSchema = MoveObject.superRefine((m, ctx) => {
     if (effectKey(e) === 'surviveRounds') {
       ctx.addIssue({ code: custom, path: ['effects', i], message: '`surviveRounds` belongs in a boss’s first phase onEnter, not in a move (PLAN §5.19 rule 11)' });
     }
+    if (effectKey(e) === 'areaMove') {
+      ctx.addIssue({ code: custom, path: ['effects', i], message: '`areaMove` belongs in a boss phase’s onEnter, not in a move (DESIGN §4.10)' });
+    }
   });
 });
 
@@ -474,6 +477,8 @@ function checkCreature(c: CreatureShape, ctx: z.RefinementCtx): void {
       if (effectKey(e) === 'surviveRounds' && !(isBoss && i === 0)) {
         issue(['phases', i, 'onEnter', j], '`surviveRounds` is only legal in a boss’s first phase (PLAN §5.19 rule 11)');
       }
+      const area = isRecord(e) ? (e as Record<string, unknown>).areaMove : undefined;
+      if (typeof area === 'string' && !known.has(area)) issue(['phases', i, 'onEnter', j, 'areaMove'], `areaMove references unknown move '${area}'`);
     });
   });
 

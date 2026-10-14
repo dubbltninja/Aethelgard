@@ -6,12 +6,13 @@
 // `clockChanged`, Frayed Clock halving, the floor). `clockHook` runs once per accepted step, after the action, over the
 // events that step emitted, in order:
 //   watchAdvanced → out-of-combat Poison/Bleed/Curse tick (DESIGN §4.5)
-//   dayAdvanced   → DAWN_HOOKS (per-day uses reset, fled-boss HP cleared, `dawn` location events; restock U34)
+//   dayAdvanced   → DAWN_HOOKS (per-day uses reset, fled-boss HP cleared, `dawn` location events, loot left on the
+//                   ground gone (U26b); restock U34)
 // then the warning for the most urgent of 10/5/2/1 dawns left (`dawnsLeft`) crossed this step, then expiry,
 // held while a fight is in progress (DESIGN §10.2) and applied by the first step after it.
 import { TICKS_PER_DAY, watchOf } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
-import { advanceTime } from '../effects';
+import { LEFT_ON_GROUND, advanceTime } from '../effects';
 import type { PostStepHook } from '../step';
 import type { GameEvent } from '../types/events';
 import { tickCarriedWatch } from '../combat/turnOrder';
@@ -93,10 +94,31 @@ export const fireDawnEvents: DawnHook = (ctx) => {
 };
 
 /**
+ * DESIGN §7.8: loot left on the ground (a drop, a full pack's spoils; effects.ts `leaveOnGround`) persists at the node
+ * until the next dawn — every item marked before this day is gone, everywhere (with a line when it lay where the player
+ * is). A location's own content items are never marked and stay. Marks of items picked up meanwhile are dropped too.
+ */
+export const expireGroundLoot: DawnHook = (ctx, day) => {
+  for (const [locationId, ls] of Object.entries(ctx.s.world.locationStates)) {
+    let gone = 0;
+    for (const key of Object.keys(ls.flags)) {
+      const left = ls.flags[key];
+      if (!key.startsWith(LEFT_ON_GROUND) || (typeof left === 'number' && left >= day)) continue;
+      delete ls.flags[key];
+      const i = ls.items.findIndex((it) => it.uid === key.slice(LEFT_ON_GROUND.length));
+      if (i < 0) continue;
+      ls.items.splice(i, 1);
+      gone += 1;
+    }
+    if (gone > 0 && locationId === ctx.s.world.currentLocationId) ctx.log('What was left on the ground here is gone with the night.', 'system');
+  }
+};
+
+/**
  * Dawn hooks in run order; later units append theirs (one line each): U34 the merchant restock (D-057, every dawn;
  * `MerchantState.lastRestockDay` < day marks a stale stock), U32 Before-local resets if any.
  */
-export const DAWN_HOOKS: readonly DawnHook[] = [resetDailyUses, clearEncounterHp, fireDawnEvents];
+export const DAWN_HOOKS: readonly DawnHook[] = [resetDailyUses, clearEncounterHp, fireDawnEvents, expireGroundLoot];
 
 // ---- warnings and expiry -----------------------------------------------------------------------------------------------
 

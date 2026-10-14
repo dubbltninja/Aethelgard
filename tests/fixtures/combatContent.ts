@@ -10,6 +10,8 @@
 //                       for every phase rule (skipWhen, countSolo, reinforce, an `addsDead` OR round trigger, ×2 damage
 //                       taken), a survival boss (`surviveRounds`, `leaveCombat` on entry), a fodder that withdraws
 //                       (`leaveCombat` moves), and three DESIGN §7.3 affixes for the loot rolls.
+//                       U26b appends the remaining DESIGN §5 class rows (so all 75 are here: `u26bAbilities`),
+//                       `affix_of_echoes`, and a boss whose second phase opens with an `areaMove` (the Quake).
 //   ScriptedRng, D    — an Rng that returns queued draws (the example's printed rolls), and the draw for each roll kind.
 //   scriptedStep      — `step`'s accept path (handlers, post-step hooks) over a ScriptedRng.
 import { buildContentPack, type ContentPack, type ContentTables } from '@content/index';
@@ -260,7 +262,7 @@ export const u26Abilities: AbilityInput[] = [
   V('wvr_siphon', 'drain', 1, 'Siphon', { mp: 8, target: 'enemy', damageType: 'void', spell: true, power: { base: 2, coef: 1.0, stat: 'sp' }, special: 'drain' }),
   V('wvr_blood_pact', 'drain', 2, 'Blood Pact', { mp: 0, target: 'self', selfCost: { hpPctMax: 0.15 }, special: 'resource_convert', cooldown: 2 }),
   V('wvr_void_lance', 'unmaking', 1, 'Void Lance', { mp: 10, target: 'enemy', damageType: 'void', spell: true, power: { base: 3, coef: 1.3, stat: 'sp' }, selfCost: { hpPctMax: 0.08 } }),
-  V('wvr_unravel', 'unmaking', 2, 'Unravel', { mp: 12, target: 'enemy', damageType: 'chrono', spell: true, power: { coef: 1.1, stat: 'sp' } }),
+  V('wvr_unravel', 'unmaking', 2, 'Unravel', { mp: 12, target: 'enemy', damageType: 'void', spell: true, power: { coef: 1.1, stat: 'sp' } }),
   V('wvr_breach_echo', 'unmaking', 3, 'Breach Echo', { mp: 10, target: 'self', special: 'phase', selfCost: { hpPctMax: 0.05 }, cooldown: 3 }),
   V('wvr_collapse', 'unmaking', 4, 'Collapse', { mp: 20, target: 'all_enemies', damageType: 'void', spell: true, power: { base: 2, coef: 1.3, stat: 'sp' }, selfCost: { hpPctMax: 0.12 } }),
   V('wvr_unmaking_word', 'unmaking', 5, 'The Unmaking Word', {
@@ -495,6 +497,91 @@ export const u27Affixes = [
   },
 ] satisfies AffixInput[];
 
+// ---- U26b: the rest of DESIGN §5, affix_of_echoes, an onEnter area move -------------------------------------------------------
+
+/** DESIGN §5.2–5.6 rows not yet above (with the fixture pack's six and `u26Abilities`, all 75 class abilities). */
+export const u26bAbilities: AbilityInput[] = [
+  // Ranger (§5.2)
+  R('rgr_apex_predator', 'wildcraft', 5, 'Apex Predator', { mp: 20, target: 'self', cooldown: 5 }),
+  // Wizard (§5.3)
+  W('wiz_gale_step', 'storm', 3, 'Gale Step', { mp: 10, target: 'self', statuses: [{ status: 'status_haste', duration: 3 }, { status: 'status_phase', duration: 1 }], cooldown: 3 }),
+  W('wiz_chain_tempest', 'storm', 4, 'Chain Tempest', { mp: 20, target: 'all_enemies', damageType: 'storm', spell: true, power: { coef: 1.1, stat: 'sp' } }),
+  W('wiz_skyfall', 'storm', 5, 'Skyfall', {
+    mp: 30, target: 'enemy', damageType: 'storm', spell: true, power: { base: 8, coef: 2.6, stat: 'sp' }, cooldown: 4,
+    statuses: [{ status: 'status_stun', duration: 1, when: { targetHas: 'status_soaked' } }],
+  }),
+  W('wiz_unmoment', 'chronomancy', 5, 'Unmoment', {
+    mp: 30, target: 'all_enemies', damageType: 'chrono', spell: true, power: { base: 6, coef: 1.8, stat: 'sp' }, cooldown: 5,
+    statuses: [{ status: 'status_slow', duration: 2 }, { status: 'status_haste', duration: 2, target: 'self' }],
+  }),
+  // Elf (§5.4)
+  E('elf_dancers_guard', 'bladesong', 2, "Dancer's Guard", { mp: 8, target: 'self', cooldown: 3 }),
+  E('elf_flurry', 'bladesong', 3, 'Flurry', { mp: 14, target: 'enemy', damageType: 'physical', power: { coef: 0.55, stat: 'atk', hits: 3 } }),
+  E('elf_crescendo', 'bladesong', 4, 'Crescendo', { mp: 16, target: 'all_enemies', damageType: 'physical', power: { coef: 0.8, stat: 'atk' } }),
+  E('elf_final_verse', 'bladesong', 5, 'Final Verse', {
+    mp: 24, target: 'enemy', damageType: 'physical', power: { coef: 0.5, stat: 'atk', hits: 5 }, statuses: [{ status: 'status_haste', duration: 2, target: 'self' }], cooldown: 4,
+  }),
+  E('elf_heart_of_the_grove', 'leyweave', 5, 'Heart of the Grove', {
+    mp: 26, target: 'party', shield: { base: 20, coef: 1.5, stat: 'sp', turns: 3 }, statuses: [{ status: 'status_regen', duration: 3, power: { base: 8, coef: 0.8, stat: 'sp' } }], cooldown: 5,
+  }),
+  E('elf_moment_between', 'shadowstep', 5, 'The Moment Between', { mp: 24, target: 'self', cooldown: 5 }),
+  // Ironclad Warden (§5.5)
+  K('wrd_unbroken', 'bulwark', 4, 'Unbroken', { mp: 14, target: 'self', cooldown: 4 }),
+  K('wrd_last_bastion', 'bulwark', 5, 'Last Bastion', {
+    mp: 20, target: 'party', shield: { base: 30, coef: 1.5, stat: 'atk', turns: 2 }, statuses: [{ status: 'status_taunt', duration: 2, target: 'all_enemies' }], cooldown: 5,
+  }),
+  K('wrd_mountainfall', 'breaker', 5, 'Mountainfall', {
+    mp: 26, target: 'enemy', damageType: 'physical', power: { coef: 2.6, stat: 'atk' }, interrupt: true, cooldown: 4,
+    statuses: [{ status: 'status_armor_break', duration: 3 }, { status: 'status_stun', duration: 1, when: notBoss }],
+  }),
+  K('wrd_null_plate', 'iron_will', 2, 'Null Plate', { mp: 10, target: 'self', cooldown: 4 }),
+  K('wrd_spellbreaker', 'iron_will', 3, 'Spellbreaker', { mp: 12, target: 'enemy', damageType: 'physical', power: { coef: 1.1, stat: 'atk' } }),
+  K('wrd_oathbound', 'iron_will', 4, 'Oathbound', { mp: 12, target: 'party', special: 'cleanse', cooldown: 4 }),
+  K('wrd_iron_silence', 'iron_will', 5, 'Iron Silence', { mp: 24, target: 'all_enemies', statuses: [{ status: 'status_weaken', duration: 3 }], cooldown: 5 }),
+  // Shadow Weaver (§5.6)
+  V('wvr_ninefold_hex', 'hex', 5, 'Ninefold Hex', {
+    mp: 26, target: 'all_enemies', damageType: 'void', spell: true, selfCost: { hpPctMax: 0.15 }, cooldown: 5,
+    statuses: [
+      { status: 'status_curse', duration: 3 }, { status: 'status_weaken', duration: 3 }, { status: 'status_armor_break', duration: 3 }, { status: 'status_blind', duration: 2 },
+    ],
+  }),
+  V('wvr_leech_veil', 'drain', 3, 'Leech Veil', { mp: 12, target: 'self', shield: { base: 8, coef: 1.2, stat: 'sp', turns: 3 }, cooldown: 3 }),
+  V('wvr_soul_tether', 'drain', 4, 'Soul Tether', { mp: 14, target: 'enemy', damageType: 'void', spell: true, power: { coef: 0.6, stat: 'sp' } }),
+  V('wvr_feast_of_moments', 'drain', 5, 'Feast of Moments', { mp: 24, target: 'all_enemies', damageType: 'void', spell: true, power: { base: 4, coef: 1.4, stat: 'sp' }, special: 'drain', cooldown: 4 }),
+];
+
+/** DESIGN §7.3 `affix_of_echoes`: +10 % kill XP on a trinket, not stackable (`unique`; the `kill_xp` script, U26b). */
+export const affixOfEchoes = {
+  id: 'affix_of_echoes', suffix: 'of Echoes', unique: true,
+  trinket: { text: '+10% XP from kills (not stackable)', passives: [{ kind: 'custom', scriptId: 'kill_xp', params: { pct: 0.1 } }] },
+} satisfies AffixInput;
+
+export const QUAKE = 'cr_fixture_quake';
+
+/** A boss whose second phase opens with an area move (DESIGN §4.10 onEnter "AoE", U26b's `areaMove`). */
+const fixtureQuake = {
+  id: QUAKE,
+  name: 'Fixture Quake',
+  description: 'Fixture: the ground breaks when it is hurt.',
+  family: 'fam_wilds',
+  role: 'boss',
+  level: 6,
+  stats: { hp: 200, atk: 10, sp: 10, armor: 0, ward: 0, agi: 0 },
+  fleeable: false,
+  moves: {
+    quake_stomp: { name: 'Stomp', line: 'It stamps once.', type: 'physical', power: { coef: 1.0, stat: 'atk' } },
+    quake_shockwave: { name: 'Shockwave', line: 'The floor heaves under everyone.', type: 'physical', power: { coef: 0.5, stat: 'atk' }, statuses: [{ status: 'status_slow', duration: 2 }] },
+  },
+  phases: [
+    { id: 'quake_rumble', name: 'Rumble', pattern: [{ move: 'quake_stomp', target: 'player' }] },
+    { id: 'quake_breaking', name: 'Breaking', enterWhen: [{ hpBelow: 0.5 }], line: 'The ground splits.', onEnter: [{ areaMove: 'quake_shockwave' }], pattern: [{ move: 'quake_stomp', target: 'player' }] },
+  ],
+  gold: { min: 5, max: 5 },
+  xp: 100,
+  bestiary: { voice: 'wayfinder_notes', summary: 'Fixture: an onEnter area move.' },
+  sigil: { base: 'quake' },
+} satisfies CreatureInput;
+
 /** The combat tables: the fixture's plus the records above (the Ruins gain an exit east to the Mistwood Path). */
 export function combatTables(patch: (t: { locations: LocationInput[] }) => void = () => {}): ContentTables {
   const locations: LocationInput[] = miniContentTables.locations.map((loc) =>
@@ -506,13 +593,13 @@ export function combatTables(patch: (t: { locations: LocationInput[] }) => void 
     ...miniContentTables,
     regions: [...miniContentTables.regions, mistwood],
     locations,
-    creatures: [...miniContentTables.creatures, wildlingBrute, duelist, containedTyrant, fixtureBell, fixtureTide, fixtureRunner],
+    creatures: [...miniContentTables.creatures, wildlingBrute, duelist, containedTyrant, fixtureBell, fixtureTide, fixtureRunner, fixtureQuake],
     items: [...miniContentTables.items, ...items, ...u26Items],
-    abilities: [...miniContentTables.abilities, ...u26Abilities],
+    abilities: [...miniContentTables.abilities, ...u26Abilities, ...u26bAbilities],
     classes: [...miniContentTables.classes, ...classes],
     encounters: [...miniContentTables.encounters, ...encounters],
     modifiers: [...miniContentTables.modifiers, ...modifiers],
-    affixes: [...miniContentTables.affixes, ...u27Affixes],
+    affixes: [...miniContentTables.affixes, ...u27Affixes, affixOfEchoes],
   };
 }
 

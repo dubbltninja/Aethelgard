@@ -14,7 +14,7 @@
 // Content must not import the engine or the UI: the UI-side registries of rules 4 and 5 (art keys, ambient presets) are
 // passed in through `options.registries` by the caller that can see them; without them those two rules have nothing to check.
 // This file imports only the schema layer (never `./index`, which imports this file as its default validator).
-import { ABILITY_ID_RE, TIER_LEVELS, abilityOwnerKind, tierCostHalf } from '@schema/ability';
+import { ABILITY_ID_RE, TIER_LEVELS, abilityOwnerKind, isScriptedAbility, tierCostHalf } from '@schema/ability';
 import { CODEX_BODY_MAX_WORDS, wordCount } from '@schema/codex';
 import { TABLE_NAMES, type ContentIssue, type ContentPack, type ContentReport, type TableName } from '@schema/contentPack';
 import { BOSS_PHASES, walkSteps } from '@schema/creature';
@@ -1252,8 +1252,8 @@ function rule13(v: Validation): void {
   const tiersIn = new Map<string, Set<number>>();
   for (const a of Object.values(pack.abilities)) {
     const err = (path: string, message: string): void => v.error(R, 'abilities', a.id, path, message);
-    const doesSomething = a.power !== undefined || a.heal !== undefined || a.shield !== undefined || a.statuses.length > 0 || a.special !== undefined;
-    if (!doesSomething) err('', 'does nothing: needs power, heal, shield, statuses or a special');
+    const doesSomething = a.power !== undefined || a.heal !== undefined || a.shield !== undefined || a.statuses.length > 0 || a.special !== undefined || isScriptedAbility(a.id);
+    if (!doesSomething) err('', 'does nothing: needs power, heal, shield, statuses or a special (or an engine script, SCRIPTED_ABILITIES)');
     if (abilityOwnerKind(a.id) !== 'class') continue;
     if (a.tier === undefined || a.branch === undefined) continue; // the schema already requires both
     const gate = TIER_LEVELS[a.tier - 1];

@@ -65,6 +65,8 @@ export const EFFECT_ATOMS = {
   healOnDamage: z.object({ pct: Pct }).strict(),
   surviveRounds: z.object({ rounds: int.min(1), line: Text.optional() }).strict(),
   leaveCombat: z.literal(true),
+  /** A boss phase's onEnter "AoE" (DESIGN §4.10): one of the boss's own moves lands on every opponent (U26b, C1 note). */
+  areaMove: Id,
   // companions, flow, unlocks, counters
   recruit: CompanionId,
   dismiss: CompanionId,
@@ -90,7 +92,7 @@ export type Effect = { [K in EffectKey]: { [P in K]: EffectAtoms[P] } }[EffectKe
 
 export const EFFECT_KEYS = Object.keys(EFFECT_ATOMS) as EffectKey[];
 /** Legal only in creature definitions (Move.effects, PhaseSchema.onEnter); D-069.9. */
-export const COMBAT_SCOPE_EFFECTS = ['multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat'] as const satisfies readonly EffectKey[];
+export const COMBAT_SCOPE_EFFECTS = ['multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat', 'areaMove'] as const satisfies readonly EffectKey[];
 export type CombatScopeEffectKey = (typeof COMBAT_SCOPE_EFFECTS)[number];
 
 export const EffectSchema: z.ZodType<Effect> = oneKeyUnion<Effect>('effect', () => EFFECT_ATOMS);

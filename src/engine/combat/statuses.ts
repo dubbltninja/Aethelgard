@@ -34,8 +34,10 @@ import type { Status } from '@schema/status';
 import type { ContentPack, StepCtx } from '../ctx';
 import { derive } from '../derived';
 import type { Combatant, CombatState, GameState, StatusInstance } from '../types/state';
+import { afterHitBuffs, buffTurnEnd, buffTurnStart, tetherHeal } from './buffHooks';
+import { buffBlocks, buffImmune, dotsTwice } from './buffs';
 import { dotDamage, resolveTick, rollPct, roundHalfUp, statusMods, type HitResult, type HitSpec, type ScaleStat } from './damage';
-import { combatLog, isActive } from './turnOrder';
+import { combatLog, combatantByUid, isActive } from './turnOrder';
 
 /** The 18 combat statuses and Rested (DESIGN §4.5; content `CANONICAL_STATUSES`). */
 export const STATUS = {
@@ -160,9 +162,9 @@ export function statusImmunities(s: GameState, content: ContentPack, c: Combatan
 export const skipsTurn = (content: ContentPack, c: Combatant): boolean =>
   c.statuses.some((st) => st.statusId === STATUS.stun || (content.statuses[st.statusId]?.modifiers.skipTurn ?? false));
 
-/** A status forbids this action kind (Slow: flee; content `blockActions`). */
+/** A status forbids this action kind (Slow: flee; content `blockActions`), or a scripted buff does (U26b: Mountainfall's Guard). */
 export const blocksAction = (content: ContentPack, c: Combatant, action: 'ability' | 'item' | 'flee' | 'guard'): boolean =>
-  c.statuses.some((st) => content.statuses[st.statusId]?.modifiers.blockActions.includes(action) ?? false);
+  c.statuses.some((st) => content.statuses[st.statusId]?.modifiers.blockActions.includes(action) ?? false) || buffBlocks(c, action);
 
 /** The taunter whose uid a Taunted creature's single-target intents must target (DESIGN §4.2), if any. */
 export const tauntedBy = (c: Combatant): string | null => findStatus(c, STATUS.taunt)?.sourceUid ?? null;
@@ -249,6 +251,7 @@ function magnitudeOf(def: Status, source: Combatant | null, target: Combatant, o
 /** Why `target` cannot take `statusId` right now, or null. */
 function immunityOf(ctx: StepCtx, combat: CombatState, target: Combatant, statusId: string): string | null {
   if (statusImmunities(ctx.s, ctx.content, target).includes(statusId)) return 'Immune';
+  if (buffImmune(target, statusId, ctx.content.statuses[statusId]?.kind)) return 'Immune'; // U26b: Unbroken, Oathbound
   if (statusId === STATUS.stun && (cooldownsOf(combat, target)[STUN_RECOVERY_KEY] ?? 0) > 0) return 'Immune (recovering)';
   return null;
 }
@@ -404,18 +407,23 @@ function countStatusDamage(ctx: StepCtx, combat: CombatState, sourceUid: string 
 export function startOfTurnStatuses(ctx: StepCtx, combat: CombatState, actor: Combatant): TurnStartResult {
   const { content } = ctx;
   const out: TurnStartResult = { killedBy: null, ticks: [] };
+  if (buffTurnStart(ctx, combat, actor)) return out; // U26b: a bonus action's start is not a turn
   for (const id of DOT_ORDER) {
     const st = findStatus(actor, id);
     const tick = st ? dotDamage(actor, st, content.statuses[id]) : null;
     if (!st || !tick) continue;
-    actor.hp = Math.max(0, actor.hp - tick.amount);
-    countStatusDamage(ctx, combat, st.sourceUid, actor, id, tick.amount);
-    ctx.emit({ t: 'statusTicked', targetUid: actor.uid, statusId: id, amount: tick.amount });
-    note(combat, tick.immune ? `${actor.name}: Immune to ${nameOf(content, id)}.` : `${nameOf(content, id)} deals ${tick.amount} to ${actor.name}.`, 'damage');
-    out.ticks.push({ statusId: id, amount: tick.amount });
-    if (actor.hp <= 0) {
-      out.killedBy = id;
-      return out;
+    const source = st.sourceUid === null ? undefined : combatantByUid(combat, st.sourceUid);
+    for (let n = source && dotsTwice(source) ? 2 : 1; n > 0; n--) { // U26b: Apex Predator's DoTs tick twice
+      actor.hp = Math.max(0, actor.hp - tick.amount);
+      countStatusDamage(ctx, combat, st.sourceUid, actor, id, tick.amount);
+      ctx.emit({ t: 'statusTicked', targetUid: actor.uid, statusId: id, amount: tick.amount });
+      note(combat, tick.immune ? `${actor.name}: Immune to ${nameOf(content, id)}.` : `${nameOf(content, id)} deals ${tick.amount} to ${actor.name}.`, 'damage');
+      out.ticks.push({ statusId: id, amount: tick.amount });
+      tetherHeal(ctx, combat, actor, tick.amount); // U26b: Soul Tether
+      if (actor.hp <= 0) {
+        out.killedBy = id;
+        return out;
+      }
     }
   }
 
@@ -461,6 +469,7 @@ export function startOfTurnStatuses(ctx: StepCtx, combat: CombatState, actor: Co
  * window covers the holder's next 2 turns.
  */
 export function endOfTurnStatuses(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
+  if (buffTurnEnd(ctx, combat, actor)) return; // U26b: the turn that granted a bonus action goes on; else buff timers
   for (const st of actor.statuses) {
     if (st.appliedOnOwnTurn) st.appliedOnOwnTurn = false;
     else st.duration = Math.max(0, st.duration - 1);
@@ -508,6 +517,7 @@ function immolate(ctx: StepCtx, combat: CombatState, attacker: Combatant, target
  *   16 `wiz_immolate` on Burning → the rest of the Burn at once
  */
 export function afterHit(ctx: StepCtx, combat: CombatState, attacker: Combatant, target: Combatant, spec: HitSpec, result: HitResult): void {
+  afterHitBuffs(ctx, combat, attacker, target, spec, result); // U26b: held crit, dodge MP, Leech Veil, Soul Tether
   if (!result.hit) {
     if (result.phased) consumePhase(ctx, combat, target);
     return;

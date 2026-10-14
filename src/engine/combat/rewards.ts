@@ -9,13 +9,17 @@
 // Shade's `onDefeat` sets (PLAN §5.4); run flags reset with the loop.
 // Kill XP (DESIGN §6.2): the creature's authored `xp` × the loop nudge (§6.6). The role multipliers — elite ×1.8,
 // anomaly ×1.3 — are part of that authored number (WORLD §6: the L6 elite Golem 200, the L4 anomaly Wisp 92), so the
-// engine does not apply them again; `expectedKillXp` is DESIGN's formula for content checks.
+// engine does not apply them again; `expectedKillXp` is DESIGN's formula for content checks. The fight's summed kill XP
+// then gains the best equipped `kill_xp` bonus (U26b, DESIGN §7.3 `affix_of_echoes`: a trinket's `custom` passive
+// `{ scriptId: 'kill_xp', params: { pct: 0.1 } }`, a `unique` affix — "not stackable": one copy counts, and bonuses from
+// several sources do not add up), rounded half-up.
 // Rarity (DESIGN §7.2): a weapon/armor/trinket whose `rarityRule` is 'rolled' and whose loot row names no rarity draws
 // one from `config.rarityWeights` for the fight's band — the location's level band minimum, else its region's — and
 // then its affixes (§7.3): Uncommon 50 % one, Rare one, Epic one or two, Legendary two; distinct, among the affixes that
 // have an effect on that slot, after any `fixedAffixes`, never more than the rarity allows.
 // The pack (DESIGN §7.8): what fits goes in (stacks first, then free slots of the 40; Satchel items always fit); the
-// rest is left on the ground at the fight's node (LocationState.items) with a log line — the player takes it later.
+// rest is left on the ground at the fight's node (effects.ts `leaveOnGround`) with a log line — the player takes it
+// later, before the next dawn (reducers/loop.ts `expireGroundLoot`, U26b).
 //
 // The bestiary (profile, written through the lazy draft; PLAN §4.3 `BestiaryEntry`):
 //   kills    at the moment of the kill (`recordKill`, from the reducer's knock-out): killed + 1; resistances are shown
@@ -31,12 +35,13 @@ import type { Creature } from '@schema/creature';
 import type { Effect } from '@schema/effect';
 import { evaluate } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
-import { RARITY_ORDER } from '../derived';
-import { addItem, apply, applyAll, locationState } from '../effects';
+import { RARITY_ORDER, derive } from '../derived';
+import { addItem, apply, applyAll, leaveOnGround } from '../effects';
 import { PACK_SLOTS, inSatchel, packSlotsUsed } from '../reducers/inventory';
 import type { BestiaryEntry } from '../types/profile';
 import type { CombatState, GameState, ItemInstance, Rarity } from '../types/state';
 import { round } from '../util/math';
+import { roundHalfUp } from './damage';
 import { loopNudge } from './turnOrder';
 
 /** What a won fight pays (the `combatEnded` numbers). */
@@ -58,6 +63,19 @@ export const UNCOMMON_AFFIX_CHANCE = 0.5;
 export function creatureXp(s: GameState, content: ContentPack, creatureId: string): number {
   const def = content.creatures[creatureId];
   return def ? round(def.xp * loopNudge(s, content)) : 0;
+}
+
+/** DESIGN §7.3 `affix_of_echoes`: the `custom` passive script id of a kill-XP bonus (`params.pct`). */
+export const KILL_XP_SCRIPT = 'kill_xp';
+
+/** The best kill-XP bonus the player's gear carries (`kill_xp` passives; a unique affix counts once, bonuses do not stack). */
+export function killXpBonus(s: GameState, content: ContentPack): number {
+  let best = 0;
+  for (const p of derive(s.player, content).passives) {
+    const pct = p.kind === 'custom' && p.scriptId === KILL_XP_SCRIPT ? p.params.pct : undefined;
+    if (typeof pct === 'number' && pct > best) best = pct;
+  }
+  return best;
 }
 
 /** Pacifist's Vow and friends: a run modifier `xp_sources` that does not allow 'combat' zeroes kill XP (DESIGN §6.2). */
@@ -158,11 +176,10 @@ export function placeLoot(ctx: StepCtx, locationId: string, itemId: string, qty:
   }
   const rest = qty - fit;
   if (rest > 0) {
-    const ground = locationState(ctx, locationId).items;
     for (let left = rest; left > 0; ) {
       const n = def.stackable ? Math.min(left, def.maxStack) : 1;
       const item: ItemInstance = { uid: ctx.uid('i'), itemId, qty: n, rarity, affixes: [...affixes] };
-      ground.push(item);
+      leaveOnGround(ctx, locationId, item);
       out.push(copyItem(item));
       left -= n;
     }
@@ -191,7 +208,7 @@ function dropRow(ctx: StepCtx, combat: CombatState, creature: Creature, row: Cre
 
 /**
  * A won fight's spoils (see the file header for the order of draws): per fallen enemy its gold, loot and `onDefeat`
- * effects; the summed kill XP. Applies loot and `onDefeat`; the caller pays gold and XP.
+ * effects; the summed kill XP with the gear's kill-XP bonus. Applies loot and `onDefeat`; the caller pays gold and XP.
  */
 export function rollSpoils(ctx: StepCtx, combat: CombatState): Spoils {
   const { s, content } = ctx;
@@ -209,6 +226,8 @@ export function rollSpoils(ctx: StepCtx, combat: CombatState): Spoils {
     }
     applyAll(def.onDefeat as Effect[], ctx, { source: `creature:${enemy.refId}` });
   }
+  const bonus = spoils.xp > 0 ? killXpBonus(s, content) : 0;
+  if (bonus > 0) spoils.xp = roundHalfUp(spoils.xp * (1 + bonus)); // affix_of_echoes (U26b)
   return spoils;
 }
 

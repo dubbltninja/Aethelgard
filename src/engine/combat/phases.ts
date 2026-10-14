@@ -17,8 +17,11 @@
 //
 // Entering a phase (`enterPhase`): the `bossPhase` event and the transition line in the fight log (the phase's `line`,
 // else its name); its `onEnter` effects in order — `surviveRounds` arms the survival win (below), `leaveCombat`
-// withdraws the boss, `stripBuffs` strips its foes (or `self` / its allies), `multiHit` / `healOnDamage` are ignored (they
-// only mean something on a move), every world effect goes through effects.ts `apply`; then the adds spawn (`count`, or
+// withdraws the boss, `stripBuffs` strips its foes (or `self` / its allies), `areaMove` (U26b: DESIGN §4.10's onEnter
+// "AoE") arms one of the boss's own moves to land on every opponent at the start of the next turn (`firePhaseStrikes`,
+// through the reducer's hit application: the boss's hits and its target rows, as an area intent would), `multiHit` /
+// `healOnDamage` are ignored (they only mean something on a move), every world effect goes through effects.ts `apply`;
+// then the adds spawn (`count`, or
 // `countSolo` when the player has no active companion; at `hpPct` of their max HP; into empty slots, never more than 3
 // enemies standing; each with its own intent); then the pattern restarts on the phase's pattern and the intent is reset
 // (intents.ts `resetPattern`). At the opening no intent is generated here: the reducer's opening intents follow.
@@ -41,14 +44,18 @@ import { atomOf, evaluate } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
 import { apply } from '../effects';
 import type { Combatant, CombatState } from '../types/state';
-import { roundHalfUp } from './damage';
-import { generateIntent, resetPattern, withdrawFromCombat } from './intents';
-import { STRIP_KINDS } from './specials';
-import { removeStatus } from './statuses';
+import { resolveHit, roundHalfUp } from './damage';
+import { evalCombatWhen, generateIntent, intentHitSpec, resetPattern, withdrawFromCombat } from './intents';
+import { STRIP_KINDS, moveHits, type CombatOps } from './specials';
+import { applyStatusRows, removeStatus, type WhenEval } from './statuses';
 import { MAX_ENEMIES, combatLog, enemyCombatant, isActive, startRound } from './turnOrder';
 
 /** `pattern.firedOnce` marker of an entered phase: `phase:<index>`. */
 export const PHASE_ENTERED_KEY = 'phase:';
+/** `area:<move id>` in the boss's cooldown table: an onEnter `areaMove` waiting for the next turn's start (U26b). */
+export const AREA_MOVE_KEY = 'area:';
+/** Its value: it outlasts one count-down of the boss's own turn end (a phase entered during the boss's turn). */
+export const AREA_MOVE_PENDING = 2;
 
 /** The `event` triggers (DESIGN §4.10 `Trigger`). */
 export type PhaseEvent = 'addsDead' | 'communionMovementEnd';
@@ -135,6 +142,8 @@ function applyOnEnter(ctx: StepCtx, combat: CombatState, boss: Combatant, phase:
       const strip = value as EffectAtoms['stripBuffs'];
       const who = strip.target === 'self' ? [boss] : strip.target === 'all_allies' || strip.target === 'ally' ? combat.enemies : combat.party;
       for (const c of who.filter(isActive)) for (const kind of strip.kinds) removeStatus(ctx, combat, c, STRIP_KINDS[kind], `${c.name}'s ${kind} is torn away.`);
+    } else if (key === 'areaMove') {
+      boss.cooldowns[`${AREA_MOVE_KEY}${value as EffectAtoms['areaMove']}`] = AREA_MOVE_PENDING;
     }
   }
 }
@@ -204,6 +213,39 @@ export function checkPhases(ctx: StepCtx, combat: CombatState, event?: PhaseEven
 /** An `event` trigger reported by another system (U29: `communionMovementEnd`). */
 export function phaseEvent(ctx: StepCtx, combat: CombatState, event: PhaseEvent): void {
   checkPhases(ctx, combat, event);
+}
+
+// ---- the onEnter area move (U26b) ------------------------------------------------------------------------------------------------
+
+/**
+ * At the start of the next turn (abilities.ts `fireDelayed`, which the reducer calls with its hit application): every
+ * standing boss's armed `areaMove` lands — its telegraph line, then per living opponent in party order the move's hits
+ * (an area hit: Phase does not stop it) and, where one connected, its `target` rows (their `when` read now). A boss that
+ * fell or left meanwhile takes it with it.
+ */
+export function firePhaseStrikes(ops: CombatOps, ctx: StepCtx, combat: CombatState): void {
+  for (const boss of combat.enemies) {
+    for (const key of Object.keys(boss.cooldowns)) {
+      if (!key.startsWith(AREA_MOVE_KEY)) continue;
+      delete boss.cooldowns[key];
+      const moveId = key.slice(AREA_MOVE_KEY.length);
+      const move = ctx.content.creatures[boss.refId]?.moves[moveId];
+      if (!move || !isActive(boss)) continue;
+      combatLog(combat, `${boss.name}: ${move.line}`, 'phase');
+      const spec = intentHitSpec(moveId, move, true);
+      const rows = move.statuses.filter((r) => r.target === 'target');
+      const evalRow: WhenEval = (when, recipient) => evalCombatWhen(ctx, combat, when, { self: boss, target: recipient, turn: boss.pattern.turnsTaken + 1, round: combat.round });
+      for (const t of combat.party.filter(isActive)) {
+        let landed = spec === null;
+        for (let h = 0; spec && h < moveHits(move) && isActive(t) && isActive(boss); h++) {
+          const r = resolveHit(ctx, boss, t, spec);
+          ops.applyHit(ctx, combat, boss, t, spec, r, 'intent');
+          landed ||= r.hit && !r.immune;
+        }
+        if (landed && isActive(t) && isActive(boss) && rows.length > 0) applyStatusRows(ctx, combat, boss, t, rows, evalRow);
+      }
+    }
+  }
 }
 
 // ---- survival (D-069.9) -----------------------------------------------------------------------------------------------------

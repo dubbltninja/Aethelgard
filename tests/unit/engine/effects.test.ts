@@ -309,6 +309,7 @@ const OBSERVED: { [K in EffectKey]: () => void } = {
   healOnDamage: () => rejectedWith(run([{ healOnDamage: { pct: 0.5 } }]), "'healOnDamage' is combat-scope (D-069.9); the combat engine applies it (U26)"),
   surviveRounds: () => rejectedWith(run([{ surviveRounds: { rounds: 10 } }]), "'surviveRounds' is combat-scope (D-069.9); the combat engine applies it (U27)"),
   leaveCombat: () => rejectedWith(run([{ leaveCombat: true }]), "'leaveCombat' is combat-scope (D-069.9); the combat engine applies it (U27)"),
+  areaMove: () => rejectedWith(run([{ areaMove: 'tyr_shear' }]), "'areaMove' is combat-scope (D-069.9); the combat engine applies it (U26b)"),
   recruit: () => {
     const out = run([{ recruit: 'brak' }, { recruit: 'mireya' }, { recruit: 'brak' }]);
     expect(out.state.companions.activeId).toBe('brak');

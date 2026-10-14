@@ -13,42 +13,56 @@
 // if it stands, else the caster; for a companion caster, the player).
 //
 // Resolution (`castAbility` → `resolveAbility`), in this order:
-//   cost (MP, then the HP self-cost and Blood price) → cooldown (`cooldown` caster turns: +1 on its own turn, so a
-//   1-turn cooldown blocks exactly the next turn, D-067.19) → `abilityUsed` → special `before` →
+//   cost (MP, then the HP self-cost and Blood price; Breach Echo's held free cast pays no MP) → cooldown (`cooldown`
+//   caster turns: +1 on its own turn, so a 1-turn cooldown blocks exactly the next turn, D-067.19) → `abilityUsed` →
+//   special `before` → the script's opening (Last Bastion's revive, Iron Silence's dispel, Ninefold Hex's spread;
+//   Skyfall and Spellbreaker read the target as it was struck) →
 //   hits — power on `enemy`/`all_enemies` abilities only (on self/ally abilities it is the special's power, e.g. a
 //     counter stance): per target in slot order, `power.hits` hits (each its own hit/variance/crit; `perHitCrit: false`
-//     → the first hit's crit decides the rest), `selfCost.hpPerHit` paid per hit while it leaves ≥ 1 HP, bonuses whose
-//     `when` holds for that target (×1.25 vs Marked …) as step-7 multipliers, the special's `hit` rewrite
-//     (mark_execute); a crit gains the class `crit` resource (Elf +6) →
+//     → the first hit's crit decides the rest; Flurry: a crit adds one more; Final Verse: the last one crits),
+//     `selfCost.hpPerHit` paid per hit while it leaves ≥ 1 HP, bonuses whose `when` holds for that target (×1.25 vs
+//     Marked …) and the script's multipliers (Collapse, Unravel, Crescendo) as step-7 multipliers, the script's
+//     accuracy (Crushing Blow), the special's `hit` rewrite (mark_execute); a crit gains the class `crit` resource →
 //   status rows — `target` rows on each recipient (a damaging ability: only where a hit connected), each row's `when`
 //     evaluated per recipient (CombatWhen: `targetIsBoss`, `targetHas` …), then the strike coatings (Venom Coat) →
 //   heal (`heal.stat` atk | sp | max(STR, AGI); party / chosen ally / self), Shield (`shield`, same recipients) →
 //   scripted cleanses → the other rows once (self, all_allies …) → `interrupt` (an enemy whose intent survives the rows)
-//   → special `after` → `onKill` refunds (MP; HP spent unless the unmaking special already did) → Warden Grit per enemy
-//   Taunted → the script's tail (guard value, resource, flee, coat timer).
+//   → Exsanguinate → Skyfall's fork, Spellbreaker's interrupt, a buff on the struck target (Soul Tether) → special
+//   `after` → `onKill` refunds (MP; HP spent unless the unmaking special already did) → Warden Grit per enemy Taunted →
+//   the script's tail (guard value, resource, flee, coat timer, buffs on the caster's side, tags, the bonus action).
 //
 // DESIGN rows the declarative fields and the 15 specials cannot express are scripted here by ability id
-// (ABILITY_SCRIPTS), like interplay row 16's `wiz_immolate` in statuses.ts: Venom Coat's coating, Doom Sigil's delay
-// (fired at the start of the target's turn, `fireDelayed`), Smoke Bomb / Veilwalk's sure flee, the exact cleanses of
-// Field Dressing / Veilwalk / Steady Breath, Iron Guard's 65 % Guard and +12 Grit, Exsanguinate, Collapse, Unravel.
-// Not scripted (reported to the lead): Hunter's Eye's crit, Dancer's Guard, Flurry's 4th hit, Crescendo, Final Verse's
-// last crit, Shadowstep's next crit, Blink Strike, Moment Between, Apex Predator, Cinder Shield's counter, Skyfall's
-// fork, Heart of the Grove's Ley bonus, Unbroken, Null Plate, Spellbreaker, Oathbound's immunity, Iron Silence, Last
-// Bastion, Mountainfall's no-Guard, Leech Veil's heal, Soul Tether, Breach Echo's free cast, Ninefold Hex's spread,
-// Iron Guard's companion −25 %, Crushing Blow's −5 accuracy (no ability accuracy field).
+// (ABILITY_SCRIPTS), like interplay row 16's `wiz_immolate` in statuses.ts. Every DESIGN §5 class row is either data or
+// scripted (tests/unit/engine/combat/scripts.test.ts holds all 75 to that, and the content schema's SCRIPTED_ABILITIES
+// mirrors this table's ids):
+//   resolution  Venom Coat's coating, Doom Sigil's delay (fired at the start of the target's turn, `fireDelayed`), Smoke
+//               Bomb / Veilwalk's sure flee, the exact cleanses of Field Dressing / Veilwalk / Steady Breath, Iron Guard's
+//               65 % Guard and +12 Grit, Exsanguinate, Collapse, Unravel, Crushing Blow's −5 accuracy, Flurry's 4th hit,
+//               Final Verse's last crit, Crescendo's verses, Skyfall's fork, Ninefold Hex's spread, Iron Silence's
+//               dispel, Last Bastion's revive, Spellbreaker, The Moment Between's bonus action;
+//   buffs       (combat/buffs.ts: a timer on the holder; buffHooks.ts) Hunter's Eye's crit, Dancer's Guard, Apex Predator,
+//               Cinder Shield's heat, Heart of the Grove's Ley, Blink Strike's first move, Iron Guard's companion −25 %,
+//               Unbroken, Null Plate, Oathbound's immunity, Iron Silence's immunity, Last Bastion's reflect,
+//               Mountainfall's no-Guard, Leech Veil, Soul Tether;
+//   tags        Shadowstep's next crit, Breach Echo's free Unmaking ability.
+// The Moment Between: the player's uid is inserted after the current slot of the turn order, so the reducer runs a
+// second player turn at once; the turn end in between is taken back (the fight's cooldown table +1 here, the status
+// countdown and turn count in buffHooks.ts), and that bonus turn's start ticks nothing — one turn, two actions.
 import type { Ability } from '@schema/ability';
 import type { CombatWhen } from '@schema/creature';
 import type { Item } from '@schema/item';
 import type { ContentPack, StepCtx } from '../ctx';
 import { derive } from '../derived';
 import { apply, applyAll } from '../effects';
-import { playerAbilityCost } from '../progression';
+import { abilityCost, playerAbilityCost, type AbilityCost } from '../progression';
 import type { ActionOf } from '../types/actions';
-import type { Combatant, CombatState, GameState } from '../types/state';
-import { GUARD_VALUE_KEY, resolveHeal, resolveHit, resolveTick, type HealSpec, type HitSpec } from './damage';
+import type { Combatant, CombatState, DamageType, GameState } from '../types/state';
+import { BONUS_KEY, BONUS_PENDING, FREE_CAST_TAG, NEXT_CRIT_TAG, USED_TAG, addTag, bonusState, hasTag, removeTag, setBuff } from './buffs';
+import { GUARD_VALUE_KEY, hasStatus, resolveHeal, resolveHit, resolveTick, roundHalfUp, type HealSpec, type HitSpec } from './damage';
 import { grantFleeAuto } from './flee';
 import { compilePattern, evalCombatWhen, interruptIntent, patternOf, type IntentRead } from './intents';
-import { STATUS, applyStatus, applyStatusRows, blocksAction, cleanse, cooldownsOf, findStatus, removeStatus, skipsTurn, type WhenEval } from './statuses';
+import { firePhaseStrikes } from './phases';
+import { STATUS, applyStatus, applyStatusRows, blocksAction, cleanse, cooldownsOf, findStatus, isOwnTurn, removeStatus, skipsTurn, type WhenEval } from './statuses';
 import { FORESIGHT_KEY, TRAP_FLAG, fixedHit, healFlat, hooksOf, setTimer, struckSince, type CombatOps, type HitKind, type SpecialUse } from './specials';
 import { combatLog, combatantByUid, isActive, playerOf } from './turnOrder';
 
@@ -75,17 +89,72 @@ export interface AbilityScript {
   missingHpCap?: number;
   /** These leave the target before the hit; ×mult if any did (Unravel). */
   strip?: { statuses: readonly string[]; mult: number };
+  /** Flat accuracy on its hits (Crushing Blow −5). */
+  accuracy?: number;
+  /** A crit adds one more hit, once (Flurry's 4th). */
+  critExtraHit?: true;
+  /** The last hit is a guaranteed crit (Final Verse). */
+  lastHitCrits?: true;
+  /** +per (additive) for each distinct ability of `branch` the caster used earlier this fight, at most +cap (Crescendo). */
+  verses?: { branch: string; per: number; cap: number };
+  /** If the target had `status` when struck and the hit connected, it repeats at ×mult on every other enemy (Skyfall). */
+  fork?: { status: string; mult: number };
+  /** Before the rows: each enemy already holding `status` deals coef·stat `type` (cannot miss) to every other enemy (Ninefold Hex). */
+  spread?: { status: string; type: DamageType; coef: number; stat: 'atk' | 'sp' };
+  /** These leave every opposing recipient first (Iron Silence). */
+  dispel?: readonly string[];
+  /** A KO'd ally stands up at hpPct of its max HP; a standing one heals healPct of its max HP (Last Bastion). */
+  revive?: { hpPct: number; healPct: number };
+  /** The target's intent is not Physical (or deals no damage): a connecting hit interrupts it; success gains `resource` (Spellbreaker). */
+  spellbreak?: { resource: number };
+  /** combat/buffs.ts BUFFS[id] on: the caster, its whole side, its side but itself, or each struck target; for n of the holder's turns or 'round'. */
+  buff?: { on: 'self' | 'party' | 'allies' | 'target'; turns: number | 'round' };
+  /** A tag the caster holds until used (combat/buffs.ts: the next attack crits; the next ability of a branch is free). */
+  tag?: string;
+  /** The caster takes a second full action at once (The Moment Between); it cannot follow itself. */
+  bonusAction?: true;
 }
 
+const MAGIC_STRIP = [STATUS.shield, STATUS.regen, STATUS.haste, STATUS.rewind, STATUS.phase] as const;
+
 export const ABILITY_SCRIPTS: Readonly<Record<string, AbilityScript>> = {
+  // Ranger (DESIGN §5.2)
+  rgr_hunters_eye: { buff: { on: 'self', turns: 3 } },
   rgr_venom_coat: { coat: { turns: 3, branches: ['hunt', 'steel'] } },
   rgr_field_dressing: { cleanse: [STATUS.bleed, STATUS.poison] },
   rgr_smoke_bomb: { fleeAuto: true },
   rgr_exsanguinate: { consumeBleed: 2 },
+  rgr_apex_predator: { buff: { on: 'self', turns: 4 } },
+  // Wizard (§5.3)
+  wiz_cinder_shield: { buff: { on: 'self', turns: 3 } },
+  wiz_skyfall: { fork: { status: STATUS.soaked, mult: 0.5 } },
+  // Elf (§5.4)
+  elf_dancers_guard: { buff: { on: 'self', turns: 2 } },
+  elf_flurry: { critExtraHit: true },
+  elf_crescendo: { verses: { branch: 'bladesong', per: 0.15, cap: 0.6 } },
+  elf_final_verse: { lastHitCrits: true },
+  elf_heart_of_the_grove: { buff: { on: 'party', turns: 3 } },
+  elf_shadowstep: { tag: NEXT_CRIT_TAG },
+  elf_blink_strike: { buff: { on: 'self', turns: 1 } },
   elf_veilwalk: { fleeAuto: true, cleanse: [STATUS.mark, STATUS.taunt] },
-  wrd_iron_guard: { guardValue: 0.65, resource: 12 },
+  elf_moment_between: { bonusAction: true },
+  // Ironclad Warden (§5.5)
+  wrd_iron_guard: { guardValue: 0.65, resource: 12, buff: { on: 'allies', turns: 'round' } },
+  wrd_unbroken: { buff: { on: 'self', turns: 2 } },
+  wrd_last_bastion: { revive: { hpPct: 0.4, healPct: 0.3 }, buff: { on: 'party', turns: 2 } },
+  wrd_crushing_blow: { accuracy: -5 },
+  wrd_mountainfall: { buff: { on: 'self', turns: 1 } },
   wrd_steady_breath: { cleanseFirst: [STATUS.burn, STATUS.bleed, STATUS.poison, STATUS.curse, STATUS.blind, STATUS.weaken, STATUS.slow, STATUS.shock] },
+  wrd_null_plate: { buff: { on: 'self', turns: 3 } },
+  wrd_spellbreaker: { spellbreak: { resource: 10 } },
+  wrd_oathbound: { buff: { on: 'party', turns: 1 } },
+  wrd_iron_silence: { dispel: MAGIC_STRIP, buff: { on: 'self', turns: 2 } },
+  // Shadow Weaver (§5.6)
   wvr_doom_sigil: { delay: 3 },
+  wvr_ninefold_hex: { spread: { status: STATUS.curse, type: 'void', coef: 0.5, stat: 'sp' } },
+  wvr_leech_veil: { buff: { on: 'self', turns: 3 } },
+  wvr_soul_tether: { buff: { on: 'target', turns: 3 } },
+  wvr_breach_echo: { tag: `${FREE_CAST_TAG}unmaking` },
   wvr_collapse: { missingHpCap: 0.5 },
   wvr_unravel: { strip: { statuses: [STATUS.shield, STATUS.regen, STATUS.rewind, STATUS.haste], mult: 1.5 } },
 };
@@ -155,6 +224,15 @@ function targetOptions(combat: CombatState, caster: Combatant, ability: Ability)
 
 // ---- availability -----------------------------------------------------------------------------------------------------------
 
+/**
+ * What casting `ability` costs `caster` in a fight: the player's cost with every modifier (progression), or — while the
+ * caster holds Breach Echo's free cast for the ability's branch — no MP at all (its % HP self-costs stay).
+ */
+export function combatAbilityCost(s: GameState, content: ContentPack, caster: Combatant, ability: Ability): AbilityCost {
+  if (ability.branch !== undefined && hasTag(caster, `${FREE_CAST_TAG}${ability.branch}`)) return abilityCost({ id: ability.id, mp: 0, selfCost: ability.selfCost }, caster);
+  return playerAbilityCost(s, content, ability.id, caster);
+}
+
 /** Why the player cannot use `abilityId` (at `targetUid`) on this turn of `combat`, or null. */
 export function combatAbilityProblem(s: GameState, content: ContentPack, combat: CombatState, abilityId: string, targetUid?: string): string | null {
   const ability = content.abilities[abilityId];
@@ -163,7 +241,8 @@ export function combatAbilityProblem(s: GameState, content: ContentPack, combat:
   if (blocksAction(content, player, 'ability')) return 'You cannot use abilities now';
   const cd = combat.cooldowns[abilityId] ?? 0;
   if (cd > 0) return `${ability.name} is recharging (${cd})`;
-  const cost = playerAbilityCost(s, content, abilityId, player);
+  if (ABILITY_SCRIPTS[abilityId]?.bonusAction && bonusState(player) !== null) return `${ability.name} cannot follow itself`;
+  const cost = combatAbilityCost(s, content, player, ability);
   if (!cost.ok) return cost.reason ?? 'You cannot pay for that';
   const picked = pickTargets(combat, player, ability, targetUid);
   return typeof picked === 'string' ? picked : null;
@@ -232,10 +311,17 @@ export function abilitySpec(ability: Ability): HitSpec | null {
   if (ability.spell) spec.spell = true;
   if (p.ignoresArmor) spec.ignoresArmor = true;
   if (ability.target === 'all_enemies') spec.aoe = true;
+  const accuracy = ABILITY_SCRIPTS[ability.id]?.accuracy;
+  if (accuracy !== undefined) spec.accuracy = accuracy; // Crushing Blow −5 (U26b)
   return spec;
 }
 
-/** Step-7 multipliers for one target: bonuses whose `when` holds, Collapse's missing HP, Unravel's strip. */
+/** Distinct abilities of `branch` the caster has used in this fight (its `used:` tags; Crescendo's verses). */
+export function versesOf(content: ContentPack, caster: Combatant, branch: string): number {
+  return caster.pattern.firedOnce.filter((t) => t.startsWith(USED_TAG) && content.abilities[t.slice(USED_TAG.length)]?.branch === branch).length;
+}
+
+/** Step-7 multipliers for one target: bonuses whose `when` holds, Collapse's missing HP, Unravel's strip, Crescendo's verses. */
 function targetMults(u: SpecialUse, ability: Ability, target: Combatant, evalWhen: WhenEval): { name: string; mult: number }[] {
   const out = ability.bonuses.filter((b) => evalWhen(b.when, target)).map((b) => ({ name: ability.id, mult: b.mult }));
   const script = ABILITY_SCRIPTS[ability.id];
@@ -244,6 +330,10 @@ function targetMults(u: SpecialUse, ability: Ability, target: Combatant, evalWhe
     if (missing > 0) out.push({ name: 'missing hp', mult: 1 + missing });
   }
   if (script?.strip && u.memo[`strip:${target.uid}`]) out.push({ name: 'stripped', mult: script.strip.mult });
+  if (script?.verses) {
+    const bonus = Math.min(script.verses.cap, script.verses.per * versesOf(u.ctx.content, u.user, script.verses.branch));
+    if (bonus > 0) out.push({ name: 'verses', mult: 1 + bonus });
+  }
   return out;
 }
 
@@ -252,14 +342,17 @@ function strike(u: SpecialUse, ability: Ability, target: Combatant, base: HitSpe
   const { ctx, combat, ops, user } = u;
   const power = ability.power as NonNullable<Ability['power']>;
   const hook = hooksOf(ability.special)?.hit;
-  const strip = ABILITY_SCRIPTS[ability.id]?.strip;
+  const script = ABILITY_SCRIPTS[ability.id];
+  const strip = script?.strip;
   if (strip) {
     const gone = cleanse(ctx, combat, target, strip.statuses);
     if (gone.length > 0) u.memo[`strip:${target.uid}`] = true;
   }
   let landed = false;
   let firstCrit: boolean | null = null;
-  for (let h = 0; h < power.hits && isActive(target) && isActive(user); h++) {
+  let hits = power.hits;
+  let extra = false;
+  for (let h = 0; h < hits && isActive(target) && isActive(user); h++) {
     const perHit = ability.selfCost?.hpPerHit ?? 0;
     if (perHit > 0) {
       if (user.hp <= perHit) break; // a self-cost never kills (D-066 #5)
@@ -269,11 +362,16 @@ function strike(u: SpecialUse, ability: Ability, target: Combatant, base: HitSpe
     const mults = targetMults(u, ability, target, evalWhen);
     if (mults.length > 0) spec.mults = mults;
     if (!power.perHitCrit && firstCrit !== null) spec = firstCrit ? { ...spec, guaranteedCrit: true } : { ...spec, critBonus: -1000 };
+    if (script?.lastHitCrits && h === hits - 1) spec = { ...spec, guaranteedCrit: true }; // Final Verse
     if (hook) spec = hook(u, spec, target);
     const r = resolveHit(ctx, user, target, spec);
     ops.applyHit(ctx, combat, user, target, spec, r, u.kind);
     if (r.hit && firstCrit === null) firstCrit = r.crit;
     if (r.hit && r.crit) ops.gainResource(ctx, combat, user, 'crit');
+    if (r.hit && r.crit && script?.critExtraHit && !extra) {
+      extra = true; // Flurry: a crit adds a 4th hit, once
+      hits += 1;
+    }
     landed ||= r.hit && !r.immune;
   }
   return landed;
@@ -325,6 +423,91 @@ function consumeBleed(u: SpecialUse, target: Combatant, mult: number): void {
   u.ops.applyHit(u.ctx, u.combat, u.user, target, spec, fixedHit(tick.amount, tick.immune, tick.steps), u.kind);
 }
 
+// ---- the script's other stages (U26b) ----------------------------------------------------------------------------------------
+
+/** Last Bastion: the caster's fallen ally (a KO'd companion) stands up at `hpPct`; a standing one heals `healPct` of its max HP. */
+function reviveAlly(u: SpecialUse, ability: Ability, r: NonNullable<AbilityScript['revive']>): void {
+  const { ctx, combat, user } = u;
+  const ally = (user.kind === 'enemy' ? combat.enemies : combat.party).find((c) => c !== user && !c.fledOrGone);
+  if (!ally) return;
+  if (ally.alive) {
+    healFlat(ctx, combat, ally, r.healPct * ally.hpMax, ability.id);
+    return;
+  }
+  Object.assign(ally, { alive: true, hp: Math.max(1, roundHalfUp(ally.hpMax * r.hpPct)), statuses: [], guarding: false });
+  const run = ally.kind === 'companion' ? ctx.s.companions.recruited[ally.refId] : undefined;
+  if (run) run.ko = false;
+  ctx.emit({ t: 'healed', targetUid: ally.uid, amount: ally.hp, source: ability.id });
+  combatLog(combat, `${ally.name} stands up again (${ally.hp} HP).`, 'heal');
+}
+
+/** Ninefold Hex: each recipient already holding the status deals the spread's hit to every other recipient (cannot miss, area). */
+function spread(u: SpecialUse, ability: Ability, sp: NonNullable<AbilityScript['spread']>): void {
+  const { ctx, combat, ops, user } = u;
+  const foes = u.recipients.filter(isActive);
+  for (const from of foes.filter((f) => hasStatus(f, sp.status))) {
+    for (const to of foes) {
+      if (to === from || !isActive(to) || !isActive(user)) continue;
+      const spec: HitSpec = { source: ability.id, type: sp.type, base: 0, coef: sp.coef, stat: sp.stat, aoe: true, cannotMiss: true };
+      combatLog(combat, `${from.name}'s ${ctx.content.statuses[sp.status]?.name ?? sp.status} lashes out at ${to.name}.`, 'damage');
+      ops.applyHit(ctx, combat, user, to, spec, resolveHit(ctx, user, to, spec), u.kind);
+    }
+  }
+}
+
+/** The script's opening, before any hit (see the file header). */
+function scriptOpening(u: SpecialUse, ability: Ability, script: AbilityScript): void {
+  const { ctx, combat, user, primary } = u;
+  if (script.revive) reviveAlly(u, ability, script.revive);
+  for (const t of script.dispel ? u.recipients : []) {
+    if (!isActive(t) || (t.kind === 'enemy') === (user.kind === 'enemy')) continue;
+    for (const id of script.dispel ?? []) removeStatus(ctx, combat, t, id, `${ability.name} strips ${ctx.content.statuses[id]?.name ?? id} from ${t.name}.`);
+  }
+  if (script.spread) spread(u, ability, script.spread);
+  if (script.fork && primary && hasStatus(primary, script.fork.status)) u.memo.fork = true;
+  if (script.spellbreak && primary) {
+    const intent = combat.intents[primary.uid];
+    const move = intent ? ctx.content.creatures[primary.refId]?.moves[intent.moveId] : undefined;
+    if (intent && move && move.type !== 'physical') u.memo.spellbreak = true;
+  }
+}
+
+/** Skyfall: the hit again at ×mult on every other living combatant of the primary's side (own rolls; an area hit). */
+function fork(u: SpecialUse, primary: Combatant, spec: HitSpec, mult: number): void {
+  const { ctx, combat, ops, user } = u;
+  for (const other of (primary.kind === 'enemy' ? combat.enemies : combat.party).filter((c) => c !== primary && isActive(c))) {
+    if (!isActive(user)) return;
+    const fspec: HitSpec = { ...spec, aoe: true, mults: [...(spec.mults ?? []), { name: 'fork', mult }] };
+    combatLog(combat, `The storm forks into ${other.name}.`, 'damage');
+    ops.applyHit(ctx, combat, user, other, fspec, resolveHit(ctx, user, other, fspec), u.kind);
+  }
+}
+
+/** Puts the ability's buff on `holder` (combat/buffs.ts), counted in the holder's turns. */
+function giveBuff(combat: CombatState, holder: Combatant, ability: Ability, turns: number | 'round'): void {
+  setBuff(holder, ability.id, turns, isOwnTurn(combat, holder));
+  combatLog(combat, `${holder.name}: ${ability.name} (${turns === 'round' ? 'this round' : turns}).`, 'status');
+}
+
+/** Who a self/party/allies buff lands on: the caster, its living side, or its living side but itself. */
+function buffHolders(combat: CombatState, caster: Combatant, on: 'self' | 'party' | 'allies'): Combatant[] {
+  if (on === 'self') return [caster];
+  const side = sideOf(combat, caster);
+  return on === 'party' ? side : side.filter((c) => c !== caster);
+}
+
+/**
+ * The Moment Between (see the file header): the caster's uid joins the turn order right after this slot; the fight's
+ * cooldown table, which the turn end in between counts down, gets that turn back; the bonus is pending (buffs.ts).
+ */
+function grantBonusAction(combat: CombatState, caster: Combatant, ability: Ability): void {
+  combat.turnOrder.splice(combat.turnIndex + 1, 0, caster.uid);
+  const table = cooldownsOf(combat, caster);
+  for (const key of Object.keys(table)) table[key] = (table[key] ?? 0) + 1;
+  caster.cooldowns[`${BONUS_KEY}${ability.id}`] = BONUS_PENDING;
+  combatLog(combat, `${caster.name} moves again before anyone can answer.`, 'info');
+}
+
 /** Resolves an ability already paid for (see the file header). `kind` is the hits' event kind ('item' for an item's). */
 export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState, caster: Combatant, ability: Ability, picked: Picked, hpPaid: number, kind: HitKind = 'ability'): void {
   const script = ABILITY_SCRIPTS[ability.id] ?? {};
@@ -334,6 +517,7 @@ export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState
   const u: SpecialUse = { ctx, combat, ops, user: caster, scope: 'ability', id: ability.id, kind, primary: picked.primary, recipients: picked.recipients, spec, struck: [], hpPaid, from: ctx.events.length, memo: {} };
   const evalWhen = whenOf(ctx, combat, caster);
   hooks?.before?.(u);
+  scriptOpening(u, ability, script);
 
   if (script.delay !== undefined) {
     for (const t of picked.recipients) if (isActive(t)) plantDelayed(combat, caster, t, ability, script.delay);
@@ -372,6 +556,11 @@ export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState
       interruptIntent(ctx, combat, primary);
     }
     if (script.consumeBleed !== undefined && primary && landed.has(primary)) consumeBleed(u, primary, script.consumeBleed);
+    if (script.fork && u.memo.fork && spec && primary && landed.has(primary)) fork(u, primary, spec, script.fork.mult);
+    if (script.spellbreak && u.memo.spellbreak && primary && landed.has(primary) && isActive(primary) && combat.intents[primary.uid] && interruptIntent(ctx, combat, primary)) {
+      ops.addMp(ctx, combat, caster, script.spellbreak.resource, ability.id);
+    }
+    if (script.buff?.on === 'target') for (const t of landed) if (isActive(t)) giveBuff(combat, t, ability, script.buff.turns);
   }
 
   u.struck = struckSince(ctx, combat, u.from, caster, ability.id);
@@ -400,6 +589,9 @@ export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState
     setTimer(combat, caster, `${COAT_KEY}${ability.id}`, script.coat.turns);
     combatLog(combat, `${caster.name}'s strikes are coated for ${script.coat.turns} turns.`, 'status');
   }
+  if (script.buff && script.buff.on !== 'target' && isActive(caster)) for (const h of buffHolders(combat, caster, script.buff.on)) giveBuff(combat, h, ability, script.buff.turns);
+  if (script.tag !== undefined && isActive(caster)) addTag(caster, script.tag);
+  if (script.bonusAction && caster.kind === 'player' && isActive(caster)) grantBonusAction(combat, caster, ability);
 }
 
 /**
@@ -408,7 +600,8 @@ export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState
  */
 export function castAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState, caster: Combatant, ability: Ability, picked: Picked): void {
   const { s, content } = ctx;
-  const cost = playerAbilityCost(s, content, ability.id, caster);
+  const cost = combatAbilityCost(s, content, caster, ability);
+  if (ability.branch !== undefined && removeTag(caster, `${FREE_CAST_TAG}${ability.branch}`)) combatLog(combat, `${ability.name} costs ${caster.name} no MP.`, 'info');
   caster.mp -= cost.mpPaid;
   if (cost.hp > 0) {
     caster.hp -= cost.hp;
@@ -419,6 +612,7 @@ export function castAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState, c
   ctx.emit({ t: 'abilityUsed', uid: caster.uid, abilityId: ability.id });
   combatLog(combat, `${caster.name} uses ${ability.name}.`, 'info');
   resolveAbility(ops, ctx, combat, caster, ability, picked, cost.hp);
+  addTag(caster, `${USED_TAG}${ability.id}`); // after it resolves: "used earlier this fight" (Crescendo)
 }
 
 /** `ability` in a fight: check, cast (the reducer ends the turn). */
@@ -433,11 +627,16 @@ export function usePlayerAbility(ops: CombatOps, ctx: StepCtx, combat: CombatSta
 // ---- delayed hits (Doom Sigil) ------------------------------------------------------------------------------------------------
 
 /**
- * DESIGN §4.1 (1): at the start of `actor`'s turn (after DoTs, Regen and Rewind) every delayed hit on it whose countdown
- * has run out fires: the ability's hit from its caster (cannot miss; Phase still evades) and its rows, `when` read now
- * (Doom Sigil: Stun 1 if Cursed when it fires). A caster no longer in the fight takes its sigil with it.
+ * DESIGN §4.1 (1): at the start of `actor`'s turn (after DoTs, Regen and Rewind) — first, a boss phase's pending area move
+ * lands (phases.ts `firePhaseStrikes`, U26b) — every delayed hit on it whose countdown has run out fires: the ability's hit
+ * from its caster (cannot miss; Phase still evades) and its rows, `when` read now (Doom Sigil: Stun 1 if Cursed when it
+ * fires). A caster no longer in the fight takes its sigil with it. A bonus action's start (The Moment Between) is not a
+ * turn: nothing fires.
  */
 export function fireDelayed(ops: CombatOps, ctx: StepCtx, combat: CombatState, actor: Combatant): void {
+  if (bonusState(actor) === 'active') return;
+  firePhaseStrikes(ops, ctx, combat);
+  if (!isActive(actor)) return;
   const table = cooldownsOf(combat, actor);
   for (const key of Object.keys(table)) {
     if (!key.startsWith(DELAY_KEY) || (table[key] ?? 0) > 1) continue;

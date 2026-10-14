@@ -16,6 +16,7 @@ import {
   clearEncounterHp,
   clockHook,
   createStep,
+  expireGroundLoot,
   dayOf,
   dayStartTick,
   dawnsLeft,
@@ -357,7 +358,7 @@ describe('dawn hooks', () => {
     const out = play(s, [full]);
     expect(out.state.player.uses).toEqual({ att_old_road: { loop: 1 }, att_second_wind: { loop: 1, count: 1 } });
     expect(out.state.world.locationStates[NEXUS]?.encounterHp).toEqual({});
-    expect(DAWN_HOOKS).toEqual([resetDailyUses, clearEncounterHp, fireDawnEvents]);
+    expect(DAWN_HOOKS).toEqual([resetDailyUses, clearEncounterHp, fireDawnEvents, expireGroundLoot]); // + U26b
   });
 
   test('`dawn` events of the location the player wakes in fire at each dawn', () => {

@@ -172,7 +172,7 @@ describe('who cannot flee (DESIGN §4.7, §3.2, §4.11)', () => {
     const s = fight(state({ abilities: ['rgr_smoke_bomb'] }), spec([{ creatureId: SHADE, count: 2 }]));
     const bombed = act(s, { type: 'ability', abilityId: 'rgr_smoke_bomb' });
     for (const e of bombed.state.combat!.enemies) expect(e.statuses.map((st) => st.statusId)).toEqual(['status_blind']);
-    expect(me(bombed.state).pattern.firedOnce).toEqual([FLEE_AUTO_TAG]);
+    expect(me(bombed.state).pattern.firedOnce).toEqual([FLEE_AUTO_TAG, 'used:rgr_smoke_bomb']); // + U26b's used-this-fight tag
     expect(fleeChanceIn(content, bombed.state.combat!)).toBe(100);
     const out = act(patched(bombed.state, (c) => void (c.intents = {})), FLEE); // no draw
     expect(ofType(out.events, 'fleeAttempt')).toEqual([{ t: 'fleeAttempt', success: true, chance: 100 }]);

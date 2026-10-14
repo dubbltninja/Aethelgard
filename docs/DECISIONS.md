@@ -1063,3 +1063,34 @@ owning unit (PLAN §9.1).
   (`echo_amulet_memory`, `echo_brak_death`, `echo_brak_lives`, `echo_horde_path`, `echo_korr_marginalia`,
   `echo_thirtieth_dawn`, `echo_tyrant_rejected`, `echo_tyrant_speaks`, `echo_ending_a`–`f`); validator rule 16 treats
   them as granted; a test keeps the list in sync with literals in `src/engine`.
+
+### D-083 · U31/U32 details, 2026-10-14
+**Threshold (U31):**
+- C1 additions: `AttunementSchema` gains `mp_max_pct` and `custom {scriptId, params}` (PLAN §5.13's kinds could not express
+  10 of DESIGN §10.7's 15 rows); optional `PlayerState.attunements` (active set fixed at loop start; empty under Iron Loop);
+  optional `RunCounters.resonance`; AutosaveReason `thresholdEntered` (fires only when arriving from ending screens).
+- Loom actions only at the Loom; class change and `newLoop` only at the Far Light (DESIGN over PLAN §6.3). Refunds only for
+  attunements bought this visit. Modifier Resonance multipliers are engine constants paid at loop end (reason `modifiers`).
+- **New Game+:** a fresh profile keeping Echoes, codex (+ paid discovery keys), achievements, settings, modifier toggles and
+  the loop counter, `newGamePlus` +1; resets Resonance, Attunements, mastery, bestiary, map memory, run history, endings.
+  Offered at the Loom and on true-ending screens (resolves PLAN §4.4 vs DESIGN §10.8). `ach_ng_plus` → achievement unit.
+- Pacifist's Vow doubles all non-kill XP (the `xp` effect cannot tell quest from discovery XP — equivalent in practice).
+  Glass doubles DoT ticks too. D-067.2 carry-over wins over DESIGN §10.9's "1 AP, 30 gold".
+- **Attunements/modifiers flagged, not yet wired:** Foresight (intent projection) and Horde Rising (elite variants) →
+  balance/combat polish unit; Companion's Trust / `loyalty_start` → U33 (recruitment); Borin's Favor, Kaelen's Ledger,
+  `shop_discount` → U34. `rest_heal_pct`, `flee_pct` have no DESIGN row (unused).
+**Silverwood Before and Echoes (U32):**
+- DESIGN §10.4's per-Echo `effects` model is not in `EchoSchema`: rep starts (20) and bond loyalty (25) are engine tables
+  copied from §10.5; shortcuts use `QuestSchema.shortcuts` (quest opens at `skipTo`); routes/dialogue unlocks/ending flags
+  stay content `{echo}` conditions. Mute Ley disables rep starts and shortcuts only (bond starts stay).
+- `grantEcho` refuses an Echo whose `exclusiveWith` partner was granted this loop, and applies `onGrant`. At loop end the
+  engine grants bond Echoes (loyalty ≥ 50) and Ironclad/Weaver oaths (Trusted+), `echo_before_route` on entry,
+  `echo_anchor_mechanic` when an Anchor is found in the Depths (all on `ENGINE_GRANTED_ECHOES`).
+- Before rules: Before-local flags are `flag_before_*` plus `flag_wanted_in_silverwood` (content naming rule); every entry
+  is a fresh echo; `before_resets` counts per loop; any full rest inside advances its day; with `q_stop_the_ritual`
+  resolved Last Bell holds; each Before fight pays once per loop; gathering counts carry between visits. The engine sets
+  the door flags on entry (WORLD's gates cannot set flags). Anchors are placed with `drop` in the Conflux (quest items
+  allowed), appear in the Depths at once, last the loop.
+- **Contradiction resolved:** WORLD §3.11/§12.1 `ev_conflux_sundering` (sent home at Last Bell's dusk) is superseded by
+  DESIGN §10.1/STORY §9.1 (the echo resets to First Bell in place). `q_echo_crystal`'s shortcut stage is whatever content's
+  `shortcuts.skipTo` names. Before merchants restock per Before day → U34 (hook `beforeDayAdvanced`).

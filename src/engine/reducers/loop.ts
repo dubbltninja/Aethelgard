@@ -14,6 +14,7 @@
 import { ENDING_LETTERS } from '@schema/ending';
 import { TICKS_PER_DAY, dayOf, evaluate, watchOf } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
+import { applyLoopStartEchoes } from '../echoes';
 import { LEFT_ON_GROUND, advanceTime, apply } from '../effects';
 import { HORDE_TEXT, grantKnownEcho, startHorde } from '../horde';
 import type { Enumerator } from '../legalActions';
@@ -416,6 +417,7 @@ export function beginLoop(ctx: StepCtx): void {
     if (!ctx.profile.echoes.includes(ECHO_AMULET_MEMORY)) grantKnownEcho(ctx, ECHO_AMULET_MEMORY, 'waking');
     if (s.player.inventory.some((i) => i.itemId === AMULET_ITEM_ID)) ctx.log(CLOSER_TEXT.amuletWarm, 'narration');
   }
+  applyLoopStartEchoes(ctx); // U32: rep starts, bond loyalty, shortcuts (echoes.ts)
   enterStartLocation(ctx);
 }
 

@@ -33,6 +33,7 @@
 import { MAX_AFFIXES, type Item } from '@schema/item';
 import type { Creature } from '@schema/creature';
 import type { Effect } from '@schema/effect';
+import { claimBeforeSpoils } from '../before';
 import { evaluate } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
 import { RARITY_ORDER, derive } from '../derived';
@@ -214,12 +215,13 @@ export function rollSpoils(ctx: StepCtx, combat: CombatState): Spoils {
   const { s, content } = ctx;
   const spoils: Spoils = { xp: 0, gold: 0, loot: [] };
   const xpAllowed = combatXpAllowed(s, content);
+  const pays = claimBeforeSpoils(ctx, combat.locationId, combat.encounterId); // U32: the Before pays once per loop (D-067.5)
   for (const enemy of combat.enemies.filter((e) => !e.alive)) {
     const def = content.creatures[enemy.refId];
     if (!def) continue;
-    if (xpAllowed) spoils.xp += creatureXp(s, content, enemy.refId);
-    spoils.gold += def.gold.min === def.gold.max ? def.gold.min : ctx.rng.int(def.gold.min, def.gold.max);
-    for (const row of def.loot) {
+    if (xpAllowed && pays) spoils.xp += creatureXp(s, content, enemy.refId);
+    if (pays) spoils.gold += def.gold.min === def.gold.max ? def.gold.min : ctx.rng.int(def.gold.min, def.gold.max);
+    for (const row of pays ? def.loot : []) {
       if (row.when !== undefined && !evaluate(row.when, s, ctx.profile, content)) continue;
       if (!ctx.rng.chance(row.chance)) continue;
       spoils.loot.push(...dropRow(ctx, combat, def, row));

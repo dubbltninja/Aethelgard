@@ -6,9 +6,10 @@
 // Minimal implementations, marked TODO(Uxx) where the owning system adds behaviour later:
 // xp (level-ups U21), giveItem (rolled rarity/affixes U27/U34), heal/damage (combat snapshots U23; never lethal, D-072),
 // passWatches (dawn hooks, warnings and expiry U20), teleport (entry hooks U20), questAdvance (outcomes/rewards U33),
-// recruit (bond-Echo loyalty start U32; max HP by level: combat/companionAi.ts `companionPostStep`, U28). endLoop/ending
-// enter ending mode; the loop's end (RunRecord, Resonance, profile writes) runs after the step's effects in U30's
-// `loopEndHook` (reducers/loop.ts).
+// recruit (bond-Echo loyalty start: echoes.ts `echoPostStep`, U32; max HP by level: combat/companionAi.ts
+// `companionPostStep`, U28). grantEcho: once per loop, never beside an `exclusiveWith` Echo, then `onGrant` (U32).
+// endLoop/ending enter ending mode; the loop's end (RunRecord, Resonance, profile writes) runs after the step's
+// effects in U30's `loopEndHook` (reducers/loop.ts).
 // startCombat starts the encounter (U23, combat/turnOrder.ts; the fight plays from the combat post-step hook).
 // Not yet applicable — they reject the action, naming the unit: startDialogue (U33),
 // unlockRecipe (U34: no known-recipe state yet) and the five combat-scope atoms (U26/U27; D-069.9).
@@ -207,13 +208,18 @@ const APPLIERS: Appliers = {
     delete s.flags[id];
   },
   grantEcho: (id, ctx) => {
-    const s = ctx.s;
+    const { s, content } = ctx;
     if (s.echoesThisLoop.includes(id)) return;
+    // U32 (echoes.ts): never beside an Echo it is exclusive with in this loop (D-010; either record may name the other)
+    const def = content.echoes[id];
+    const exclusive = (a: { exclusiveWith?: readonly string[] } | undefined, b: string): boolean => a?.exclusiveWith?.includes(b) ?? false;
+    if (s.echoesThisLoop.some((other) => exclusive(def, other) || exclusive(content.echoes[other], id))) return;
     s.echoesThisLoop.push(id);
     s.counters.echoesGainedThisLoop += 1;
     const firstEver = !ctx.profile.echoes.includes(id);
     if (firstEver) ctx.profileDraft().echoes.push(id);
     ctx.emit({ t: 'echoGained', echoId: id, firstEver });
+    applyAll(def?.onGrant ?? [], ctx, { source: `echo:${id}` }); // U32: the Echo's own effects
   },
   questStart: (id, ctx) => {
     const def = need(ctx.content.quests[id], `quest '${id}'`);
@@ -263,7 +269,7 @@ const APPLIERS: Appliers = {
   },
   loyalty: ({ companion, delta }, ctx) => {
     const c = ctx.s.companions.recruited[companion];
-    if (!c) return; // TODO(U32): bond loyalty for companions not yet recruited is applied at recruitment
+    if (!c) return; // not recruited: nothing to change (a bond Echo's start applies at recruitment, echoes.ts)
     const before = c.loyalty;
     c.loyalty = clamp(before + delta, 0, LOYALTY_MAX);
     ctx.emit({ t: 'loyaltyChanged', companionId: companion, delta: c.loyalty - before, value: c.loyalty });
@@ -367,7 +373,7 @@ const APPLIERS: Appliers = {
       id,
       recruited: true,
       loyalty: def.startingLoyalty ?? 0,
-      hp: def.stats.hp, // level 1: companionPostStep (U28) moves max HP to the player's level; TODO(U32): bond-Echo loyalty start
+      hp: def.stats.hp, // level 1: companionPostStep (U28) moves max HP to the player's level; bond start: U32 echoes.ts
       hpMax: def.stats.hp,
       ko: false,
       dead: false,

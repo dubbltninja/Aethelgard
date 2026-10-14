@@ -13,6 +13,7 @@
 // from `arrivalHook` (post-step), for the arrival the player is still standing in.
 import type { Exit, Location, LocationEvent } from '@schema/location';
 import type { Item } from '@schema/item';
+import { beforeArrival, beforeRest } from '../before';
 import { WATCH_NAMES, dayOf, evaluate, explain, watchOf } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { addItem, advanceTime, apply, applyAll, locationState } from '../effects';
@@ -250,6 +251,7 @@ function runArrival(ctx: StepCtx, arrival: Arrival): void {
   const { s, content } = ctx;
   const loc = content.locations[arrival.locationId];
   if (loc === undefined) throw new Error(`explore: unknown location '${arrival.locationId}'`);
+  beforeArrival(ctx, loc.id); // U32: into or out of Silverwood Before; Anchors found in the Depths (before.ts)
   const stillHere = () => s.world.currentLocationId === loc.id && s.mode === 'explore';
   if (arrival.via !== 'faceIt') {
     spawnItems(ctx, loc);
@@ -517,7 +519,7 @@ function clearDots(ctx: StepCtx): void {
  * dawn), heal by the spot's `healPct` (full by default), pay its `cost` (inn 10 g) and, at an inn, `status_rested`.
  * Both clear the out-of-combat DoTs, heal companions by the same share (a KO'd one comes round only at a full rest, at
  * 50 %), respawn `once: false` items here and fire `rest` events.
- * While the clock is frozen (Silverwood Before) no time passes; the Before-day advance at the Garret is U32's.
+ * While the clock is frozen (Silverwood Before) no time passes; a full rest there advances the Before day (before.ts).
  */
 export function restHandler(ctx: StepCtx, a: ActionOf<'rest'>): void {
   const loc = requireHere(ctx);
@@ -541,6 +543,7 @@ export function restHandler(ctx: StepCtx, a: ActionOf<'rest'>): void {
   player.hp = Math.min(player.hpMax, player.hp + round(player.hpMax * pct));
   player.mp = Math.min(player.mpMax, player.mp + round(player.mpMax * pct));
   restCompanions(ctx, full, pct); // U28: a knocked-out companion comes round only at a full rest, at 50 % (DESIGN §12.6)
+  if (full) beforeRest(ctx); // U32: the next Bell, or Last Bell's dusk and the echo's reset (before.ts)
   if (full && spot.kind === 'inn' && ctx.content.statuses[RESTED_STATUS] !== undefined) {
     const rested: StatusInstance = { statusId: RESTED_STATUS, stacks: 1, duration: 1, sourceUid: null, appliedOnOwnTurn: false };
     player.statuses = [...player.statuses.filter((st) => st.statusId !== RESTED_STATUS), rested];

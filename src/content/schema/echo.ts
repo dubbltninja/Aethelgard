@@ -13,13 +13,17 @@ export const ECHO_CATEGORIES = ['lore', 'route', 'shortcut', 'dialogue', 'ending
 export const EchoCategory = z.enum(ECHO_CATEGORIES);
 
 /**
- * Echoes the engine grants by itself (horde.ts, reducers/loop.ts, communion.ts, reducers/inventory.ts) rather than through a
- * content effect. The validator treats them as granted (D-082). Keep in sync with the engine (a test checks the literals).
+ * Echoes the engine grants by itself (horde.ts, reducers/loop.ts, communion.ts, reducers/inventory.ts, echoes.ts,
+ * before.ts) rather than through a content effect. The validator treats them as granted (D-082). Keep in sync with the
+ * engine (a test checks the literals).
  */
 export const ENGINE_GRANTED_ECHOES: readonly string[] = [
   'echo_amulet_memory', 'echo_brak_death', 'echo_brak_lives', 'echo_horde_path', 'echo_korr_marginalia',
   'echo_thirtieth_dawn', 'echo_tyrant_rejected', 'echo_tyrant_speaks',
   'echo_ending_a', 'echo_ending_b', 'echo_ending_c', 'echo_ending_d', 'echo_ending_e', 'echo_ending_f',
+  // U32: the two-of-five rule (D-067.16), the loop-end bonds and oaths (STORY §12), the Before's entry and Anchors
+  'echo_tyrant_jailer', 'echo_nyx_bond', 'echo_ilyra_bond', 'echo_dask_bond', 'echo_mireya_bond', 'echo_caelum_bond',
+  'echo_ironclad_oath', 'echo_weaver_sign', 'echo_before_route', 'echo_anchor_mechanic',
 ];
 
 export const EchoSchema = Base.extend({

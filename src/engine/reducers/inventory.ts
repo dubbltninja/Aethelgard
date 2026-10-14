@@ -9,6 +9,7 @@
 // `allocateStat` three actions while points remain; `unlockAbility` every unlockable tree ability.
 import type { Effect } from '@schema/effect';
 import type { Item } from '@schema/item';
+import { anchorOnTheRim, onTheRim } from '../before';
 import { dayOf, evaluate, explain, hasEcho } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
 import { EQUIP_SLOTS, STAT_NAMES, syncMaxima } from '../derived';
@@ -128,8 +129,9 @@ export function checkDrop(s: GameState, content: ContentPack, action: ActionOf<'
   const h = held(s, content, action.uid);
   if (typeof h === 'string') return h;
   const { inst, def } = h;
-  if (!def.droppable) return `${def.name} cannot be dropped`;
-  if (inst.boundQuest !== undefined && s.quests[inst.boundQuest]?.status === 'active') return `${def.name} is bound to an active quest`;
+  const rim = onTheRim(s, def); // U32: an anchorable item set down in the Conflux goes on the cradle's rim, bound or not (before.ts)
+  if (!def.droppable && !rim) return `${def.name} cannot be dropped`;
+  if (inst.boundQuest !== undefined && s.quests[inst.boundQuest]?.status === 'active' && !rim) return `${def.name} is bound to an active quest`;
   if (action.qty !== undefined && (!Number.isInteger(action.qty) || action.qty < 1 || action.qty > inst.qty)) {
     return `You cannot drop ${action.qty} of ${inst.qty}`;
   }
@@ -216,6 +218,7 @@ function drop(ctx: StepCtx, action: ActionOf<'drop'>): void {
     leaveOnGround(ctx, here, { ...copy(inst), uid: ctx.uid('i'), qty });
   }
   ctx.emit({ t: 'itemLost', itemId: inst.itemId, qty, reason: 'dropped' });
+  if (onTheRim(s, h.def)) anchorOnTheRim(ctx); // U32: an Anchor (before.ts)
 }
 
 /** DESIGN §6.3: +1 to a primary per unspent point (not respeccable inside a loop). */

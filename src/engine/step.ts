@@ -27,6 +27,7 @@ import {
   returnToTitleHandler,
 } from './reducers/loop';
 import { enterPortalHandler, hordePostStep } from './horde';
+import { echoPostStep } from './echoes';
 import { characterPostStep, inventoryHandlers } from './reducers/inventory';
 import {
   abilityHandler,
@@ -129,6 +130,7 @@ export const POST_STEP_HOOKS: readonly PostStepHook[] = [
   companionPostStep, // U28: companion max HP by level; Dask's places (D-059) outside a fight
   combatPostStep, // U23: a fight started this step plays until the player's first turn
   hordePostStep, // U30: a Tyrant killed in a fight that is over starts the Horde (horde.ts)
+  echoPostStep, // U32: bond starts and shortcuts for this step's recruits/quests; echo_tyrant_jailer; loop-end Echoes
   loopEndHook, // U30: a step that entered ending mode closes the loop (reducers/loop.ts)
 ];
 

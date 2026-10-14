@@ -14,7 +14,8 @@ import type { ContentPack, StepCtx } from '../ctx';
 import { advanceTime } from '../effects';
 import type { PostStepHook } from '../step';
 import type { GameEvent } from '../types/events';
-import { OUT_OF_COMBAT_STATUSES, fireEvents } from './explore';
+import { tickCarriedWatch } from '../combat/turnOrder';
+import { fireEvents } from './explore';
 
 /** Set at expiry for WORLD's world-state variants (DESIGN §10.2). */
 export const FLAG_CLOCK_EXPIRED = 'flag_clock_expired';
@@ -56,26 +57,12 @@ export function skipToLastDawn(ctx: StepCtx): number {
 // ---- per-watch: out-of-combat statuses ---------------------------------------------------------------------------------
 
 /**
- * One watch of the out-of-combat DoTs (DESIGN §4.5): each deals its stored tick (× stacks when the status ticks per
- * stack), never below 1 HP (out-of-combat damage does not kill, D-072), then counts down and expires at 0.
+ * One watch of the out-of-combat DoTs (DESIGN §4.5): each deals its tick by the in-combat rule (stored tick × stacks
+ * when per-stack, the resistance step), never below 1 HP (out-of-combat damage does not kill, D-072), then counts down
+ * and expires at 0. One implementation, shared with `beginCombat` (U24): combat/turnOrder.ts `tickCarriedWatch`.
  */
 export function tickOutOfCombatStatuses(ctx: StepCtx): void {
-  const player = ctx.s.player;
-  if (!player.statuses.some((st) => OUT_OF_COMBAT_STATUSES.includes(st.statusId))) return;
-  for (const st of player.statuses) {
-    if (!OUT_OF_COMBAT_STATUSES.includes(st.statusId)) continue;
-    const dmg = ctx.content.statuses[st.statusId]?.tick?.damage;
-    const amount = (st.tick ?? dmg?.base ?? 0) * (dmg?.perStack ? st.stacks : 1);
-    const before = player.hp;
-    player.hp = Math.max(1, player.hp - amount);
-    ctx.s.counters.damageTaken += before - player.hp;
-    ctx.emit({ t: 'statusTicked', targetUid: 'player', statusId: st.statusId, amount: before - player.hp });
-    st.duration -= 1;
-  }
-  const expired = player.statuses.filter((st) => OUT_OF_COMBAT_STATUSES.includes(st.statusId) && st.duration <= 0);
-  if (expired.length === 0) return;
-  player.statuses = player.statuses.filter((st) => !expired.includes(st));
-  for (const st of expired) ctx.emit({ t: 'statusExpired', targetUid: 'player', statusId: st.statusId });
+  tickCarriedWatch(ctx);
 }
 
 // ---- per-dawn hooks ----------------------------------------------------------------------------------------------------

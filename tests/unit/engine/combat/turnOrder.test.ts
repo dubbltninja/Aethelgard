@@ -248,7 +248,8 @@ describe('travelling into a fight', () => {
     const out = play(s, [{ type: 'move', to: MISTWOOD }], { content });
     const types = out.events.map((e) => e.t);
     expect(types.indexOf('statusTicked')).toBeLessThan(types.indexOf('combatStarted'));
-    expect(ofType(out.events, 'statusTicked')).toEqual([{ t: 'statusTicked', targetUid: 'player', statusId: 'status_poison', amount: 3 }]);
+    // (the fight's own start-of-turn ticks, U24, come after `combatStarted`)
+    expect(ofType(out.events.slice(0, types.indexOf('combatStarted')), 'statusTicked')).toEqual([{ t: 'statusTicked', targetUid: 'player', statusId: 'status_poison', amount: 3 }]);
     const poison = out.state.combat ? playerOf(out.state.combat).statuses : out.state.player.statuses;
     expect(poison.map((st) => [st.statusId, st.duration])).toEqual([['status_poison', 3]]);
   });

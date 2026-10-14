@@ -18,7 +18,7 @@ import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { DAMAGE_TYPES, derive } from '../derived';
 import type { Combatant, CombatState, DamageType, GameState, Resistance, SpawnedEncounter, StatusInstance } from '../types/state';
 import { round } from '../util/math';
-import { statusMods } from './damage';
+import { dotDamage, statusMods } from './damage';
 
 /** DESIGN §4.1: the initiative die, rolled once per fight. */
 export const INITIATIVE_DIE = 4;
@@ -272,28 +272,37 @@ export function combatLog(combat: CombatState, text: string, kind: CombatState['
 }
 
 /**
+ * One watch of the carried DoTs on the player outside a fight (DESIGN §4.5, D-074): each deals `dotDamage` — the rule
+ * of a tick in a fight (statuses.ts): the stored tick × stacks when per-stack, the gear resistance step — but never
+ * below 1 HP (out-of-combat damage does not kill, D-072), then counts down one; expiry at 0. The one implementation for
+ * the clock hook (reducers/loop.ts `tickOutOfCombatStatuses`) and for the watches travelled into a fight (below).
+ */
+export function tickCarriedWatch(ctx: StepCtx): void {
+  const player = ctx.s.player;
+  if (!player.statuses.some((st) => CARRIED_STATUSES.includes(st.statusId))) return;
+  const d = derive(player, ctx.content);
+  const holder = { resistances: playerResistances(d.resistSteps, d.passives), hpMax: player.hpMax, statuses: player.statuses };
+  for (const st of player.statuses) {
+    if (!CARRIED_STATUSES.includes(st.statusId)) continue;
+    const before = player.hp;
+    player.hp = Math.max(1, player.hp - (dotDamage(holder, st, ctx.content.statuses[st.statusId])?.amount ?? 0));
+    ctx.s.counters.damageTaken += before - player.hp;
+    ctx.emit({ t: 'statusTicked', targetUid: 'player', statusId: st.statusId, amount: before - player.hp });
+    st.duration -= 1;
+  }
+  const expired = player.statuses.filter((st) => CARRIED_STATUSES.includes(st.statusId) && st.duration <= 0);
+  if (expired.length === 0) return;
+  player.statuses = player.statuses.filter((st) => !expired.includes(st));
+  for (const st of expired) ctx.emit({ t: 'statusExpired', targetUid: 'player', statusId: st.statusId });
+}
+
+/**
  * Watches that passed earlier in this step (travelling into the fight) tick the out-of-combat DoTs before the fight
- * takes them over: the clock hook skips out-of-combat ticks while a fight is on. Mirrors reducers/loop.ts
- * `tickOutOfCombatStatuses` (not imported: import cycle) — the stored tick × stacks when per-stack, never below 1 HP,
- * one duration per watch, expiry at 0.
+ * takes them over: the clock hook skips out-of-combat ticks while a fight is on.
  */
 function tickWatchesBeforeFight(ctx: StepCtx): void {
-  const player = ctx.s.player;
   const watches = ctx.events.filter((e) => e.t === 'watchAdvanced').length;
-  for (let w = 0; w < watches && player.statuses.some((st) => CARRIED_STATUSES.includes(st.statusId)); w++) {
-    for (const st of player.statuses) {
-      if (!CARRIED_STATUSES.includes(st.statusId)) continue;
-      const dmg = ctx.content.statuses[st.statusId]?.tick?.damage;
-      const before = player.hp;
-      player.hp = Math.max(1, player.hp - (st.tick ?? dmg?.base ?? 0) * (dmg?.perStack ? st.stacks : 1));
-      ctx.s.counters.damageTaken += before - player.hp;
-      ctx.emit({ t: 'statusTicked', targetUid: 'player', statusId: st.statusId, amount: before - player.hp });
-      st.duration -= 1;
-    }
-    const expired = player.statuses.filter((st) => CARRIED_STATUSES.includes(st.statusId) && st.duration <= 0);
-    player.statuses = player.statuses.filter((st) => !expired.includes(st));
-    for (const st of expired) ctx.emit({ t: 'statusExpired', targetUid: 'player', statusId: st.statusId });
-  }
+  for (let w = 0; w < watches; w++) tickCarriedWatch(ctx);
 }
 
 /**

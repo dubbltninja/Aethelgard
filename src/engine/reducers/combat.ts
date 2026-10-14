@@ -2,11 +2,12 @@
 //
 // A fight starts in phase 'start' (combat/turnOrder.ts `beginCombat`: an encounter on arrival, a `startCombat` effect)
 // and `runCombat` plays turns in initiative order until it is the player's turn or the fight is over:
-//   start of turn — `turnStarted`, Guard drops ("until the guarder's next turn begins"), class `turn_start` resource,
-//                   start-of-turn ticks (U24: a combatant killed by them does not act)
-//   action        — the player's (`attack`, `guard` here; abilities, items, flee U26; companion command U28), or the
-//                   companion's / enemy's (placeholders until U28 companion AI and U25 intents, marked below)
-//   end of turn   — ability cooldowns count down (status durations: U24)
+//   start of turn — `turnStarted`, Guard drops ("until the guarder's next turn begins"), start-of-turn status ticks
+//                   (combat/statuses.ts: a combatant killed by them does not act), class `turn_start` resource
+//   action        — a Stunned combatant loses it; else the player's (`attack`, `guard` here; abilities, items, flee U26;
+//                   companion command U28), or the companion's / enemy's (placeholders until U28 companion AI and U25
+//                   intents, marked below)
+//   end of turn   — ability cooldowns count down, then status durations (D-066 #4) and expiry
 // and at the end of each round the round counter goes up and the order is re-sorted (boss phase checks: U27).
 // The fight ends when every enemy is down (victory: XP via progression, gold and loot rolls, the creatures' and the
 // encounter's effects, autosave) or the player is (defeat: Loop 1 outside a Horde is the classic FALLEN game over,
@@ -34,7 +35,8 @@ import type { ActionOf } from '../types/actions';
 import type { CloserReason } from '../types/ids';
 import type { Combatant, CombatState, GameState, ItemInstance } from '../types/state';
 import { round } from '../util/math';
-import { consumeShield, resolveHit, type HitResult, type HitSpec } from '../combat/damage';
+import { consumeShield, resolveHit, rollPct, type HitResult, type HitSpec } from '../combat/damage';
+import { STATUS, afterHit, applyStatus, endOfTurnStatuses, isBoss, skipsTurn, startOfTurnStatuses } from '../combat/statuses';
 import {
   CARRIED_STATUSES,
   beginCombat,
@@ -78,7 +80,7 @@ export interface BasicAttack {
   hpCost: number;
   /** Grit on a hit (heavy weapon, Warden only). */
   gritOnHit: number;
-  /** Stun chance against non-bosses (heavy weapon 10 %). TODO(U24): applied with the status rules. */
+  /** Stun chance against non-bosses (heavy weapon 10 %), rolled after the hit's draws. */
   stunChance: number;
 }
 
@@ -195,6 +197,7 @@ export function applyHit(ctx: StepCtx, combat: CombatState, attacker: Combatant,
   const playerHit = target.kind === 'player' && attacker.kind === 'enemy';
   if (!result.hit) {
     combatLog(combat, `${attacker.name} misses ${target.name}.`, 'damage');
+    afterHit(ctx, combat, attacker, target, spec, result); // a Phased miss consumes the Phase (U24)
     if (playerHit) gainResource(ctx, combat, target, 'dodge');
     return;
   }
@@ -220,6 +223,7 @@ export function applyHit(ctx: StepCtx, combat: CombatState, attacker: Combatant,
   }
   if (target.kind === 'player') counters.damageTaken += result.amount;
   if (playerHit) gainResource(ctx, combat, target, 'hit_taken');
+  afterHit(ctx, combat, attacker, target, spec, result); // interplay that changes statuses (U24, DESIGN §4.6)
   // TODO(U27): HP-threshold boss phase triggers are checked here, after every damage event (DESIGN §4.10).
   if (target.hp <= 0) knockOut(ctx, combat, target);
 }
@@ -232,19 +236,29 @@ function startTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
   actor.guarding = false;
   if (actor.kind === 'player') combat.resourceGainedThisTurn = 0;
   ctx.emit({ t: 'turnStarted', uid: actor.uid, round: combat.round });
-  // TODO(U24): start-of-turn ticks (DoTs, Regen, Rewind and Doom Sigil timers); a combatant killed here does not act.
+  // start-of-turn ticks: DoTs, Regen, Rewind (U24, combat/statuses.ts); a combatant killed here does not act.
+  // TODO(U26): the Doom Sigil timer (an ability's delayed hit) is checked here too.
+  const ticks = startOfTurnStatuses(ctx, combat, actor);
+  if (actor.hp <= 0) {
+    const how = ticks.ticks.some((t) => t.statusId === STATUS.bleed) ? 'bleeds out' : 'succumbs';
+    combatLog(combat, `${actor.name} ${how} before it can act.`, 'damage');
+    knockOut(ctx, combat, actor);
+    return;
+  }
   if (actor.kind === 'player') gainResource(ctx, combat, actor, 'turn_start');
 }
 
 /** DESIGN §4.1 (3): the end of a combatant's turn. */
-function endTurn(_ctx: StepCtx, combat: CombatState, actor: Combatant): void {
-  // TODO(U24): status durations decrement here, except a status applied during this turn (D-066 #4); expiry.
+function endTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
   const cooldowns = actor.kind === 'player' ? combat.cooldowns : actor.cooldowns;
   for (const id of Object.keys(cooldowns)) {
     const left = (cooldowns[id] ?? 0) - 1;
     if (left > 0) cooldowns[id] = left;
     else delete cooldowns[id];
   }
+  // status durations count down, except a status applied during this turn (D-066 #4); expiry (U24). After the
+  // cooldowns, so a Stun that wears off here opens a full 2-turn recovery window.
+  endOfTurnStatuses(ctx, combat, actor);
 }
 
 /** DESIGN §4.1 end of round: the counter goes up and the order is re-sorted. TODO(U27): boss phase triggers. */
@@ -302,6 +316,12 @@ export function runCombat(ctx: StepCtx): void {
       combat.turnIndex += 1; // killed by a start-of-turn tick: it does not act
       continue;
     }
+    if (skipsTurn(ctx.content, actor)) {
+      combatLog(combat, `${actor.name} is stunned and loses the turn.`, 'status'); // DESIGN §4.5 Stun (U24)
+      endTurn(ctx, combat, actor);
+      combat.turnIndex += 1;
+      continue;
+    }
     if (actor.kind === 'player') return;
     if (actor.kind === 'companion') companionPlaceholderAction(ctx, combat, actor);
     else enemyPlaceholderAction(ctx, combat, actor);
@@ -311,8 +331,8 @@ export function runCombat(ctx: StepCtx): void {
   throw new Error('combat: the turn loop did not settle');
 }
 
-/** After the player's action: end the player's turn and play on. */
-function finishPlayerTurn(ctx: StepCtx, combat: CombatState, player: Combatant): void {
+/** After the player's action: end the player's turn and play on (exported for the ability and item handlers). */
+export function finishPlayerTurn(ctx: StepCtx, combat: CombatState, player: Combatant): void {
   endTurn(ctx, combat, player);
   combat.turnIndex += 1;
   runCombat(ctx);
@@ -490,7 +510,10 @@ export const attackHandler: Handler<'attack'> = (ctx: StepCtx, a: ActionOf<'atta
     addMp(ctx, combat, player, basic.mpOnHit, `weapon:${basic.weaponType}`);
     addMp(ctx, combat, player, basic.gritOnHit, `weapon:${basic.weaponType}`);
   }
-  // TODO(U24): the heavy weapon's 10 % Stun on non-bosses (`basic.stunChance`) and interplay 15 (Physical crit on Bleeding).
+  // the heavy weapon's 10 % Stun on a non-boss it hit (U24): the status roll comes after the hit's draws (PLAN §4.10)
+  if (result.hit && !result.immune && basic.stunChance > 0 && isActive(target) && !isBoss(ctx.content, target) && rollPct(ctx.rng, Math.round(basic.stunChance * 100))) {
+    applyStatus(ctx, combat, player, target, STATUS.stun, { duration: 1 });
+  }
   finishPlayerTurn(ctx, combat, player);
 };
 

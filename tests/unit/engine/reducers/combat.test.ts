@@ -12,6 +12,8 @@ import {
   FLAG_TYRANT_DEAD,
   WANDERING_ENCOUNTER_ID,
   applyHit,
+  applyStatus,
+  applyStatusRows,
   attackEnumerator,
   critChanceOf,
   hitChanceOf,
@@ -22,6 +24,9 @@ import {
   creatureXp,
   currentActor,
   damageRange,
+  endOfTurnStatuses,
+  findStatus,
+  finishPlayerTurn,
   guardEnumerator,
   legalActions,
   moveSpec,
@@ -338,7 +343,7 @@ describe('basic attacks by weapon type (DESIGN §5.7)', () => {
   test('heavy (Warden, Nomad\'s Maul): 1.1·ATK at −5 accuracy, +5 Grit on a hit; Grit +6 when hit, +8 on Guard', () => {
     const s = shadeFight({ classId: 'ironclad_warden' }, 0);
     expect(basicAttackOf(s, content)).toMatchObject({ weaponType: 'shield_heavy', gritOnHit: 5 });
-    const out = act(s, { type: 'attack', targetUid: enemy(s).uid }, [D.pct(80), D.variance(1), D.pct(99), ...HIT()]);
+    const out = act(s, { type: 'attack', targetUid: enemy(s).uid }, [D.pct(80), D.variance(1), D.pct(99), D.pct(10), ...HIT()]); // stun roll 10: no (U24)
     expect(ofType(out.events, 'damageDealt').map((e) => e.amount)).toEqual([18, 7]); // 18.7 − 1; Rake 7
     expect(gains(out.events)).toEqual([['weapon:shield_heavy', 5], ['hit_taken', 6]]);
     expect(scriptedStep(s, { type: 'attack', targetUid: enemy(s).uid }, [D.pct(81), ...MISS], content, profile).events.filter((e) => e.t === 'damageDealt')).toEqual([]);
@@ -380,7 +385,7 @@ describe('victory (DESIGN §4.1, §6.2)', () => {
     const st = out.state;
     expect(st.mode).toBe('explore');
     expect(st.combat).toBeNull();
-    expect(st.player).toMatchObject({ hp: 60, mp: 38, xp: 41, gold: 39 });
+    expect(st.player).toMatchObject({ hp: 58, mp: 38, xp: 41, gold: 39 }); // the carried Poison ticked 2 at the turn's start (U24)
     expect(st.player.statuses.map((x) => x.statusId)).toEqual(['status_poison']);
     expect(st.player.inventory.filter((i) => ['item_dark_spellbook', 'mat_shadow_ash'].includes(i.itemId)).map((i) => i.itemId)).toEqual(['item_dark_spellbook', 'mat_shadow_ash']);
     expect(st.flags).toMatchObject({ flag_spellbook_dropped: true, flag_won: true });
@@ -682,10 +687,133 @@ describe('DESIGN §4.12 worked example — Ranger L4 vs Wildling Brute + Corrupt
     expect(ofType(out.events, 'autosaveCheckpoint')).toEqual([{ t: 'autosaveCheckpoint', reason: 'combatEnded' }]);
   });
 
+  // ---- the status parts (U24), through the status rules and the turn loop ----
+
+  /** The Ranger's ability turn (ability resolution is U26): its MP, the pipeline hit, its status rows, `extra`, then the turn loop. */
+  const abilityTurn = (s: GameState, id: string, targetIndex: number, draws: number[], extra: (ctx: ReturnType<typeof scriptedCtx>, c: CombatState) => void = () => {}) => {
+    const ctx = scriptedCtx(s, draws, content, profile);
+    const c = ctx.s.combat as CombatState;
+    const ranger = playerOf(c);
+    const target = c.enemies[targetIndex]!;
+    ranger.mp -= (content.abilities[id] as Ability).mp;
+    const sp = abilityHit(id, target);
+    const r = resolveHit(ctx, ranger, target, sp);
+    applyHit(ctx, c, ranger, target, sp, r, 'ability');
+    if (r.hit) applyStatusRows(ctx, c, ranger, target, (content.abilities[id] as Ability).statuses);
+    extra(ctx, c);
+    finishPlayerTurn(ctx, c, ranger);
+    expect(ctx.rng.queue).toEqual([]);
+    return { state: ctx.s, events: ctx.events };
+  };
+  /**
+   * The start of round 4 by the status rules: the Shade's round-3 Fade puts Phase (1) on it during its own turn, whose
+   * countdown skips it (D-066 #4); Wail's Weaken (round 2) and Marked Shot's Mark (round 2) have one turn left.
+   */
+  const round4 = (): GameState => {
+    const { s } = opening();
+    const ctx = scriptedCtx(patched(s, (c) => Object.assign(c, { round: 3, phase: 'enemyTurn', turnIndex: 1 })), [], content, profile);
+    const c = ctx.s.combat as CombatState;
+    const shade = c.enemies[1]!;
+    expect(applyStatusRows(ctx, c, shade, null, content.creatures[SHADE]!.moves.shade_fade!.statuses).map((r) => r.outcome)).toEqual(['applied']);
+    expect(findStatus(shade, 'status_phase')).toMatchObject({ duration: 1, appliedOnOwnTurn: true });
+    endOfTurnStatuses(ctx, c, shade);
+    expect(findStatus(shade, 'status_phase')).toMatchObject({ duration: 1, appliedOnOwnTurn: false });
+    expect(ofType(ctx.events, 'statusExpired')).toEqual([]);
+    return patched(ctx.s, (cc) => {
+      Object.assign(cc, { round: 4, phase: 'playerTurn', turnIndex: 0 });
+      Object.assign(cc.party[0]!, { hp: 116, mp: 48, statuses: [status('status_weaken', { duration: 1, sourceUid: cc.enemies[1]!.uid })] });
+      cc.enemies[1]!.hp = 17;
+      cc.enemies[1]!.statuses.push(status('status_mark', { duration: 1, sourceUid: cc.party[0]!.uid }));
+    });
+  };
+  /** Round 4: Rend → the Brute (Weakened: 10) with Venom Coat's Poison; the Shade's Rake 4; the Brute ticks 9 and misses. */
+  const playRound4 = () =>
+    abilityTurn(round4(), 'rgr_rend', 0, [D.pct(60), D.variance(0.98), D.pct(50), D.pct(50), D.variance(0.9), D.pct(50), D.pct(88)], (ctx, c) =>
+      void applyStatus(ctx, c, playerOf(c), c.enemies[0]!, 'status_poison', { duration: 4 }),
+    );
+
+  test('U24: Venom Coat → Poison on the Shade prints "Immune" (breach-born); Wail\'s Weaken (32 < 50) lasts 2 turns, expiring at the end of the Ranger\'s round-4 turn', () => {
+    const { s } = opening();
+    const ctx = scriptedCtx(s, [], content, profile);
+    const c = ctx.s.combat as CombatState;
+    const [ranger, shade] = [playerOf(c), c.enemies[1]!];
+    // round 2, Marked Shot: Venom Coat tries Poison
+    expect(applyStatus(ctx, c, ranger, shade, 'status_poison', { duration: 4 }).outcome).toBe('immune');
+    expect(c.log.at(-1)?.text).toBe('Corrupted Shade: Immune to Poison.');
+    expect(ofType(ctx.events, 'statusApplied')).toEqual([]);
+    // the Shade's round-2 Wail: one roll after the hit's draws; 32 < 50 Weakens, a 50 would not
+    Object.assign(c, { round: 2, phase: 'enemyTurn', turnIndex: 1 });
+    const wail = content.creatures[SHADE]!.moves.shade_wail!.statuses;
+    ctx.rng.queue.push(D.pct(50), D.pct(32));
+    expect(applyStatusRows(ctx, c, shade, ranger, wail).map((r) => r.outcome)).toEqual(['failed']);
+    expect(applyStatusRows(ctx, c, shade, ranger, wail).map((r) => r.outcome)).toEqual(['applied']);
+    expect(findStatus(ranger, 'status_weaken')).toEqual({ statusId: 'status_weaken', stacks: 1, duration: 2, sourceUid: shade.uid, appliedOnOwnTurn: false });
+    // rounds 3 and 4 through the turn loop (the Ranger guards; the placeholder enemies miss)
+    const r3 = patched(ctx.s, (cc) => Object.assign(cc, { round: 3, phase: 'playerTurn', turnIndex: 0 }));
+    const after3 = act(r3, { type: 'guard' }, [...MISS, ...MISS]);
+    expect(findStatus(me(after3.state), 'status_weaken')?.duration).toBe(1);
+    const after4 = act(after3.state, { type: 'guard' }, [...MISS, ...MISS]);
+    const ev = after4.events;
+    expect(ofType(ev, 'statusExpired')).toEqual([{ t: 'statusExpired', targetUid: ranger.uid, statusId: 'status_weaken' }]);
+    expect(ev.findIndex((e) => e.t === 'statusExpired')).toBeLessThan(ev.findIndex((e) => e.t === 'turnStarted' && e.uid === shade.uid));
+    expect(after4.state.combat?.round).toBe(5);
+  });
+
+  test("U24: the Shade's Phase (Fade, round 3) skips that turn's countdown, survives the Ranger's round-4 turn and expires at the end of the Shade's round-4 turn", () => {
+    const s4 = round4();
+    const shadeUid = enemy(s4, 1).uid;
+    const { events } = playRound4();
+    const at = (pred: (e: GameEvent) => boolean) => events.findIndex(pred);
+    const shadeTurn = at((e) => e.t === 'turnStarted' && e.uid === shadeUid);
+    const shadeRake = at((e) => e.t === 'attackResolved' && e.sourceUid === shadeUid);
+    const phaseGone = at((e) => e.t === 'statusExpired' && e.targetUid === shadeUid && e.statusId === 'status_phase');
+    const bruteTurn = at((e) => e.t === 'turnStarted' && e.uid === enemy(s4, 0).uid);
+    expect(shadeTurn).toBeGreaterThan(0); // the Ranger's Rend went to the Brute: the Phase was there, unused
+    expect([shadeTurn < shadeRake, shadeRake < phaseGone, phaseGone < bruteTurn]).toEqual([true, true, true]);
+    // §4.5's turns-of-the-afflicted rule also ends Marked Shot's Mark (3, round 2) here; DESIGN's round 5 still reads
+    // "Marked" (a DESIGN inconsistency reported by U24) — the round-5 blow below rolls to hit and deals 27, not 31.
+    expect(ofType(events, 'statusExpired').filter((e) => e.targetUid === shadeUid).map((e) => e.statusId)).toEqual(['status_phase', 'status_mark']);
+  });
+
+  test('U24: Brute start-of-turn ticks Bleed 5 + Poison 4 = 9 in rounds 4, 5 and 6 (54 → 45 → 36; 8 → dies before acting in round 6)', () => {
+    const r4 = playRound4();
+    const bruteUid = enemy(r4.state, 0).uid;
+    const ticks = (ev: GameEvent[]) => ofType(ev, 'statusTicked').filter((e) => e.targetUid === bruteUid).map((e) => [e.statusId, e.amount]);
+    expect(findStatus(enemy(r4.state, 0), 'status_bleed')).toMatchObject({ tick: 5, stacks: 1, duration: 2 }); // round(1 + 0.2·18), 3 turns
+    expect(findStatus(enemy(r4.state, 0), 'status_poison')).toMatchObject({ tick: 4, duration: 3 }); // round(1 + 0.15·18), 4 turns
+    expect(ticks(r4.events)).toEqual([['status_bleed', 5], ['status_poison', 4]]);
+    expect(ofType(r4.events, 'damageDealt').map((e) => e.amount)).toEqual([10, 4]); // Rend 10.23; Rake 4.3
+    expect(ofType(r4.events, 'attackResolved').at(-1)).toMatchObject({ sourceUid: bruteUid, hit: false }); // 88 vs 82
+    expect([enemy(r4.state, 0).hp, me(r4.state).hp, me(r4.state).mp]).toEqual([45, 112, 40]);
+    // round 5: the sword on the Shade (no longer Marked: hit roll 50; crit 07 < 9): 18 × 1.02 × 1.5 − 1 = 26.54 → 27 ≥ 17
+    const r5 = act(r4.state, { type: 'attack', targetUid: enemy(r4.state, 1).uid }, [D.pct(50), D.variance(1.02), D.pct(7), D.pct(10), D.variance(0.91), D.pct(50)]);
+    expect(ofType(r5.events, 'damageDealt').map((e) => e.amount)).toEqual([27, 8]);
+    expect(ticks(r5.events)).toEqual([['status_bleed', 5], ['status_poison', 4]]);
+    expect([enemy(r5.state, 0).hp, enemy(r5.state, 1).alive, me(r5.state).hp, me(r5.state).mp]).toEqual([36, false, 104, 52]);
+    // round 6: Piercing Arrow 28 (36 → 8); the Brute's third Bleed tick and its Poison: 9 ≥ 8 — it never swings
+    const r6 = abilityTurn(r5.state, 'rgr_piercing_arrow', 0, [
+      D.pct(30), D.variance(1.04), D.pct(50),
+      D.int(14, 11, 18), D.yes, D.no, D.yes, // Brute: gold 14; Tonic yes, Hide Armor no, Wildling Hide yes
+      D.int(9, 7, 12), D.yes, // Shade: gold 9; spellbook without a draw; Shadow Ash yes
+    ]);
+    expect(ticks(r6.events)).toEqual([['status_bleed', 5], ['status_poison', 4]]);
+    expect(ofType(r6.events, 'attackResolved').map((e) => e.sourceUid)).toEqual([me(r5.state).uid]);
+    expect(ofType(r6.events, 'combatantDefeated').map((e) => e.uid)).toEqual([bruteUid]);
+    expect(r6.state.mode).toBe('explore');
+    expect(r6.state.player).toMatchObject({ hp: 104, hpMax: 148, mp: 40, mpMax: 57, xp: 112 });
+    expect(ofType(r6.events, 'combatEnded')[0]).toMatchObject({ result: 'victory', rounds: 6, xp: 112, gold: 23 });
+    expect(r6.state.counters.damageBySource).toMatchObject({ 'status:status_bleed': 15, 'status:status_poison': 12 });
+  });
+
+  test('U24: "The Brute bleeds out before it can swing" — in the fight log, and the fight goes on while the Shade stands', () => {
+    const s = patched(playRound4().state, (c) => void (c.enemies[0]!.hp = 8));
+    const out = act(s, { type: 'guard' }, MISS); // round 5: the Shade's Rake misses; the Brute's ticks (9 ≥ 8) kill it before it acts
+    expect(out.state.combat).toMatchObject({ round: 6, phase: 'playerTurn' });
+    expect(enemy(out.state, 0)).toMatchObject({ alive: false, hp: 0 });
+    expect(out.state.combat?.log.map((l) => l.text)).toContain('Wildling Brute bleeds out before it can act.');
+  });
+
   // Pending on later units, with the exact values DESIGN §4.12 prints:
-  test.todo('U24: Venom Coat → Poison on the Shade prints "Immune" (Poison-immune breach-born); Weaken (32 < 50) applied by Wail for 2 turns, expiring at the end of round 4');
-  test.todo('U24: Brute start-of-turn ticks Bleed 5 + Poison 4 = 9 in rounds 4, 5 and 6 (54 → 45 → 36; 8 → dies before acting in round 6)');
-  test.todo("U24: the Shade's Phase (Fade, round 3) skips that turn's countdown, survives the Ranger's round-4 turn and expires at the end of the Shade's round-4 turn");
   test.todo('U25: intents Wail → Ranger 5–6 "may Weaken" (r1), Fade "shrouds itself" on hp 47 % < 70 % (r2), Maul 14–17 (r2), Strike 8–10 (r3), Rake 4–6 (r3, r4), Maul 14–17 (r5)');
   test.todo('U26: ability costs Venom Coat 6 → 51, Marked Shot 8 → 43, Rend 8 → 40, Piercing Arrow 12 → 40 (final 104/148 HP, 40/57 MP)');
   test.todo('U27: bestiary — Corrupted Shade kills 1 (resistances now shown), Wildling Brute kills 1');

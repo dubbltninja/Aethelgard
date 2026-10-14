@@ -7,15 +7,23 @@
 //
 // Rolls (PLAN §4.10). A percentage is one `rng.int(0, 99) < chance` draw; a certain or impossible chance draws nothing
 // (like `Rng.chance`). Variance is one `rng.next()` mapped linearly onto [0.90, 1.10). The draw order per hit is fixed:
-//   hit (unless certain: Mark, `cannotMiss`, hit% 100) → variance → crit (unless guaranteed or impossible)
-// and status chances follow in their listed order (U24). A miss draws nothing after the hit roll. An immune target
-// still costs the variance and crit draws, so a replay never depends on resistances.
+//   hit (unless certain: Mark, `cannotMiss`, hit% 100; or impossible: Phase) → variance → crit (unless guaranteed or
+//   impossible)
+// and status chances follow in their listed order (combat/statuses.ts `applyStatusRows`). A miss draws nothing after
+// the hit roll. An immune target still costs the variance and crit draws, so a replay never depends on resistances.
+//
+// Status rules that change a number live here (U24, DESIGN §4.5–4.6): Phase evades a single-target non-Chrono attack
+// (hit% 0, interplay 10); Void treats `resist` as neutral against a Cursed target (D-067.18, hits and ticks); step 6
+// is the interplay table's multipliers (rows 1, 2, 9, 13); step 7 adds Shock's +25 % Storm. The Shield pool is the
+// Shield instance's `StatusInstance.tick` (the status's stored magnitude, like a DoT's tick or Regen's heal).
+// What a status rule *does* to statuses (removals, spreads, stacks) is combat/statuses.ts `afterHit`.
 //
 // Nothing here mutates: callers apply a HitResult (reducers/combat.ts `applyHit`, `consumeShield`).
+import type { Status } from '@schema/status';
 import type { ContentPack } from '../ctx';
 import { derive, hitChance } from '../derived';
 import type { Rng } from '../rng';
-import type { Combatant, DamageType, GameState, Resistance } from '../types/state';
+import type { Combatant, DamageType, GameState, Resistance, StatusInstance } from '../types/state';
 import { clamp, round } from '../util/math';
 
 /** DESIGN §4.4: the four resistance steps. */
@@ -29,10 +37,21 @@ export const ARMOR_BREAK_PHYSICAL_MULT = 1.15;
 export const STATUS_MARK = 'status_mark';
 export const STATUS_ARMOR_BREAK = 'status_armor_break';
 export const STATUS_SHIELD = 'status_shield';
+export const STATUS_SOAKED = 'status_soaked';
+export const STATUS_SHOCK = 'status_shock';
+export const STATUS_CURSE = 'status_curse';
+export const STATUS_REWIND = 'status_rewind';
+export const STATUS_PHASE = 'status_phase';
+
+/** DESIGN §4.6 step-6 multipliers: rows 1 (Storm on Soaked), 2 (Fire on Soaked), 9 (Void on Rewind), 13 (Ley on Curse). */
+export const INTERPLAY_MULT = { stormOnSoaked: 1.5, fireOnSoaked: 0.5, voidOnRewind: 1.25, leyOnCurse: 1.25 } as const;
+/** DESIGN §4.5: a Shocked target takes +25 % Storm (step 7). */
+export const SHOCK_STORM_MULT = 1.25;
 
 /** Binary fractions (6.3 × 0.9 − 1 = 4.669999…) must not lose a half on the way to "round half-up". */
 const ROUND_EPSILON = 1e-9;
-const roundHalfUp = (x: number): number => round(x + (x >= 0 ? ROUND_EPSILON : -ROUND_EPSILON));
+/** Round half-up, robust to binary fractions (the pipeline's one rounding; status magnitudes at application). */
+export const roundHalfUp = (x: number): number => round(x + (x >= 0 ? ROUND_EPSILON : -ROUND_EPSILON));
 
 /** What the pipeline reads: the state (run modifiers, the player's gear), the pack, and — for resolveHit — the Rng. */
 export interface PipelineCtx {
@@ -65,6 +84,8 @@ export interface HitSpec {
   ignoresArmor?: boolean;
   guaranteedCrit?: boolean;
   cannotMiss?: boolean;
+  /** An area hit ('all'): Phase does not evade it (DESIGN §4.2). Default: single-target. */
+  aoe?: boolean;
   /** Step-7 multipliers the caller evaluated (ability bonuses such as ×1.25 vs Marked, Collapse's missing-HP bonus). */
   mults?: readonly { name: string; mult: number }[];
 }
@@ -76,6 +97,8 @@ export interface PipelineStep {
 
 export interface HitResult {
   hit: boolean;
+  /** The miss was the target's Phase (the caller consumes it, statuses.ts `afterHit`). */
+  phased: boolean;
   crit: boolean;
   /** The resistance step was `immune` (the chip prints "Immune"). */
   immune: boolean;
@@ -150,12 +173,31 @@ export function guardValueOf(r: PipelineRead, target: Combatant): number {
   return target.kind === 'player' ? derive(r.s.player, r.content).guardValue : r.content.config.guardValue;
 }
 
+/** Who a resistance step or a status rule reads: resistances, and statuses when the holder has any. */
+export type ResistHolder = Pick<Combatant, 'resistances'> & { readonly statuses?: readonly Pick<StatusInstance, 'statusId'>[] };
+
+/** DESIGN §4.4 step 5 for `type` against `target`; D-067.18: Void treats `resist` as neutral against a Cursed target. */
+export function effectiveResistance(target: ResistHolder, type: DamageType): Resistance {
+  const r = target.resistances[type] ?? 'neutral';
+  return r === 'resist' && type === 'void' && (target.statuses?.some((st) => st.statusId === STATUS_CURSE) ?? false) ? 'neutral' : r;
+}
+
+/** DESIGN §4.2/§4.5: Phase makes the next single-target attack against its holder miss; AoE and Chrono ignore it (row 10). */
+export const phaseEvades = (target: Pick<Combatant, 'statuses'>, spec: Pick<HitSpec, 'aoe' | 'type'>): boolean =>
+  !spec.aoe && spec.type !== 'chrono' && hasStatus(target, STATUS_PHASE);
+
 /**
- * DESIGN §4.3 step 6 — interplay multipliers (§4.6). TODO(U24): the interplay table (Storm on Soaked ×1.5, Fire on
- * Soaked ×0.5, Void on Rewind ×1.25, Ley on Cursed ×1.25 …). Returns the multipliers to apply, in order.
+ * DESIGN §4.3 step 6 — the interplay table's multipliers (§4.6), in row order: Storm on Soaked ×1.5 (1), Fire on Soaked
+ * ×0.5 (2), Void on Rewind ×1.25 (9), Ley on Cursed ×1.25 (13). Rows 17–18 are status definitions (step 7); the rows
+ * that change statuses are combat/statuses.ts `afterHit`.
  */
-export function interplayMults(_r: PipelineRead, _attacker: Combatant, _target: Combatant, _spec: HitSpec): PipelineStep[] {
-  return [];
+export function interplayMults(_r: PipelineRead, _attacker: Combatant, target: Combatant, spec: HitSpec): PipelineStep[] {
+  const out: PipelineStep[] = [];
+  if (spec.type === 'storm' && hasStatus(target, STATUS_SOAKED)) out.push({ name: 'storm on soaked', value: INTERPLAY_MULT.stormOnSoaked });
+  if (spec.type === 'fire' && hasStatus(target, STATUS_SOAKED)) out.push({ name: 'fire on soaked', value: INTERPLAY_MULT.fireOnSoaked });
+  if (spec.type === 'void' && hasStatus(target, STATUS_REWIND)) out.push({ name: 'void on rewind', value: INTERPLAY_MULT.voidOnRewind });
+  if (spec.type === 'ley' && hasStatus(target, STATUS_CURSE)) out.push({ name: 'ley on curse', value: INTERPLAY_MULT.leyOnCurse });
+  return out;
 }
 
 /** DESIGN §4.3 step 7 — every percentage modifier, multiplicatively, in a fixed order. */
@@ -169,6 +211,7 @@ function statusStepMults(r: PipelineRead, attacker: Combatant, target: Combatant
   }
   for (const pct of statusMods(target, r.content).incoming) out.push({ name: 'target status', value: 1 + pct });
   if (spec.type === 'physical' && hasStatus(target, STATUS_ARMOR_BREAK)) out.push({ name: 'armor break', value: ARMOR_BREAK_PHYSICAL_MULT });
+  if (spec.type === 'storm' && hasStatus(target, STATUS_SHOCK)) out.push({ name: 'shock', value: SHOCK_STORM_MULT });
   for (const m of spec.mults ?? []) out.push({ name: m.name, value: m.mult });
   out.push(...runMultipliers(r, attacker, target));
   return out;
@@ -185,9 +228,13 @@ export function scaledPower(attacker: Combatant, spec: Pick<HitSpec, 'base' | 'c
   return Math.max(main, spec.maxOf.base + spec.maxOf.coef * statOf(attacker, spec.maxOf.stat));
 }
 
-/** DESIGN §3.2 hit% for this hit (live status accuracy/evasion; Mark and `cannotMiss` make it 100). */
+/**
+ * DESIGN §3.2 hit% for this hit (live status accuracy/evasion; Mark and `cannotMiss` make it 100). Phase makes it 0
+ * first: a Phased target that is also Marked still evades, and the Phase's consumption cleanses the Mark (DESIGN §4.5).
+ */
 export function hitChanceOf(content: ContentPack, attacker: Combatant, target: Combatant, spec: HitSpec): number {
   const { config } = content;
+  if (phaseEvades(target, spec)) return 0;
   if (spec.cannotMiss || hasStatus(target, STATUS_MARK)) return 100;
   const accuracy = attacker.accuracy + statusMods(attacker, content).accuracy + (spec.spell ? config.spellAccuracyBonus : 0) + (spec.accuracy ?? 0);
   const evasion = target.evasion + statusMods(target, content).evasion;
@@ -240,15 +287,15 @@ function compute(r: PipelineRead, attacker: Combatant, target: Combatant, spec: 
   // 4 crit
   if (rolled.crit) x *= attacker.critMult;
   push('crit', x);
-  // 5 resistance / weakness (immune short-circuits to 0)
-  const resistance = target.resistances[spec.type] ?? 'neutral';
+  // 5 resistance / weakness (immune short-circuits to 0; D-067.18 Void vs Cursed)
+  const resistance = effectiveResistance(target, spec.type);
   x *= RESIST_MULT[resistance];
   push('resistance', x);
   if (resistance === 'immune') {
     push('final', 0);
     return { immune: true, amount: 0, absorbed: 0, shieldBroken: false, mitigated: 0, steps };
   }
-  // 6 interplay (U24), 7 status / percentage modifiers
+  // 6 interplay, 7 status / percentage modifiers
   for (const m of interplayMults(r, attacker, target, spec)) x *= m.value;
   push('interplay', x);
   for (const m of statusStepMults(r, attacker, target, spec)) x *= m.value;
@@ -263,7 +310,7 @@ function compute(r: PipelineRead, attacker: Combatant, target: Combatant, spec: 
   const mitigated = Math.max(0, roundHalfUp(beforeMitigation - x));
   // 10 Shield (Void destroys it first: no absorption)
   const shield = target.statuses.find((st) => st.statusId === STATUS_SHIELD);
-  const pool = shield?.tick ?? 0; // TODO(U24): where the Shield pool lives; `tick` holds it until then
+  const pool = shield?.tick ?? 0; // the Shield pool is the instance's stored magnitude (U24)
   let absorbed = 0;
   let shieldBroken = false;
   if (shield && spec.type === 'void') shieldBroken = true;
@@ -285,12 +332,13 @@ export function resolveHit(ctx: PipelineCtx, attacker: Combatant, target: Combat
   const critPct = critChanceOf(ctx.content, attacker, spec);
   const hitStep: PipelineStep = { name: 'hit%', value: hitPct };
   if (!rollPct(ctx.rng, hitPct)) {
-    return { hit: false, crit: false, immune: false, hitChance: hitPct, critChance: critPct, variance: null, amount: 0, absorbed: 0, shieldBroken: false, mitigated: 0, steps: [hitStep] };
+    const phased = phaseEvades(target, spec);
+    return { hit: false, phased, crit: false, immune: false, hitChance: hitPct, critChance: critPct, variance: null, amount: 0, absorbed: 0, shieldBroken: false, mitigated: 0, steps: [hitStep] };
   }
   const variance = drawVariance(ctx.rng);
   const crit = rollPct(ctx.rng, critPct);
   const c = compute(ctx, attacker, target, spec, { variance, crit, guard: target.guarding });
-  return { hit: true, crit, immune: c.immune, hitChance: hitPct, critChance: critPct, variance, amount: c.amount, absorbed: c.absorbed, shieldBroken: c.shieldBroken, mitigated: c.mitigated, steps: [hitStep, ...c.steps] };
+  return { hit: true, phased: false, crit, immune: c.immune, hitChance: hitPct, critChance: critPct, variance, amount: c.amount, absorbed: c.absorbed, shieldBroken: c.shieldBroken, mitigated: c.mitigated, steps: [hitStep, ...c.steps] };
 }
 
 export interface RangeOptions {
@@ -330,11 +378,12 @@ export interface TickResult {
 
 /**
  * A DoT tick (DESIGN §4.5, D-066 #4): the stored amount × the damage type's resistance step, rounded half-up, at least
- * 1 unless immune, at most max HP. No variance, crit, armor, ward or Guard. Untyped ticks (Poison) ignore resistance.
+ * 1 unless immune, at most max HP. No variance, crit, armor, ward, Guard, interplay or Shield (PLAN §8.1 "DoT ticks take
+ * resistance only"). Untyped ticks (Poison) ignore resistance. D-067.18 applies (a Curse tick on a void-resistant target).
  */
-export function resolveTick(target: Pick<Combatant, 'resistances' | 'hpMax'>, amount: number, type?: DamageType): TickResult {
+export function resolveTick(target: ResistHolder & Pick<Combatant, 'hpMax'>, amount: number, type?: DamageType): TickResult {
   const steps: PipelineStep[] = [{ name: 'tick', value: amount }];
-  const mult = type === undefined ? 1 : RESIST_MULT[target.resistances[type] ?? 'neutral'];
+  const mult = type === undefined ? 1 : RESIST_MULT[effectiveResistance(target, type)];
   const x = amount * mult;
   steps.push({ name: 'resistance', value: x });
   if (mult === 0) {
@@ -344,6 +393,17 @@ export function resolveTick(target: Pick<Combatant, 'resistances' | 'hpMax'>, am
   const final = amount <= 0 ? 0 : Math.min(target.hpMax, Math.max(1, roundHalfUp(x)));
   steps.push({ name: 'final', value: final });
   return { amount: final, immune: false, steps };
+}
+
+/**
+ * One DoT instance's tick against its holder — the rule every tick uses, in a fight (statuses.ts) and per watch outside
+ * one (turnOrder.ts `tickCarriedWatch`): the stored tick (computed at application; the status's `base` if none) × stacks
+ * when it ticks per stack, then `resolveTick` with the status's damage type. Null for a status that deals no damage.
+ */
+export function dotDamage(holder: ResistHolder & Pick<Combatant, 'hpMax'>, st: Pick<StatusInstance, 'tick' | 'stacks'>, def: Pick<Status, 'tick'> | undefined): TickResult | null {
+  const dmg = def?.tick?.damage;
+  if (!dmg) return null;
+  return resolveTick(holder, (st.tick ?? dmg.base) * (dmg.perStack ? st.stacks : 1), dmg.type);
 }
 
 export interface HealSpec {

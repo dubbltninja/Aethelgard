@@ -35,3 +35,5 @@ export * from './echoes';
 export * from './rarity';
 export * from './reducers/economy';
 export * from './reducers/crafting';
+export * from './reducers/quests';
+export * from './reducers/dialogue';

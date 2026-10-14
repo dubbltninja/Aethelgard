@@ -12,10 +12,11 @@
 //   combat                custom `second_wind` (reducers/combat.ts), `reveal_resistances` (Echo-Sense, combat/rewards.ts)
 //   explore               custom `travel_regen` { hpPct, mpPct } (Light Step), `remembered_steps`, `free_inn_rest` (Old
 //                         Road) — reducers/explore.ts
+//   companions            custom `loyalty_gain` { pct } (Companion's Trust: the `loyalty` effect's gains) and
+//                         loyalty_start (added to a recruit's start, effects.ts `recruit` and echoes.ts bond starts) — U33
 //   prices and fees       shop_discount_pct (Kaelen's Ledger: reducers/economy.ts `ledgerDiscount`), custom
 //                         `forge_discount` { pct } (Borin's Favor: reducers/crafting.ts `forgeDiscount`) — U34
-//   not read yet          custom `foresight` (intents), custom `loyalty_gain` { pct } and loyalty_start (recruitment
-//                         and the loyalty effect, U32/U33), rest_heal_pct, flee_pct (no DESIGN row uses them)
+//   not read yet          custom `foresight` (intents), rest_heal_pct, flee_pct (no DESIGN row uses them)
 // Modifiers (`meta.modifiers`, copied from the profile's toggles when the run starts): `clock_base_watches` (newRun) and
 // its halving (effects.ts `changeLimit`, and the Attunement clock above), `damage_multiplier` (combat/damage.ts on hits,
 // `modifierDamageMult` on DoT ticks), `xp_sources` (no kill XP; the other XP ×2, VOW_XP_MULT), `disable_attunements`
@@ -64,7 +65,7 @@ export const ATT_SCRIPT = {
   foresight: 'foresight',
   /** Borin's Favor: `{ pct: 0.15 }` off Emberforge fees (reducers/crafting.ts `forgeDiscount`, U34). */
   forgeDiscount: 'forge_discount',
-  /** Companion's Trust (not read yet, U32/U33): `{ pct: 0.25 }` more loyalty gained. */
+  /** Companion's Trust: `{ pct: 0.25 }` more loyalty gained (effects.ts `loyalty`, U33). */
   loyaltyGain: 'loyalty_gain',
 } as const;
 
@@ -159,6 +160,13 @@ export function attunementScript(
 export function scriptNumber(player: Pick<PlayerState, 'attunements'>, content: ContentPack, scriptId: string, param: string): number {
   const value = attunementScript(player, content, scriptId)?.params[param];
   return typeof value === 'number' ? value : 0;
+}
+
+/** U33: the active Attunements' `loyalty_start` amounts, summed — added to a companion's loyalty when it is recruited. */
+export function loyaltyStartBonus(player: Pick<PlayerState, 'attunements'>, content: ContentPack): number {
+  let sum = 0;
+  for (const { effect } of attunementEffects(player, content)) if (effect.kind === 'loyalty_start') sum += effect.amount;
+  return sum;
 }
 
 // ---- XP ---------------------------------------------------------------------------------------------------------------------

@@ -81,6 +81,7 @@ describe('enumeration over a stand-in table', () => {
   const table: EnumeratorTable = {
     ...ENUMERATORS,
     save: () => [], // U22 lists save slots; this table is about move/rest/wait/attack
+    talk: () => [], // U33 lists the NPCs with a scene
     move: () => [
       { type: 'move', to: 'loc_whispering_ruins' },
       { type: 'move', to: 'loc_heartstone_depths' },

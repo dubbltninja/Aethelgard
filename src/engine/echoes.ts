@@ -32,8 +32,9 @@
 // The tables key Echoes by id; an Echo the engine grants is also on `ENGINE_GRANTED_ECHOES` (schema/echo.ts, D-082).
 import { hasEcho, repTier } from './conditions';
 import type { ContentPack, StepCtx } from './ctx';
-import { enterStage } from './effects';
+import { LOYALTY_MAX, enterStage } from './effects';
 import { grantKnownEcho } from './horde';
+import { loyaltyStartBonus } from './runRules';
 import type { PostStepHook } from './step';
 import type { Profile } from './types/profile';
 import type { FactionId, GameState, Mode } from './types/state';
@@ -133,19 +134,27 @@ export function jailerSourcesHeld(s: GameState, profile: Pr): number {
 
 // ---- writes --------------------------------------------------------------------------------------------------------------
 
-/** Raises a recruited companion to its bond start (`loyaltyChanged`); a start never lowers loyalty. */
-function applyBond(ctx: StepCtx, companionId: string): void {
+/**
+ * Raises a recruited companion to its bond start (`loyaltyChanged`); a start never lowers loyalty. U33: the start is
+ * the bond's plus the Attunements' `loyalty_start`; for a companion recruited this step (`recruit` already set its plain
+ * start + that bonus) the bond adds what it is above the plain start, so loyalty the same step changed is kept.
+ */
+function applyBond(ctx: StepCtx, companionId: string, recruitedNow = false): void {
   const c = ctx.s.companions.recruited[companionId];
   if (c === undefined || c.dead) return;
-  const start = bondLoyalty(ctx.s, ctx.profile, companionId);
+  const bond = bondLoyalty(ctx.s, ctx.profile, companionId);
+  if (bond === 0) return;
+  const plain = ctx.content.companions[companionId]?.startingLoyalty ?? 0;
+  const target = recruitedNow ? c.loyalty + Math.max(0, bond - plain) : bond + loyaltyStartBonus(ctx.s.player, ctx.content);
+  const start = Math.min(LOYALTY_MAX, target);
   if (c.loyalty >= start) return;
   const delta = start - c.loyalty;
   c.loyalty = start;
   ctx.emit({ t: 'loyaltyChanged', companionId, delta, value: start });
 }
 
-/** Moves a running quest on to its shortcut stage while it is still before it. */
-function applyShortcut(ctx: StepCtx, questId: string): void {
+/** Moves a running quest on to its shortcut stage while it is still before it (reducers/quests.ts calls it first, U33). */
+export function applyShortcut(ctx: StepCtx, questId: string): void {
   const { s, content } = ctx;
   const sc = shortcutFor(s, ctx.profile, content, questId);
   const qs = s.quests[questId];
@@ -219,7 +228,7 @@ function closingLoop(ctx: StepCtx): boolean {
  */
 export const echoPostStep: PostStepHook = (ctx) => {
   for (const e of ctx.events.slice()) {
-    if (e.t === 'companionRecruited') applyBond(ctx, e.companionId);
+    if (e.t === 'companionRecruited') applyBond(ctx, e.companionId, true);
     else if (e.t === 'questStarted') applyShortcut(ctx, e.questId);
   }
   const closing = closingLoop(ctx);

@@ -54,14 +54,14 @@ const testHandlers: HandlerTable = {
 const testStep = createStep(testHandlers);
 
 describe('rejection (D-043)', () => {
-  test('a stub handler rejects: same state/profile references, one actionRejected event naming the unit', () => {
+  test('a handler rejects: same state/profile references, one actionRejected event with its reason', () => {
     const { state, profile } = frozenInputs();
     const before = snapshot(state, profile);
-    const action: Action = { type: 'talk', npcId: 'npc_ilyra' };
+    const action: Action = { type: 'talk', npcId: 'npc_nobody' }; // U33's reducer (it was a stub until then)
     const out = step(state, action, content, profile);
     expect(out.state).toBe(state);
     expect(out.profile).toBe(profile);
-    expect(out.events).toEqual([{ t: 'actionRejected', action, reason: "'talk' is not implemented yet (U33)" }]);
+    expect(out.events).toEqual([{ t: 'actionRejected', action, reason: 'npc_nobody is not here' }]);
     expect(snapshot(state, profile)).toBe(before);
   });
 

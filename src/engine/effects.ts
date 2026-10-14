@@ -5,9 +5,17 @@
 //
 // Minimal implementations, marked TODO(Uxx) where the owning system adds behaviour later:
 // xp (level-ups U21), heal/damage (combat snapshots U23; never lethal, D-072),
-// passWatches (dawn hooks, warnings and expiry U20), teleport (entry hooks U20), questAdvance (outcomes/rewards U33),
-// recruit (bond-Echo loyalty start: echoes.ts `echoPostStep`, U32; max HP by level: combat/companionAi.ts
-// `companionPostStep`, U28). grantEcho: once per loop, never beside an `exclusiveWith` Echo, then `onGrant` (U32).
+// passWatches (dawn hooks, warnings and expiry U20), teleport (entry hooks U20). grantEcho: once per loop, never beside
+// an `exclusiveWith` Echo, then `onGrant` (U32).
+// recruit: loyalty starts at the companion's `startingLoyalty` + the Attunements' `loyalty_start` (U33); a bond Echo
+// raises it to 25 + that bonus after the step (echoes.ts `echoPostStep`, U32); max HP by level: combat/companionAi.ts
+// `companionPostStep` (U28). loyalty: gains × (1 + Companion's Trust, `loyalty_gain`; U33).
+// Quests (U33): questStart/questAdvance/questFail go through the stage machine's transitions below (`enterStage`,
+// `finishQuest`: onExit → onEnter → an `outcome` ends the quest; completion pays `rewards` once). Objectives, branches,
+// `failWhen`, time limits and auto-starts are swept after every step by reducers/quests.ts.
+// startDialogue (U33): `openScene` below — a scene's lifecycle (open → entry node → nodes → close) lives here because
+// effects must start it inside the step and src/engine has no import cycles; reducers/dialogue.ts picks scenes for
+// `talk`/camp and plays choices.
 // endLoop/ending enter ending mode; the loop's end (RunRecord, Resonance, profile writes) runs after the step's
 // effects in U30's `loopEndHook` (reducers/loop.ts).
 // startCombat starts the encounter (U23, combat/turnOrder.ts; the fight plays from the combat post-step hook).
@@ -15,19 +23,21 @@
 // stands); unlockRecipe marks a recipe known for the loop (`player.uses['recipe:<id>']`, which `requiresItemRead`
 // reads, reducers/crafting.ts); revive brings a knocked-out companion round at a share of its max HP, in a fight or
 // out of one (combat/revive.ts; Lanternreed Salts, D-080).
-// Not yet applicable — they reject the action, naming the unit: startDialogue (U33) and the five combat-scope atoms
-// (U26/U27; D-069.9).
+// Not yet applicable — they reject the action, naming the unit: the five combat-scope atoms (U26/U27; D-069.9).
+import type { DialogueNode, DialogueScene } from '@schema/dialogue';
 import type { Effect, EffectAtoms, EffectKey } from '@schema/effect';
+import type { Quest } from '@schema/quest';
 import { reviveCompanion } from './combat/revive';
 import { startEncounterById } from './combat/turnOrder';
-import { atomOf, dayOf, daysLeft, repTier, watchOf, TICKS_PER_DAY } from './conditions';
-import { enterMode, type StepCtx } from './ctx';
+import { atomOf, dayOf, daysLeft, evaluate, repTier, watchOf, TICKS_PER_DAY } from './conditions';
+import { enterMode, type ContentPack, type StepCtx } from './ctx';
 import { defaultRarity, isStackable } from './newRun';
 import { grantXp } from './progression';
 import { lootBand, rollPiece } from './rarity';
-import { scaleXp } from './runRules';
-import type { ItemInstance, LocationState, QuestState } from './types/state';
-import { clamp } from './util/math';
+import { ATT_SCRIPT, loyaltyStartBonus, scaleXp, scriptNumber } from './runRules';
+import type { Profile } from './types/profile';
+import type { DialogueState, GameState, ItemInstance, LocationState, QuestState } from './types/state';
+import { clamp, round } from './util/math';
 
 export interface ApplyOptions {
   /** What caused the effect ('choice:c_destroy', 'quest:q_x', 'item:i3' …); shown in events and the clock audit trail. */
@@ -143,12 +153,35 @@ export function removeItem(ctx: StepCtx, itemId: string, count: number): number 
   return count - left;
 }
 
-const killBaseline = (ctx: StepCtx): Record<string, number> =>
-  Object.fromEntries(Object.entries(ctx.s.counters.kills).map(([id, n]) => [`kills:${id}`, n]));
+// ---- quests: the stage machine's transitions (U33; DESIGN §13.1, PLAN §5.9) ----------------------------------------------
+//
+// A quest is active at one stage. Entering a stage: the previous stage's `onExit`, then the stage is current (its
+// objectives start over; the kill baseline `killed.sinceStage` reads, its start day and its place in the history are
+// written to `QuestState.counters`), `questAdvanced`, its `onEnter`; a stage with an `outcome` then ends the quest.
+// Completing pays `rewards` once (xp, gold, items, rep, Echoes, Resonance); failing runs `onFail`. reducers/quests.ts
+// decides *when* a stage advances (objectives, `advanceWhen`, `next`, `failWhen`, `timeLimitDays`, `startWhen`).
+
+/** `QuestState.counters` key: the Breach-Clock day the current stage began (`timeLimitDays`). */
+export const STAGE_DAY = 'stageDay';
+/** `QuestState.counters` key prefix: `stage:<id>` = the order the stage was entered (1, 2, …) — the journal's history. */
+export const STAGE_ORDER = 'stage:';
+
+/** A once-per-profile quest (`repeatablePerLoop: false`) already completed in an earlier loop (its record or its paid Resonance). */
+export function questDoneEarlier(profile: Readonly<Profile>, questId: string): boolean {
+  return profile.discoveries.includes(`quest:${questId}`) || profile.runHistory.some((r) => r.questsCompleted.includes(questId));
+}
+
+/** True when `questId` may start now as far as the engine is concerned: inactive and, if once per profile, never completed. */
+export function questStartable(s: GameState, profile: Readonly<Profile>, questId: string, def: Pick<Quest, 'repeatablePerLoop'>): boolean {
+  const status = s.quests[questId]?.status ?? 'inactive';
+  return status === 'inactive' && !(def.repeatablePerLoop === false && questDoneEarlier(profile, questId));
+}
+
+const isOpen = (qs: QuestState | undefined): boolean => qs?.status === 'active';
 
 /**
- * Puts a quest at `stage` (starting it if needed) and records the kill baseline that `killed.sinceStage` reads.
- * Emits questStarted (if it starts) and questAdvanced. TODO(U33): stage outcomes, onEnter/onExit, rewards.
+ * Puts a quest at `stage`, starting it if it was inactive (`questStarted`): the transition described above. A finished
+ * quest is left alone; effects of `onExit`/`onEnter` that moved or ended the quest themselves win.
  */
 export function enterStage(ctx: StepCtx, questId: string, stage: string): void {
   const def = need(ctx.content.quests[questId], `quest '${questId}'`);
@@ -157,16 +190,190 @@ export function enterStage(ctx: StepCtx, questId: string, stage: string): void {
     `stage '${stage}' of '${questId}'`,
   );
   const s = ctx.s;
-  const existing = s.quests[questId];
-  if (!existing || existing.status === 'inactive') {
-    const fresh: QuestState = { status: 'active', stage, startedDay: dayOf(s.clock.ticks), endedDay: null, counters: {}, objectivesDone: [] };
-    s.quests[questId] = fresh;
+  const source = `quest:${questId}`;
+  const before = s.quests[questId];
+  if (before?.status === 'completed' || before?.status === 'failed') return;
+  if (!isOpen(before)) {
+    s.quests[questId] = { status: 'active', stage, startedDay: dayOf(s.clock.ticks), endedDay: null, counters: {}, objectivesDone: [] };
     ctx.emit({ t: 'questStarted', questId });
+  } else {
+    const from = (before as QuestState).stage;
+    applyAll(def.stages.find((st) => st.id === from)?.onExit ?? [], ctx, { source });
+    const now = s.quests[questId];
+    if (!isOpen(now) || now?.stage !== from) return;
   }
   const qs = s.quests[questId] as QuestState;
+  const order = Object.keys(qs.counters).filter((k) => k.startsWith(STAGE_ORDER)).length + 1;
   qs.stage = stage;
-  Object.assign(qs.counters, killBaseline(ctx));
+  qs.objectivesDone = [];
+  for (const [id, n] of Object.entries(s.counters.kills)) qs.counters[`kills:${id}`] = n;
+  qs.counters[STAGE_DAY] = dayOf(s.clock.ticks);
+  qs.counters[`${STAGE_ORDER}${stage}`] = order;
   ctx.emit({ t: 'questAdvanced', questId, stage, journal: stageDef.journal ?? '' });
+  applyAll(stageDef.onEnter ?? [], ctx, { source });
+  const after = s.quests[questId];
+  if (stageDef.outcome !== undefined && isOpen(after) && after?.stage === stage) finishQuest(ctx, questId, stageDef.outcome);
+}
+
+/** Ends a quest that is not finished yet: `complete` (`questCompleted`, then the rewards) or `fail` (`questFailed`, `onFail`). */
+export function finishQuest(ctx: StepCtx, questId: string, outcome: 'complete' | 'fail'): void {
+  const def = need(ctx.content.quests[questId], `quest '${questId}'`);
+  const s = ctx.s;
+  const qs: QuestState = s.quests[questId] ?? { status: 'inactive', stage: '', startedDay: null, endedDay: null, counters: {}, objectivesDone: [] };
+  if (qs.status === 'completed' || qs.status === 'failed') return;
+  s.quests[questId] = qs;
+  qs.endedDay = dayOf(s.clock.ticks);
+  const source = `quest:${questId}`;
+  if (outcome === 'fail') {
+    qs.status = 'failed';
+    s.counters.questsFailed += 1;
+    ctx.emit({ t: 'questFailed', questId });
+    applyAll(def.onFail ?? [], ctx, { source });
+    return;
+  }
+  qs.status = 'completed';
+  s.counters.questsCompleted += 1;
+  ctx.emit({ t: 'questCompleted', questId });
+  const r: Partial<Quest['rewards']> = def.rewards ?? {};
+  if ((r.xp ?? 0) > 0) apply({ xp: r.xp as number }, ctx, { source });
+  if ((r.gold ?? 0) > 0) apply({ gold: r.gold as number }, ctx, { source });
+  for (const it of r.items ?? []) apply({ giveItem: { item: it.itemId, count: it.count } }, ctx, { source });
+  for (const rep of r.rep ?? []) apply({ rep }, ctx, { source });
+  for (const echo of r.echoes ?? []) apply({ grantEcho: echo }, ctx, { source });
+  if ((r.resonance ?? 0) > 0) apply({ resonance: r.resonance as number }, ctx, { source });
+}
+
+// ---- dialogue: a scene's lifecycle (U33; DESIGN §13.2, PLAN §5.10) --------------------------------------------------------
+//
+// Open: the scene (`dialogueStarted`), remembering the mode it interrupted (explore, combat — boss talk — or threshold;
+// a scene opened from inside another one replaces it and keeps that mode); its entry node is the first `entry` rule that
+// holds, else its first node. Entering a node: the first text variant that holds, `dialogueNode`, then its `onEnter`. A
+// choice-less node spoken by a companion (its plain id, or `companion`) who is not standing in the party is an
+// interjection that did not happen: it is skipped along its `next`. Close (`end`, or an effect that left dialogue mode —
+// a fight, an ending): the done flag `flag_scene_done_<scene>` (C-58; set for every scene, read for non-repeatable ones),
+// the active companion's first matching reaction (a `dialogue` log line and its loyalty), `dialogueEnded`, back to the
+// interrupted mode (combat only while the fight stands), then the scene's `onEnd`.
+
+/** C-58: set when a scene ends (it bars a non-repeatable scene for the rest of the loop). */
+export const sceneDoneFlag = (sceneId: string): string => `flag_scene_done_${sceneId}`;
+/** C-58: written when an `oncePerLoop` choice is taken. */
+export const choiceFlag = (sceneId: string, choiceId: string): string => `flag_choice_${sceneId}_${choiceId}`;
+
+/** The scene open now, if it is a content scene (the Loop 1 Apex prompt is engine-built, D-074). */
+export function openSceneDef(s: GameState, content: ContentPack): DialogueScene | undefined {
+  return s.dialogue === null ? undefined : content.dialogues[s.dialogue.sceneId];
+}
+
+/** The node the open scene stands at. */
+export function currentNode(s: GameState, content: ContentPack): DialogueNode | undefined {
+  const nodeId = s.dialogue?.nodeId;
+  return openSceneDef(s, content)?.nodes.find((n) => n.id === nodeId);
+}
+
+/** The companion standing in the party (recruited, alive, not knocked out), if any. */
+function standingCompanionId(s: GameState): string | null {
+  const id = s.companions.activeId;
+  const c = id === null ? undefined : s.companions.recruited[id];
+  return c !== undefined && c.recruited && !c.dead && !c.ko ? c.id : null;
+}
+
+/** A node's speaker as shown: `companion` is the companion in the party. */
+export function speakerOf(s: GameState, node: DialogueNode): string {
+  return node.speaker === 'companion' ? (standingCompanionId(s) ?? 'companion') : node.speaker;
+}
+
+/** A node's text: its first variant whose `when` holds, else its own. */
+export function nodeText(s: GameState, profile: Readonly<Profile>, content: ContentPack, node: DialogueNode): string {
+  return node.textVariants.find((v) => evaluate(v.when, s, profile, content))?.text ?? node.text;
+}
+
+/** A choice-less node voiced by a companion who is not standing in the party (skipped). */
+function absentInterjection(s: GameState, content: ContentPack, node: DialogueNode): boolean {
+  if (node.choices.length > 0 || node.next === undefined) return false;
+  if (node.speaker === 'companion') return standingCompanionId(s) === null;
+  return content.companions[node.speaker] !== undefined && standingCompanionId(s) !== node.speaker;
+}
+
+/** Scenes already closed in this step (a scene a fight took down is closed once, by whoever sees it first). */
+const closedScenes = new WeakSet<DialogueState>();
+
+/**
+ * After effects ran inside the scene `d`: true when that scene is over — another scene replaced it, or an effect left
+ * dialogue mode (an ending; a fight, which takes the scene down itself: combat/turnOrder.ts) and the scene is closed
+ * here (its bookkeeping and `onEnd`, without going back to the mode it interrupted).
+ */
+export function settleDialogue(ctx: StepCtx, d: DialogueState): boolean {
+  if (ctx.s.dialogue === d && ctx.s.mode === 'dialogue') return false;
+  if (ctx.s.mode !== 'dialogue') closeScene(ctx, false, d);
+  return true;
+}
+
+/** Enters `nodeId` of the open scene (see above); `end` closes the scene. */
+export function enterNode(ctx: StepCtx, nodeId: string): void {
+  const { s, content } = ctx;
+  const d = s.dialogue;
+  const scene = openSceneDef(s, content);
+  if (d === null || scene === undefined) throw new Error('enterNode: no content scene is open');
+  let id = nodeId;
+  for (let hops = 0; ; hops++) {
+    if (id === 'end') {
+      closeScene(ctx, true);
+      return;
+    }
+    const node = need(
+      scene.nodes.find((n) => n.id === id),
+      `node '${id}' of '${scene.id}'`,
+    );
+    if (!absentInterjection(s, content, node) || hops > scene.nodes.length) break;
+    id = node.next as string;
+  }
+  const node = scene.nodes.find((n) => n.id === id) as DialogueNode;
+  d.nodeId = id;
+  if (!d.visitedNodes.includes(id)) d.visitedNodes.push(id);
+  ctx.emit({ t: 'dialogueNode', nodeId: id, speaker: speakerOf(s, node), text: nodeText(s, ctx.profile, content, node) });
+  applyAll(node.onEnter ?? [], ctx, { source: `scene:${scene.id}` });
+  settleDialogue(ctx, d);
+}
+
+const returnModeOf = (s: GameState): DialogueState['returnMode'] | null =>
+  s.mode === 'dialogue' ? (s.dialogue?.returnMode ?? (s.combat !== null ? 'combat' : 'explore')) : s.mode === 'explore' || s.mode === 'combat' || s.mode === 'threshold' ? s.mode : null;
+
+/** Opens `sceneId` (the `startDialogue` effect, `talk`, a camp conversation): see above. `npcId` defaults to the scene's. */
+export function openScene(ctx: StepCtx, sceneId: string, npcId: string | null = null): void {
+  const { s, content } = ctx;
+  const scene = need(content.dialogues[sceneId], `dialogue '${sceneId}'`);
+  const returnMode = returnModeOf(s) ?? ctx.reject(`a dialogue cannot start in ${s.mode} mode`);
+  if (s.dialogue !== null) closeScene(ctx, false);
+  const who = npcId ?? scene.npcId ?? null;
+  s.dialogue = { sceneId, nodeId: '', npcId: who, visitedNodes: [], choicesTaken: [], returnMode };
+  enterMode(ctx, 'dialogue');
+  ctx.emit({ t: 'dialogueStarted', sceneId, npcId: who });
+  const entry = typeof scene.entry === 'string' ? scene.entry : scene.entry.find((r) => evaluate(r.when, s, ctx.profile, content))?.node;
+  enterNode(ctx, entry ?? (scene.nodes[0] as DialogueNode).id);
+}
+
+/** Closes the open scene, or `d` (see above); `resume` goes back to the mode the scene interrupted. */
+export function closeScene(ctx: StepCtx, resume: boolean, d: DialogueState | null = ctx.s.dialogue): void {
+  const { s, content } = ctx;
+  if (d === null || closedScenes.has(d)) return;
+  closedScenes.add(d);
+  const scene = content.dialogues[d.sceneId];
+  const source = `scene:${d.sceneId}`;
+  if (scene !== undefined) {
+    s.flags[sceneDoneFlag(scene.id)] = true;
+    const companion = standingCompanionId(s);
+    const reaction = scene.companionReactions.find((r) => r.companionId === companion && (r.when === undefined || evaluate(r.when, s, ctx.profile, content)));
+    if (reaction !== undefined) {
+      ctx.log(reaction.text, 'dialogue');
+      if (reaction.loyalty !== 0) apply({ loyalty: { companion: reaction.companionId, delta: reaction.loyalty } }, ctx, { source });
+    }
+  }
+  if (s.dialogue === d) {
+    s.dialogue = null;
+    ctx.emit({ t: 'dialogueEnded', sceneId: d.sceneId });
+  }
+  if (resume && s.mode === 'dialogue') enterMode(ctx, d.returnMode === 'combat' && s.combat === null ? 'explore' : d.returnMode);
+  if (scene !== undefined) applyAll(scene.onEnd, ctx, { source });
 }
 
 /** Moves the Breach Clock limit by `watches`, with Frayed Clock halving and the floor (DESIGN §10.1, PLAN §4.11). */
@@ -233,8 +440,7 @@ const APPLIERS: Appliers = {
   },
   questStart: (id, ctx) => {
     const def = need(ctx.content.quests[id], `quest '${id}'`);
-    const status = ctx.s.quests[id]?.status ?? 'inactive';
-    if (status !== 'inactive') return;
+    if (!questStartable(ctx.s, ctx.profile, id, def)) return; // running, finished, or once per profile and done (U33)
     enterStage(ctx, id, need(def.firstStage ?? def.stages[0]?.id, `first stage of '${id}'`));
   },
   questAdvance: ({ quest, stage }, ctx) => {
@@ -246,13 +452,7 @@ const APPLIERS: Appliers = {
   },
   questFail: (id, ctx) => {
     need(ctx.content.quests[id], `quest '${id}'`);
-    const s = ctx.s;
-    const qs = s.quests[id];
-    if (qs?.status === 'completed' || qs?.status === 'failed') return;
-    const day = dayOf(s.clock.ticks);
-    s.quests[id] = { status: 'failed', stage: qs?.stage ?? '', startedDay: qs?.startedDay ?? null, endedDay: day, counters: qs?.counters ?? {}, objectivesDone: qs?.objectivesDone ?? [] };
-    s.counters.questsFailed += 1;
-    ctx.emit({ t: 'questFailed', questId: id });
+    finishQuest(ctx, id, 'fail');
   },
   giveItem: ({ item, count = 1, rarity }, ctx, _key, source) => {
     const def = need(ctx.content.items[item], `item '${item}'`);
@@ -292,7 +492,9 @@ const APPLIERS: Appliers = {
     const c = ctx.s.companions.recruited[companion];
     if (!c) return; // not recruited: nothing to change (a bond Echo's start applies at recruitment, echoes.ts)
     const before = c.loyalty;
-    c.loyalty = clamp(before + delta, 0, LOYALTY_MAX);
+    // U33: Companion's Trust (DESIGN §10.7, §12.5) — gains × (1 + pct), rounded; losses unchanged
+    const trust = scriptNumber(ctx.s.player, ctx.content, ATT_SCRIPT.loyaltyGain, 'pct');
+    c.loyalty = clamp(before + (delta > 0 ? round(delta * (1 + trust)) : delta), 0, LOYALTY_MAX);
     ctx.emit({ t: 'loyaltyChanged', companionId: companion, delta: c.loyalty - before, value: c.loyalty });
   },
   gold: (n, ctx) => {
@@ -394,7 +596,8 @@ const APPLIERS: Appliers = {
     companions.recruited[id] = {
       id,
       recruited: true,
-      loyalty: def.startingLoyalty ?? 0,
+      // U33: + the Attunements' loyalty_start; a bond Echo raises it after the step (echoes.ts)
+      loyalty: clamp((def.startingLoyalty ?? 0) + loyaltyStartBonus(ctx.s.player, ctx.content), 0, LOYALTY_MAX),
       hp: def.stats.hp, // level 1: companionPostStep (U28) moves max HP to the player's level; bond start: U32 echoes.ts
       hpMax: def.stats.hp,
       ko: false,
@@ -415,7 +618,7 @@ const APPLIERS: Appliers = {
     ctx.emit({ t: 'companionDismissed', companionId: id });
   },
   startCombat: (id, ctx) => startEncounterById(ctx, id), // U23
-  startDialogue: notYet('U33'),
+  startDialogue: (id, ctx) => openScene(ctx, id), // U33
   endLoop: ({ closer, reason }, ctx) => {
     // the loop's end (RunRecord, Resonance, profile writes, `loopEnded`): reducers/loop.ts `loopEndHook`, after this step
     ctx.s.pendingEnding = reason === undefined ? { outcome: closer, slideIndex: 0 } : { outcome: closer, reason, slideIndex: 0 };

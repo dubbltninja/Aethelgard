@@ -334,11 +334,12 @@ describe('Loop 1 Apex: Face it / Not yet (D-067.1)', () => {
     expect(ofType(out.events, 'autosaveCheckpoint')).toEqual([]);
   });
 
-  test('other choices are rejected; outside the prompt `choose` is still U33', () => {
+  test('other choices are rejected; outside the prompt `choose` is the dialogue reducer (U33)', () => {
     const arrived = play(atNexus(), [{ type: 'move', to: APEX_LOCATION_ID }]).state;
     expect(step(arrived, { type: 'choose', choiceId: 'yes' }, content, freshProfile()).events[0]).toMatchObject({ reason: "'yes' is not a choice here" });
+    expect(step(arrived, { type: 'continue' }, content, freshProfile()).events[0]).toMatchObject({ t: 'actionRejected' });
     const dialogue = makeState({ mode: 'dialogue' });
-    expect(step(dialogue, { type: 'choose', choiceId: 'yes' }, content, freshProfile()).events[0]).toMatchObject({ reason: "'choose' is not implemented yet (U33)" });
+    expect(step(dialogue, { type: 'choose', choiceId: 'yes' }, content, freshProfile()).events[0]).toMatchObject({ reason: 'there is no conversation to answer' });
     expect(legalActions(dialogue, content, freshProfile())).toEqual([]);
   });
 

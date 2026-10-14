@@ -4,7 +4,6 @@
 // states). `step` uses ACTION_MODES as its first gate, so the two can never disagree about modes.
 import type { ContentPack } from './ctx';
 import {
-  chooseEnumerator,
   examineEnumerator,
   gatherEnumerator,
   moveEnumerator,
@@ -17,6 +16,8 @@ import {
 import { inventoryEnumerators } from './reducers/inventory';
 import { buyEnumerator, sellEnumerator } from './reducers/economy';
 import { craftEnumerator, salvageEnumerator, upgradeEnumerator } from './reducers/crafting';
+import { continueEnumerator, dialogueChooseEnumerator, interactEnumerator, talkEnumerator } from './reducers/dialogue';
+import { acceptQuestEnumerator } from './reducers/quests';
 import {
   acknowledgeEndingEnumerator,
   keepVigilEnumerator,
@@ -141,9 +142,9 @@ export const ENUMERATORS: EnumeratorTable = {
   rest: restEnumerator, // U20
   retreat: retreatEnumerator, // U20
   gather: gatherEnumerator, // U20
-  talk: none, // U33
+  talk: talkEnumerator, // U33
   enterPortal: enterPortalEnumerator, // U30 (horde.ts)
-  interact: none, // U33
+  interact: interactEnumerator, // U33
   wait: waitEnumerator, // U20
   letGo: letGoEnumerator, // U30
   keepVigil: keepVigilEnumerator, // U30
@@ -160,9 +161,9 @@ export const ENUMERATORS: EnumeratorTable = {
   craft: craftEnumerator, // U34
   upgrade: upgradeEnumerator, // U34
   salvage: salvageEnumerator, // U34
-  choose: chooseEnumerator, // U20 (Loop 1 Apex prompt) / U33
-  continue: none, // U33
-  acceptQuest: none, // U33
+  choose: dialogueChooseEnumerator, // U33 (the Loop 1 Apex prompt: U20's)
+  continue: continueEnumerator, // U33
+  acceptQuest: acceptQuestEnumerator, // U33
   attack: attackEnumerator, // U23
   ability: abilityEnumerator, // U26
   guard: guardEnumerator, // U23

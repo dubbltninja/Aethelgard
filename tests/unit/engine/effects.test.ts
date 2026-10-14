@@ -77,7 +77,7 @@ const OBSERVED: { [K in EffectKey]: () => void } = {
       stage: 'find_brute',
       startedDay: 1,
       endedDay: null,
-      counters: { 'kills:cr_wildling_brute': 2 },
+      counters: { 'kills:cr_wildling_brute': 2, stageDay: 1, 'stage:find_brute': 1 }, // U33: the stage's start day and order
       objectivesDone: [],
     });
     expect(out.events).toEqual([
@@ -343,7 +343,15 @@ const OBSERVED: { [K in EffectKey]: () => void } = {
     const twice = run([{ startCombat: 'enc_library_shades' }, { startCombat: 'enc_library_shades' }], makeState(), freshProfile(), undefined, pack);
     rejectedWith(twice, "effect 'startCombat' while a fight is already in progress");
   },
-  startDialogue: () => rejectedWith(run([{ startDialogue: 'scene_ilyra' }]), "effect 'startDialogue' is not implemented yet (U33)"),
+  startDialogue: () => {
+    // U33: the scene opens at its entry node (reducers/dialogue.test.ts plays it)
+    const pack = fixturePack();
+    const out = run([{ startDialogue: 'scene_first_meeting_ilyra' }], makeState(), freshProfile(), undefined, pack);
+    expect(out.state.mode).toBe('dialogue');
+    expect(out.state.dialogue).toEqual({ sceneId: 'scene_first_meeting_ilyra', nodeId: 'greet', npcId: 'npc_ilyra', visitedNodes: ['greet'], choicesTaken: [], returnMode: 'explore' });
+    expect(out.events.map((e) => e.t)).toEqual(['modeChanged', 'dialogueStarted', 'dialogueNode']);
+    expect(() => run([{ startDialogue: 'scene_nope' }], makeState(), freshProfile(), undefined, pack)).toThrow("unknown dialogue 'scene_nope'");
+  },
   endLoop: () => {
     const out = run([{ endLoop: { closer: 'closer_fall', reason: 'released' } }], withState((s) => void (s.meta.loop = 2)));
     expect(out.state.pendingEnding).toEqual({ outcome: 'closer_fall', reason: 'released', slideIndex: 0 });
@@ -432,7 +440,7 @@ describe('applyAll', () => {
   });
 
   test('atomic: a later rejection rolls back every earlier effect', () => {
-    const out = run([{ gold: 10 }, { grantEcho: 'echo_ilyra_watchword' }, { startDialogue: 'scene_ilyra' }]);
+    const out = run([{ gold: 10 }, { grantEcho: 'echo_ilyra_watchword' }, { multiHit: { hits: 2 } }]);
     expect(out.state).toBe(out.input);
     expect(out.profile).toBe(out.inputProfile);
     expect(out.events).toHaveLength(1);

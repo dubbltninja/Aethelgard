@@ -1,22 +1,22 @@
 // step — the only state transition (PLAN §4.6). Pure: same (state, action, content, profile) → same result; inputs
 // are never mutated. The state is structuredClone'd into a draft (D-065), the profile is cloned only if a reducer
 // writes it, and an illegal action returns the *same* state/profile references plus one `actionRejected` event
-// (D-043). Dispatch is a table with one handler per Action['type']; until a reducer unit lands, its handler rejects
-// with the unit's name, so the table is exhaustive from day one and `legalActions` (all-empty) agrees with it.
+// (D-043). Dispatch is a table with one handler per Action['type'] (every one implemented since U33/U34; until then a
+// stub rejected with the owning unit's name), so the table is exhaustive and `legalActions` agrees with it.
 import { Ctx, RejectSignal, type ContentPack, type StepCtx } from './ctx';
 import { ACTION_MODES, isActionType } from './legalActions';
 import {
   arrivalHook,
-  chooseHandler,
   examineHandler,
   gatherHandler,
   moveHandler,
-  restHandler,
   retreatHandler,
   takeAllHandler,
   takeHandler,
   waitHandler,
 } from './reducers/explore';
+import { campRestHandler, continueHandler, dialogueChooseHandler, interactHandler, talkHandler } from './reducers/dialogue';
+import { acceptQuestHandler, questPostStep } from './reducers/quests';
 import {
   acknowledgeEndingHandler,
   clockHook,
@@ -75,12 +75,6 @@ export type HandlerTable = { readonly [K in ActionType]: Handler<K> };
 export type PostStepHook = (ctx: StepCtx) => void;
 export type StepFn = (state: GameState, action: Action, content: ContentPack, profile: Profile) => StepResult;
 
-/** Stub handler: rejects, naming the unit that will implement the reducer (PLAN §9.2). */
-const pending =
-  (unit: string) =>
-  (ctx: StepCtx, action: Action): void =>
-    ctx.reject(`'${action.type}' is not implemented yet (${unit})`);
-
 export const HANDLERS: HandlerTable = {
   newGame: newGameHandler, // U30
   chooseClass: chooseClassHandler, // U31: the Far Light (the title's class choice is part of `newGame`)
@@ -91,12 +85,12 @@ export const HANDLERS: HandlerTable = {
   examine: examineHandler,
   take: takeHandler,
   takeAll: takeAllHandler,
-  rest: restHandler,
+  rest: campRestHandler, // U20 (reducers/explore.ts); U33: then the camp conversation of a full rest (D-059)
   retreat: retreatHandler,
   gather: gatherHandler,
-  talk: pending('U33'),
+  talk: talkHandler, // U33 (reducers/dialogue.ts)
   enterPortal: enterPortalHandler, // U30 (horde.ts)
-  interact: pending('U33'),
+  interact: interactHandler, // U33
   wait: waitHandler,
   letGo: letGoHandler, // U30
   keepVigil: keepVigilHandler, // U30
@@ -113,9 +107,9 @@ export const HANDLERS: HandlerTable = {
   craft: craftHandler, // U34 (reducers/crafting.ts)
   upgrade: upgradeHandler, // U34
   salvage: salvageHandler, // U34
-  choose: chooseHandler, // U20: the Loop 1 Apex prompt only; U33's dialogue reducer replaces it and keeps that branch
-  continue: pending('U33'),
-  acceptQuest: pending('U33'),
+  choose: dialogueChooseHandler, // U33; the Loop 1 Apex prompt keeps U20's handler (D-074)
+  continue: continueHandler, // U33
+  acceptQuest: acceptQuestHandler, // U33 (reducers/quests.ts)
   attack: attackHandler, // U23
   ability: abilityHandler, // U26 (in a fight, and `field` abilities out of one)
   guard: guardHandler, // U23 (Guard abilities such as Iron Guard: U26 abilities)
@@ -137,6 +131,7 @@ export const HANDLERS: HandlerTable = {
 
 /** Post-step hooks in run order; later units append theirs here. */
 export const POST_STEP_HOOKS: readonly PostStepHook[] = [
+  questPostStep, // U33: Echo shortcuts, auto-starts, the objective sweep; first, so its effects reach the hooks below
   arrivalHook, // U20: arrival pipeline for content teleports
   clockHook, // U20: per-watch status ticks, dawn hooks, clock warnings, expiry
   characterPostStep, // U21: Weaver mark at max Corruption; stored maxima = derive() outside combat

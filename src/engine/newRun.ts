@@ -1,12 +1,16 @@
 // newRun (PLAN §4.11 minimum): the initial GameState of a loop — Day 1 Dawn at the start location, class base stats
 // (DESIGN §3.3), starter items, the Amulet carried from Loop 2 (D-047, via `config.startItems`), the challenge
 // modifiers toggled in the profile (incl. a `clock_base_watches` rule such as Frayed Clock), and the level
-// carry-over of D-067.2 (bestLevel rule D-070.5). Pure. Later units add: equipped Attunements (U31), loop-start Echo
-// effects (U32), gear-derived maxima (U21 `derived.ts`), quests started at the Threshold (U30/U31).
+// carry-over of D-067.2 (bestLevel rule D-070.5), and the equipped Attunements (U31, `applyLoopAttunements`). Pure.
+// Elsewhere: loop-start Echo effects (U32), gear-derived maxima (U21 `derived.ts`), quests started at the Threshold
+// (U31 `newLoop` carries them).
 import type { Class } from '@schema/class';
 import type { Item } from '@schema/item';
+import { TICKS_PER_DAY } from './conditions';
 import type { ContentPack } from './ctx';
+import { syncMaxima } from './derived';
 import { seedFromString } from './rng';
+import { attunementEffects, loopAttunements, modifierRules } from './runRules';
 import type { Profile } from './types/profile';
 import type { EquipSlot, Equipment, GameState, ItemInstance, Rarity } from './types/state';
 import { clamp } from './util/math';
@@ -107,7 +111,7 @@ export function newRun(
   }
 
   const start = content.config.startLocationId;
-  return {
+  const s: GameState = {
     meta: {
       seed,
       loop,
@@ -195,6 +199,53 @@ export function newRun(
     recentLog: [],
     threshold: null,
   };
+  applyLoopAttunements(s, content, loopAttunements(profile, content, modifiers), (itemId, count) => add(itemId, count, false));
+  s.meta.nextUid = nextUid;
+  return s;
+}
+
+/**
+ * DESIGN §10.7 at loop start (engine/runRules.ts lists where every other effect acts): the run's Attunements are
+ * recorded on the player; starting gold, items (`addItem`), stat points as passive bonuses, ability points, the Breach
+ * Clock (Frayed Clock halves it toward zero, DESIGN §10.1; recorded in `clock.modifiers`), a revealed region; then the
+ * stored maxima follow `derive()` (Steady Hand, Deep Well) with full HP/MP.
+ */
+function applyLoopAttunements(s: GameState, content: ContentPack, ids: readonly string[], addItem: (itemId: string, count: number) => void): void {
+  if (ids.length === 0) return;
+  const p = s.player;
+  p.attunements = [...ids];
+  const halve = modifierRules(s.meta.modifiers, content, 'clock_base_watches').some((r) => r.halveOthers);
+  for (const { attunementId, effect } of attunementEffects(p, content)) {
+    switch (effect.kind) {
+      case 'start_gold':
+        p.gold += effect.amount;
+        break;
+      case 'start_item':
+        addItem(effect.itemId, effect.count);
+        break;
+      case 'stat':
+        p.passiveBonuses[effect.stat] = (p.passiveBonuses[effect.stat] ?? 0) + effect.amount;
+        break;
+      case 'ability_points':
+        p.apHalf += 2 * effect.amount;
+        break;
+      case 'clock_watches': {
+        const watches = halve ? Math.trunc(effect.watches / 2) : effect.watches;
+        if (watches === 0) break;
+        s.clock.limitTicks = Math.max(s.clock.limitTicks + watches, TICKS_PER_DAY * content.config.clock.floorDawns); // the floor at Day 1
+        s.clock.modifiers.push({ source: attunementId, watches });
+        break;
+      }
+      case 'reveal_region':
+        for (const id of content.index.locationsByRegion[effect.regionId] ?? []) if (!s.world.discovered.includes(id)) s.world.discovered.push(id);
+        break;
+      default:
+        break; // read where they act (derive, XP, combat, explore — runRules.ts)
+    }
+  }
+  syncMaxima(p, content);
+  p.hp = p.hpMax;
+  p.mp = p.mpMax;
 }
 
 function freeSlot(equipment: Equipment, slot: ItemView['slot']): EquipSlot | null {

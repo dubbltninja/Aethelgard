@@ -47,6 +47,7 @@ import { derive } from '../derived';
 import { apply, applyAll, locationState } from '../effects';
 import type { Enumerator } from '../legalActions';
 import { grantXp, resourceGain, type ResourceEventName } from '../progression';
+import { ATT_SCRIPT, attunementScript } from '../runRules';
 import type { Handler, PostStepHook } from '../step';
 import type { ActionOf } from '../types/actions';
 import type { CloserReason } from '../types/ids';
@@ -227,6 +228,21 @@ const hasRule = (ctx: StepCtx, on: ResourceEventName): boolean =>
 
 const damageSourceKey = (attacker: Combatant, spec: HitSpec): string => (attacker.kind === 'companion' ? `companion:${attacker.refId}` : spec.source);
 
+/**
+ * Second Wind (U31, DESIGN §10.7 `att_second_wind`): once per loop from Loop 2, a blow or tick that would take the player
+ * to 0 HP leaves 1 HP instead (`player.uses[<attunement id>]` records the loop). Returns whether it stood them up.
+ */
+function secondWind(ctx: StepCtx, combat: CombatState, target: Combatant): boolean {
+  const { s } = ctx;
+  if (target.kind !== 'player' || s.meta.loop < 2) return false;
+  const script = attunementScript(s.player, ctx.content, ATT_SCRIPT.secondWind);
+  if (script === undefined || s.player.uses[script.attunementId]?.loop === s.meta.loop) return false;
+  s.player.uses[script.attunementId] = { loop: s.meta.loop };
+  target.hp = 1;
+  combatLog(combat, `Second Wind: ${target.name} should have fallen, and stands.`, 'info');
+  return true;
+}
+
 /** Takes `target` out of the fight at 0 HP: statuses discarded, intent dropped, kills counted (DESIGN §4.5, §4.9). */
 function knockOut(ctx: StepCtx, combat: CombatState, target: Combatant): void {
   target.hp = 0;
@@ -285,7 +301,7 @@ export function applyHit(ctx: StepCtx, combat: CombatState, attacker: Combatant,
   if (target.kind === 'player') counters.damageTaken += result.amount;
   if (playerHit) gainResource(ctx, combat, target, 'hit_taken');
   afterHit(ctx, combat, attacker, target, spec, result); // interplay that changes statuses (U24, DESIGN §4.6)
-  if (target.hp <= 0) knockOut(ctx, combat, target);
+  if (target.hp <= 0 && !secondWind(ctx, combat, target)) knockOut(ctx, combat, target);
   else reactToHit(ctx, combat, OPS, attacker, target, spec, result); // counter stances and ripostes answer (U26)
   checkPhases(ctx, combat); // boss phase triggers and reinforcements after every damage event (U27, DESIGN §4.10)
 }
@@ -305,7 +321,7 @@ function startTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
   // start-of-turn ticks: DoTs, Regen, Rewind (U24, combat/statuses.ts), then the Doom Sigil timer (U26, a delayed hit);
   // a combatant killed here does not act.
   const ticks = startOfTurnStatuses(ctx, combat, actor);
-  if (actor.hp <= 0) {
+  if (actor.hp <= 0 && !secondWind(ctx, combat, actor)) {
     const how = ticks.ticks.some((t) => t.statusId === STATUS.bleed) ? 'bleeds out' : 'succumbs';
     combatLog(combat, `${actor.name} ${how} before it can act.`, 'damage');
     knockOut(ctx, combat, actor);
@@ -497,7 +513,7 @@ function finishVictory(ctx: StepCtx, combat: CombatState, survived = false): voi
  * Defeat (DESIGN §4.7): `playerDied`, `combatEnded`, the encounter's `onDefeat` effects, then — Loop 1 outside a Horde —
  * the FALLEN game over (the fight stays on screen in phase 'defeat'; no action is legal; the shell offers load/title,
  * D-049) or else The Fall: `closer_fall` with reason `expiry` in an expiry Horde, `death` otherwise (PLAN §4.11).
- * TODO(U31): `att_second_wind` (once per loop, 1 HP instead).
+ * Second Wind (U31) stands the player up before it comes to this (`secondWind`).
  */
 function finishDefeat(ctx: StepCtx, combat: CombatState): void {
   const { s } = ctx;

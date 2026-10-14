@@ -118,6 +118,11 @@ export interface PlayerState {
   stance: Stance;
   /** From quest-item passives (legacy Amulet +1 MAG etc.). */
   passiveBonuses: Partial<Record<StatName | 'hpMax' | 'mpMax', number>>;
+  /**
+   * U31 (C1 addition): the Attunements active this loop — equipped at the Far Light, none under Iron Loop — fixed when
+   * the loop starts (DESIGN §10.7); absent = none. engine/runRules.ts reads their effects.
+   */
+  attunements?: string[];
 }
 
 export interface CompanionRunState {
@@ -396,6 +401,11 @@ export interface RunCounters {
   deathsThisLoop: number;
   /** Content `counter` effects. */
   custom: Record<string, number>;
+  /**
+   * U31 (C1 addition): Resonance earned this loop before the challenge modifiers multiply it at the loop's end (DESIGN
+   * §10.6, §15.1); absent = 0. Kept by reducers/threshold.ts `thresholdPostStep`.
+   */
+  resonance?: number;
 }
 
 export interface LogEntry {

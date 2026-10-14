@@ -28,6 +28,17 @@ import {
 } from './reducers/loop';
 import { enterPortalHandler, hordePostStep } from './horde';
 import { echoPostStep } from './echoes';
+import {
+  chooseClassHandler,
+  equipAttunementHandler,
+  newGamePlusHandler,
+  newLoopHandler,
+  thresholdGoHandler,
+  thresholdPostStep,
+  thresholdRefundHandler,
+  thresholdSpendHandler,
+  toggleModifierHandler,
+} from './reducers/threshold';
 import { characterPostStep, inventoryHandlers } from './reducers/inventory';
 import {
   abilityHandler,
@@ -70,7 +81,7 @@ const pending =
 
 export const HANDLERS: HandlerTable = {
   newGame: newGameHandler, // U30
-  chooseClass: pending('U31'), // the title's class choice is part of `newGame`
+  chooseClass: chooseClassHandler, // U31: the Far Light (the title's class choice is part of `newGame`)
   save: saveHandler, // U22
   load: loadHandler, // U22
   returnToTitle: returnToTitleHandler, // U30 (also the Loop 1 FALLEN acknowledgement, D-075)
@@ -113,13 +124,13 @@ export const HANDLERS: HandlerTable = {
   commune: communeHandler, // U29 (communion.ts)
   swapCompanion: swapCompanionHandler, // U28
   acknowledgeEnding: acknowledgeEndingHandler, // U30
-  thresholdGo: pending('U31'),
-  thresholdSpend: pending('U31'),
-  thresholdRefund: pending('U31'),
-  equipAttunement: pending('U31'),
-  toggleModifier: pending('U31'),
-  newLoop: pending('U31'),
-  newGamePlus: pending('U31'),
+  thresholdGo: thresholdGoHandler, // U31 (reducers/threshold.ts)
+  thresholdSpend: thresholdSpendHandler, // U31
+  thresholdRefund: thresholdRefundHandler, // U31
+  equipAttunement: equipAttunementHandler, // U31
+  toggleModifier: toggleModifierHandler, // U31
+  newLoop: newLoopHandler, // U31
+  newGamePlus: newGamePlusHandler, // U31
 };
 
 /** Post-step hooks in run order; later units append theirs here. */
@@ -132,6 +143,7 @@ export const POST_STEP_HOOKS: readonly PostStepHook[] = [
   hordePostStep, // U30: a Tyrant killed in a fight that is over starts the Horde (horde.ts)
   echoPostStep, // U32: bond starts and shortcuts for this step's recruits/quests; echo_tyrant_jailer; loop-end Echoes
   loopEndHook, // U30: a step that entered ending mode closes the loop (reducers/loop.ts)
+  thresholdPostStep, // U31: the loop's Resonance tally and modifier multiplier, the Still Shore, the Threshold autosave
 ];
 
 const rejected = (state: GameState, profile: Profile, action: Action, reason: string): StepResult => ({

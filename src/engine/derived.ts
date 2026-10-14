@@ -13,6 +13,7 @@ import type { AffixSlotEffect } from '@schema/affix';
 import type { Item, ItemStats, Passive } from '@schema/item';
 import type { GameConfig } from '@schema/contentPack';
 import type { ContentPack } from './ctx';
+import { ATT_SCRIPT, attunementPct, scriptNumber } from './runRules';
 import type { DamageType, EquipSlot, ItemInstance, PlayerState, Rarity, StatName, StatusInstance } from './types/state';
 import { clamp, round } from './util/math';
 
@@ -217,9 +218,11 @@ export function derive(player: PlayerState, content: ContentPack, opts: DeriveOp
   const corruption = player.corruption;
   const marked = corruption >= config.corruptionMax;
   const hpFlat = cls.baseStats.hp + cls.growth.hp * (player.level - 1) + 2 * strength + g.hpMax + (bonus.hpMax ?? 0);
-  const hpPct = g.hpMaxPct + (marked ? CORRUPTION_MARK_HP_PCT : 0);
+  // U31: Steady Hand / Deep Well (DESIGN §10.7, the run's Attunements, engine/runRules.ts)
+  const hpPct = g.hpMaxPct + (marked ? CORRUPTION_MARK_HP_PCT : 0) + attunementPct(player, content, 'hp_max_pct');
   const hpMax = Math.max(1, Math.floor(hpFlat * (1 + hpPct) + FLOAT_EPSILON));
-  const mpMax = Math.max(0, cls.baseStats.mp + cls.growth.mp * (player.level - 1) + 2 * magic + g.mpMax + (bonus.mpMax ?? 0));
+  const mpFlat = cls.baseStats.mp + cls.growth.mp * (player.level - 1) + 2 * magic + g.mpMax + (bonus.mpMax ?? 0);
+  const mpMax = Math.max(0, Math.floor(mpFlat * (1 + attunementPct(player, content, 'mp_max_pct')) + FLOAT_EPSILON));
 
   const damagePct: Partial<Record<DamageType, number>> = {};
   const addPct = (type: DamageType, pct: number): void => {
@@ -258,7 +261,7 @@ export function derive(player: PlayerState, content: ContentPack, opts: DeriveOp
     sp: magic + g.spellPower + (corruptionToSp ? corruption : 0),
     accuracy: config.baseAccuracy + halfAgi + g.accuracy + accuracyFlat,
     evasion: halfAgi + g.evasion + evasionFlat,
-    crit: clamp(config.critBase + halfAgi + g.crit + critFlat, 0, config.critCap),
+    crit: clamp(config.critBase + halfAgi + g.crit + critFlat + scriptNumber(player, content, ATT_SCRIPT.crit, 'amount'), 0, config.critCap), // + Keen Eye (U31)
     critMult: config.critMult,
     initiative: agility + g.initiative + initiativeFlat,
     armor: armorWardZero ? 0 : g.armor,

@@ -5,10 +5,26 @@
 // plus a full Loop 1 → Tyrant → Horde → portal → Loop 2 Day 1 run through `step`, the ending screens, *Let go*,
 // *Keep the vigil*, `newGame` / `returnToTitle`, and legalActions agreement for every U30 action
 // (DESIGN §10.2–10.3, §10.6, §14; STORY §4.2–4.3, §10.7; D-047, D-049, D-055, D-066 #7, D-067.2, D-067.14, D-075, D-078).
+// U31 (below the U30 rows): the Threshold itself — arrival (the Still Shore, the autosave), the four places, the Loom's
+// Attunements (buy, refund within the visit, equip cap 5) and modifier toggles (the next loop only), buy → equip → loop
+// start → effect visible for every wired Attunement, the modifiers' effects and Resonance multiplier, the Far Light's
+// class change with mastery, quests started at the Threshold kept, New Game+, and legal/step agreement for every U31
+// action (DESIGN §10.6–10.9, §14.2, §15.1; D-011, D-012, D-021, D-067.15, D-082; PLAN §8.1).
 import { describe, expect, test } from 'bun:test';
 import {
   AMULET_ITEM_ID,
   CLOSER_TEXT,
+  MULTIPLIER_REASON,
+  REFUND_REASON,
+  THRESHOLD_TEXT,
+  derive,
+  modifierDamageMult,
+  syncMaxima,
+  newGamePlusProfile,
+  resonanceMultiplier,
+  thresholdArea,
+  xpBonus,
+  type ThresholdArea,
   ECHO_AMULET_MEMORY,
   ECHO_THIRTIETH_DAWN,
   FLAG_HORDE_ACTIVE,
@@ -38,7 +54,10 @@ import { clone } from '@engine/util/clone';
 import { CONTAINED } from '@tests/fixtures/combatContent';
 import { freshProfile, makeState, type StateOverrides } from '@tests/fixtures/helpers';
 import { hordePack } from '@tests/fixtures/hordeContent';
-import { fixturePack } from '@tests/fixtures/miniContent';
+import { FIXTURE_VERSION, fixturePack } from '@tests/fixtures/miniContent';
+import type { AttunementInput } from '@schema/attunement';
+import { INN_COST, thresholdPack, thresholdTables } from '@tests/fixtures/thresholdContent';
+import { buildContentPack } from '@content/index';
 
 const mini = fixturePack();
 const pack = hordePack();
@@ -505,5 +524,441 @@ describe('legalActions agrees with step for every U30 action (PLAN §4.7)', () =
       }
     }
     expect([...seen].sort()).toEqual(['acknowledgeEnding', 'enterPortal', 'keepVigil', 'letGo', 'newGame', 'returnToTitle']);
+  });
+});
+
+// ==== U31: the Threshold ===========================================================================================================
+
+const tp = thresholdPack();
+const NGP: Action = { type: 'newGamePlus' };
+const NEW_LOOP: Action = { type: 'newLoop' };
+const go = (to: ThresholdArea): Action => ({ type: 'thresholdGo', to });
+const buy = (attunementId: string): Action => ({ type: 'thresholdSpend', attunementId });
+const unbuy = (attunementId: string): Action => ({ type: 'thresholdRefund', attunementId });
+const equip = (attunementId: string, on = true): Action => ({ type: 'equipAttunement', attunementId, on });
+const toggle = (modifierId: string): Action => ({ type: 'toggleModifier', modifierId });
+const choose = (classId: string): Action => ({ type: 'chooseClass', classId });
+const legalOf = (r: Run, type: ActionType): Action[] => legalActions(r.s, r.pack, r.prof).filter((a) => a.type === type);
+/** A Loop 2 profile with Resonance to spend; the Ruins already paid for, so *Let go* pays nothing. */
+const rich = (o: Partial<Profile> = {}): Profile =>
+  freshProfile({ loopCounter: 2, resonance: 500, resonanceEarnedTotal: 500, discoveries: ['loc:loc_whispering_ruins'], ...o });
+/** `ids` owned and equipped. */
+const wearing = (ids: string[], o: Partial<Profile> = {}): Profile => freshProfile({ loopCounter: 2, attunements: { owned: ids, equipped: ids }, ...o });
+/** The Threshold reached the real way: *Let go* at the Ruins camp in Loop `prof.loopCounter`, every slide acknowledged. */
+const shore = (prof: Profile = rich(), o: StateOverrides = {}): Run => acknowledgeAll(act(at(RUINS, { loop: prof.loopCounter, ...o }, prof, tp), { type: 'letGo' }));
+/** From the shore: the Loom and `loom`, the Far Light and `far`, then into the light. */
+const intoLoop = (r: Run, loom: readonly Action[] = [], far: readonly Action[] = []): Run => run(r, [go('loom'), ...loom, go('far_light'), ...far, NEW_LOOP]);
+const EPS = 1e-9;
+
+describe('U31 · arriving at the Threshold, the four places (DESIGN §10.8, §14.2; STORY §10.7)', () => {
+  test('the Still Shore: the shore, the last run, its Echoes, the Resonance, the figure; an autosave on arrival only', () => {
+    const r = shore();
+    expect([r.s.mode, thresholdArea(r.s)]).toEqual(['threshold', 'still_shore']);
+    expect(logs(r.last)).toEqual([
+      THRESHOLD_TEXT.shore,
+      'Loop 2 · Ranger · Fall (released) · Day 1',
+      'No Echo came back with you.',
+      'Resonance to spend at the Loom: 500.',
+      THRESHOLD_TEXT.figure,
+    ]);
+    expect(ofType(r.last, 'autosaveCheckpoint')).toEqual([{ t: 'autosaveCheckpoint', reason: 'thresholdEntered' }]);
+    expect(legalOf(r, 'thresholdGo')).toEqual([go('far_light'), go('gallery'), go('loom')]);
+    const walked = run(r, [go('gallery'), go('loom'), go('far_light'), go('loom')]);
+    expect(walked.s.threshold?.visited).toEqual(['still_shore', 'gallery', 'far_light', 'loom']);
+    expect(thresholdArea(walked.s)).toBe('loom');
+    expect(ofType(walked.all.slice(r.all.length), 'thresholdEntered').map((e) => e.area)).toEqual(['gallery', 'loom', 'far_light', 'loom']);
+    expect(refused(walked, go('loom'))).toBe('you are already there');
+    expect(refused(walked, { type: 'thresholdGo', to: 'beach' } as unknown as Action)).toBe("there is no place called 'beach' here");
+    const back = act(walked, go('still_shore'));
+    expect(logs(back.last)[0]).toBe(THRESHOLD_TEXT.shore);
+    expect(ofType(back.last, 'autosaveCheckpoint')).toEqual([]);
+  });
+
+  test("each place's actions only there; a threshold state without a record stands at the Still Shore", () => {
+    const r = shore();
+    for (const a of [buy('att_full_purse'), unbuy('att_full_purse'), equip('att_full_purse'), toggle('mod_glass'), NGP]) expect(refused(r, a)).toBe('that is done at the Loom');
+    for (const a of [choose('wizard'), NEW_LOOP]) expect(refused(r, a)).toBe('that is done at the Far Light');
+    const bare = start(makeState({ mode: 'threshold' }, { content: tp }), freshProfile(), tp);
+    expect(thresholdArea(bare.s)).toBe('still_shore');
+    expect(act(bare, go('loom')).s.threshold).toEqual({ visited: ['still_shore', 'loom'], spentThisVisit: 0, pendingClassId: null });
+    expect(refused(start(makeState({ mode: 'title' }), freshProfile()), choose('wizard'))).toBe('a new game names its class');
+  });
+});
+
+describe('U31 · the Loom: Attunements — buy, refund within the visit, equip cap 5 (DESIGN §10.7)', () => {
+  const loom = (prof: Profile = rich()): Run => act(shore(prof), go('loom'));
+
+  test('buy: Resonance − cost (never "earned"), owned forever, counted for the visit; refused when owned, unknown, too dear or not yet allowed', () => {
+    const r = act(loom(), buy('att_full_purse'));
+    expect([r.prof.resonance, r.prof.resonanceEarnedTotal, r.s.threshold?.spentThisVisit]).toEqual([485, 500, 15]);
+    expect(r.prof.attunements).toEqual({ owned: ['att_full_purse'], equipped: [] });
+    expect(r.last.filter((e) => e.t === 'resonanceGained' || e.t === 'attunementBought')).toEqual([
+      { t: 'resonanceGained', amount: -15, reason: 'attunement:att_full_purse', total: 485 },
+      { t: 'attunementBought', attunementId: 'att_full_purse' },
+    ]);
+    expect(refused(r, buy('att_full_purse'))).toBe('Full Purse is already yours');
+    expect(refused(r, buy('att_nope'))).toBe("unknown attunement 'att_nope'");
+    expect(refused(loom(rich({ resonance: 59 })), buy('att_second_wind'))).toBe('Second Wind costs 60 Resonance; you have 59');
+    expect(refused(r, buy('att_steady_hours'))).toMatch(/^Steady Hours needs .+/); // DESIGN §10.7: requires echo_breach_clock
+    expect(act(loom(rich({ echoes: ['echo_breach_clock'] })), buy('att_steady_hours')).prof.attunements.owned).toEqual(['att_steady_hours']);
+    const twenty = loom(rich({ resonance: 20 }));
+    expect(legalOf(twenty, 'thresholdSpend')).toEqual(
+      ['att_deep_well', 'att_echo_sense', 'att_full_purse', 'att_light_step', 'att_old_road', 'att_steady_hand'].map(buy),
+    );
+  });
+
+  test('refund: only what this visit bought (the tail of owned worth spentThisVisit) — the cost back, unequipped, uncounted', () => {
+    let r = run(loom(rich({ attunements: { owned: ['att_deep_well'], equipped: ['att_deep_well'] } })), [
+      buy('att_full_purse'),
+      buy('att_keen_eye'),
+      equip('att_full_purse'),
+    ]);
+    expect([r.prof.resonance, r.s.threshold?.spentThisVisit]).toEqual([460, 40]);
+    expect(legalOf(r, 'thresholdRefund')).toEqual([unbuy('att_full_purse'), unbuy('att_keen_eye')]);
+    expect(refused(r, unbuy('att_deep_well'))).toBe('only an Attunement woven during this visit can be unpicked');
+    expect(refused(r, unbuy('att_echo_sense'))).toBe('that Attunement is not yours');
+    r = act(r, unbuy('att_full_purse'));
+    expect(r.prof.attunements).toEqual({ owned: ['att_deep_well', 'att_keen_eye'], equipped: ['att_deep_well'] });
+    expect([r.prof.resonance, r.prof.resonanceEarnedTotal, r.s.threshold?.spentThisVisit]).toEqual([475, 500, 25]);
+    expect(r.last.filter((e) => e.t === 'attunementEquipped' || e.t === 'resonanceGained')).toEqual([
+      { t: 'attunementEquipped', attunementId: 'att_full_purse', on: false },
+      { t: 'resonanceGained', amount: 15, reason: `${REFUND_REASON}att_full_purse`, total: 475 },
+    ]);
+    expect(legalOf(r, 'thresholdRefund')).toEqual([unbuy('att_keen_eye')]);
+    // the next visit cannot unpick what the last one wove
+    const later = act(acknowledgeAll(act(run(r, [go('far_light'), NEW_LOOP]), { type: 'letGo' })), go('loom'));
+    expect(later.s.threshold?.spentThisVisit).toBe(0);
+    expect(refused(later, unbuy('att_keen_eye'))).toBe('only an Attunement woven during this visit can be unpicked');
+  });
+
+  test('equip: owned only, at most five, off again; the legal toggles', () => {
+    const six = ['att_deep_well', 'att_echo_sense', 'att_full_purse', 'att_keen_eye', 'att_light_step', 'att_steady_hand'];
+    let r = run(loom(rich({ attunements: { owned: six, equipped: [] } })), six.slice(0, 5).map((id) => equip(id)));
+    expect(r.prof.attunements.equipped).toEqual(six.slice(0, 5));
+    expect(refused(r, equip('att_steady_hand'))).toBe('at most 5 Attunements can be equipped');
+    expect(refused(r, equip('att_deep_well'))).toBe('that Attunement is already equipped');
+    expect(refused(r, equip('att_second_wind'))).toBe('you do not own that Attunement');
+    expect(refused(r, { type: 'equipAttunement', attunementId: 'att_deep_well' } as unknown as Action)).toBe('equip on or off?');
+    expect(legalOf(r, 'equipAttunement')).toEqual(six.slice(0, 5).map((id) => equip(id, false)));
+    r = run(r, [equip('att_keen_eye', false), equip('att_steady_hand')]);
+    expect(r.prof.attunements.equipped).toEqual(['att_deep_well', 'att_echo_sense', 'att_full_purse', 'att_light_step', 'att_steady_hand']);
+    expect(ofType(r.last, 'attunementEquipped')).toEqual([{ t: 'attunementEquipped', attunementId: 'att_steady_hand', on: true }]);
+    expect(refused(r, equip('att_keen_eye', false))).toBe('that Attunement is not equipped');
+  });
+});
+
+describe('U31 · buy → equip → loop start → the effect is visible (DESIGN §10.7; engine/runRules.ts)', () => {
+  test('Steady Hand, Deep Well, Full Purse, Keen Eye, Steady Hours: maxima, gold, crit, the clock — on the loop the Far Light starts', () => {
+    const five = ['att_steady_hand', 'att_deep_well', 'att_full_purse', 'att_keen_eye', 'att_steady_hours'];
+    const r = intoLoop(shore(rich({ echoes: ['echo_breach_clock'] })), [...five.map(buy), ...five.map((id) => equip(id))]);
+    const { s } = r;
+    const p = s.player;
+    expect([s.mode, s.meta.loop, s.world.currentLocationId, s.clock.ticks, s.threshold, s.pendingEnding]).toEqual(['explore', 3, RUINS, 0, null, null]);
+    expect(ofType(r.last, 'loopStarted')).toEqual([{ t: 'loopStarted', loop: 3, classId: 'ranger' }]);
+    expect(ofType(r.last, 'modeChanged')).toEqual([{ t: 'modeChanged', from: 'threshold', to: 'explore' }]);
+    expect(logs(r.last)[0]).toBe(THRESHOLD_TEXT.farLight);
+    expect(p.attunements).toEqual(five);
+    const plain = derive({ ...p, attunements: [] }, tp);
+    expect([p.hpMax, p.mpMax]).toEqual([Math.floor(plain.hpMax * 1.05 + EPS), Math.floor(plain.mpMax * 1.05 + EPS)]);
+    expect([p.hp, p.mp]).toEqual([p.hpMax, p.mpMax]);
+    expect(p.gold).toBe(30 + 60);
+    expect(derive(p, tp).crit).toBe(plain.crit + 3);
+    expect(s.clock).toMatchObject({ limitTicks: 116 + 4, modifiers: [{ source: 'att_steady_hours', watches: 4 }] });
+    expect(r.prof.resonance).toBe(500 - 20 - 20 - 15 - 25 - 50);
+    expect(r.prof.attunements.equipped).toEqual(five); // the profile keeps them for later loops
+  });
+
+  test('Iron Loop: the equipped set sleeps for the loop; Frayed Clock halves Steady Hours toward zero (DESIGN §10.1, §15.1)', () => {
+    const owned = ['att_full_purse', 'att_steady_hours'];
+    const iron = intoLoop(shore(rich({ attunements: { owned, equipped: owned } })), [toggle('mod_iron_loop')]);
+    expect([iron.s.player.attunements, iron.s.player.gold, iron.s.meta.modifiers]).toEqual([undefined, 30, ['mod_iron_loop']]);
+    expect(iron.s.clock).toMatchObject({ limitTicks: 116, modifiers: [] });
+    const frayed = intoLoop(shore(rich({ attunements: { owned, equipped: owned } })), [toggle('mod_frayed_clock')]);
+    expect(frayed.s.clock).toMatchObject({ limitTicks: 80 + 2, modifiers: [{ source: 'att_steady_hours', watches: 2 }] });
+    expect(frayed.s.player.gold).toBe(90);
+  });
+
+  test('the other loop-start kinds: stat points, ability points, starting items, a revealed region (no DESIGN row uses them)', () => {
+    const extra: AttunementInput = {
+      id: 'att_extra',
+      name: 'Extra',
+      description: 'Fixture.',
+      cost: 1,
+      icon: 'extra',
+      effects: [
+        { kind: 'stat', stat: 'strength', amount: 2 },
+        { kind: 'ability_points', amount: 1 },
+        { kind: 'start_item', itemId: 'item_glow_moss', count: 2 },
+        { kind: 'reveal_region', regionId: 'region_glowlands_nexus' },
+      ],
+    };
+    const pack = buildContentPack({ ...thresholdTables(), attunements: [extra] }, { version: FIXTURE_VERSION, validate: false });
+    const s = newRun('x', 'ranger', pack, wearing(['att_extra']));
+    const plain = newRun('x', 'ranger', pack, freshProfile({ loopCounter: 2 }));
+    expect(s.player.passiveBonuses).toEqual({ strength: 2 });
+    expect(s.player.apHalf).toBe(plain.player.apHalf + 2);
+    expect(s.player.inventory.filter((i) => i.itemId === 'item_glow_moss').map((i) => i.qty)).toEqual([2]);
+    expect(s.meta.nextUid).toBe(plain.meta.nextUid + 1);
+    expect(s.world.discovered).toEqual([RUINS, GLOWLANDS, NEXUS, APEX]);
+    expect(derive(s.player, pack).strength).toBe(derive(plain.player, pack).strength + 2);
+    expect([s.player.hpMax, s.player.hp]).toEqual([derive(s.player, pack).hpMax, derive(s.player, pack).hpMax]); // STR raises max HP
+  });
+
+  test("Quick Study: +10 % XP, with gear at most +20 %; Pacifist's Vow: XP from anything but kills ×2 (DESIGN §10.7, §15.1)", () => {
+    const xpOf = (prof: Profile): number | undefined =>
+      ofType(act(at(RUINS, { loop: 2 }, prof, tp, withWait([{ xp: 50 }])), { type: 'wait' }).last, 'xpGained')[0]?.amount;
+    expect(xpOf(freshProfile({ loopCounter: 2 }))).toBe(50);
+    expect(xpOf(wearing(['att_quick_study']))).toBe(55);
+    expect(xpOf(freshProfile({ loopCounter: 2, modifiers: { mod_pacifist: true } }))).toBe(100);
+    expect(xpOf(wearing(['att_quick_study'], { modifiers: { mod_pacifist: true } }))).toBe(110);
+    const p = makeState({ loop: 2 }, { content: tp, profile: wearing(['att_quick_study']) }).player;
+    expect([xpBonus(p, tp), xpBonus(p, tp, 0.1), xpBonus(p, tp, 0.15)]).toEqual([0.1, 0.2, 0.2]);
+  });
+
+  test('Light Step: travel regen +5 % HP / +10 % MP more per watch; Remembered Steps: the first remembered road of a day is free', () => {
+    // maxima synced first (the Amulet's +1 MAG), so the regen reads the same max MP as the post-step sync keeps
+    const tired = (s: GameState) => void (syncMaxima(s.player, tp), (s.player.hp = 10), (s.player.mp = 0));
+    const walk = (prof: Profile) => act(at(PLAZA, { loop: 2, patch: tired }, prof, tp), move(GLOWLANDS)).s.player;
+    const plain = walk(freshProfile({ loopCounter: 2 }));
+    const light = walk(wearing(['att_light_step']));
+    expect([plain.hp, plain.mp]).toEqual([10 + Math.round(plain.hpMax * 0.05), Math.round(plain.mpMax * 0.1)]);
+    expect([light.hp, light.mp]).toEqual([10 + Math.round(light.hpMax * 0.1), Math.round(light.mpMax * 0.2)]);
+
+    const remembered = wearing(['att_remembered_steps'], { mapKnowledge: [PLAZA, GLOWLANDS] });
+    let r = act(at(PLAZA, { loop: 2 }, remembered, tp), move(GLOWLANDS));
+    expect(r.s.clock.ticks).toBe(0);
+    expect(logs(r.last)).toContain('Your feet remember this road; it takes no time at all.');
+    expect(r.s.player.uses.att_remembered_steps).toEqual({ day: 1 });
+    r = act(r, move(PLAZA));
+    expect(r.s.clock.ticks).toBe(1); // once a day
+    r = act(patch(r, (s) => void (s.clock.ticks = 4)), move(GLOWLANDS)); // Day 2
+    expect(r.s.clock.ticks).toBe(4);
+    expect(act(at(PLAZA, { loop: 2 }, wearing(['att_remembered_steps']), tp), move(GLOWLANDS)).s.clock.ticks).toBe(1); // not remembered
+  });
+
+  test('Old Road: one free inn night a loop, legal even without the gold', () => {
+    const road = at(PLAZA, { loop: 2, gold: 0 }, wearing(['att_old_road']), tp);
+    expect(legalOf(road, 'rest')).toEqual([{ type: 'rest', kind: 'full' }, { type: 'rest', kind: 'short' }]);
+    const slept = act(road, { type: 'rest', kind: 'full' });
+    expect([slept.s.player.gold, slept.s.player.uses.att_old_road]).toEqual([0, { loop: 2 }]);
+    expect(logs(slept.last)).toContain('The innkeeper waves your coin away. The old road remembers you.');
+    expect(refused(slept, { type: 'rest', kind: 'full' })).toBe(`a bed here costs ${INN_COST} gold`);
+    expect(act(patch(slept, (s) => void (s.player.gold = 50)), { type: 'rest', kind: 'full' }).s.player.gold).toBe(50 - INN_COST);
+    expect(legalOf(at(PLAZA, { loop: 2, gold: 0 }, freshProfile({ loopCounter: 2 }), tp), 'rest')).toEqual([{ type: 'rest', kind: 'short' }]);
+  });
+
+  test('Second Wind: once a loop from Loop 2 the killing blow leaves 1 HP, then the Fall; never in Loop 1 (DESIGN §10.7)', () => {
+    const fight = (r0: Run): { r: Run; stood: number } => {
+      let r = act(r0, move(LIBRARY)); // the two Shades
+      let stood = 0;
+      for (let i = 0; i < 60 && r.s.mode === 'combat' && r.s.combat?.phase !== 'defeat'; i++) {
+        r = act(r, { type: 'guard' });
+        stood = Math.max(stood, r.s.combat?.log.filter((l) => l.text.startsWith('Second Wind')).length ?? 0);
+      }
+      return { r, stood };
+    };
+    const wind = fight(at(RUINS, { loop: 2, hp: 1 }, wearing(['att_second_wind']), tp));
+    expect(wind.stood).toBe(1);
+    expect(wind.r.s.player.uses.att_second_wind).toEqual({ loop: 2 });
+    expect(wind.r.s.pendingEnding).toMatchObject({ outcome: 'closer_fall', reason: 'death' });
+    const loop1 = fight(at(RUINS, { hp: 1 }, freshProfile({ attunements: { owned: ['att_second_wind'], equipped: ['att_second_wind'] } }), tp));
+    expect([loop1.stood, loop1.r.s.combat?.phase]).toEqual([0, 'defeat']); // FALLEN
+  });
+
+  test('Echo-Sense: resistances known at first sight (DESIGN §10.7)', () => {
+    const seen = act(at(RUINS, { loop: 2 }, wearing(['att_echo_sense']), tp), move(LIBRARY));
+    expect(seen.s.mode).toBe('combat');
+    expect(seen.prof.bestiary.cr_corrupted_shade?.revealed).toBe('resist');
+    const blind = act(at(RUINS, { loop: 2 }, freshProfile({ loopCounter: 2 }), tp), move(LIBRARY));
+    expect(blind.prof.bestiary.cr_corrupted_shade?.revealed ?? 'none').toBe('none');
+  });
+});
+
+describe('U31 · challenge modifiers: toggled at the Loom, fixed for the next loop (DESIGN §15.1, D-021, D-082)', () => {
+  test('toggles write the profile; the prepared run is unchanged until the Far Light rebuilds it; off again deletes the toggle', () => {
+    let r = run(shore(), [go('loom'), toggle('mod_frayed_clock'), toggle('mod_glass'), toggle('mod_pacifist'), toggle('mod_pacifist')]);
+    expect(r.prof.modifiers).toEqual({ mod_frayed_clock: true, mod_glass: true });
+    expect(ofType(r.last, 'modifierToggled')).toEqual([{ t: 'modifierToggled', modifierId: 'mod_pacifist', on: false }]);
+    expect(r.s.meta.modifiers).toEqual([]);
+    expect(refused(r, toggle('mod_nope'))).toBe("unknown modifier 'mod_nope'");
+    expect(legalOf(r, 'toggleModifier')).toEqual(['mod_frayed_clock', 'mod_glass', 'mod_horde_rising', 'mod_iron_loop', 'mod_mute_ley', 'mod_pacifist'].map(toggle));
+    r = run(r, [go('far_light'), NEW_LOOP]);
+    expect(r.s.meta.modifiers).toEqual(['mod_frayed_clock', 'mod_glass']);
+    expect(r.s.clock.limitTicks).toBe(80);
+    expect(refused(r, toggle('mod_glass'))).toBe("'toggleModifier' is not available in explore mode"); // fixed for the loop
+  });
+
+  test('Glass: DoT ticks ×2 both ways as hits are (DESIGN §15.1 "including DoT ticks")', () => {
+    expect([modifierDamageMult(['mod_glass'], tp, true), modifierDamageMult(['mod_glass'], tp, false), modifierDamageMult([], tp, true)]).toEqual([2, 2, 1]);
+    const poison = { statusId: 'status_poison', stacks: 1, duration: 3, sourceUid: null, appliedOnOwnTurn: false, tick: 3 };
+    const tick = (modifiers: string[]): number | undefined => {
+      const r = at(PLAZA, { loop: 2, patch: (s) => void (s.player.statuses.push({ ...poison }), (s.meta.modifiers = modifiers)) }, freshProfile({ loopCounter: 2 }), tp);
+      return ofType(act(r, move(GLOWLANDS)).last, 'statusTicked')[0]?.amount;
+    };
+    expect([tick([]), tick(['mod_glass'])]).toEqual([3, 6]);
+  });
+
+  test("Resonance: the loop's total × the modifiers' product (at most ×3) at its end, as one more payment", () => {
+    expect([resonanceMultiplier([]), resonanceMultiplier(['mod_glass']), resonanceMultiplier(['mod_glass', 'mod_frayed_clock'])]).toEqual([1, 1.5, 1.875]);
+    expect(resonanceMultiplier(['mod_iron_loop', 'mod_frayed_clock', 'mod_mute_ley', 'mod_horde_rising', 'mod_glass', 'mod_pacifist'])).toBe(3);
+    const prof = freshProfile({ loopCounter: 2, modifiers: { mod_glass: true, mod_frayed_clock: true } });
+    let r = act(at(RUINS, { loop: 2 }, prof, tp, withWait([{ resonance: 6 }])), { type: 'wait' });
+    expect(r.s.counters.resonance).toBe(6); // earned during the loop
+    r = act(r, { type: 'letGo' }); // the Ruins +2 (released: no closer bonus)
+    expect(ofType(r.last, 'resonanceGained').map((e) => [e.reason, e.amount])).toEqual([['locations', 2], [MULTIPLIER_REASON, 7]]); // 8 × 0.875
+    expect([r.s.counters.resonance, r.prof.resonance, r.prof.resonanceEarnedTotal]).toEqual([8, 15, 15]);
+    expect(logs(r.last)).toContain('Challenge modifiers ×1.875: +7 Resonance.');
+    const none = act(act(at(RUINS, { loop: 2 }, freshProfile({ loopCounter: 2 }), tp, withWait([{ resonance: 6 }])), { type: 'wait' }), { type: 'letGo' });
+    expect(ofType(none.last, 'resonanceGained').map((e) => e.reason)).toEqual(['locations']);
+    // spending and refunds at the Threshold are not a loop's earnings
+    const spent = run(shore(rich({ modifiers: { mod_glass: true } })), [go('loom'), buy('att_full_purse'), unbuy('att_full_purse')]);
+    expect(spent.s.counters.resonance).toBeUndefined();
+  });
+});
+
+describe('U31 · the Far Light: class change between loops keeps mastery (DESIGN §10.9, D-011, D-067.2)', () => {
+  test("chooseClass sets the next loop's class; that class's mastered abilities cost half again; the other mastery stays", () => {
+    const mastery = {
+      ranger: { loopsPlayed: 1, mastered: ['rgr_rend'], endings: [], bestLevel: 5, bestDays: null },
+      wizard: { loopsPlayed: 2, mastered: ['wiz_fireball'], endings: [], bestLevel: 8, bestDays: null },
+    };
+    let r = act(shore(rich({ classMastery: mastery })), go('far_light'));
+    const ranger = r.prof.classMastery.ranger;
+    expect(legalOf(r, 'chooseClass')).toEqual(['elf', 'ironclad_warden', 'shadow_weaver', 'wizard'].map(choose));
+    expect(refused(r, choose('ranger'))).toBe('that is the shape you will wake in already');
+    expect(refused(r, choose('bard'))).toBe("unknown class 'bard'");
+    r = act(r, choose('wizard'));
+    expect(r.s.threshold?.pendingClassId).toBe('wizard');
+    expect(logs(r.last)).toEqual(['The Wayfinder re-manifests: Wizard.']);
+    expect(act(r, choose('ranger')).s.threshold?.pendingClassId).toBeNull(); // back to the class just played
+    r = act(r, NEW_LOOP);
+    expect([r.s.player.classId, r.s.player.level]).toEqual(['wizard', 4]); // ⌊0.6 × 8⌋, the best over every class (D-070.5)
+    expect(ofType(r.last, 'loopStarted')).toEqual([{ t: 'loopStarted', loop: 3, classId: 'wizard' }]);
+    const ap = r.s.player.apHalf;
+    r = act(r, { type: 'unlockAbility', abilityId: 'wiz_fireball' });
+    expect(r.s.player.apHalf).toBe(ap - 1); // mastered: half of 2 half-points
+    r = act(r, { type: 'letGo' });
+    expect(r.prof.classMastery.ranger).toEqual(ranger);
+    expect(r.prof.classMastery.wizard).toMatchObject({ loopsPlayed: 3, bestLevel: 8 });
+    expect(r.prof.classMastery.wizard?.mastered).toContain('wiz_fireball');
+    expect(r.prof.lastClassId).toBe('wizard');
+  });
+
+  test('quests started at the Threshold, and its Echoes, go into the loop (D-067.15)', () => {
+    const r0 = patch(act(shore(), go('far_light')), (s) => {
+      s.quests.q_echo_crystal = { status: 'active', stage: 'find_crystal', startedDay: 1, endedDay: null, counters: {}, objectivesDone: [] };
+      s.echoesThisLoop.push('echo_breach_clock');
+    });
+    const r = act(r0, NEW_LOOP);
+    expect(r.s.quests.q_echo_crystal).toMatchObject({ status: 'active', stage: 'find_crystal' });
+    expect(r.s.echoesThisLoop).toContain('echo_breach_clock');
+    expect(r.s.counters.echoesGainedThisLoop).toBe(r.s.echoesThisLoop.length);
+  });
+});
+
+describe('U31 · New Game+ (D-021): a fresh save with the Echoes and codex, the loop counter continuing', () => {
+  const owned = ['att_full_purse'];
+  const veteran = (): Profile =>
+    rich({
+      echoes: ['echo_amulet_memory'],
+      codexUnlocked: ['codex_tyrant_holding'],
+      discoveries: ['loc:loc_whispering_ruins', 'codex:codex_tyrant_holding', 'quest:q_echo_crystal'],
+      attunements: { owned, equipped: owned },
+      classMastery: { ranger: { loopsPlayed: 3, mastered: ['rgr_rend'], endings: [], bestLevel: 14, bestDays: null } },
+      modifiers: { mod_glass: true },
+    });
+  /** A true ending (Loop 2, Day 4) on its first slide. */
+  const ended = (): Run => ({ ...act(at(GLOWLANDS, { loop: 2, day: 4 }, veteran(), tp, withWait([{ ending: 'ending_unbound' }])), { type: 'wait' }), step });
+
+  test("on a true ending's screen: the fresh profile, then Day 1 of the next loop at level 1", () => {
+    const r = ended();
+    expect(legalActions(r.s, tp, r.prof).map((a) => a.type)).toEqual(['acknowledgeEnding', 'newGamePlus', 'returnToTitle']);
+    const ng = act(r, NGP);
+    const p = ng.prof;
+    expect(p).toEqual(newGamePlusProfile(r.prof));
+    expect(p.echoes).toEqual(r.prof.echoes);
+    expect(p.echoes).toContain('echo_ending_f');
+    expect(p.codexUnlocked).toEqual(['codex_tyrant_holding']);
+    expect([p.resonance, p.resonanceEarnedTotal, p.attunements, p.classMastery, p.runHistory, p.bestiary, p.mapKnowledge, p.endingsReached]).toEqual([
+      0,
+      0,
+      { owned: [], equipped: [] },
+      {},
+      [],
+      {},
+      [],
+      [],
+    ]);
+    expect(p.discoveries).toEqual(['codex:codex_tyrant_holding']);
+    expect([p.loopCounter, p.newGamePlus, p.modifiers, p.profileId, p.settings]).toEqual([3, 1, { mod_glass: true }, 'fixture', r.prof.settings]);
+    const s = ng.s;
+    expect([s.mode, s.meta.loop, s.meta.seed, s.player.level, s.player.classId, s.world.currentLocationId]).toEqual(['explore', 3, 'fixture:ng1:3', 1, 'ranger', RUINS]);
+    expect([s.meta.modifiers, s.player.attunements, s.player.gold, s.pendingEnding]).toEqual([['mod_glass'], undefined, 30, null]);
+    expect(ofType(ng.last, 'modeChanged')).toEqual([{ t: 'modeChanged', from: 'ending', to: 'explore' }]);
+    expect(ofType(ng.last, 'loopStarted')).toEqual([{ t: 'loopStarted', loop: 3, classId: 'ranger' }]);
+    expect(logs(ng.last)).toContain(THRESHOLD_TEXT.newGamePlus);
+  });
+
+  test('at the Loom once an ending is reached (the chosen class); never after a closer or before any ending', () => {
+    expect(refused(act(at(RUINS, { loop: 2 }, rich(), tp), { type: 'letGo' }), NGP)).toBe('New Game+ follows a true ending');
+    expect(refused(act(shore(), go('loom')), NGP)).toBe('New Game+ opens once an ending has been reached');
+    const loom = act(acknowledgeAll(ended()), go('loom'));
+    expect(legalOf(loom, 'newGamePlus')).toEqual([NGP]);
+    const ng = run(loom, [go('far_light'), choose('wizard'), go('loom'), NGP]);
+    expect([ng.s.player.classId, ng.s.meta.seed, ng.prof.newGamePlus, ng.prof.endingsReached]).toEqual(['wizard', 'fixture:ng1:3', 1, []]);
+    expect(legalOf(act(ng, { type: 'letGo' }), 'newGamePlus')).toEqual([]); // a fresh save has reached no ending yet
+  });
+});
+
+describe('legalActions agrees with step for every U31 action (PLAN §4.7)', () => {
+  const U31: Action[] = [
+    go('still_shore'),
+    go('gallery'),
+    go('loom'),
+    go('far_light'),
+    buy('att_full_purse'),
+    buy('att_steady_hours'),
+    buy('att_second_wind'),
+    unbuy('att_full_purse'),
+    unbuy('att_deep_well'),
+    equip('att_full_purse'),
+    equip('att_full_purse', false),
+    equip('att_deep_well'),
+    equip('att_deep_well', false),
+    toggle('mod_glass'),
+    choose('wizard'),
+    choose('ranger'),
+    NEW_LOOP,
+    NGP,
+  ];
+  const corpus = (): Run[] => {
+    const five = ['att_deep_well', 'att_echo_sense', 'att_keen_eye', 'att_light_step', 'att_steady_hand'];
+    const loom = act(shore(rich({ resonance: 70 })), go('loom'));
+    return [
+      shore(),
+      loom,
+      act(loom, buy('att_full_purse')),
+      run(loom, [buy('att_full_purse'), equip('att_full_purse')]),
+      act(shore(rich({ attunements: { owned: [...five, 'att_full_purse'], equipped: five } })), go('loom')),
+      act(shore(rich({ resonance: 0, endingsReached: ['ending_unbound'] })), go('loom')),
+      act(shore(), go('far_light')),
+      run(shore(), [go('far_light'), choose('wizard')]),
+      act(at(GLOWLANDS, { loop: 2 }, rich(), tp, withWait([{ ending: 'ending_unbound' }])), { type: 'wait' }),
+      act(at(RUINS, { loop: 2 }, rich(), tp), { type: 'letGo' }),
+      at(RUINS, { loop: 2 }, rich(), tp),
+      start(makeState({ mode: 'title' }, { content: tp }), freshProfile(), tp),
+      start(makeState({ mode: 'threshold' }, { content: tp }), freshProfile(), tp),
+    ];
+  };
+  test('isLegal ⇔ step accepts, for each state in the corpus', () => {
+    const seen = new Set<ActionType>();
+    for (const r of corpus()) {
+      for (const a of U31) {
+        const accepted = ofType(r.step(r.s, a, r.pack, r.prof).events, 'actionRejected').length === 0;
+        expect({ a, mode: r.s.mode, area: thresholdArea(r.s), legal: isLegal(r.s, a, r.pack, r.prof) }).toEqual({ a, mode: r.s.mode, area: thresholdArea(r.s), legal: accepted });
+        if (accepted) seen.add(a.type);
+      }
+    }
+    expect([...seen].sort()).toEqual(['chooseClass', 'equipAttunement', 'newGamePlus', 'newLoop', 'thresholdGo', 'thresholdRefund', 'thresholdSpend', 'toggleModifier']);
   });
 });

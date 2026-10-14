@@ -145,6 +145,7 @@ export const PlayerStateSchema: z.ZodType<PlayerState> = z
     passiveBonuses: z
       .object({ strength: num.optional(), magic: num.optional(), agility: num.optional(), hpMax: num.optional(), mpMax: num.optional() })
       .strict(),
+    attunements: strs.optional(),
   })
   .strict();
 
@@ -365,6 +366,7 @@ export const RunCountersSchema: z.ZodType<RunCounters> = z
     echoesGainedThisLoop: num,
     deathsThisLoop: num,
     custom: numRecord,
+    resonance: num.optional(),
   })
   .strict();
 

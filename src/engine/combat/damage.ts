@@ -451,10 +451,16 @@ export function resolveTick(target: ResistHolder & Pick<Combatant, 'hpMax'>, amo
  * one (turnOrder.ts `tickCarriedWatch`): the stored tick (computed at application; the status's `base` if none) × stacks
  * when it ticks per stack, then `resolveTick` with the status's damage type. Null for a status that deals no damage.
  */
-export function dotDamage(holder: ResistHolder & Pick<Combatant, 'hpMax'>, st: Pick<StatusInstance, 'tick' | 'stacks'>, def: Pick<Status, 'tick'> | undefined): TickResult | null {
+export function dotDamage(
+  holder: ResistHolder & Pick<Combatant, 'hpMax'>,
+  st: Pick<StatusInstance, 'tick' | 'stacks'>,
+  def: Pick<Status, 'tick'> | undefined,
+  /** The run's challenge-modifier multiplier on this holder's ticks (Glass ×2, U31: runRules.ts `modifierDamageMult`). */
+  mult = 1,
+): TickResult | null {
   const dmg = def?.tick?.damage;
   if (!dmg) return null;
-  return resolveTick(holder, (st.tick ?? dmg.base) * (dmg.perStack ? st.stacks : 1), dmg.type);
+  return resolveTick(holder, (st.tick ?? dmg.base) * (dmg.perStack ? st.stacks : 1) * mult, dmg.type);
 }
 
 export interface HealSpec {

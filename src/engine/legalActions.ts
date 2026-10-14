@@ -24,6 +24,16 @@ import {
 } from './reducers/loop';
 import { enterPortalEnumerator } from './horde';
 import {
+  chooseClassEnumerator,
+  equipAttunementEnumerator,
+  newGamePlusEnumerator,
+  newLoopEnumerator,
+  thresholdGoEnumerator,
+  thresholdRefundEnumerator,
+  thresholdSpendEnumerator,
+  toggleModifierEnumerator,
+} from './reducers/threshold';
+import {
   abilityEnumerator,
   attackEnumerator,
   communeEnumerator,
@@ -96,7 +106,7 @@ export const ACTION_MODES: { readonly [K in ActionType]: readonly Mode[] } = {
   equipAttunement: ['threshold'],
   toggleModifier: ['threshold'],
   newLoop: ['threshold'],
-  newGamePlus: ['ending'],
+  newGamePlus: ['ending', 'threshold'], // U31: a true ending's screens (PLAN §4.4) and the Loom (DESIGN §10.8)
 };
 
 export interface LegalOptions {
@@ -118,7 +128,7 @@ const none = (): never[] => [];
 
 export const ENUMERATORS: EnumeratorTable = {
   newGame: newGameEnumerator, // U30
-  chooseClass: none, // U31 (Far Light; the title's class choice is part of `newGame`)
+  chooseClass: chooseClassEnumerator, // U31 (Far Light; the title's class choice is part of `newGame`)
   save: saveEnumerator, // U22
   load: none, // U22
   returnToTitle: returnToTitleEnumerator, // U30
@@ -161,13 +171,13 @@ export const ENUMERATORS: EnumeratorTable = {
   commune: communeEnumerator, // U29
   swapCompanion: swapCompanionEnumerator, // U28
   acknowledgeEnding: acknowledgeEndingEnumerator, // U30
-  thresholdGo: none, // U31
-  thresholdSpend: none, // U31
-  thresholdRefund: none, // U31
-  equipAttunement: none, // U31
-  toggleModifier: none, // U31
-  newLoop: none, // U31
-  newGamePlus: none, // U31
+  thresholdGo: thresholdGoEnumerator, // U31
+  thresholdSpend: thresholdSpendEnumerator, // U31
+  thresholdRefund: thresholdRefundEnumerator, // U31
+  equipAttunement: equipAttunementEnumerator, // U31
+  toggleModifier: toggleModifierEnumerator, // U31
+  newLoop: newLoopEnumerator, // U31
+  newGamePlus: newGamePlusEnumerator, // U31
 };
 
 const ACTION_TYPES = Object.keys(ACTION_MODES) as ActionType[];

@@ -17,6 +17,7 @@ import type { Effect } from '@schema/effect';
 import type { Encounter } from '@schema/encounter';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { DAMAGE_TYPES, derive } from '../derived';
+import { modifierDamageMult } from '../runRules';
 import type { Combatant, CombatState, DamageType, GameState, Resistance, SpawnedEncounter, StatusInstance } from '../types/state';
 import { round } from '../util/math';
 import { actsFirst } from './buffs';
@@ -304,7 +305,8 @@ export function tickCarriedWatch(ctx: StepCtx): void {
   for (const st of player.statuses) {
     if (!CARRIED_STATUSES.includes(st.statusId)) continue;
     const before = player.hp;
-    player.hp = Math.max(1, player.hp - (dotDamage(holder, st, ctx.content.statuses[st.statusId])?.amount ?? 0));
+    const mult = modifierDamageMult(ctx.s.meta.modifiers, ctx.content, true); // Glass (U31)
+    player.hp = Math.max(1, player.hp - (dotDamage(holder, st, ctx.content.statuses[st.statusId], mult)?.amount ?? 0));
     ctx.s.counters.damageTaken += before - player.hp;
     ctx.emit({ t: 'statusTicked', targetUid: 'player', statusId: st.statusId, amount: before - player.hp });
     st.duration -= 1;

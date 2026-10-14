@@ -50,7 +50,8 @@ describe('round-trip over 50 sim snapshots', () => {
     expect(new Set(shots.map((s) => stateHash(s.state))).size).toBe(50);
     expect(new Set(shots.map((s) => s.state.world.currentLocationId)).size).toBeGreaterThanOrEqual(4);
     expect(new Set(shots.map((s) => s.state.player.classId))).toEqual(new Set(['ranger', 'wizard']));
-    expect(new Set(shots.map((s) => s.state.meta.loop))).toEqual(new Set([1, 2, 3])); // U30: a Loop 2 walk can Let go into the Threshold
+    // U30: a Loop 2 walk can Let go into the Threshold; U31: and walk on to the Far Light into the loop after
+    expect(new Set(shots.map((s) => s.state.meta.loop))).toEqual(new Set([1, 2, 3, 4]));
     expect(shots.some((s) => s.state.mode === 'dialogue')).toBe(true); // ended at the Apex prompt
     expect(Math.max(...shots.map((s) => s.steps))).toBeGreaterThan(40);
   });

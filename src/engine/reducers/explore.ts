@@ -22,6 +22,7 @@ import { companionArrivalHook, restCompanions } from '../combat/companionAi';
 import { hordeArrivalHook } from '../horde';
 import type { Enumerator } from '../legalActions';
 import { defaultRarity } from '../newRun';
+import { ATT_SCRIPT, attunementScript, scriptNumber } from '../runRules';
 import type { PostStepHook } from '../step';
 import type { ActionOf, ExamineTarget } from '../types/actions';
 import type { AutosaveReason, GameEvent } from '../types/events';
@@ -316,24 +317,40 @@ export const arrivalHook: PostStepHook = (ctx) => {
 
 // ---- travel ----------------------------------------------------------------------------------------------------------
 
-/** DESIGN §3.2 travel regen: per watch travelled, +5 % max HP and +10 % max MP (config.travelRegen). */
+/** DESIGN §3.2 travel regen: per watch travelled, +5 % max HP and +10 % max MP (config.travelRegen; + Light Step, U31). */
 function travelRegen(ctx: StepCtx, watches: number): void {
   if (watches <= 0) return;
   const { player } = ctx.s;
-  const { hpPct, mpPct } = ctx.content.config.travelRegen;
+  const regen = (k: 'hpPct' | 'mpPct'): number => ctx.content.config.travelRegen[k] + scriptNumber(player, ctx.content, ATT_SCRIPT.travelRegen, k);
+  const [hpPct, mpPct] = [regen('hpPct'), regen('mpPct')];
   const hpBefore = player.hp;
   player.hp = Math.min(player.hpMax, player.hp + round(player.hpMax * hpPct) * watches);
   player.mp = Math.min(player.mpMax, player.mp + round(player.mpMax * mpPct) * watches);
   if (player.hp > hpBefore) ctx.emit({ t: 'healed', targetUid: 'player', amount: player.hp - hpBefore, source: 'travel' });
 }
 
-/** Leave events → the edge's watches (0 while the clock is frozen) → regen → arrival. */
+/**
+ * Remembered Steps (U31, DESIGN §10.7): once per day the first travel along a remembered edge — both ends in the
+ * profile's map memory — costs no watch (`player.uses[<attunement id>]` holds the day; dawn clears it).
+ */
+function rememberedStep(ctx: StepCtx, from: string, to: string): boolean {
+  const { s } = ctx;
+  const script = attunementScript(s.player, ctx.content, ATT_SCRIPT.rememberedSteps);
+  const day = dayOf(s.clock.ticks);
+  if (script === undefined || s.player.uses[script.attunementId]?.day === day) return false;
+  if (!ctx.profile.mapKnowledge.includes(from) || !ctx.profile.mapKnowledge.includes(to)) return false;
+  s.player.uses[script.attunementId] = { day };
+  ctx.log('Your feet remember this road; it takes no time at all.', 'narration');
+  return true;
+}
+
+/** Leave events → the edge's watches (0 while the clock is frozen, or on a Remembered Step) → regen → arrival. */
 function travel(ctx: StepCtx, exit: Exit, via: 'move' | 'retreat'): void {
   const { s } = ctx;
   const from = s.world.currentLocationId;
   fireEvents(ctx, from, 'leave');
   if (s.world.currentLocationId !== from || s.mode !== 'explore') return;
-  const watches = s.clock.frozen ? 0 : exit.travelWatches;
+  const watches = s.clock.frozen || rememberedStep(ctx, from, exit.to) ? 0 : exit.travelWatches;
   advanceTime(ctx, watches);
   travelRegen(ctx, watches);
   s.counters.travels += 1;
@@ -521,13 +538,28 @@ function clearDots(ctx: StepCtx): void {
  * 50 %), respawn `once: false` items here and fire `rest` events.
  * While the clock is frozen (Silverwood Before) no time passes; a full rest there advances the Before day (before.ts).
  */
+/** Old Road (U31, DESIGN §10.7): the Attunement that pays for one inn night this loop, if it is unused. */
+function freeInnRest(s: GameState, content: ContentPack, kind: string): string | undefined {
+  const script = attunementScript(s.player, content, ATT_SCRIPT.freeInnRest);
+  return kind === 'inn' && script !== undefined && s.player.uses[script.attunementId]?.loop !== s.meta.loop ? script.attunementId : undefined;
+}
+
+/** Spends Old Road's night (`player.uses[<attunement id>]` holds the loop); false when there is none. */
+function takeFreeInnRest(ctx: StepCtx, kind: string): boolean {
+  const id = freeInnRest(ctx.s, ctx.content, kind);
+  if (id === undefined) return false;
+  ctx.s.player.uses[id] = { loop: ctx.s.meta.loop };
+  ctx.log('The innkeeper waves your coin away. The old road remembers you.', 'narration');
+  return true;
+}
+
 export function restHandler(ctx: StepCtx, a: ActionOf<'rest'>): void {
   const loc = requireHere(ctx);
   const spot = restSpot(ctx.s, ctx.content, ctx.profile);
   if (spot === undefined) ctx.reject(loc.rest === undefined ? 'there is nowhere to rest here' : 'you cannot rest here now');
   const s = ctx.s;
   const full = a.kind === 'full';
-  if (full && spot.cost > 0) {
+  if (full && spot.cost > 0 && !takeFreeInnRest(ctx, spot.kind)) {
     if (s.player.gold < spot.cost) ctx.reject(`a bed here costs ${spot.cost} gold`);
     s.player.gold -= spot.cost;
     s.counters.goldSpent += spot.cost;
@@ -661,7 +693,7 @@ export const restEnumerator: Enumerator<'rest'> = (s, content, profile) => {
   const spot = restSpot(s, content, profile);
   if (spot === undefined) return [];
   const out: ActionOf<'rest'>[] = [{ type: 'rest', kind: 'short' }];
-  if (s.player.gold >= spot.cost) out.push({ type: 'rest', kind: 'full' });
+  if (s.player.gold >= spot.cost || freeInnRest(s, content, spot.kind) !== undefined) out.push({ type: 'rest', kind: 'full' });
   return out;
 };
 

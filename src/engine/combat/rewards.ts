@@ -29,7 +29,9 @@
 //            spare) pays `config.resonance.bestiary` (+3) once, keyed `kill:<id>` in `profile.discoveries` (§10.6)
 //   seen     when the fight ends, however it ends: + 1 per creature that stood in it (adds included)
 //   intents  each intent chip the player sees at the start of a turn (not hidden) adds its move id to `intentsSeen`
-// TODO(U31): `att_echo_sense` reveals resistances at once.
+// Echo-Sense (U31, DESIGN §10.7 `att_echo_sense`): while it is active, every creature in sight at a player turn has its
+// resistances revealed at once (`revealed` ≥ 'resist'). The kill XP bonus also counts Quick Study (`xp_pct`): at most
+// +20 % from all sources (runRules.ts `xpBonus`).
 import { MAX_AFFIXES, type Item } from '@schema/item';
 import type { Creature } from '@schema/creature';
 import type { Effect } from '@schema/effect';
@@ -39,6 +41,7 @@ import type { ContentPack, StepCtx } from '../ctx';
 import { RARITY_ORDER, derive } from '../derived';
 import { addItem, apply, applyAll, leaveOnGround } from '../effects';
 import { PACK_SLOTS, inSatchel, packSlotsUsed } from '../reducers/inventory';
+import { ATT_SCRIPT, attunementScript, xpBonus } from '../runRules';
 import type { BestiaryEntry } from '../types/profile';
 import type { CombatState, GameState, ItemInstance, Rarity } from '../types/state';
 import { round } from '../util/math';
@@ -228,8 +231,8 @@ export function rollSpoils(ctx: StepCtx, combat: CombatState): Spoils {
     }
     applyAll(def.onDefeat as Effect[], ctx, { source: `creature:${enemy.refId}` });
   }
-  const bonus = spoils.xp > 0 ? killXpBonus(s, content) : 0;
-  if (bonus > 0) spoils.xp = roundHalfUp(spoils.xp * (1 + bonus)); // affix_of_echoes (U26b)
+  const bonus = spoils.xp > 0 ? xpBonus(s.player, content, killXpBonus(s, content)) : 0;
+  if (bonus > 0) spoils.xp = roundHalfUp(spoils.xp * (1 + bonus)); // affix_of_echoes (U26b), Quick Study (U31)
   return spoils;
 }
 
@@ -306,7 +309,11 @@ export function recordSeen(ctx: StepCtx, combat: CombatState): void {
 
 /** At the start of a player turn: each visible intent chip's move joins its creature's `intentsSeen` (profile untouched if nothing is new). */
 export function noteIntentsSeen(ctx: StepCtx, combat: CombatState): void {
+  const sense = attunementScript(ctx.s.player, ctx.content, ATT_SCRIPT.echoSense) !== undefined;
   for (const enemy of combat.enemies) {
+    if (sense && ctx.content.creatures[enemy.refId] && (ctx.profile.bestiary[enemy.refId]?.revealed ?? 'none') === 'none') {
+      raise(ctx, enemy.refId, draftEntry(ctx, enemy.refId), 'resist'); // Echo-Sense (U31)
+    }
     const intent = combat.intents[enemy.uid];
     if (!intent || intent.hidden || (ctx.profile.bestiary[enemy.refId]?.intentsSeen.includes(intent.moveId) ?? false)) continue;
     draftEntry(ctx, enemy.refId).intentsSeen.push(intent.moveId);

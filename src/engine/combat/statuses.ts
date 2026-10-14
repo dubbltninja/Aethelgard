@@ -33,6 +33,7 @@ import type { CombatWhen, StatusApply } from '@schema/creature';
 import type { Status } from '@schema/status';
 import type { ContentPack, StepCtx } from '../ctx';
 import { derive } from '../derived';
+import { modifierDamageMult } from '../runRules';
 import type { Combatant, CombatState, GameState, StatusInstance } from '../types/state';
 import { afterHitBuffs, buffTurnEnd, buffTurnStart, tetherHeal } from './buffHooks';
 import { buffBlocks, buffImmune, dotsTwice } from './buffs';
@@ -410,7 +411,8 @@ export function startOfTurnStatuses(ctx: StepCtx, combat: CombatState, actor: Co
   if (buffTurnStart(ctx, combat, actor)) return out; // U26b: a bonus action's start is not a turn
   for (const id of DOT_ORDER) {
     const st = findStatus(actor, id);
-    const tick = st ? dotDamage(actor, st, content.statuses[id]) : null;
+    const glass = modifierDamageMult(ctx.s.meta.modifiers, content, actor.kind !== 'enemy'); // Glass ×2 both ways (U31)
+    const tick = st ? dotDamage(actor, st, content.statuses[id], glass) : null;
     if (!st || !tick) continue;
     const source = st.sourceUid === null ? undefined : combatantByUid(combat, st.sourceUid);
     for (let n = source && dotsTwice(source) ? 2 : 1; n > 0; n--) { // U26b: Apex Predator's DoTs tick twice

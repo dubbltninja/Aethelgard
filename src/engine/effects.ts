@@ -19,6 +19,7 @@ import { atomOf, dayOf, daysLeft, repTier, watchOf, TICKS_PER_DAY } from './cond
 import { enterMode, type StepCtx } from './ctx';
 import { defaultRarity, isStackable } from './newRun';
 import { grantXp } from './progression';
+import { scaleXp } from './runRules';
 import type { ItemInstance, LocationState, QuestState } from './types/state';
 import { clamp } from './util/math';
 
@@ -283,7 +284,8 @@ const APPLIERS: Appliers = {
     else counters.goldSpent -= delta;
     ctx.emit({ t: 'goldChanged', delta, total: player.gold });
   },
-  xp: (n, ctx) => void grantXp(ctx, n), // U21: level-ups, refills (progression.ts)
+  // U21: level-ups, refills (progression.ts); U31: Quick Study and Pacifist's Vow ×2 (runRules.ts `scaleXp`; kill XP is rewards.ts)
+  xp: (n, ctx) => void grantXp(ctx, scaleXp(ctx.s.player, ctx.s.meta.modifiers, ctx.content, n)),
   resonance: (n, ctx, _key, source) => {
     const p = ctx.profileDraft();
     p.resonance = Math.max(0, p.resonance + n);

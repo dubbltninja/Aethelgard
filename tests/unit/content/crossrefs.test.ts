@@ -653,7 +653,7 @@ const EXAMPLES: Example[] = [
       viaTables((t) => {
         for (let i = 0; i < 10; i++) t.codex.push({ id: `codex_note_${i}`, title: `Note ${i}`, voice: 'wayfinder_notes', category: 'history', body: 'Short.', unlockedAtStart: true });
       }),
-    says: ["voice 'remnant_archive' has 0 of 10 entries (0%), under 10%", "voice 'weaver_fragment' has 0 of 10 entries"],
+    says: ["voice 'remnant_archive' has 1 of 15 entries (7%), under 10%", "voice 'weaver_fragment' has 1 of 15 entries"], // U29: the fixture's 5 Tyrant entries
     level: 'warnings',
   },
 
@@ -770,7 +770,7 @@ const STRICT_EXAMPLES: StrictExample[] = [
     rule: 'rule-15',
     title: 'six true endings and two closers',
     report: (strict) => validateContent(fixturePack(), { strict }),
-    says: ["ending record 'ending_wardens_vigil' is missing", "ending record 'closer_escape' is missing", "ending record 'closer_fall' is missing"],
+    says: ["ending record 'ending_weavers_dawn' is missing", "ending record 'closer_escape' is missing", "ending record 'closer_fall' is missing"],
   },
   {
     rule: 'rule-18',
@@ -793,15 +793,15 @@ const STRICT_EXAMPLES: StrictExample[] = [
       '6 locations; expected 73',
       '1 story quests (D-045, legacy six included); expected 44',
       '0 class mini-quests; expected 5',
-      '0 codex entries; expected at least 85',
-      '2 echoes; expected 103',
+      '5 codex entries; expected at least 85',
+      '17 echoes; expected 103',
       '4 creatures (anomaly variants apart); expected 57',
       '0 anomaly variants; expected 16',
-      '18 items; expected at least 120',
+      '20 items; expected at least 120',
       '0 achievements; expected 40',
       '6 class abilities; expected 75',
       '4 companion abilities; expected 24',
-      '1 ending records; expected 8',
+      '3 ending records; expected 8',
       '1 factions; expected 3',
       '0 attunements; expected 15',
       '1 companions; expected 6',

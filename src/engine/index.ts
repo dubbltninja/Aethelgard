@@ -26,3 +26,4 @@ export * from './combat/rewards';
 export * from './combat/companionAi';
 export * from './combat/buffs';
 export * from './combat/buffHooks';
+export * from './communion';

@@ -35,7 +35,7 @@ describe('the fixture pack builds through buildContentPack', () => {
       expect(values(pack.items).filter((i) => i.slot === slot).length).toBeGreaterThanOrEqual(2);
     }
     expect([count('recipes'), count('quests'), count('dialogues'), count('echoes'), count('merchants'), count('modifiers'), count('endings')]).toEqual([
-      1, 1, 1, 2, 1, 1, 1,
+      1, 1, 1, 17, 1, 1, 3, // U29: the communion's 15 Echoes and endings A/B
     ]);
     expect(pack.quests.q_echo_crystal!.stages).toHaveLength(2);
     expect(Object.keys(pack.factions)).toEqual(['remnants']);

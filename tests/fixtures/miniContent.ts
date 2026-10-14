@@ -12,11 +12,14 @@
 //   the Contained form's Phase-2 add (`cr_temporal_aberration`), so four creatures cover fodder/elite/wandering/boss.
 //   Like the real Unveiled it is fought from Loop 2; Loop 1's Contained Tyrant is not modelled.
 // - `config.apexGate` counts one completed quest instead of six (the fixture has one quest).
+// - U29 appends the communion's Echo-gated answers, Listen fragments (five codex entries), the Stabilized Heartstone
+//   and the Breach-anchor, endings A and B, and one fixture-only Apex interaction that grants those Echoes and flags.
 // - The map skips the Archway/Corridor and joins the Plaza to the Glowlands directly; the road is fixture-only.
 import { buildContentPack, type ContentPack, type ContentTables } from '@content/index';
 import { configInput } from '@content/shared/config';
 import type { AbilityInput } from '@schema/ability';
 import type { ClassInput } from '@schema/class';
+import type { CodexEntryInput } from '@schema/codex';
 import type { CompanionInput } from '@schema/companion';
 import type { Condition } from '@schema/condition';
 import type { CreatureInput, MoveInput, Step } from '@schema/creature';
@@ -207,6 +210,24 @@ const locations = [
         when: { loop: { min: 2 } },
         text: "It speaks: 'You have crossed. So.'",
         effects: [{ grantEcho: 'echo_tyrant_speaks' }],
+      },
+      // U29, fixture-only: one place that grants what the communion answers and outcomes A/B read (the real game
+      // spreads these over STORY §12's sources)
+      {
+        id: 'ev_apex_remember',
+        trigger: 'interact',
+        label: 'Remember',
+        when: { loop: { min: 2 } },
+        text: 'Everything you carried here comes back at once.', // fixture line
+        effects: [
+          ...[
+            'echo_tyrant_jailer', 'echo_tyrant_never_struck', 'echo_thirtieth_dawn', 'echo_seven_wayfinders', 'echo_litany_verse_2',
+            'echo_korr_marginalia', 'echo_litany_verse_7', 'echo_eye_of_masque', 'echo_ritual_inevitable', 'echo_hallow_said_stop',
+            'echo_litany_complete', 'echo_void_resonance', 'echo_heartstone_resonance', 'echo_anchor_mechanic',
+          ].map((grantEcho) => ({ grantEcho: grantEcho as `echo_${string}` })),
+          { setFlag: 'flag_conflux_anchored' },
+          { setFlag: 'flag_cradle_pin_anchored' },
+        ],
       },
     ],
     art: { template: 'breach', silhouettes: ['folded_plane', 'tyrant_cleft', 'stair_fragment'], particles: 'shards', timeOfDay: 'timeless' },
@@ -421,7 +442,10 @@ const tyrantMoves = {
 
 /**
  * DESIGN §4.10 row 2 numbers (900/32/36/8/10/4) and §4.11 communion, cut to three phases = three Movements. Answers,
- * offers and outcomes are DESIGN/STORY rows whose conditions need only fixture content; U29 appends the Echo-gated ones.
+ * offers and outcomes are DESIGN/STORY rows whose conditions need only fixture content; U29 appended the Echo-gated
+ * answers (WORLD §6.8's question ids: all of Movement I; Korr, Masque and Hallow's silence of Movement II), each
+ * Movement's Listen fragment, the other two offers and the outcomes Before-pass, A and B (STORY §10 requirement atoms).
+ * Answer texts are fixture lines.
  */
 const chronosTyrant = {
   id: 'cr_chronos_tyrant_unveiled',
@@ -479,9 +503,28 @@ const chronosTyrant = {
             answers: [
               { id: 'to_kill_you', when: { all: [] }, resolve: 1, text: 'To kill you.' },
               { id: 'lie', when: { all: [] }, resolve: -2, lie: true, text: 'I was lost.' },
+              { id: 'the_jailer', when: { echo: 'echo_tyrant_jailer' }, resolve: 1, text: 'You are the jailer, and the cell.' },
+              { id: 'never_struck', when: { echo: 'echo_tyrant_never_struck' }, resolve: 1, text: 'You never struck first.' },
+            ],
+          },
+          {
+            id: 'tyr_q_hour',
+            line: 'It asks what day this is, for you.',
+            answers: [
+              { id: 'thirtieth_dawn', when: { echo: 'echo_thirtieth_dawn' }, resolve: 1, text: 'The thirtieth dawn is coming.' },
+              { id: 'lie_first_day', when: { all: [] }, resolve: -2, lie: true, text: 'The first day.' },
+            ],
+          },
+          {
+            id: 'tyr_q_before',
+            line: 'It asks who came before you.',
+            answers: [
+              { id: 'seven_wayfinders', when: { echo: 'echo_seven_wayfinders' }, resolve: 1, text: 'Seven. I read their names.' },
+              { id: 'lie_no_one', when: { all: [] }, resolve: -2, lie: true, text: 'No one.' },
             ],
           },
         ],
+        listen: { effects: [{ unlockCodex: 'codex_tyrant_holding' }, { unlockCodex: 'codex_tyrant_reflex' }] },
       },
       {
         id: 'tyr_movement_2',
@@ -489,9 +532,28 @@ const chronosTyrant = {
           {
             id: 'tyr_q_korr',
             line: "'What is read is owed. What have you read?'",
-            answers: [{ id: 'corrupted', when: { corruption: { min: 3 } }, resolve: 1, text: 'Enough to owe.' }],
+            answers: [
+              { id: 'corrupted', when: { corruption: { min: 3 } }, resolve: 1, text: 'Enough to owe.' },
+              { id: 'verse_2', when: { echo: 'echo_litany_verse_2' }, resolve: 1, text: 'The second verse.' },
+              { id: 'korr_marginalia', when: { echo: 'echo_korr_marginalia' }, resolve: 1, text: 'Your margins.' },
+            ],
+          },
+          {
+            id: 'tyr_q_masque',
+            line: "'Tell me what you saw from the far side.'",
+            answers: [
+              { id: 'verse_7', when: { echo: 'echo_litany_verse_7' }, resolve: 1, text: 'The seventh verse.' },
+              { id: 'eye_of_masque', when: { echo: 'echo_eye_of_masque' }, resolve: 1, text: 'Your eye, still open.' },
+              { id: 'ritual_inevitable', when: { echo: 'echo_ritual_inevitable' }, resolve: 2, text: 'It failed. It always fails.' },
+            ],
+          },
+          {
+            id: 'tyr_q_hallow',
+            line: 'The chorus leaves a gap where a sixth voice should be.',
+            answers: [{ id: 'hallow_said_stop', when: { echo: 'echo_hallow_said_stop' }, resolve: 2, text: 'He said stop.' }],
           },
         ],
+        listen: { effects: [{ unlockCodex: 'codex_tyrant_fracture' }] },
       },
       {
         id: 'tyr_movement_3',
@@ -502,17 +564,40 @@ const chronosTyrant = {
             answers: [{ id: 'answer', when: { resolve: { min: 3 } }, resolve: 0, text: 'Choose.' }],
           },
         ],
+        listen: { effects: [{ unlockCodex: 'codex_tyrant_alone' }] },
       },
     ],
     offers: [
       { itemId: 'item_chronos_lens', resolve: 1, effects: [] },
       { itemId: 'item_heartstone_core', resolve: -2, effects: [] },
+      { itemId: 'item_stabilized_heartstone', resolve: 1, effects: [] },
+      { itemId: 'item_breach_anchor', resolve: 2, effects: [{ setFlag: 'flag_anchor_offered' }] },
     ],
     outcomes: [
       {
         minResolve: 3,
         choiceId: 'let_pass',
         effects: [{ setFlag: 'flag_tyrant_spared' }, { setFlag: 'flag_refused_all_paths' }, { ending: 'ending_unbound' }],
+      },
+      // let you pass into Silverwood Before (D-016): the fixture has no Before map, so the tear only opens
+      { minResolve: 3, choiceId: 'pass_before', effects: [{ setFlag: 'flag_tyrant_tear_open' }] },
+      { minResolve: 6, when: { echo: 'echo_litany_complete' }, choiceId: 'take_place', effects: [{ ending: 'ending_wardens_vigil' }] },
+      {
+        minResolve: 8,
+        when: {
+          all: [
+            { echo: 'echo_heartstone_resonance' },
+            { echo: 'echo_litany_complete' },
+            { echo: 'echo_void_resonance' },
+            { echo: 'echo_anchor_mechanic' },
+            { item: { id: 'item_breach_anchor' } },
+            { counter: { name: 'factions_trusted', min: 2 } },
+            { flag: 'flag_conflux_anchored' },
+            { flag: 'flag_cradle_pin_anchored' },
+          ],
+        },
+        choiceId: 'mending',
+        effects: [{ grantEcho: 'echo_tyrant_consent' }, { ending: 'ending_mending' }],
       },
     ],
   },
@@ -592,6 +677,15 @@ const items = [
   {
     id: 'item_echo_crystal', name: 'Echo Crystal', legacyName: 'Echo Crystal', type: 'quest', tier: 0,
     description: 'A crystal that seems to hold voices from the past.', value: 70, art: { icon: 'crystal', major: true },
+  },
+  // U29: the other two communion offers (DESIGN §4.11; fixture descriptions)
+  {
+    id: 'item_stabilized_heartstone', name: 'Stabilized Heartstone', type: 'quest', tier: 0,
+    description: 'The Heartstone, quieted. It beats evenly in your hand.', value: 0, art: { icon: 'heart_core', major: true },
+  },
+  {
+    id: 'item_breach_anchor', name: 'Breach-anchor', type: 'quest', tier: 0,
+    description: 'An anchor-pin forged for a wound in time. One end of a pair.', value: 0, art: { icon: 'anchor', major: true },
   },
   {
     id: 'item_dark_spellbook', name: 'Dark Spellbook', legacyName: 'Dark Spellbook', type: 'tome', tier: 0,
@@ -885,7 +979,50 @@ const echoes = [
     category: 'route',
     obtainedBy: ['event:ev_apex_first_entry'],
   },
+  // U29: what the communion answers and outcomes read (STORY §12 ids and categories; fixture codex lines), all granted
+  // by the fixture's `ev_apex_remember`; the consent Echo by outcome B
+  ...(
+    [
+      ['echo_tyrant_jailer', 'The Jailer', 'lore'],
+      ['echo_tyrant_never_struck', 'It Never Struck First', 'lore'],
+      ['echo_thirtieth_dawn', 'The Thirtieth Dawn', 'lore'],
+      ['echo_seven_wayfinders', 'Seven Before Me', 'lore'],
+      ['echo_litany_verse_2', 'Litany, Verse Two', 'lore'],
+      ['echo_korr_marginalia', "Korr's Margins", 'lore'],
+      ['echo_litany_verse_7', 'Litany, Verse Seven', 'lore'],
+      ['echo_eye_of_masque', 'The Eye of Masque', 'lore'],
+      ['echo_ritual_inevitable', 'It Always Failed', 'lore'],
+      ['echo_hallow_said_stop', 'Hallow Said Stop', 'lore'],
+      ['echo_litany_complete', 'The Whole Litany', 'ending'],
+      ['echo_void_resonance', 'Void Resonance', 'ending'],
+      ['echo_heartstone_resonance', 'Heartstone Resonance', 'ending'],
+      ['echo_anchor_mechanic', 'Both Ends', 'ending'],
+    ] as const
+  ).map(([id, name, category]) => ({ id, name, codexLine: `Fixture: ${name}.`, category, obtainedBy: ['event:ev_apex_remember'] })),
+  {
+    id: 'echo_tyrant_consent',
+    name: 'Consent',
+    codexLine: 'Fixture: it said the word it could not say.',
+    category: 'ending',
+    obtainedBy: ['creature:cr_chronos_tyrant_unveiled'],
+  },
 ] satisfies EchoInput[];
+
+/** U29: each Movement's Listen fragments (DESIGN §4.11), one per voice, and what the consent unlocks (fixture bodies). */
+const codex = [
+  { id: 'codex_tyrant_holding', title: 'The Holding', voice: 'remnant_archive', category: 'the_nine', body: 'Fixture: it calls the hold the Holding.' },
+  { id: 'codex_tyrant_reflex', title: 'The Reflex', voice: 'weaver_fragment', category: 'the_nine', body: 'Fixture: the strikes are the hold, not the man.' },
+  { id: 'codex_tyrant_fracture', title: 'Five Under One', voice: 'ironclad_telling', category: 'the_nine', body: 'Fixture: five of the Nine surface through him.' },
+  { id: 'codex_tyrant_alone', title: 'One Voice', voice: 'wayfinder_notes', category: 'the_nine', body: 'Fixture: the chorus quiets; Veyran speaks alone.' },
+  {
+    id: 'codex_tyrant_consent',
+    title: 'Hour, Go',
+    voice: 'wayfinder_notes',
+    category: 'the_nine',
+    body: 'Fixture: the word he could not say.',
+    unlockWhen: { echo: 'echo_tyrant_consent' },
+  },
+] satisfies CodexEntryInput[];
 
 /** STORY §10.6: ending F, reached from the communion outcome `let_pass`. */
 const endings = [
@@ -916,6 +1053,45 @@ const endings = [
       { subject: 'remnants', text: 'They kept writing until there was no paper.' },
     ],
     resonance: 50,
+    credits: true,
+  },
+  // U29: STORY §10.1 / §10.2 requirement blocks, reached from the communion outcomes `take_place` and `mending`
+  {
+    id: 'ending_wardens_vigil',
+    letter: 'A',
+    kind: 'true',
+    name: "The Warden's Vigil",
+    tagline: 'Whoever says the ninth must stay in it.', // fixture line
+    requirements: {
+      all: [{ echo: 'echo_litany_complete' }, { flag: 'flag_tyrant_spared' }, { resolve: { min: 6 } }, { location: 'loc_temporal_breach_apex' }],
+    },
+    sequence: [{ text: '—I hold you.' }], // fixture line
+    resonance: 50,
+    credits: true,
+  },
+  {
+    id: 'ending_mending',
+    letter: 'B',
+    kind: 'true',
+    name: 'The Mending',
+    tagline: 'Both ends.', // fixture line
+    requirements: {
+      all: [
+        { resolve: { min: 8 } },
+        { flag: 'flag_tyrant_spared' },
+        { echo: 'echo_heartstone_resonance' },
+        { echo: 'echo_litany_complete' },
+        { echo: 'echo_void_resonance' },
+        { echo: 'echo_anchor_mechanic' },
+        { item: { id: 'item_breach_anchor' } },
+        { counter: { name: 'factions_trusted', min: 2 } },
+        { flag: 'flag_conflux_anchored' },
+        { flag: 'flag_cradle_pin_anchored' },
+        { location: 'loc_temporal_breach_apex' },
+      ],
+    },
+    sequence: [{ text: 'Hour, go.' }], // fixture line
+    resonance: 100,
     credits: true,
   },
 ] satisfies EndingInput[];
@@ -965,7 +1141,7 @@ export const miniContentTables: ContentTables = deepFreeze({
   npcs,
   companions,
   echoes,
-  codex: [],
+  codex,
   achievements: [],
   attunements: [],
   modifiers,

@@ -26,6 +26,10 @@
 // (U27, combat/rewards.ts): kills at the knock-out, intents seen at each player turn, creatures seen when the fight ends.
 // U26 hooks: a delayed hit (Doom Sigil) fires at the start of its target's turn; traps set at the node spring when the
 // fight opens; every hit that lands gives counter stances and ripostes their answer (combat/specials.ts).
+// U29 (communion.ts, DESIGN §4.11): the player's turn start opens the phase-transition window and keeps the Tyrant's
+// intent a communion beat; while communing the Tyrant's turn is a question or the press and a companion stands down; the
+// player's turn end lets an attack forfeit the current question; `commune` is the dialogue actions; a spared Tyrant ends
+// the fight without spoils after the chosen outcome (`finishSpared`); after a rejection `flee` leaves (`finishLeft`).
 //
 // Arrival encounters (ARRIVAL_HOOKS, reducers/explore.ts; DESIGN §4.7–4.8, WORLD §3 and §10.0), in order: a group a
 // `spawn` effect placed here; the location's fixed encounters (not scattered or cleared, `when` holds, not bypassable
@@ -91,6 +95,20 @@ import {
   startRound,
   type EncounterSpec,
 } from '../combat/turnOrder';
+import {
+  commune,
+  communeActions,
+  communeProblem,
+  communes,
+  communing,
+  communionAfterAction,
+  communionBossTurn,
+  communionCompanionTurn,
+  communionRejected,
+  communionResolving,
+  communionTurnStart,
+  leaveRejected,
+} from '../communion';
 import type { Arrival, ArrivalHook } from './explore';
 
 /** A safety net: one call to `runCombat` never plays more turns than this (a stuck loop is a bug, not a hang). */
@@ -366,6 +384,7 @@ export function runCombat(ctx: StepCtx): void {
     if (actor.kind === 'player') {
       refreshIntents(ctx, combat); // re-aim, re-project, reveal what is due (U25)
       noteIntentsSeen(ctx, combat); // the bestiary's intents seen (U27)
+      communionTurnStart(ctx, combat); // the phase-transition window; a communing Tyrant's beat (U29)
     }
     if (skipsTurn(ctx.content, actor)) {
       combatLog(combat, `${actor.name} is stunned and loses the turn.`, 'status'); // DESIGN §4.5 Stun (U24)
@@ -376,8 +395,11 @@ export function runCombat(ctx: StepCtx): void {
     }
     if (actor.kind === 'player') return;
     if (actor.kind === 'companion') {
-      companionTurn(OPS, ctx, combat, actor); // DESIGN §4.9 by stance (U28)
+      if (communing(ctx.content, combat)) communionCompanionTurn(ctx, combat, actor); // stands down, or Support +1 (U29)
+      else companionTurn(OPS, ctx, combat, actor); // DESIGN §4.9 by stance (U28)
       endTurn(ctx, combat, actor);
+    } else if (communes(ctx.content, combat, actor)) {
+      communionBossTurn(OPS, ctx, combat, actor, () => endTurn(ctx, combat, actor)); // a question or the press (U29)
     } else {
       const phase = actor.phase;
       const played = executeIntent(ctx, combat, actor, applyHit, OPS); // DESIGN §4.2 (U25)
@@ -392,6 +414,9 @@ export function runCombat(ctx: StepCtx): void {
 
 /** After the player's action: end the player's turn and play on (exported for the ability and item handlers). */
 export function finishPlayerTurn(ctx: StepCtx, combat: CombatState, player: Combatant): void {
+  const communion = communionAfterAction(ctx, combat); // U29: an attack forfeits the current question
+  if (communion === 'chosen') return finishSpared(ctx, combat);
+  if (communion === 'hold') return; // Movement III ended: the turn holds for the Resolution
   endTurn(ctx, combat, player);
   combat.turnIndex += 1;
   runCombat(ctx);
@@ -507,12 +532,17 @@ function checkEnd(ctx: StepCtx, combat: CombatState): boolean {
 
 // ---- player actions ------------------------------------------------------------------------------------------------------
 
-/** The fight, when it is the player's turn to act (null otherwise). */
-export function playerTurnCombat(s: GameState): CombatState | null {
+/** The fight, when the player is the one acting (null otherwise) — the Resolution included (U29). */
+export function playerActing(s: GameState): CombatState | null {
   const combat = s.combat;
   if (s.mode !== 'combat' || combat === null || combat.phase !== 'playerTurn') return null;
   const actor = currentActor(combat);
   return actor?.kind === 'player' && isActive(actor) ? combat : null;
+}
+
+/** The fight, when it is the player's turn to act (null otherwise; during a communion's Resolution only `commune` is). */
+export function playerTurnCombat(s: GameState): CombatState | null {
+  return communionResolving(s) ? null : playerActing(s);
 }
 
 function requirePlayerTurn(ctx: StepCtx): CombatState {
@@ -664,6 +694,7 @@ function finishFled(ctx: StepCtx, combat: CombatState): void {
 /** `flee` (DESIGN §4.1 `F`, §4.7): a failed roll wastes the turn and makes the next try +15 %. */
 export const fleeHandler: Handler<'flee'> = (ctx: StepCtx): void => {
   const combat = requirePlayerTurn(ctx);
+  if (communionRejected(combat)) return finishLeft(ctx, combat); // U29: leaving after a rejection, no roll
   const why = fleeProblem(ctx.content, combat);
   if (why !== null) ctx.reject(why);
   if (attemptFlee(ctx, combat)) finishFled(ctx, combat);
@@ -672,8 +703,59 @@ export const fleeHandler: Handler<'flee'> = (ctx: StepCtx): void => {
 
 export const fleeEnumerator: Enumerator<'flee'> = (s, content) => {
   const combat = playerTurnCombat(s);
-  return combat && fleeProblem(content, combat) === null ? [{ type: 'flee' }] : [];
+  return combat && (communionRejected(combat) || fleeProblem(content, combat) === null) ? [{ type: 'flee' }] : [];
 };
+
+// ---- communion (U29, communion.ts) ------------------------------------------------------------------------------------------
+
+/**
+ * `commune` (DESIGN §4.11): Commune opens it (free); Speak / Listen / Offer / Resist each cost the turn; in the Resolution,
+ * Speak names the outcome and the fight closes.
+ */
+export const communeHandler: Handler<'commune'> = (ctx: StepCtx, a: ActionOf<'commune'>): void => {
+  const combat = playerActing(ctx.s) ?? ctx.reject(ctx.s.combat?.phase === 'defeat' ? 'you have fallen' : 'it is not your turn');
+  const why = communeProblem(ctx.s, ctx.content, ctx.profile, combat, a);
+  if (why !== null) ctx.reject(why);
+  const result = commune(OPS, ctx, combat, a);
+  if (result === 'turn') finishPlayerTurn(ctx, combat, playerOf(combat));
+  else if (result === 'chosen') finishSpared(ctx, combat);
+};
+
+export const communeEnumerator: Enumerator<'commune'> = (s, content, profile) => {
+  const combat = playerActing(s);
+  return combat ? communeActions(s, content, profile, combat) : [];
+};
+
+/**
+ * The Tyrant spared and its outcome applied (an `ending` has already moved the mode on): the fight closes without spoils
+ * or the encounter's `onVictory` — snapshots synced back, the encounter cleared, the bestiary's seen counts, `combatEnded`
+ * as a victory with nothing paid (DESIGN §4.1: combat ends when every enemy is dead, spared or fled), an autosave if back
+ * in explore.
+ */
+function finishSpared(ctx: StepCtx, combat: CombatState): void {
+  const { s } = ctx;
+  combat.phase = 'victory';
+  syncBack(ctx, combat);
+  s.combat = null;
+  if (s.mode === 'combat') enterMode(ctx, 'explore');
+  s.counters.fightsWon += 1;
+  clearEncounter(ctx, combat);
+  recordSeen(ctx, combat);
+  ctx.emit({ t: 'combatEnded', result: 'victory', rounds: combat.round, xp: 0, gold: 0, loot: [] });
+  autosaveAfterCombat(ctx);
+}
+
+/** Leaving after a rejection (STORY §8.5): the fight closes as fled, then `closer_fall` / `rejected` (communion.ts). */
+function finishLeft(ctx: StepCtx, combat: CombatState): void {
+  const { s } = ctx;
+  combat.phase = 'fled';
+  syncBack(ctx, combat);
+  s.counters.fled += 1;
+  recordSeen(ctx, combat);
+  ctx.emit({ t: 'combatEnded', result: 'fled', rounds: combat.round, xp: 0, gold: 0, loot: [] });
+  s.combat = null;
+  leaveRejected(ctx);
+}
 
 /** The arrival after a flee (placed at the previous node) rolls no encounter (DESIGN §4.7). */
 const fledThisStep = (ctx: StepCtx): boolean => ctx.events.some((e) => e.t === 'combatEnded' && e.result === 'fled');

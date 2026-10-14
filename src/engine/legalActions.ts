@@ -18,6 +18,7 @@ import { inventoryEnumerators } from './reducers/inventory';
 import {
   abilityEnumerator,
   attackEnumerator,
+  communeEnumerator,
   companionCommandEnumerator,
   fleeEnumerator,
   guardEnumerator,
@@ -149,7 +150,7 @@ export const ENUMERATORS: EnumeratorTable = {
   flee: fleeEnumerator, // U26
   companionCommand: companionCommandEnumerator, // U26 (signature) / U28 (cost, focus, hold)
   setStance: setStanceEnumerator, // U28
-  commune: none, // U29
+  commune: communeEnumerator, // U29
   swapCompanion: swapCompanionEnumerator, // U28
   acknowledgeEnding: none, // U30
   thresholdGo: none, // U31

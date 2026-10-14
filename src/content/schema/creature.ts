@@ -323,7 +323,16 @@ export const CommunionSpecSchema = z
     /** Any-of: Commune is open from turn 1 when one holds ({ echo: 'echo_tyrant_speaks' }); Listen opens it otherwise. */
     opensWith: z.array(ConditionSchema).min(1),
     movements: z
-      .array(z.object({ id: z.enum(COMMUNION_MOVEMENTS), questions: z.array(CommunionQuestionSchema).min(1) }).strict())
+      .array(
+        z
+          .object({
+            id: z.enum(COMMUNION_MOVEMENTS),
+            questions: z.array(CommunionQuestionSchema).min(1),
+            /** What *Listen* speaks in this Movement: the codex fragment(s) it unlocks (DESIGN §4.11; U29, C1 note). */
+            listen: z.object({ effects: Effects }).strict().optional(),
+          })
+          .strict(),
+      )
       .length(3, 'communion has exactly three Movements (D-054)'),
     /** Offer: never consumed (D-067.3). */
     offers: z.array(z.object({ itemId: ItemId, resolve: ResolveDelta, effects: Effects }).strict()),
@@ -354,6 +363,7 @@ export const CommunionSpecSchema = z
     dupes(c.outcomes.map((o) => o.choiceId)).forEach((k) => ctx.addIssue({ code: custom, path: ['outcomes', k, 'choiceId'], message: 'duplicate outcome choiceId' }));
     c.offers.forEach((o, i) => noCombatScope(o.effects, ['offers', i, 'effects'], ctx));
     c.outcomes.forEach((o, i) => noCombatScope(o.effects, ['outcomes', i, 'effects'], ctx));
+    c.movements.forEach((m, i) => noCombatScope(m.listen?.effects ?? [], ['movements', i, 'listen', 'effects'], ctx));
   });
 
 // ---------------------------------------------------------------------------------------------------------------

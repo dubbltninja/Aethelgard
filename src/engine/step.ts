@@ -23,6 +23,7 @@ import {
   abilityHandler,
   attackHandler,
   combatPostStep,
+  communeHandler,
   companionCommandHandler,
   fleeHandler,
   guardHandler,
@@ -99,7 +100,7 @@ export const HANDLERS: HandlerTable = {
   flee: fleeHandler, // U26
   companionCommand: companionCommandHandler, // U26: the signature (DESIGN §4.1 `C`); U28: its cost, focus/hold orders
   setStance: setStanceHandler, // U28
-  commune: pending('U29'),
+  commune: communeHandler, // U29 (communion.ts)
   swapCompanion: swapCompanionHandler, // U28
   acknowledgeEnding: pending('U30'),
   thresholdGo: pending('U31'),

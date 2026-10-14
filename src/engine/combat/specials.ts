@@ -111,7 +111,7 @@ export const TRAP_FLAG = 'trap:';
 export const CHAIN_MULT = 0.5;
 /** drain: the default share of damage dealt that heals the user (Siphon 50 %); per-ability shares below. */
 export const DRAIN_SHARE = 0.5;
-export const DRAIN_SHARES: Readonly<Record<string, number>> = { wvr_feast_of_moments: 0.6 };
+export const DRAIN_SHARES: Readonly<Record<string, number>> = { wvr_feast_of_moments: 0.6, comp_nyx_drink: 0.6 };
 /** DESIGN §5.6 Feast of Moments: its drain overheal becomes Shield (3). */
 export const DRAIN_OVERHEAL_SHIELD: readonly string[] = ['wvr_feast_of_moments'];
 export const DRAIN_OVERHEAL_TURNS = 3;

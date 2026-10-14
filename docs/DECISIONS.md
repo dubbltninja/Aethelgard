@@ -997,3 +997,28 @@ owning unit (PLAN §9.1).
 - **Combat leftovers folded into U26b:** `affix_of_echoes` (+10% kill XP); a data shape for phase `onEnter` area damage
   (DESIGN §4.10 mentions an "AoE" with no schema form — add a combat-scope effect or a phase field via a C1 note);
   ground-loot dawn expiry.
+
+### D-080 · U26b/U28 details, 2026-10-14
+- **Companion orders (resolves D-078):** `focus` and `hold` are free orders, one per player turn. `focus` sets the
+  companion's single target while that enemy stands (no target clears it); `hold` = the companion skips its next
+  action and Guards. Stance change is free once per turn in a fight, any time outside one.
+- **KO:** a knocked-out companion returns only at a **full** rest, at 50% (DESIGN §12.6 wins over "any rest"); KO costs
+  −2 loyalty. Trusted loyalty gives +10% damage/healing; loyalty ≥ 50 cuts the signature cooldown by 1. Companion max
+  HP grows with level. The signature's self-cost is paid (Nyx 10%).
+- **Dask** flickering out empties the active slot; he rejoins automatically on flagged/infected nodes (D-068.2 over
+  DESIGN §12.8's "offers"). `swapCompanion` works at a rest spot or where the companion waits.
+- **Targeting:** §4.9 wins over §12.4 — Ilyra's Ward and Caelum's Foresight shield the player. `buff`/`utility`
+  abilities are used only in Support stance. The content `stances` schema (threshold/weights) is unused; §4.9's
+  numbers are engine constants (Guard threshold 35%). Brak's Hold the Line follows §4.7 (Guard ends when his own turn
+  starts) — flag for the balance pass: it currently does almost nothing.
+- **Abilities (U26b):** every DESIGN §5 row is data or scripted (`ABILITY_SCRIPTS`, mirrored by `SCRIPTED_ABILITIES` in
+  `schema/ability.ts` — a C1 addition); a completeness test casts all 75 through `step()`. New combat-scope effect
+  `areaMove: <boss move id>` (C1 addition), allowed only in a phase `onEnter`, lands at the start of the next turn.
+  Buffs are timers in the holder's cooldown table (`buff:`/`bonus:` keys; never persisted to run state). Moment Between
+  inserts a second player slot; Crescendo counts distinct Bladesong abilities used (incl. itself); Oathbound blocks new
+  debuffs only; Last Bastion reflects Shield-absorbed damage, revives a downed ally at 40% or heals a standing one 30%;
+  `wvr_unravel` is Void (DESIGN). `affix_of_echoes` = unique trinket passive `kill_xp` +10%. Ground loot (drops and
+  overflow spoils) expires at the next dawn; a location's authored items stay.
+- **Lead fixes:** `DRAIN_SHARES.comp_nyx_drink = 0.6`; stale focus/hold text in `abilities.ts`.
+- **Open for later units:** Lanternreed Salts need a `revive` effect (out-of-combat item effect calling
+  `reviveCompanion`) — add in the items/crafting unit (U34) with a C1 note.

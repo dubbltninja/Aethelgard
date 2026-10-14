@@ -725,9 +725,9 @@ function signatureOf(content: ContentPack, combat: CombatState): { companion: Co
   return { companion, ability, cooldown: sig.cooldown };
 }
 
-/** Why the player cannot command the companion's signature now, or null. `focus` / `hold` are not defined by DESIGN (U28). */
+/** Why the player cannot command the companion's signature now, or null. `focus` / `hold` are free orders handled in `companionAi.ts` (D-080). */
 export function signatureProblem(content: ContentPack, combat: CombatState, action: ActionOf<'companionCommand'>): string | null {
-  if (action.command !== 'signature') return `the '${action.command}' command is not defined (DESIGN §4.1 knows the signature; U28)`;
+  if (action.command !== 'signature') return `'${action.command}' is a free order, not the signature (companionAi.ts handles it)`;
   const sig = signatureOf(content, combat);
   if (typeof sig === 'string') return sig;
   if (skipsTurn(content, sig.companion)) return `${sig.companion.name} is stunned`;

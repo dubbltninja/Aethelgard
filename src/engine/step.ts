@@ -19,6 +19,7 @@ import {
 } from './reducers/explore';
 import { clockHook } from './reducers/loop';
 import { characterPostStep, inventoryHandlers } from './reducers/inventory';
+import { loadHandler, saveHandler } from './saves/reducers';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { GameEvent } from './types/events';
 import type { Profile } from './types/profile';
@@ -47,8 +48,8 @@ const pending =
 export const HANDLERS: HandlerTable = {
   newGame: pending('U30'),
   chooseClass: pending('U30/U31'),
-  save: pending('U22'),
-  load: pending('U22'),
+  save: saveHandler, // U22
+  load: loadHandler, // U22
   returnToTitle: pending('U30'),
   move: moveHandler,
   examine: examineHandler,

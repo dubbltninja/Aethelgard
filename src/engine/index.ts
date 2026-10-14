@@ -12,3 +12,4 @@ export * from './progression';
 export * from './reducers/explore';
 export * from './reducers/loop';
 export * from './reducers/inventory';
+export * from './saves';

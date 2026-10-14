@@ -15,6 +15,7 @@ import {
   waitEnumerator,
 } from './reducers/explore';
 import { inventoryEnumerators } from './reducers/inventory';
+import { saveEnumerator } from './saves/reducers';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { Profile } from './types/profile';
 import type { GameState, Mode } from './types/state';
@@ -99,7 +100,7 @@ const none = (): never[] => [];
 export const ENUMERATORS: EnumeratorTable = {
   newGame: none, // U30
   chooseClass: none, // U30 (title) / U31 (Far Light)
-  save: none, // U22
+  save: saveEnumerator, // U22
   load: none, // U22
   returnToTitle: none, // U30
   move: moveEnumerator, // U20

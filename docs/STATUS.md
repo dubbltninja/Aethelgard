@@ -75,7 +75,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U32 | Silverwood Before counter; loop-start Echo effects — brief `briefs/u32.md` | Opus | ✅ cf45c9b — Before rules, Anchors, Echo grants/loop-start effects; 1487 tests; D-083 |
 | U33 | Quests + dialogue reducers — brief `briefs/u33.md` | Opus | ✅ dcf1d10 — quest stage machine, dialogue, recruitment, camp scenes; D-084 |
 | U34 | Economy + crafting — brief `briefs/u34.md` | Opus | ✅ 06a4c51 — merchants, pricing, restock, Emberforge craft/upgrade/salvage, Breach-anchor; 1579 tests; D-084 |
-| U35–U91 | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (57 remaining; next U35 = C2 engine milestone). Copy the next few here as they start. | — | ⏳ |
+| U35 | legalActions completeness + isLegal + property test — **C2 engine** — brief `briefs/u35.md` | Opus (parallel with U40) | ▶ in progress |
+| U40 | Shared content I: classes, statuses, affixes, Ranger + Wizard abilities — brief `briefs/u40.md` | Opus (parallel with U35) | ▶ in progress |
+| U36 | loadScenario builders — brief `briefs/u36.md` | Sonnet | ⏳ queued this session |
+| U37 | Sim runner, random + melee bots, soft-lock detector — brief `briefs/u37.md` | Opus | ⏳ queued this session |
+| U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (53 remaining after U35–U37, U40). Copy the next few here as they start. | — | ⏳ |
 
 
 ### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)

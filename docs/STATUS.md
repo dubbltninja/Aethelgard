@@ -78,8 +78,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U35 | legalActions completeness + isLegal + property test — **C2 engine** — brief `briefs/u35.md` | Opus | ✅ 8c760c8 — **C2 engine**: 623 states, legal ⇔ accepted; D-085 |
 | U40 | Shared content I: classes, statuses, affixes, Ranger + Wizard abilities — brief `briefs/u40.md` | Opus | ✅ 649f0e3 — 5 classes, 19 statuses, 12 affixes, Ranger+Wizard trees = DESIGN; D-085 |
 | U34b | Affix/passive combat effects: `basic_attack_rider`, `damage_vs_status`, `reflect_melee`; passives `statusOnHit`, `regen`, `lifeSteal`, `curse` in combat (D-085) | Opus | ⏳ before balance sims |
-| U36 | loadScenario builders — brief `briefs/u36.md` | Sonnet | ▶ in progress |
-| U37 | Sim runner, random + melee bots, soft-lock detector — brief `briefs/u37.md` | Opus | ⏳ queued this session |
+| U36 | loadScenario builders — brief `briefs/u36.md` | Sonnet | ✅ 9f79ad7 (spot-reviewed) — 13 scenarios × 9 packs, dev-only; 1790 tests |
+| U37 | Sim runner, random + melee bots, soft-lock detector — brief `briefs/u37.md` | Opus | ▶ in progress |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (53 remaining after U35–U37, U40). Copy the next few here as they start. | — | ⏳ |
 
 

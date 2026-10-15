@@ -330,6 +330,7 @@ export function signatureHpCost(content: ContentPack, companion: Combatant): num
 
 /** Why the order (`focus` / `hold`) cannot be given now, or null. Free; one order per player turn (D-078). */
 export function orderProblem(combat: CombatState, a: ActionOf<'companionCommand'>): string | null {
+  if (a.command !== 'focus' && a.command !== 'hold') return `'${String(a.command)}' is not an order`; // U35: was taken as focus
   const me = standingCompanion(combat);
   if (!me) return 'You have no companion standing';
   if ((combat.cooldowns[ORDER_KEY] ?? 0) > 0) return `${me.name} already has an order this turn`;

@@ -554,6 +554,7 @@ function takeFreeInnRest(ctx: StepCtx, kind: string): boolean {
 }
 
 export function restHandler(ctx: StepCtx, a: ActionOf<'rest'>): void {
+  if (a.kind !== 'short' && a.kind !== 'full') ctx.reject(`there is no '${String(a.kind)}' rest`); // U35: was taken as a short rest
   const loc = requireHere(ctx);
   const spot = restSpot(ctx.s, ctx.content, ctx.profile);
   if (spot === undefined) ctx.reject(loc.rest === undefined ? 'there is nowhere to rest here' : 'you cannot rest here now');

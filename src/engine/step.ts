@@ -4,7 +4,7 @@
 // (D-043). Dispatch is a table with one handler per Action['type'] (every one implemented since U33/U34; until then a
 // stub rejected with the owning unit's name), so the table is exhaustive and `legalActions` agrees with it.
 import { Ctx, RejectSignal, type ContentPack, type StepCtx } from './ctx';
-import { ACTION_MODES, isActionType } from './legalActions';
+import { ACTION_MODES, isActionType, reservedParam } from './legalActions';
 import {
   arrivalHook,
   examineHandler,
@@ -161,6 +161,8 @@ export function createStep(handlers: HandlerTable, hooks: readonly PostStepHook[
     if (!ACTION_MODES[type].includes(state.mode)) {
       return rejected(state, profile, action, `'${type}' is not available in ${state.mode} mode`);
     }
+    const reserved = reservedParam(action);
+    if (reserved !== null) return rejected(state, profile, action, `'${reserved}' names nothing in this game`); // U35
     const ctx = new Ctx(clone(state), profile, content);
     let out: { profile: Profile; profileCloned: boolean };
     try {

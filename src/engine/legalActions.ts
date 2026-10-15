@@ -1,7 +1,32 @@
-// legalActions (PLAN §4.7): every action `step` would accept from a state. Skeleton (U13): the per-type structure is
-// fixed and exhaustive — a mode table and one enumerator per Action['type'] — and every enumerator returns [] until
-// the unit that implements the action's reducer fills it in (U35 then proves legal/step agreement over fixture
-// states). `step` uses ACTION_MODES as its first gate, so the two can never disagree about modes.
+// legalActions (PLAN §4.7): every action `step` would accept from a state. The per-type structure is fixed and
+// exhaustive — a mode table and one enumerator per Action['type'], each built on the same predicate as its reducer —
+// and `step` uses ACTION_MODES (then `reservedParam`) as its first gates, so the two never disagree about modes or ids.
+// U35 proved legal/step agreement over the fixture corpus (tests/unit/engine/legalActions.property.test.ts, C2).
+//
+// Enumeration contract. Each enumerator lists exactly the parameterizations `step` accepts, one action per distinct
+// outcome, except where an action has other spellings of the same thing or a free-form parameter; there it lists one
+// canonical representative and `isLegal` (not list membership) answers for the rest:
+//   newGame   free-text `name`/`seed`: one per class, the default name, no seed; any name/seed is accepted.
+//   load      the shell's parsed save file: never listed (the state holds no file); legal in title mode exactly when
+//             the file deserializes and resumes into explore/threshold (`loadable`).
+//   drop      PLAN §4.7: one per distinct itemId (its first droppable stack, whole); every droppable stack, qty 1..n.
+//   sell      PLAN §4.7: one per merchant × distinct itemId (first sellable stack, qty 1); every stack, qty 1..n.
+//   buy       one per stock line at qty 1 (qty omitted); any qty 1..n the purse and the pack allow.
+//   equip     weapons/armor without a slot (implied), trinkets once per trinket slot; the item's own slot spelled out
+//             (weapon/armor) or omitted (trinket: the first free one) is the same equip.
+//   ability, companionCommand 'signature', item
+//             one per valid target; an omitted target takes the default (DESIGN §4.8: the first living enemy for an
+//             enemy ability or a thrown item, the companion if standing else the player for an ally ability); a heal
+//             is listed untargeted for the player, and naming the player is the same use.
+//   examine   listed only on request (`includeExamine`, PLAN §4.7).
+// Ids never name an Object.prototype member (content rule-06 reserves them): `step` rejects such a parameter up front.
+//
+// Never empty — there is no terminal state with an empty list. Title lists `newGame` per class; explore, threshold and
+// ending list `returnToTitle` (threshold also `thresholdGo`, ending `acknowledgeEnding` while slides remain); dialogue
+// lists `choose` or else `continue`; combat stops only on the player's turn (`guard` always: no content status blocks
+// it), the communion's Resolution (`commune` speak, at least one outcome or the fight closes) or the Loop 1 FALLEN
+// screen (`returnToTitle` alone, phase 'defeat', D-082). Over the U35 corpus every other state also lists a game action
+// besides save/load/newGame/returnToTitle.
 import type { ContentPack } from './ctx';
 import {
   examineEnumerator,
@@ -47,7 +72,12 @@ import {
   setStanceEnumerator,
   swapCompanionEnumerator,
 } from './reducers/combat';
-import { saveEnumerator } from './saves/reducers';
+import { loadable, saveEnumerator } from './saves/reducers';
+import { checkDrop, checkEquip } from './reducers/inventory';
+import { checkBuy, checkSell } from './reducers/economy';
+import { combatAbilityProblem, combatItemProblem, fieldAbilityProblem } from './combat/abilities';
+import { commandProblem } from './combat/companionAi';
+import { playerTurnCombat } from './reducers/combat';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { Profile } from './types/profile';
 import type { GameState, Mode } from './types/state';
@@ -219,16 +249,69 @@ export function legalActions(state: GameState, content: ContentPack, profile: Pr
   return enumerateLegal(ENUMERATORS, state, content, profile, opts);
 }
 
-/** Single-action check over an explicit table; same rules as enumerateLegal. */
+/**
+ * An action parameter that names an Object.prototype member (`'toString'`, `'__proto__'` …), or null. No content id can
+ * (rule-06) and no uid does, so such an action is illegal; `step` rejects it before any reducer looks it up in a
+ * content table (a plain record would hand back the prototype's member). Free text (`newGame` name and seed) and the
+ * `load` payload are not ids.
+ */
+export function reservedParam(action: Action): string | null {
+  const scan = (o: object, skip: readonly string[]): string | null => {
+    for (const [k, v] of Object.entries(o)) {
+      if (skip.includes(k)) continue;
+      if (typeof v === 'string' && v in Object.prototype) return v;
+      if (k === 'target' && typeof v === 'object' && v !== null) {
+        const inner = scan(v, ['kind']);
+        if (inner !== null) return inner;
+      }
+    }
+    return null;
+  };
+  return scan(action, ['type', 'name', 'seed', 'save']);
+}
+
+/**
+ * The actions whose enumerators list a canonical representative (see the header): `isLegal` asks the reducer's own
+ * predicate instead of list membership, so every accepted spelling is legal. Mode and reserved ids are checked first.
+ */
+const ALIASED: { readonly [K in ActionType]?: (s: GameState, a: ActionOf<K>, content: ContentPack, profile: Profile) => boolean } = {
+  newGame: (_s, a, content) => content.classes[a.classId] !== undefined,
+  load: (_s, a, content) => typeof loadable(a.save, content) !== 'string',
+  drop: (s, a, content) => typeof checkDrop(s, content, a) !== 'string',
+  sell: (s, a, content, profile) => typeof checkSell(s, content, profile, a) !== 'string',
+  buy: (s, a, content, profile) => typeof checkBuy(s, content, profile, a) !== 'string',
+  equip: (s, a, content, profile) => typeof checkEquip(s, content, profile, a) !== 'string',
+  ability: (s, a, content) => {
+    if (s.mode !== 'combat') return fieldAbilityProblem(s, content, a.abilityId, a.targetUid) === null;
+    const combat = playerTurnCombat(s);
+    return combat !== null && combatAbilityProblem(s, content, combat, a.abilityId, a.targetUid) === null;
+  },
+  item: (s, a, content) => {
+    const combat = playerTurnCombat(s);
+    return combat !== null && combatItemProblem(s, content, combat, a) === null;
+  },
+  companionCommand: (s, a, content) => {
+    const combat = playerTurnCombat(s);
+    return combat !== null && commandProblem(content, combat, a) === null;
+  },
+};
+
+/** Single-action check over an explicit table: mode, reserved ids, then list membership (key order does not matter). */
 export function isLegalIn(table: EnumeratorTable, state: GameState, action: Action, content: ContentPack, profile: Profile): boolean {
-  if (!isActionType(action.type) || !ACTION_MODES[action.type].includes(state.mode)) return false;
+  if (!isActionType(action.type) || !ACTION_MODES[action.type].includes(state.mode) || reservedParam(action) !== null) return false;
   const key = sortKey(action);
   return (table[action.type] as Enumerator<ActionType>)(state, content, profile, { includeExamine: true }).some(
     (a) => sortKey(a) === key,
   );
 }
 
-/** Cheap single-action check for the UI (one button); same rules as legalActions. */
+/**
+ * Cheap single-action check for the UI (one button); same rules as legalActions, and true for every spelling `step`
+ * accepts: membership in the type's list, or — for the types listed by a canonical representative — the reducer's own
+ * predicate. Equal to "step accepts" over the U35 corpus (legalActions.property.test.ts).
+ */
 export function isLegal(state: GameState, action: Action, content: ContentPack, profile: Profile): boolean {
-  return isLegalIn(ENUMERATORS, state, action, content, profile);
+  if (!isActionType(action.type) || !ACTION_MODES[action.type].includes(state.mode) || reservedParam(action) !== null) return false;
+  const direct = ALIASED[action.type] as ((s: GameState, a: Action, content: ContentPack, profile: Profile) => boolean) | undefined;
+  return direct !== undefined ? direct(state, action, content, profile) : isLegalIn(ENUMERATORS, state, action, content, profile);
 }

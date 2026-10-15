@@ -790,6 +790,7 @@ function itemUse(s: GameState, content: ContentPack, combat: CombatState, action
     return typeof picked === 'string' ? picked : { def, receiver: player, picked };
   }
   if (action.targetUid === undefined) return { def, receiver: player, picked: null };
+  if (!def.onUse.some((e) => 'heal' in e)) return `${def.name} takes no target`; // U35: only a heal has a receiver
   const t = combat.party.find((c) => c.uid === action.targetUid && isActive(c));
   return t ? { def, receiver: t, picked: null } : `'${action.targetUid}' is not one of your party`;
 }

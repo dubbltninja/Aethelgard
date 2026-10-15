@@ -363,8 +363,20 @@ function nextQuestion(ctx: StepCtx, combat: CombatState, boss: Combatant, spec: 
 
 // ---- the dialogue actions ----------------------------------------------------------------------------------------------------
 
+const COMMUNE_ACTS: readonly ActionOf<'commune'>['act'][] = ['toggle', 'speak', 'listen', 'offer', 'resist'];
+
+/** U35: Speak names an `answerId` and Offer an `itemId`; no act takes the other's parameter (they were ignored before). */
+function communeParamProblem(a: ActionOf<'commune'>): string | null {
+  if (!COMMUNE_ACTS.includes(a.act)) return `'${String(a.act)}' is not part of a communion`;
+  if (a.act !== 'speak' && a.answerId !== undefined) return `${a.act} takes no answer`;
+  if (a.act !== 'offer' && a.itemId !== undefined) return `${a.act} takes no item`;
+  return null;
+}
+
 /** Why `a` is not a legal dialogue action now (null: it is). `combat` is the fight on the player's turn. */
 export function communeProblem(s: GameState, content: ContentPack, profile: Readonly<Profile>, combat: CombatState, a: ActionOf<'commune'>): string | null {
+  const params = communeParamProblem(a);
+  if (params !== null) return params;
   const communion = combat.communion;
   const cb = communionBoss(content, combat);
   if (communion === null || !cb) {

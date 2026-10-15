@@ -1,9 +1,9 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). U10–U34 + U26b done: every engine system exists. Next: U35 (legalActions completeness → C2 engine milestone), then content and sim units — see PLAN §9.2. Unit list: PLAN §9.2. No application code exists yet.
+**Current phase:** Phase 1 (implementation). Engine complete through **C2** (U10–U35, U26b); first content (U40), scenarios (U36) and the sim runner with `random`/`melee` bots (U37) done — 1,908 tests. Next: U34b, U38, U41, U39 (see §4). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-065), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-086), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -79,8 +79,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U40 | Shared content I: classes, statuses, affixes, Ranger + Wizard abilities — brief `briefs/u40.md` | Opus | ✅ 649f0e3 — 5 classes, 19 statuses, 12 affixes, Ranger+Wizard trees = DESIGN; D-085 |
 | U34b | Affix/passive combat effects: `basic_attack_rider`, `damage_vs_status`, `reflect_melee`; passives `statusOnHit`, `regen`, `lifeSteal`, `curse` in combat (D-085) | Opus | ⏳ before balance sims |
 | U36 | loadScenario builders — brief `briefs/u36.md` | Sonnet | ✅ 9f79ad7 (spot-reviewed) — 13 scenarios × 9 packs, dev-only; 1790 tests |
-| U37 | Sim runner, random + melee bots, soft-lock detector — brief `briefs/u37.md` | Opus | ▶ in progress |
-| U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (53 remaining after U35–U37, U40). Copy the next few here as they start. | — | ⏳ |
+| U37 | Sim runner, random + melee bots, soft-lock detector — brief `briefs/u37.md` | Opus | ✅ e1083e8 (spot-checked) — `npm run sim`; 0 errors / 0 soft-locks over 420k random steps; melee Loop 1 closer 840/840; 1906 tests; bot purity lint added by lead; D-086 |
+| U38 | Bots: caster, explorer, speedrunner, pacifist, `pathBot` (PLAN §7.2, §7.8) | Sonnet | ⏳ needs U37 ✅ |
+| U41 | Shared content II: Elf, Warden, Weaver abilities; 6 companions + 24 companion abilities; `itm_echo_bolt` | Sonnet | ⏳ needs U40 ✅ |
+| U39 | Batch runner (workers, `__DEV__` off — D-086), metrics, coverage, BALANCE.md generator | Sonnet | ⏳ needs U38 |
+| U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
 
 ### Open questions from U1/U2 (resolve in U8/U9 — record rulings in DECISIONS)
@@ -189,19 +192,11 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. **When round 1 returns:** commit anything uncommitted; merge `docs/world/04-06…`, `07-09…`,
-   `10-13…` into `WORLD.md` as §4–§12 plus a combined §13 (open questions + errata), then delete
-   `docs/world/` (or keep as history). Run a dangling-id grep across all docs. Commit/push.
-2. **Round 2 (parallel):** revision agents for DESIGN, STORY, PLAN — inputs: their review +
-   REVIEW-CROSS + REGISTRY-DRAFT + DECISIONS; STORY adds needed Echoes to §12; PLAN is rewritten for
-   D-065 (scripts, configs, CI, tests) and D-044 ids. Plus `briefs/review-world.md` on the merged
-   WORLD.md. Write the three revision briefs into `docs/briefs/` before launching.
-3. **Round 3 (parallel):** WORLD revision (REVIEW-WORLD + registry + revised STORY/DESIGN);
-   `docs/BIBLE.md` continuity bible (from revised STORY + DECISIONS + registry); **W1 scaffold**
-   (tooling per revised PLAN + D-065, move Python game to `legacy/`, CI + Pages workflows).
-4. **Round 4:** dedicated continuity checker over all writing vs BIBLE; fix. Then Phase 2 fan-out per
-   revised PLAN §9 (engine core, combat, content per region, quests/dialogue, codex, UI, art, audio,
-   tests, sim).
+1. **U34b** (Opus, brief to write) ∥ **U38** (Sonnet, brief to write) — independent paths; both commit their own files.
+2. **U41** (Sonnet) ∥ **U39** (Sonnet, after U38). U39's batches run with `__DEV__` off (D-086).
+3. Then **U42** (Opus, first region file — Silverwood Ruins; unlocks `--pack real` sims and U43–U49 in parallel).
+4. Open engine follow-ups to fold into content units: D-083 (Foresight, Horde Rising), D-084 (`talk` in threshold mode,
+   merchant schema gaps), D-080/D-081 balance flags (Hold the Line, Resist vs press).
 
 ## 4b. Dev quickstart
 

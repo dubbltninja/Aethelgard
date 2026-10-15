@@ -14,6 +14,7 @@ const EXPECTED: Record<string, RuleName> = {
   'src/audio/layers.ts': 'layers',
   'src/content/layers-package.ts': 'layers',
   'src/engine/engine-purity.ts': 'engine-purity',
+  'src/sim/bots/engine-purity.ts': 'engine-purity',
   'src/content/no-console.ts': 'no-console',
   'src/ui/no-explicit-any.ts': 'no-explicit-any',
   'tests/no-focused-tests.test.ts': 'no-focused-tests',
@@ -34,6 +35,7 @@ const CLEAN = [
   'src/content/schema/item.ts',
   'src/ui/clean.tsx',
   'src/audio/clean.ts',
+  'src/sim/runner.ts',
   'src/types/clean.d.ts',
   'tests/clean.test.ts',
 ];
@@ -85,6 +87,10 @@ describe('rule details', () => {
     for (const needle of ["'react'", "'node:fs'", 'Math.random', 'Date.now', '`Date` construction', 'window', 'setTimeout', 'localStorage', 'performance']) {
       expect(text).toContain(needle);
     }
+    expect(messages('src/sim/bots/engine-purity.ts')).toEqual([
+      '`Math.random` in src/sim/bots (use the seeded Rng / the game clock)',
+      '`Date.now` in src/sim/bots (use the seeded Rng / the game clock)',
+    ]);
   });
 
   test('no-focused-tests: describe.only and test.only', () => {

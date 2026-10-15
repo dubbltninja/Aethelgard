@@ -1145,3 +1145,35 @@ owning unit (PLAN §9.1).
   (Embers), `damage_vs_status` (Iron), `reflect_melee` (Thorns) are not implemented, and the passives `statusOnHit`,
   `regen`, `lifeSteal`, `curse` are computed by `derive()` but never used in combat (only `kill_xp` works). Queued as
   **U34b** (Opus).
+
+### D-086 · U36/U37 details — scenarios, sim runner, first bots, 2026-10-15
+- **Scenarios (U36, 9f79ad7):** 13 builders (PLAN §4.13 plus `first_fight`); `ScenarioOptions` = `{seed, companionId}`.
+  `src/sim` has its own `newProfile(seed)` with `profileId` = the seed, so Loop 2+ run seeds are deterministic. A pack that
+  can't express a scenario throws `ScenarioUnavailable`; a lost scripted fight retries with a derived seed
+  (`ScenarioDefeat`). The builders sit behind `if (__DEV__ || __E2E__)` and are stripped from production (~320 kB minified
+  when present, well inside the budget). What each scenario constructs rather than plays is listed in
+  `SCENARIOS[id].constructed`.
+- **Runner (U37, e1083e8):** `runLoop(cfg, content)` follows PLAN §7.3's signature. `RunResult` adds `stopReason`, `fallen`
+  and `final`, plus `rule`/`detail` on soft-locks. `RunConfig` adds `onFallen`, `maxFallen` (25), `validateEvery` (50) and
+  `softLock`. The runner plays the shell: on the Loop 1 FALLEN screen it returns to the title and reloads the last autosave
+  (D-049); scenario runs stop at FALLEN instead. An empty legal list counts as both an invariant error (§7.3) and a
+  soft-lock (§7.6).
+- **Bots:** `Bot` adds an optional `stallSteps`. `random` keeps PLAN's weights and also damps menu toggles and loop-enders
+  (the list is in `random.ts`). Where PLAN §7.2 is silent, `melee`:
+  - routes only to places whose level band starts at most 2 above its own;
+  - remembers where it died across reloads;
+  - takes the Apex when its level ≥ the fight's level − 3, otherwise rests until the clock runs out;
+  - tries Field Dressing before Guard.
+  The flee check now comes before Guard, because PLAN's order made fleeing impossible.
+- **Lint:** the determinism rule (no `Math.random`, `Date.now`, timers or DOM) now covers `src/sim/bots/**` as PLAN §7.1
+  asks. The runner and CLI may time themselves.
+- **Balance target #9** (DESIGN §19, "random ≥ 3 deaths") is a Loop 1 measure: reloads make several deaths possible there.
+  In Loop 2+ the first death ends the loop. No change.
+- **Speed:** a step takes 0.65–0.9 ms under `__DEV__` (deep-freeze) against PLAN's 150–300 µs. U39's batch runner must
+  run with `__DEV__` off.
+- **Fixture findings (for balance, not bugs):**
+  - `melee` closes Loop 1 in 840/840 runs, almost always by waiting out the clock and taking the portal.
+  - In the fixtures it never levels enough to face the Tyrant, and from `pre_tyrant_l11`/`l13` it loses to the fixture
+    Tyrant.
+  - The Shadow Weaver falls to the expiry Horde in 4 of the packs.
+  - Real-pack numbers come once locations exist (`--pack real`).

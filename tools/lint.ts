@@ -320,6 +320,8 @@ interface FileReport {
 function lintCode(file: string, text: string, report: (pos: number, rule: RuleName, message: string) => void): FileReport {
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKind(file));
   const inEngine = file.startsWith('src/engine/');
+  /** Determinism applies to the engine and to the sim bots (PLAN §7.1): same seed, same run. */
+  const pureRoot = inEngine ? 'src/engine' : file.startsWith('src/sim/bots/') ? 'src/sim/bots' : undefined;
   const inContent = file.startsWith('src/content/');
   const inTypes = file.startsWith('src/types/');
   const inTests = file.startsWith('tests/');
@@ -361,24 +363,24 @@ function lintCode(file: string, text: string, report: (pos: number, rule: RuleNa
       if (called || target) report(at(node), 'no-focused-tests', `focused test \`${node.getText(sf)}\``);
     }
 
-    if (inEngine && !inType) {
+    if (pureRoot !== undefined && !inType) {
       if (ts.isIdentifier(node) && ENGINE_GLOBALS.has(node.text) && isFreeReference(node)) {
-        report(at(node), 'engine-purity', `\`${node.text}\` in src/engine (no DOM, timers or ambient entropy — D-031/D-032)`);
+        report(at(node), 'engine-purity', `\`${node.text}\` in ${pureRoot} (no DOM, timers or ambient entropy — D-031/D-032)`);
       }
       if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
         const members = ENGINE_MEMBERS[node.expression.text];
         if (members?.includes(node.name.text)) {
-          report(at(node), 'engine-purity', `\`${node.getText(sf)}\` in src/engine (use the seeded Rng / the game clock)`);
+          report(at(node), 'engine-purity', `\`${node.getText(sf)}\` in ${pureRoot} (use the seeded Rng / the game clock)`);
         }
       }
       if (ts.isElementAccessExpression(node) && ts.isIdentifier(node.expression) && ts.isStringLiteralLike(node.argumentExpression)) {
         const members = ENGINE_MEMBERS[node.expression.text];
         if (members?.includes(node.argumentExpression.text)) {
-          report(at(node), 'engine-purity', `\`${node.getText(sf)}\` in src/engine (use the seeded Rng / the game clock)`);
+          report(at(node), 'engine-purity', `\`${node.getText(sf)}\` in ${pureRoot} (use the seeded Rng / the game clock)`);
         }
       }
       if ((ts.isNewExpression(node) || ts.isCallExpression(node)) && ts.isIdentifier(node.expression) && node.expression.text === 'Date') {
-        report(at(node), 'engine-purity', '`Date` construction in src/engine (wall-clock time is not deterministic)');
+        report(at(node), 'engine-purity', `\`Date\` construction in ${pureRoot} (wall-clock time is not deterministic)`);
       }
     }
 

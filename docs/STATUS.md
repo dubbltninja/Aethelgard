@@ -75,9 +75,10 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U32 | Silverwood Before counter; loop-start Echo effects — brief `briefs/u32.md` | Opus | ✅ cf45c9b — Before rules, Anchors, Echo grants/loop-start effects; 1487 tests; D-083 |
 | U33 | Quests + dialogue reducers — brief `briefs/u33.md` | Opus | ✅ dcf1d10 — quest stage machine, dialogue, recruitment, camp scenes; D-084 |
 | U34 | Economy + crafting — brief `briefs/u34.md` | Opus | ✅ 06a4c51 — merchants, pricing, restock, Emberforge craft/upgrade/salvage, Breach-anchor; 1579 tests; D-084 |
-| U35 | legalActions completeness + isLegal + property test — **C2 engine** — brief `briefs/u35.md` | Opus (parallel with U40) | ▶ in progress |
-| U40 | Shared content I: classes, statuses, affixes, Ranger + Wizard abilities — brief `briefs/u40.md` | Opus (parallel with U35) | ▶ in progress |
-| U36 | loadScenario builders — brief `briefs/u36.md` | Sonnet | ⏳ queued this session |
+| U35 | legalActions completeness + isLegal + property test — **C2 engine** — brief `briefs/u35.md` | Opus | ✅ 8c760c8 — **C2 engine**: 623 states, legal ⇔ accepted; D-085 |
+| U40 | Shared content I: classes, statuses, affixes, Ranger + Wizard abilities — brief `briefs/u40.md` | Opus | ✅ 649f0e3 — 5 classes, 19 statuses, 12 affixes, Ranger+Wizard trees = DESIGN; D-085 |
+| U34b | Affix/passive combat effects: `basic_attack_rider`, `damage_vs_status`, `reflect_melee`; passives `statusOnHit`, `regen`, `lifeSteal`, `curse` in combat (D-085) | Opus | ⏳ before balance sims |
+| U36 | loadScenario builders — brief `briefs/u36.md` | Sonnet | ▶ in progress |
 | U37 | Sim runner, random + melee bots, soft-lock detector — brief `briefs/u37.md` | Opus | ⏳ queued this session |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (53 remaining after U35–U37, U40). Copy the next few here as they start. | — | ⏳ |
 
@@ -122,7 +123,7 @@ document" is still met because each doc is attacked by a reviewer who did not wr
 | Item | State | Notes |
 |---|---|---|
 | Read the whole legacy repo | ✅ done | Findings in `DECISIONS.md` Part A |
-| `docs/DECISIONS.md` | ✅ D-001..D-084 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
+| `docs/DECISIONS.md` | ✅ D-001..D-085 | Part E rules on open questions; D-062 doc precedence; D-063 the Nine; D-064 NPC roles; **D-065 offline toolchain** |
 | `docs/DESIGN.md` (systems) | ✅ revised U8 | conforms to D-044..D-066; U9.5 touch-ups pending |
 | `docs/STORY.md` (narrative) | ✅ revised U9 | 44 quests (+5 class, +6 optional), 103 Echoes, 87 codex, 21 scenes, Litany, the Nine, 6 endings |
 | `docs/PLAN.md` (engineering) | ✅ revised U8 | D-065 toolchain; §9 = unit list U11–U91 |

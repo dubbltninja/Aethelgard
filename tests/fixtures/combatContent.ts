@@ -262,7 +262,7 @@ export const u26Abilities: AbilityInput[] = [
   V('wvr_siphon', 'drain', 1, 'Siphon', { mp: 8, target: 'enemy', damageType: 'void', spell: true, power: { base: 2, coef: 1.0, stat: 'sp' }, special: 'drain' }),
   V('wvr_blood_pact', 'drain', 2, 'Blood Pact', { mp: 0, target: 'self', selfCost: { hpPctMax: 0.15 }, special: 'resource_convert', cooldown: 2 }),
   V('wvr_void_lance', 'unmaking', 1, 'Void Lance', { mp: 10, target: 'enemy', damageType: 'void', spell: true, power: { base: 3, coef: 1.3, stat: 'sp' }, selfCost: { hpPctMax: 0.08 } }),
-  V('wvr_unravel', 'unmaking', 2, 'Unravel', { mp: 12, target: 'enemy', damageType: 'void', spell: true, power: { coef: 1.1, stat: 'sp' } }),
+  V('wvr_unravel', 'unmaking', 2, 'Unravel', { mp: 12, target: 'enemy', damageType: 'chrono', spell: true, power: { coef: 1.1, stat: 'sp' } }),
   V('wvr_breach_echo', 'unmaking', 3, 'Breach Echo', { mp: 10, target: 'self', special: 'phase', selfCost: { hpPctMax: 0.05 }, cooldown: 3 }),
   V('wvr_collapse', 'unmaking', 4, 'Collapse', { mp: 20, target: 'all_enemies', damageType: 'void', spell: true, power: { base: 2, coef: 1.3, stat: 'sp' }, selfCost: { hpPctMax: 0.12 } }),
   V('wvr_unmaking_word', 'unmaking', 5, 'The Unmaking Word', {

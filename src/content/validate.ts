@@ -963,6 +963,11 @@ function rule06(v: Validation): void {
       if (!TABLE_ID[table].test(id)) v.error('rule-06', table, key, 'id', `id ${quote(id)} does not match the D-044 shape for ${table}`);
     }
   }
+  // Nested ids (dialogue nodes/choices, quest stages, communion answers, …) are looked up by key in the engine, so an
+  // Object.prototype name there would break lookups (U35, D-085). Walk every record for nested `id`/`choiceId`/`answerId`.
+  for (const table of TABLE_NAMES) {
+    for (const [key, record] of Object.entries(pack[table])) reservedNestedIds(v, table, key, record, '');
+  }
   // Encounter ids are global: `startCombat` resolves them across location encounters and the encounters table.
   const seen = new Map<string, string>();
   for (const enc of Object.values(pack.encounters)) seen.set(enc.id, `encounters.${enc.id}`);
@@ -972,6 +977,22 @@ function rule06(v: Validation): void {
       if (first !== undefined) v.error('rule-06', 'locations', loc.id, `encounters.${i}.id`, `encounter id ${quote(enc.id)} is already used by ${first}`);
       else seen.set(enc.id, `locations.${loc.id}`);
     });
+  }
+}
+
+/** Reports nested id-like fields whose value names an Object.prototype member (rule 6). */
+function reservedNestedIds(v: Validation, table: TableName, key: string, value: unknown, path: string): void {
+  if (Array.isArray(value)) {
+    value.forEach((x, i) => reservedNestedIds(v, table, key, x, `${path}${path ? '.' : ''}${i}`));
+    return;
+  }
+  if (value === null || typeof value !== 'object') return;
+  for (const [k, x] of Object.entries(value as Record<string, unknown>)) {
+    const at = `${path}${path ? '.' : ''}${k}`;
+    if (path !== '' && (k === 'id' || k === 'choiceId' || k === 'answerId') && typeof x === 'string' && x in Object.prototype) {
+      v.error('rule-06', table, key, at, `${quote(x)} is reserved (it names an Object.prototype member)`);
+    }
+    reservedNestedIds(v, table, key, x, at);
   }
 }
 

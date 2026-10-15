@@ -598,7 +598,7 @@ What the example demonstrates: intents with ranges and effect tags; a conditiona
 | `wvr_soul_tether` | Soul Tether | Drain | 4 | 14 | single | Void | `0.6·SP` | 3 turns: 40% of all damage the target takes heals your party (split evenly) | — | Tie their hurt to your health. |
 | `wvr_feast_of_moments` | Feast of Moments | Drain | 5 | 24 | all | Void | `1.4·SP + 4`; heal self 60% of total damage; overheal becomes Shield (3) | — | 4 | Eat the room. (capstone) |
 | `wvr_void_lance` | Void Lance | Unmaking | 1 | 10 | single | Void | `1.3·SP + 3`; costs 8% max HP | — | — | Reach into the Breach and pull out something sharp. |
-| `wvr_unravel` | Unravel | Unmaking | 2 | 12 | single | Void | `1.1·SP`; removes Shield/Regen/Rewind/Haste; ×1.5 if something was removed | — | — | Pull the thread. Watch it all go. (utility) |
+| `wvr_unravel` | Unravel | Unmaking | 2 | 12 | single | Chrono (D-067.18, D-085) | `1.1·SP`; removes Shield/Regen/Rewind/Haste; ×1.5 if something was removed | — | — | Pull the thread. Watch it all go. (utility) |
 | `wvr_breach_echo` | Breach Echo | Unmaking | 3 | 10 | self | — | — | `status_phase` 1; your next Unmaking ability costs 0 MP; costs 5% max HP | 3 | Step into the instant between instants. (defensive) |
 | `wvr_collapse` | Collapse | Unmaking | 4 | 20 | all | Void | `1.3·SP + 2`, +1% per 1% of your HP missing (cap +50%); costs 12% max HP | — | — | The closer you are to nothing, the more nothing you can hold. |
 | `wvr_unmaking_word` | The Unmaking Word | Unmaking | 5 | 30 | single | Void | `3.2·SP + 10`; costs 40% of **current** HP; if the target dies, refund all HP spent and 20 MP | — | 5 | The word Veyran should never have learned. (capstone) |
@@ -621,7 +621,7 @@ Any class may wield any weapon; the class fantasy is carried by the trees and re
 
 | id | Name | Source | MP | Target | Type | Power | Status | CD | Description |
 |---|---|---|---|---|---|---|---|---|---|
-| `itm_echo_bolt` | Echo Bolt (Amulet) | `item_amulet_of_echoes` | 10 | single | Ley | `max(0.9·ATK, 4 + 0.8·SP)` | removes Rewind (interplay 9) | — | The Amulet remembers the first spell you ever saw. |
+| `itm_echo_bolt` | Echo Bolt (Amulet) | `item_amulet_of_echoes` | 10 | single | Ley | `max(0.75·ATK, 4 + 0.8·SP)` (D-067.19) | removes Rewind (interplay 9) | 1 | The Amulet remembers the first spell you ever saw. |
 
 It costs no AP, is not part of any tree, and is the every-class answer to the Tyrant's Rewind. The Wizard's `wiz_echo_bolt` is the real spell and is strictly better for a Wizard.
 

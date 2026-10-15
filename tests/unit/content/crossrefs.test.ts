@@ -301,6 +301,19 @@ const EXAMPLES: Example[] = [
     says: ["encounter id 'enc_nexus_aberration' is already used by locations.loc_shattered_library"],
   },
 
+  {
+    rule: 'rule-06',
+    title: 'a nested id that names an Object.prototype member (D-085)',
+    report: () => viaPack((p) => {
+      const scene = get(p.dialogues, 'scene_first_meeting_ilyra');
+      const nodes = scene.nodes.map((n) => ({ ...n, choices: n.choices.map((c) => ({ ...c })) }));
+      const choice = nodes.find((n) => n.choices.length > 0)?.choices[0];
+      if (choice) choice.id = 'constructor';
+      p.dialogues.scene_first_meeting_ilyra = { ...scene, nodes };
+    }),
+    says: ["'constructor' is reserved (it names an Object.prototype member)"],
+  },
+
   // ---- rule 7: exits
   {
     rule: 'rule-07',

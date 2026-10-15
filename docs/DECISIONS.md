@@ -1123,3 +1123,25 @@ owning unit (PLAN §9.1).
   (every stall buys anything sellable); stock affix bias and "fixed Rare (affix_x)" gear lines aren't expressible;
   salvage names an affix material only for "of the Void"; "Trusted or `echo_borin_oath`" is written as a `requires`
   condition (fine).
+
+### D-085 · U35/U40 details; C2 engine milestone; Unravel and Echo Bolt fixed, 2026-10-15
+- **C2 reached (U35, 8c760c8):** across 623 seeded states from all 8 fixture packs (Loop 1 and 2+), every listed action is
+  accepted and ≥ 200 unlisted ones per state are rejected with the same refs. Fixed: Object.prototype names as ids made
+  `step` throw (now rejected before any handler); unknown rest kinds / companion commands / commune params / item targets
+  were silently accepted. `load` is never listed (the shell supplies the file). Equivalent forms list one representative
+  (`newGame` name/seed, `drop`/`sell` per item, `buy` quantity, `equip` slot, untargeted abilities/items/signature);
+  `isLegal` uses the handler check for those. No state has an empty legal list (title → `newGame`; FALLEN → `returnToTitle`).
+- **UI note:** the engine does not track "last enemy targeted" (DESIGN §4.8 default); the UI must send targets explicitly.
+- **Validator:** rule 6 now also rejects nested ids (`id`/`choiceId`/`answerId`) that name Object.prototype members.
+- **Unravel deals Chrono** — D-067.18 stands (it gives the Shadow Weaver an answer to Void-resistant regions). D-080's
+  "Void (DESIGN)" reverted it by mistake; DESIGN §5 and the test fixture are corrected.
+- **`itm_echo_bolt`** = max(0.75·ATK, 4 + 0.8·SP), 1-turn cooldown (D-067.19); DESIGN §5.7's row was stale and is corrected.
+- **Content (U40):** pattern for later content units: `description` = play text, `flavor` = DESIGN's line verbatim, `tags`
+  = DESIGN's role notes; Guard +5 resource rule on every class (Warden +8). Files live under `src/content/shared/` and
+  `src/content/abilities/` (brief paths, not PLAN §2). Field Dressing's out-of-combat heal is a flat 26 (no stat-scaled heal
+  effect), Rewind stays combat-only. `uniqueQuestId` unset until `q_class_*` exist. The Dark Spellbook record is minimal
+  (its 3-reads → `echo_litany_verse_2` rule comes with the items unit). Primitive Bow = 15 gold (DESIGN §7.7).
+- **Engine gap — affixes/passives in combat (must land before balance sims):** the affix scripts `basic_attack_rider`
+  (Embers), `damage_vs_status` (Iron), `reflect_melee` (Thorns) are not implemented, and the passives `statusOnHit`,
+  `regen`, `lifeSteal`, `curse` are computed by `derive()` but never used in combat (only `kill_xp` works). Queued as
+  **U34b** (Opus).

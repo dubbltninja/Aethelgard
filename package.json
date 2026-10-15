@@ -16,7 +16,7 @@
     "test": "bun test && bun tools/coverage-gate.ts",
     "test:e2e": "bun tools/build.ts --e2e && playwright test",
     "validate": "bun tools/validate-content.ts",
-    "sim": "node -e \"console.log('sim: STUB (exit 0) - src/sim/cli.ts lands in the sim units (PLAN 7); then: bun src/sim/cli.ts run --seeds 20 --bots melee,caster --classes all')\"",
+    "sim": "bun src/sim/cli.ts",
     "sim:balance": "node -e \"console.log('sim:balance: STUB (exit 0) - then: bun src/sim/cli.ts batch --seeds 400 --bots all --classes all --out docs/BALANCE.md')\"",
     "check": "npm run typecheck && npm run lint && npm run validate && npm test && npm run build && npm run test:e2e -- --grep @smoke"
   },

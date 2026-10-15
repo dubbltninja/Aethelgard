@@ -665,7 +665,7 @@ function loopMin(cond: Condition): number {
  * A brand-new profile: nothing known, default settings, Loop 1 (src has no factory; mirrors the fixtures' `freshProfile`).
  * Its id is the scenario's seed, so the seeds of Loop 2 onward (`${profileId}:${loop}`, PLAN §4.11) follow `opts.seed` too.
  */
-function newProfile(profileId: string): Profile {
+export function newProfile(profileId: string): Profile {
   return {
     version: 1,
     profileId,

@@ -42,7 +42,13 @@ import { QuestSchema, type QuestInput } from '@schema/quest';
 import { RecipeSchema, type RecipeInput } from '@schema/recipe';
 import { RegionSchema, type RegionInput } from '@schema/region';
 import { StatusSchema, type StatusInput } from '@schema/status';
+import { rangerAbilities } from './abilities/ranger';
+import { wizardAbilities } from './abilities/wizard';
+import { starterItems } from './items/starter';
+import { affixes } from './shared/affixes';
+import { classes } from './shared/classes';
 import { configInput, gameConfig } from './shared/config';
+import { statuses } from './shared/statuses';
 import { validateContent } from './validate';
 
 export type { ContentIndex, ContentIssue, ContentPack, ContentReport, GameConfig, TableName } from '@schema/contentPack';
@@ -80,18 +86,19 @@ export interface ContentTables {
 }
 
 /**
- * The authored content. Empty until the content units land; each appends its tables here (PLAN §5.18: regions/index.ts
- * concatenates the per-region tables, shared/*.ts supply the global ones).
+ * The authored content. Each content unit appends its tables here (PLAN §5.18: regions/index.ts concatenates the
+ * per-region tables, shared/*.ts supply the global ones). U40: classes, statuses, affixes, the Ranger and Wizard trees,
+ * and the starting kits' item records (items/starter.ts, until the item units own them).
  */
 export const contentTables: ContentTables = {
   regions: [],
   locations: [],
   creatures: [],
-  items: [],
+  items: [...starterItems],
   recipes: [],
-  abilities: [],
-  classes: [],
-  statuses: [],
+  abilities: [...rangerAbilities, ...wizardAbilities],
+  classes: [...classes],
+  statuses: [...statuses],
   quests: [],
   dialogues: [],
   npcs: [],
@@ -103,7 +110,7 @@ export const contentTables: ContentTables = {
   modifiers: [],
   endings: [],
   merchants: [],
-  affixes: [],
+  affixes: [...affixes],
   encounters: [],
   factions: [],
   config: configInput,

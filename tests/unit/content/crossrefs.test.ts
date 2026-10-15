@@ -78,7 +78,7 @@ describe('the fixture pack', () => {
     expect(() => buildContentPack(broken, { validate: false })).not.toThrow();
   });
 
-  test('the real, still empty pack validates clean (non-strict) and passes strict with everything pending', () => {
+  test('the real pack (no locations yet) validates clean (non-strict) and passes strict with everything pending', () => {
     const pack = buildContentPack(contentTables);
     expect(validateContent(pack)).toEqual({ errors: [], warnings: [] });
     const strict = validateContent(pack, { strict: true, pending: true });
@@ -886,12 +886,12 @@ function run(argv: string[], tables?: Partial<ContentTables>): { code: number; o
 }
 
 describe('the validate CLI', () => {
-  test('the real pack is empty today: strict, exit 0, completeness rules pending', () => {
+  test('the real pack has no locations yet: strict, exit 0, completeness rules pending', () => {
     const { code, out } = run([]);
     expect(code).toBe(0);
     expect(out).toContain('validate: 22 rules, strict');
     expect(out).toContain('locations 0');
-    expect(out).toContain('pending rule-21: 19 completeness check(s) — content not yet authored');
+    expect(out).toMatch(/pending rule-21: \d+ completeness check\(s\) — content not yet authored/);
     expect(out).toMatch(/validate: ok — 0 errors, 0 warning\(s\), \d+ pending completeness check\(s\) \(the pack has no locations yet\)/);
     expect(out).not.toContain('  error ');
   });

@@ -42,8 +42,13 @@ import { QuestSchema, type QuestInput } from '@schema/quest';
 import { RecipeSchema, type RecipeInput } from '@schema/recipe';
 import { RegionSchema, type RegionInput } from '@schema/region';
 import { StatusSchema, type StatusInput } from '@schema/status';
+import { elfAbilities } from './abilities/elf';
+import { itemAbilities } from './abilities/items';
 import { rangerAbilities } from './abilities/ranger';
+import { wardenAbilities } from './abilities/warden';
+import { weaverAbilities } from './abilities/weaver';
 import { wizardAbilities } from './abilities/wizard';
+import { amuletItems } from './items/amulet';
 import { starterItems } from './items/starter';
 import { affixes } from './shared/affixes';
 import { classes } from './shared/classes';
@@ -88,15 +93,18 @@ export interface ContentTables {
 /**
  * The authored content. Each content unit appends its tables here (PLAN §5.18: regions/index.ts concatenates the
  * per-region tables, shared/*.ts supply the global ones). U40: classes, statuses, affixes, the Ranger and Wizard trees,
- * and the starting kits' item records (items/starter.ts, until the item units own them).
+ * and the starting kits' item records (items/starter.ts, until the item units own them). U41: the Elf, Warden and Weaver
+ * trees, the Amulet of Echoes and its Echo Bolt. The six companions and their 24 abilities (shared/companions.ts,
+ * abilities/companions.ts) are authored but NOT listed here until the unit that lands the last NPC/quest/scene they
+ * reference registers them (D-088, planned U56).
  */
 export const contentTables: ContentTables = {
   regions: [],
   locations: [],
   creatures: [],
-  items: [...starterItems],
+  items: [...starterItems, ...amuletItems],
   recipes: [],
-  abilities: [...rangerAbilities, ...wizardAbilities],
+  abilities: [...rangerAbilities, ...wizardAbilities, ...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities],
   classes: [...classes],
   statuses: [...statuses],
   quests: [],

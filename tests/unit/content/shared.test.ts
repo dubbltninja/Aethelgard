@@ -6,9 +6,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
+import { elfAbilities } from '@content/abilities/elf';
+import { itemAbilities } from '@content/abilities/items';
 import { rangerAbilities } from '@content/abilities/ranger';
+import { wardenAbilities } from '@content/abilities/warden';
+import { weaverAbilities } from '@content/abilities/weaver';
 import { wizardAbilities } from '@content/abilities/wizard';
 import { buildContentPack, contentTables } from '@content/index';
+import { amuletItems } from '@content/items/amulet';
 import { starterItems } from '@content/items/starter';
 import { affixes } from '@content/shared/affixes';
 import { classes } from '@content/shared/classes';
@@ -57,8 +62,10 @@ describe('the real pack (U40 tables)', () => {
     expect(Object.keys(pack.classes)).toEqual(['ranger', 'wizard', 'elf', 'ironclad_warden', 'shadow_weaver']);
     expect(Object.keys(pack.statuses)).toEqual([...CANONICAL_STATUSES]);
     expect(Object.keys(pack.affixes)).toHaveLength(12);
-    expect(Object.keys(pack.abilities)).toEqual([...rangerAbilities, ...wizardAbilities].map((a) => a.id));
-    expect(Object.keys(pack.items)).toEqual(starterItems.map((i) => i.id));
+    // U41 appended the other three trees, the Amulet's bolt and the Amulet (tests/unit/content/shared2.test.ts)
+    const abilityRows = [...rangerAbilities, ...wizardAbilities, ...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities];
+    expect(Object.keys(pack.abilities)).toEqual(abilityRows.map((a) => a.id));
+    expect(Object.keys(pack.items)).toEqual([...starterItems, ...amuletItems].map((i) => i.id));
     expect(contentTables.classes).toEqual(classes);
     expect(contentTables.statuses).toEqual(statuses);
     expect(contentTables.affixes).toEqual(affixes);
@@ -71,10 +78,9 @@ describe('the real pack (U40 tables)', () => {
     const strict = validateContent(pack, { strict: true, pending: true });
     expect(strict.errors).toEqual([]);
     expect(strict.warnings.every((w) => w.message.startsWith('pending — content not yet authored: '))).toBe(true);
-    // all 19 statuses are here (rule 14 is quiet); rule 13 waits only on the three trees and the Amulet's bolt
+    // all 19 statuses are here (rule 14 is quiet); U41 landed the three other trees and the Amulet's bolt, so rule 13 is quiet too
     expect(strict.warnings.filter((w) => w.rule === 'rule-14')).toEqual([]);
-    const waiting = new Set(strict.warnings.filter((w) => w.rule === 'rule-13').map((w) => w.id));
-    expect([...waiting].sort()).toEqual(['elf', 'ironclad_warden', 'item_amulet_of_echoes', 'itm_echo_bolt', 'shadow_weaver']);
+    expect(strict.warnings.filter((w) => w.rule === 'rule-13')).toEqual([]);
     // rule 21 no longer counts classes or statuses short
     expect(strict.warnings.filter((w) => w.rule === 'rule-21' && (w.table === 'classes' || w.table === 'statuses'))).toEqual([]);
   });
@@ -513,9 +519,10 @@ describe('the starting kits\' items vs DESIGN §7.7 and §5.5–5.6', () => {
   test('the seven legacy items: §7.7 name (kept exactly), type, weapon type, tier, numbers and value', () => {
     const legacy = rows(section('### 7.7 Legacy items', '### 7.8'), /^[A-Z]/).filter((r) => /^`item_/.test(r[1] ?? ''));
     let seen = 0;
+    const kitIds = new Set<string>(starterItems.map((i) => i.id));
     for (const [name = '', idCell = '', type = '', tier = '', numbers = '', value = ''] of legacy) {
       const item = pack.items[unquote(idCell)];
-      if (!item) continue;
+      if (!item || !kitIds.has(item.id)) continue; // the Amulet (quest item) is checked in shared2.test.ts
       seen += 1;
       const weaponType = /`([a-z_]+)`/.exec(type)?.[1];
       expect([item.id, item.name, item.legacyName, item.type, item.weaponType, item.tier, item.value]).toEqual([

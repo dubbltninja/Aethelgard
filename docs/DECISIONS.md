@@ -1223,3 +1223,13 @@ owning unit (PLAN §9.1).
   - Loop 1: 720/720 closers across 4 bots × 9 packs × 20 seeds, 0 errors, 0 soft-locks.
   - The pacifist escapes only 13/20 times in `economy`: a Mistwood path with return chance 1 walls it in.
   - Loop 2+ communion reaches `ending_unbound` for pacifist 180/180, speedrunner 178/180 and caster 170/180.
+
+### D-088 · Companion records wait for their references, 2026-10-15
+- A companion record names its NPC, arc quests and camp scenes, and every `comp_` ability needs its companion record
+  (validator rule 1). None of these NPCs, quests or scenes exist yet, so registering the companions would break the real
+  pack.
+- U41 authors all six records and their 24 abilities in full, with real ids. They are exported but **not** in
+  `contentTables`, and are proven by a test that validates them against stub records created only inside the test.
+- **The unit that lands the last reference registers them (planned: U56, the last companion-arc unit).** Each region unit
+  that authors a companion's NPC must use the id U41 used.
+- Until then, real-pack sims run without companions.

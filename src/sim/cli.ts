@@ -22,6 +22,9 @@
 //   --verbose                        one line per run
 // Packs load at run time by path (`import()`), so the sim layer never imports test code statically and the real pack
 // plugs in with no change here.
+//
+// `batch` (U39) plays whole batches on worker threads and writes docs/BALANCE.md — see batch.ts for its options:
+//   bun --define __DEV__=false --define __E2E__=true src/sim/cli.ts batch --pack fixtures --seeds 20 --out /tmp/BALANCE.md
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -334,6 +337,7 @@ export function report(runs: readonly PackRun[], opts: SimOptions): string[] {
 // ---- main -------------------------------------------------------------------------------------------------------------------
 
 export async function main(argv: readonly string[], write: (line: string) => void = (line) => process.stdout.write(`${line}\n`)): Promise<number> {
+  if (argv[0] === 'batch') return (await import('./batch')).batchMain(argv.slice(1), write); // loaded on demand: batch.ts imports this module
   let opts: SimOptions;
   const runs: PackRun[] = [];
   try {

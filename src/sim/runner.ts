@@ -24,6 +24,7 @@ import {
   dayOf,
   legalActions,
   newRun,
+  playerAbilityCost,
   serialize,
   step,
   type Action,
@@ -64,6 +65,8 @@ export interface RunConfig {
   record?: boolean;
   /** Start from `loadScenario(id)` (PLAN §4.13) instead of the title screen. */
   scenario?: ScenarioId;
+  /** U39: a recruited companion who travels with the Wayfinder from the scenario's start (DESIGN §19 #19 "with a companion"); only with `scenario`. */
+  companionId?: string;
   /**
    * U37: the shell on the Loop 1 FALLEN screen (D-049): 'reload' the last autosave (a new game when there is none), or
    * 'stop' the run. Default 'reload'; 'stop' for a scenario run (its start is no save to go back to).
@@ -86,6 +89,19 @@ export interface FightRecord {
   damageTaken: number;
   enemies: string[];
   boss: boolean;
+  /** U39: HP the party dealt in the fight (the effective HP a won boss fight demanded, DESIGN §19 #19). */
+  damageDealt: number;
+  /** U39: the player's gold when the fight began. */
+  gold: number;
+  /** U39: the player's MP and MP pool when the fight ended (DESIGN §19 #13: fights that end with 0 MP). */
+  endMp: number;
+  mpMax: number;
+  /** U39: a companion fought alongside the player (DESIGN §19 #17). */
+  companion: boolean;
+  /** U39: the highest boss phase index reached (0 = the first phase). */
+  phase: number;
+  /** U39: the player spoke, listened, offered or resisted in the fight (the Unveiled Tyrant's communion, not the fight path). */
+  communion: boolean;
 }
 
 export interface LoopRecord {
@@ -99,6 +115,10 @@ export interface LoopRecord {
   echoesGained: string[];
   heartstone: string;
   tyrant: string;
+  /** U39: accepted and rejected actions played in this loop, the deaths it saw (FALLEN screens included) and the gold at its end. */
+  steps: number;
+  deaths: number;
+  gold: number;
 }
 
 /** Why the run stopped (U37 addition). */
@@ -165,6 +185,24 @@ export interface RunResult {
   fallen: number;
   /** U37: where the run stood at the end. */
   final: { loop: number; day: number; level: number; mode: Mode; locationId: string };
+  /** U39: accepted actions played in combat, by action type (shell actions excluded). */
+  combatActions: Record<string, number>;
+  /** U39: ability casts whose MP cost was partly paid in HP (the Shadow Weaver's Blood price, DESIGN §5.6). */
+  bloodCasts: number;
+  /** U39: purchases by item id, crafts by recipe id, upgrades by the rarity reached (DESIGN §19 #14, PLAN §7.5 `economy`). */
+  purchases: Record<string, number>;
+  craftsByRecipe: Record<string, number>;
+  upgradesByRarity: Record<string, number>;
+  /** U39: days from a quest's start to its first completion in the run (loop-local). */
+  questDays: Record<string, number>;
+  /** U39: dialogue choices taken, as `<sceneId>/<choiceId>` (PLAN §7.7 `dialogueChoices`). */
+  choicesTaken: string[];
+  /** U39: the lowest gold the player held at any step (DESIGN §19 #14: never negative). */
+  minGold: number;
+  /** U39: the highest Resolve the Tyrant's communion reached (DESIGN §19 #20; 0 = no communion). */
+  maxResolve: number;
+  /** U39: per recruited companion: knocked-out count, died, last loyalty (PLAN §7.5 `companions`). */
+  companions: Record<string, { kos: number; died: boolean; loyalty: number }>;
 }
 
 export const DEFAULT_MAX_STEPS = 6000;
@@ -197,6 +235,9 @@ const zodIssues = (issues: readonly { path: (string | number)[]; message: string
 
 // ---- the record --------------------------------------------------------------------------------------------------------------
 
+/** Combat phases of a finished fight still on screen (the FALLEN screen is `defeat`). */
+const OVER_PHASES: ReadonlySet<string> = new Set(['victory', 'defeat', 'fled']);
+
 /** Adds `next − prev` of each counter key (new loops and reloads start their counters afresh: the caller skips those). */
 function addDelta(into: Record<string, number>, prev: Record<string, number>, next: Record<string, number>): void {
   for (const [k, v] of Object.entries(next)) {
@@ -205,8 +246,8 @@ function addDelta(into: Record<string, number>, prev: Record<string, number>, ne
   }
 }
 
-/** What happened, step by step (counters by delta on the same timeline, the rest from events). */
-class Recorder {
+/** What happened, step by step (counters by delta on the same timeline, the rest from events). Exported for tests/unit/sim/runnerStats.test.ts. */
+export class Recorder {
   deaths = 0;
   readonly damageBySource: Record<string, number> = {};
   readonly abilitiesUsed: Record<string, number> = {};
@@ -225,32 +266,102 @@ class Recorder {
   readonly endings: string[] = [];
   readonly closers: string[] = [];
   readonly fights: FightRecord[] = [];
-  private open: (Omit<FightRecord, 'rounds' | 'result'> & { taken: number }) | null = null;
+  // U39: what the balance report (metrics.ts) reads
+  readonly combatActions: Record<string, number> = {};
+  bloodCasts = 0;
+  readonly purchases: Record<string, number> = {};
+  readonly craftsByRecipe: Record<string, number> = {};
+  readonly upgradesByRarity: Record<string, number> = {};
+  readonly questDays: Record<string, number> = {};
+  readonly choices = new Set<string>();
+  minGold = Number.POSITIVE_INFINITY;
+  maxResolve = 0;
+  readonly companions: Record<string, { kos: number; died: boolean; loyalty: number }> = {};
+  private open: (Omit<FightRecord, 'rounds' | 'result' | 'damageTaken' | 'damageDealt'> & { taken: number; dealt: number }) | null = null;
+  private readonly questStart = new Map<string, number>();
+  private loopStartSteps = 0;
+  private loopStartDeaths = 0;
 
   constructor(private readonly content: ContentPack) {}
 
-  observe(prev: GameState, next: GameState, events: readonly GameEvent[]): void {
+  /** `steps`: the runner's action count including this one; `action`: the accepted action that produced `next`. */
+  observe(prev: GameState, next: GameState, events: readonly GameEvent[], action: Action, steps: number): void {
     const sameTimeline = prev.meta.runId === next.meta.runId && !events.some((e) => e.t === 'saveLoaded');
     if (sameTimeline) {
       addDelta(this.damageBySource, prev.counters.damageBySource, next.counters.damageBySource);
       addDelta(this.abilitiesUsed, prev.counters.abilitiesUsed, next.counters.abilitiesUsed);
       addDelta(this.creaturesKilled, prev.counters.kills, next.counters.kills);
       this.itemsCrafted += Math.max(0, next.counters.itemsCrafted - prev.counters.itemsCrafted);
-      if (this.open !== null) this.open.taken += Math.max(0, next.counters.damageTaken - prev.counters.damageTaken);
+      if (this.open !== null) {
+        this.open.taken += Math.max(0, next.counters.damageTaken - prev.counters.damageTaken);
+        this.open.dealt += Math.max(0, next.counters.damageDealt - prev.counters.damageDealt);
+      }
     }
-    for (const e of events) this.event(e, prev, next);
+    this.minGold = Math.min(this.minGold, next.player.gold);
+    // a scenario can begin inside a fight: its `combatStarted` is not in the run
+    if (this.open === null && prev.mode === 'combat' && prev.combat !== null && !OVER_PHASES.has(prev.combat.phase)) this.startFight(prev, prev, prev.combat.encounterId, prev.combat.enemies.map((c) => c.refId));
+    if (prev.mode === 'combat' && !isShellAction(action)) {
+      this.combatActions[action.type] = (this.combatActions[action.type] ?? 0) + 1;
+      if (action.type === 'ability' && this.paidInBlood(prev, action.abilityId)) this.bloodCasts += 1;
+      if (action.type === 'commune' && this.open !== null) this.open.communion = true;
+    }
+    if (action.type === 'choose' && prev.dialogue !== null) this.choices.add(`${prev.dialogue.sceneId}/${action.choiceId}`);
+    let loop: LoopRecord | null = null;
+    for (const e of events) loop = this.event(e, prev, next, loop);
+    if (loop !== null) {
+      // the loop's own step and death counts, after every event of the step (a death precedes its loopEnded, but the order is not relied on)
+      loop.steps = steps - this.loopStartSteps;
+      loop.deaths = this.deaths - this.loopStartDeaths;
+      this.loopStartSteps = steps;
+      this.loopStartDeaths = this.deaths;
+    }
   }
 
-  private event(e: GameEvent, prev: GameState, next: GameState): void {
+  /** Did this cast pay part of its MP cost in HP (Blood price)? */
+  private paidInBlood(prev: GameState, abilityId: string): boolean {
+    if (this.content.classes[prev.player.classId]?.resource.bloodPrice === undefined || this.content.abilities[abilityId] === undefined) return false;
+    const me = prev.combat?.party.find((c) => c.kind === 'player');
+    const cost = playerAbilityCost(prev, this.content, abilityId, me);
+    return cost.ok && cost.mpPaid < cost.mp;
+  }
+
+  private companion(id: string): { kos: number; died: boolean; loyalty: number } {
+    return (this.companions[id] ??= { kos: 0, died: false, loyalty: 0 });
+  }
+
+  /** Opens a fight record (`combatStarted`, or the fight a scenario starts the run in the middle of). */
+  private startFight(prev: GameState, next: GameState, encounterId: string, enemies: string[]): void {
+    for (const id of enemies) this.seen.add(id);
+    const at = next.combat?.locationId ?? next.world.currentLocationId;
+    this.open = {
+      encounterId,
+      regionId: this.content.locations[at]?.regionId ?? '',
+      playerLevel: prev.player.level,
+      taken: 0,
+      dealt: 0,
+      enemies,
+      boss: enemies.some((id) => this.content.creatures[id]?.role === 'boss'),
+      gold: prev.player.gold,
+      endMp: 0,
+      mpMax: 0,
+      companion: (next.combat?.party.length ?? prev.combat?.party.length ?? 1) > 1,
+      phase: 0,
+      communion: false,
+    };
+  }
+
+  private event(e: GameEvent, prev: GameState, next: GameState, loop: LoopRecord | null): LoopRecord | null {
     switch (e.t) {
       case 'locationEntered':
         this.locations.add(e.locationId);
         break;
       case 'questStarted':
         this.questsStarted.add(e.questId);
+        if (!this.questStart.has(e.questId)) this.questStart.set(e.questId, dayOf(next.clock.ticks));
         break;
       case 'questCompleted':
         this.questsCompleted.add(e.questId);
+        this.questDays[e.questId] ??= Math.max(0, dayOf(next.clock.ticks) - (this.questStart.get(e.questId) ?? dayOf(next.clock.ticks)));
         break;
       case 'questFailed':
         this.questsFailed.add(e.questId);
@@ -261,9 +372,14 @@ class Recorder {
         break;
       case 'purchased':
         this.items.add(e.itemId);
+        this.purchases[e.itemId] = (this.purchases[e.itemId] ?? 0) + 1;
         break;
       case 'crafted':
         this.items.add(e.item.itemId);
+        this.craftsByRecipe[e.recipeId] = (this.craftsByRecipe[e.recipeId] ?? 0) + 1;
+        break;
+      case 'upgraded':
+        this.upgradesByRarity[e.item.rarity] = (this.upgradesByRarity[e.item.rarity] ?? 0) + 1;
         break;
       case 'codexUnlocked':
         this.codex.add(e.codexId);
@@ -274,38 +390,45 @@ class Recorder {
       case 'echoGained':
         this.echoes.add(e.echoId);
         break;
+      case 'companionRecruited':
+        this.companion(e.companionId);
+        break;
+      case 'companionKo':
+        this.companion(e.companionId).kos += 1;
+        break;
+      case 'companionDied':
+        this.companion(e.companionId).died = true;
+        break;
+      case 'loyaltyChanged':
+        this.companion(e.companionId).loyalty = e.value;
+        break;
+      case 'resolveChanged':
+        this.maxResolve = Math.max(this.maxResolve, e.value);
+        break;
       case 'playerDied':
         this.deaths += 1;
         break;
       case 'endingReached':
         this.endings.push(e.endingId);
         break;
-      case 'combatStarted': {
-        for (const en of e.enemies) this.seen.add(en.creatureId);
-        const at = next.combat?.locationId ?? next.world.currentLocationId;
-        this.open = {
-          encounterId: e.encounterId,
-          regionId: this.content.locations[at]?.regionId ?? '',
-          playerLevel: prev.player.level,
-          damageTaken: 0,
-          taken: 0,
-          enemies: e.enemies.map((en) => en.creatureId),
-          boss: e.enemies.some((en) => this.content.creatures[en.creatureId]?.role === 'boss'),
-        };
+      case 'bossPhase':
+        if (this.open !== null) this.open.phase = Math.max(this.open.phase, e.phase);
         break;
-      }
+      case 'combatStarted':
+        this.startFight(prev, next, e.encounterId, e.enemies.map((en) => en.creatureId));
+        break;
       case 'combatEnded': {
         const o = this.open;
         if (o !== null) {
-          const { taken, ...rest } = o;
-          this.fights.push({ ...rest, damageTaken: taken, rounds: e.rounds, result: e.result });
+          const { taken, dealt, ...rest } = o;
+          this.fights.push({ ...rest, endMp: next.player.mp, mpMax: next.player.mpMax, damageTaken: taken, damageDealt: dealt, rounds: e.rounds, result: e.result });
         }
         this.open = null;
         break;
       }
       case 'loopEnded': {
         const r = e.record;
-        this.loops.push({
+        const rec: LoopRecord = {
           loop: r.loop,
           classId: r.classId,
           daysUsed: r.daysUsed,
@@ -316,17 +439,47 @@ class Recorder {
           echoesGained: [...r.echoesGained],
           heartstone: r.heartstone,
           tyrant: r.tyrant,
-        });
+          steps: 0,
+          deaths: 0,
+          gold: next.player.gold,
+        };
+        this.loops.push(rec);
+        this.questStart.clear();
         if (r.outcome === 'closer_escape' || r.outcome === 'closer_fall') this.closers.push(r.outcome);
-        break;
+        return rec;
       }
       default:
         break;
     }
+    return loop;
   }
 }
 
 // ---- the run -------------------------------------------------------------------------------------------------------------------
+
+/**
+ * The state a run begins in (U39: shared with the batch's replay check): the title screen of a fresh game, or the scenario's
+ * state (PLAN §4.13). `classId` is already resolved.
+ */
+export function startRun(
+  cfg: Pick<RunConfig, 'seed' | 'profile' | 'modifiers' | 'scenario' | 'companionId'>,
+  classId: string,
+  content: ContentPack,
+): { state: GameState; profile: Profile } {
+  if (cfg.scenario !== undefined) {
+    const built = loadScenario(cfg.scenario, content, { seed: cfg.seed, classId, ...(cfg.companionId === undefined ? {} : { companionId: cfg.companionId }) });
+    return { state: built.state, profile: built.profile };
+  }
+  if (content.locations[content.config.startLocationId] === undefined) {
+    throw new Error(`runner: the pack has no start location '${content.config.startLocationId}' (no world authored yet)`);
+  }
+  const profile = cfg.profile !== undefined ? clone(cfg.profile) : newProfile(cfg.seed);
+  for (const id of cfg.modifiers ?? []) {
+    if (content.modifiers[id] === undefined) throw new Error(`runner: the pack has no modifier '${id}'`);
+    profile.modifiers[id] = true;
+  }
+  return { state: { ...newRun(cfg.seed, classId, content, profile), mode: 'title' }, profile };
+}
 
 /** Plays one run (PLAN §7.3). Throws only for a bad configuration (unknown class, a pack with no world, a scenario it cannot build). */
 export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
@@ -344,21 +497,7 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
   const detector = new SoftLockDetector({ stallSteps: bot.stallSteps ?? STALL_STEPS_POLICY, ...cfg.softLock });
   const rec = new Recorder(content);
 
-  let s: GameState;
-  let profile: Profile;
-  if (cfg.scenario !== undefined) {
-    ({ state: s, profile } = loadScenario(cfg.scenario, content, { seed: cfg.seed, classId }));
-  } else {
-    if (content.locations[content.config.startLocationId] === undefined) {
-      throw new Error(`runner: the pack has no start location '${content.config.startLocationId}' (no world authored yet)`);
-    }
-    profile = cfg.profile !== undefined ? clone(cfg.profile) : newProfile(cfg.seed);
-    for (const id of cfg.modifiers ?? []) {
-      if (content.modifiers[id] === undefined) throw new Error(`runner: the pack has no modifier '${id}'`);
-      profile.modifiers[id] = true;
-    }
-    s = { ...newRun(cfg.seed, classId, content, profile), mode: 'title' };
-  }
+  let { state: s, profile } = startRun(cfg, classId, content);
 
   let autosave: SaveFile | null = canAutosave(s) ? serialize(s, profile, content, 'sim') : null;
   let steps = 0;
@@ -426,7 +565,7 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
     const prev = s;
     s = out.state;
     profile = out.profile;
-    rec.observe(prev, s, out.events);
+    rec.observe(prev, s, out.events, action, steps);
 
     if (out.events.some((e) => e.t === 'autosaveCheckpoint') && canAutosave(s) && profile.settings.autosave) {
       autosave = serialize(s, profile, content, 'sim');
@@ -561,5 +700,15 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
     ...(stopMessage === undefined ? {} : { stopMessage }),
     fallen,
     final: { loop: s.meta.loop, day: dayOf(s.clock.ticks), level: s.player.level, mode: s.mode, locationId: s.world.currentLocationId },
+    combatActions: rec.combatActions,
+    bloodCasts: rec.bloodCasts,
+    purchases: rec.purchases,
+    craftsByRecipe: rec.craftsByRecipe,
+    upgradesByRarity: rec.upgradesByRarity,
+    questDays: rec.questDays,
+    choicesTaken: [...rec.choices].sort(),
+    minGold: Number.isFinite(rec.minGold) ? rec.minGold : s.player.gold,
+    maxResolve: rec.maxResolve,
+    companions: rec.companions,
   };
 }

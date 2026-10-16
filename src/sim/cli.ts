@@ -6,7 +6,7 @@
 //   bun src/sim/cli.ts run --bots melee,random --classes all --seeds 20 --pack fixtures --stop-at loop_end
 //
 // Options (comma lists everywhere a list is taken):
-//   --bot/--bots <name,…|all>        default melee                 (registered: BOTS below; U38 adds the rest)
+//   --bot/--bots <name,…|all>        default melee                 (registered: bots/index.ts)
 //   --class/--classes <id,…|all|auto> default auto (the bot's preferred class the pack has)
 //   --seeds <n> [--seed-prefix p]    seeds p:0 … p:n-1 (default 10 seeds, prefix "sim")
 //   --seed <s>                       one explicit seed (repeatable; replaces --seeds)
@@ -26,14 +26,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { buildContentPack, type ContentPack } from '@content/index';
-import { meleeBot } from './bots/melee';
-import { randomBot } from './bots/random';
+import { BOTS } from './bots/index';
 import type { BotFactory } from './bots/types';
 import { runLoop, type RunResult, type StopAt } from './runner';
 import { SCENARIO_IDS, type ScenarioId } from './scenarios';
 
-/** The bots the CLI can run (U38 registers caster, explorer, speedrunner, pacifist here). */
-export const BOTS: Readonly<Record<string, BotFactory>> = { melee: meleeBot, random: randomBot };
+export { BOTS };
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
 

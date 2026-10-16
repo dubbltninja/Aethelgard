@@ -338,3 +338,63 @@ export function bestAffordableAbility(
 export function targetOf(a: Action): string | undefined {
   return a.type === 'attack' || a.type === 'ability' || a.type === 'item' || a.type === 'companionCommand' ? a.targetUid : undefined;
 }
+
+// ---- U38 additions (append-only; nothing above changes) --------------------------------------------------------------------
+
+/** A fight a location would start now (its encounters whose `when` holds and that are not cleared or scattered this loop). */
+export interface PendingFight {
+  encounterId: string;
+  /** The strongest creature in it. */
+  level: number;
+  boss: boolean;
+  /** False for a boss or story gate (`fleeable: false`, D-066 #11). */
+  fleeable: boolean;
+  /** Some creature in it can be talked down (a `communion` spec; DESIGN §4.11, Loop 2+). */
+  communion: boolean;
+}
+
+/** The fights `locationId` would start now, in the pack's order (see `locationThreat`, which reads the highest level). */
+export function pendingFights(s: GameState, content: ContentPack, profile: Profile, locationId: string): PendingFight[] {
+  const loc = content.locations[locationId];
+  if (loc === undefined) return [];
+  const state = s.world.locationStates[locationId];
+  const out: PendingFight[] = [];
+  for (const enc of loc.encounters) {
+    if (state?.encountersCleared.includes(enc.id) === true || state?.scattered.includes(enc.id) === true) continue;
+    if (enc.when !== undefined && !evaluate(enc.when, s, profile, content)) continue;
+    let level = 0;
+    let boss = false;
+    let communion = false;
+    for (const g of enc.groups) {
+      const c = content.creatures[g.creatureId];
+      level = Math.max(level, c?.level ?? 0);
+      boss ||= c?.role === 'boss';
+      communion ||= c?.communion !== undefined;
+    }
+    out.push({ encounterId: enc.id, level, boss, fleeable: enc.fleeable !== false, communion });
+  }
+  return out;
+}
+
+/** True if `c` carries status `statusId`. */
+export const hasStatus = (c: Pick<Combatant, 'statuses'>, statusId: string): boolean => c.statuses.some((x) => x.statusId === statusId);
+
+/** True if the ability applies status `statusId` (to anyone). */
+export const appliesStatus = (ab: Ability, statusId: string): boolean => ab.statuses.some((x) => x.status === statusId);
+
+/** A creature's resistance to a damage type (the combatant's own table first, then the creature's authored one). */
+export function resistanceOf(content: ContentPack, foe: Combatant, type: DamageType): 'weak' | 'neutral' | 'resist' | 'immune' {
+  return foe.resistances[type] ?? content.creatures[foe.refId]?.resistances?.[type] ?? 'neutral';
+}
+
+/** The fraction of `part` in `whole` (1 when `whole` is 0). */
+export const fractionOf = (part: number, whole: number): number => (whole > 0 ? part / whole : 1);
+
+/** `a` before `b` by id (a stable, language-neutral tiebreak). */
+export const byId = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
+/** The first step of `path` as a listed `move`, if there is one. */
+export function stepAlong(legal: readonly Action[], path: readonly string[] | null | undefined): Action | undefined {
+  const to = path?.[0];
+  return to === undefined ? undefined : legal.find((a) => a.type === 'move' && a.to === to);
+}

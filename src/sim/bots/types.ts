@@ -22,6 +22,12 @@ export interface BotContext {
   recentEvents: GameEvent[];
 }
 
+/** U38: why a scripted bot (pathBot) ends the run itself: its script ran out, or a proof checkpoint failed. */
+export interface BotHalt {
+  reason: 'script_done' | 'script_assert';
+  message?: string;
+}
+
 export interface Bot {
   readonly name: string;
   /** Fresh memory for a run; the runner calls it once with `ctx.rngSeed`. */
@@ -35,6 +41,13 @@ export interface Bot {
    * steps is a soft-lock. Default `STALL_STEPS_POLICY` (60, DESIGN §19 #7); `random`, which legitimately dithers, uses 200.
    */
   readonly stallSteps?: number;
+  /** U38: list `examine` among the legal actions (the explorer opens every panel-equivalent action, PLAN §7.2). */
+  readonly examines?: boolean;
+  /**
+   * U38: asked by the runner after each `choose` (before the action is played): a non-null answer ends the run with that
+   * stop reason and the action is dropped. Only scripted bots (`pathBot`, PLAN §7.8) use it.
+   */
+  halt?(memory: BotMemory): BotHalt | null;
 }
 
 /** Builds a fresh bot (bots hold no state outside `BotMemory`, but a factory keeps the registry honest). */

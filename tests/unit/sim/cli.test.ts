@@ -62,7 +62,7 @@ describe('parseArgs', () => {
     [['--seeds', '--verbose'], '--seeds needs a value'],
     [['--seeds', '0'], 'whole number'],
     [['--max-steps', 'x'], 'whole number'],
-    [['--bot', 'caster'], "unknown bot 'caster'"],
+    [['--bot', 'pathBot'], "unknown bot 'pathBot'"], // scripted: not nameable (PLAN §7.8); the other six are
     [['--stop-at', 'never'], '--stop-at is one of'],
     [['--on-fallen', 'cry'], '--on-fallen is reload or stop'],
     [['--scenario', 'nope'], "unknown scenario 'nope'"],
@@ -134,7 +134,7 @@ describe('main', () => {
     const real = await run(['--pack', 'real', '--seeds', '1']);
     expect(real.code).toBe(2);
     expect(real.out[0]).toContain('no start location');
-    expect((await run(['--bot', 'caster'])).code).toBe(2);
+    expect((await run(['--bot', 'pathBot'])).code).toBe(2);
   });
 
   test('a blocker exits 1 and prints its repro command', async () => {

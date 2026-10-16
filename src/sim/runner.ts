@@ -102,7 +102,7 @@ export interface LoopRecord {
 }
 
 /** Why the run stopped (U37 addition). */
-export type StopReason = 'ending' | 'loop_end' | 'max_loops' | 'max_steps' | 'soft_lock' | 'error' | 'fallen';
+export type StopReason = 'ending' | 'loop_end' | 'max_loops' | 'max_steps' | 'soft_lock' | 'error' | 'fallen' | 'script_done' | 'script_assert';
 
 export interface RunError {
   step: number;
@@ -157,8 +157,10 @@ export interface RunResult {
   rejected: number;
   finalStateHash: string;
   trace?: Action[];
-  /** U37: why the run stopped. */
+  /** U37: why the run stopped (U38: `script_done` / `script_assert` for a scripted bot). */
   stopReason: StopReason;
+  /** U38: the failed checkpoint's message when `stopReason` is `script_assert`. */
+  stopMessage?: string;
   /** U37: Loop 1 FALLEN screens (game overs the shell reloaded from, or stopped at). */
   fallen: number;
   /** U37: where the run stood at the end. */
@@ -364,6 +366,7 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
   let fallen = 0;
   let loopsEnded = 0;
   let stopReason: StopReason = 'max_steps';
+  let stopMessage: string | undefined;
   let softLock: SoftLockInfo = { detected: false };
   const errors: RunError[] = [];
   const lastActions: Action[] = [];
@@ -488,8 +491,9 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
       if (!play({ type: 'returnToTitle' }, false)) break;
       continue;
     }
-    const legal = legalActions(s, content, profile);
-    const hard = detector.checkLegal(s, legal, steps);
+    const legal = legalActions(s, content, profile, bot.examines === true ? { includeExamine: true } : {});
+    // `examine` is always listed in explore when asked for: it must not hide a hard lock (PLAN §7.6 rule 2)
+    const hard = detector.checkLegal(s, bot.examines === true ? legal.filter((a) => a.type !== 'examine') : legal, steps);
     if (hard !== null) {
       fail(`hard lock: ${hard.detail}`); // PLAN §7.3 calls it an error, §7.6 rule 2 a soft-lock: it is recorded as both
       lock(hard);
@@ -504,6 +508,12 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
       break;
     }
     pending = [];
+    const halt = bot.halt?.(memory) ?? null; // U38: a scripted bot ends the run itself (its action is not played)
+    if (halt !== null) {
+      stopReason = halt.reason;
+      if (halt.message !== undefined) stopMessage = halt.message;
+      break;
+    }
     const key = actionKey(action);
     const listed = legal.some((a) => actionKey(a) === key);
     if (!listed) fail(`bot '${bot.name}' chose an unlisted action`, undefined, action);
@@ -548,6 +558,7 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
     finalStateHash: stateHash(s),
     ...(trace === undefined ? {} : { trace }),
     stopReason,
+    ...(stopMessage === undefined ? {} : { stopMessage }),
     fallen,
     final: { loop: s.meta.loop, day: dayOf(s.clock.ticks), level: s.player.level, mode: s.mode, locationId: s.world.currentLocationId },
   };

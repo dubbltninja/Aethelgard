@@ -483,6 +483,19 @@ describe('rule 8 — Horde Rising (mod_horde_rising): +1 pool enemy and 30 % eli
     }
   });
 
+  test('only fodder becomes elite (DESIGN §15.1 "30 % of fodder"; D-087): an anomaly never does', () => {
+    const shade = pack.creatures[SHADE]!;
+    const anomalyPack: ContentPack = { ...pack, creatures: { ...pack.creatures, [SHADE]: { ...shade, role: 'anomaly' } } };
+    let fodderElites = 0;
+    for (let i = 0; i < 200; i++) {
+      const s = rising({ patch: (st) => void (st.counters.fights = i) });
+      const out = hordeRising(scriptedCtx(s, [], anomalyPack, profile), loc, spec([{ creatureId: SHADE, count: 1 }, { creatureId: BRUTE, count: 1 }]));
+      expect(out.elites![0]).toBe(false);
+      if (out.elites![1]) fodderElites++;
+    }
+    expect(fodderElites).toBeGreaterThan(30);
+  });
+
   test('untouched: bosses, story gates (fleeable: false)', () => {
     const s = rising();
     const boss = spec(one(BELL), { fleeable: false, onFlee: 'hold' });

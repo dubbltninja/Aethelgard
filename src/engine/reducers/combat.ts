@@ -852,8 +852,8 @@ export function hordeRisingRng(s: GameState, locationId: string, encounterId: st
 
 /**
  * Horde Rising on an arrival fight (DESIGN §15.1, D-083): a fight with no boss that can be fled gains +1 enemy (up to 3)
- * drawn by weight from its region's wandering pool (boss entries left out), as the last slot; then every enemy that is not
- * a boss or an elite — by role, or the encounter record's `elite` flag for its own groups — fights as an elite variant
+ * drawn by weight from its region's wandering pool (boss entries left out), as the last slot; then every fodder enemy (not
+ * an anomaly, elite or boss; nor the encounter record's own groups when it is flagged `elite`) fights as an elite variant
  * at the rule's chance (30 %; turnOrder.ts `makeEliteVariant`), rolled in slot order. All draws on the fight's own stream.
  * Untouched: bosses, story gates (`fleeable: false`), and the fights story effects set up (a `spawn` group, `startCombat`).
  */
@@ -874,7 +874,7 @@ export function hordeRising(ctx: StepCtx, loc: Location, spec: EncounterSpec): E
   }
   const elites = slots.map((slot) => {
     const r = role(slot.creatureId);
-    const eligible = r !== 'boss' && r !== 'elite' && !(slot.own && spec.elite === true);
+    const eligible = r === 'fodder' && !(slot.own && spec.elite === true); // DESIGN §15.1: "30% of fodder" (D-087)
     return eligible && rng.chance(chance);
   });
   return { ...spec, groups, elites };

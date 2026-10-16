@@ -1177,3 +1177,49 @@ owning unit (PLAN §9.1).
     Tyrant.
   - The Shadow Weaver falls to the expiry Horde in 4 of the packs.
   - Real-pack numbers come once locations exist (`--pack real`).
+
+### D-087 · U34b/U38 details — gear in combat, Horde Rising, the policy bots and pathBot, 2026-10-15
+- **Gear in combat (U34b, e903c9d):** `combat/gear.ts`.
+  - An **on-hit** is the player's landed basic attack or damaging ability. Each target counts once per cast. DoTs,
+    counters, reflects, auras, companions and items are not on-hits.
+  - `statusOnHit` and `curse` work. The dagger's self-cost is a log line and never takes HP below 1.
+  - `lifeSteal` takes a floor of `pct` × the HP the hit removed. It is halved by Curse, like every heal, and never
+    overheals.
+  - Gear `regen` happens at the player's turn start, before mana regen. HP regen is halved while Poisoned.
+  - `basic_attack_rider` takes `pct` of the main hit's HP and Shield damage. It counts the resistance step and is not an
+    on-hit.
+  - `damage_vs_status` applies at pipeline step 7 to player direct hits. Thrown items are excluded.
+  - `reflect_melee` works on a rolled, single-target Physical enemy blow that took HP, and the attacker's resistance
+    applies.
+  - Damage events carry kind `item` and refId `gear:<itemId>`/`affix:<affixId>`, which is also the `damageBySource` key.
+    **C1 addition:** an optional `statusApplied.source`.
+- **Foresight** keeps next-next intents visible all fight (Hunter's Eye's key).
+- **Horde Rising:**
+  - Arrival fights that can be fled gain +1 enemy from the region pool (max 3, bosses excluded).
+  - Each **fodder** slot has a 30% chance to become an elite: +40% HP, +20% ATK, "Elite …", ×1.8 kill XP. Anomalies,
+    elites, bosses and an `elite` record's own groups never do. This follows DESIGN §15.1 "30% of fodder"; the lead
+    narrowed U34b's "non-boss, non-elite".
+  - Untouched: bosses, story gates (`fleeable: false`), and fights that story effects set up (`spawn`, `startCombat`).
+  - Draws use the fight's own stream, seeded from seed, loop, node, encounter and fight count. The extra enemy rolls its
+    initiative on the run Rng.
+  - Still open: anomaly spawns (DESIGN §6.6) need a region link in the schema (TODO in `reducers/combat.ts`).
+- **Policy bots and pathBot (U38, d67199f):**
+  - `bots/policy.ts` is the shared kit: melee's rows with each bot's knobs, communion, the Apex plan, and notes on deaths
+    and bounces.
+  - `Bot.halt?` and `Bot.examines?` were added. `RunResult` gains `stopReason` values `script_done`/`script_assert` and
+    a `stopMessage`.
+  - No bot draws randomness, so `botRng` is unused.
+  - Readings where PLAN §7.2 is silent:
+    - speedrunner and pacifist put points into AGI;
+    - pacifist prefers ranger/ironclad_warden;
+    - explorer caps corruption at 4, flees encounters ≥ level + 4 and visits until Day 26;
+    - caster aims for endings in the order C, B, A, F, E, D.
+  - A communion question with no eligible answer can only be forfeited by a hit (DESIGN §4.11). The pacifist strikes that
+    one forfeit blow. It counts as "forced" and is not a kill.
+  - Ending proofs: `tests/fixtures/scripts/endings.ts` holds 9 scripts (escape, fall by expiry/death/release, Unbound,
+    Warden's Vigil, Mending) and passes on all 9 fixture packs. `npm run sim:endings` and `endings.reachable.test.ts` come
+    with the endings content.
+- **Fixture results:**
+  - Loop 1: 720/720 closers across 4 bots × 9 packs × 20 seeds, 0 errors, 0 soft-locks.
+  - The pacifist escapes only 13/20 times in `economy`: a Mistwood path with return chance 1 walls it in.
+  - Loop 2+ communion reaches `ending_unbound` for pacifist 180/180, speedrunner 178/180 and caster 170/180.

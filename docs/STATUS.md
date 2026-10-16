@@ -77,10 +77,10 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U34 | Economy + crafting — brief `briefs/u34.md` | Opus | ✅ 06a4c51 — merchants, pricing, restock, Emberforge craft/upgrade/salvage, Breach-anchor; 1579 tests; D-084 |
 | U35 | legalActions completeness + isLegal + property test — **C2 engine** — brief `briefs/u35.md` | Opus | ✅ 8c760c8 — **C2 engine**: 623 states, legal ⇔ accepted; D-085 |
 | U40 | Shared content I: classes, statuses, affixes, Ranger + Wizard abilities — brief `briefs/u40.md` | Opus | ✅ 649f0e3 — 5 classes, 19 statuses, 12 affixes, Ranger+Wizard trees = DESIGN; D-085 |
-| U34b | Affix/passive combat effects: `basic_attack_rider`, `damage_vs_status`, `reflect_melee`; passives `statusOnHit`, `regen`, `lifeSteal`, `curse` in combat (D-085) | Opus | ⏳ before balance sims |
+| U34b | Affix/passive combat effects: `basic_attack_rider`, `damage_vs_status`, `reflect_melee`; passives `statusOnHit`, `regen`, `lifeSteal`, `curse` in combat (D-085) | Opus | ▶ in progress — brief `briefs/u34b.md` (+ Foresight, Horde Rising) |
 | U36 | loadScenario builders — brief `briefs/u36.md` | Sonnet | ✅ 9f79ad7 (spot-reviewed) — 13 scenarios × 9 packs, dev-only; 1790 tests |
 | U37 | Sim runner, random + melee bots, soft-lock detector — brief `briefs/u37.md` | Opus | ✅ e1083e8 (spot-checked) — `npm run sim`; 0 errors / 0 soft-locks over 420k random steps; melee Loop 1 closer 840/840; 1906 tests; bot purity lint added by lead; D-086 |
-| U38 | Bots: caster, explorer, speedrunner, pacifist, `pathBot` (PLAN §7.2, §7.8) | Sonnet | ⏳ needs U37 ✅ |
+| U38 | Bots: caster, explorer, speedrunner, pacifist, `pathBot` (PLAN §7.2, §7.8) — brief `briefs/u38.md` | Sonnet | ▶ in progress |
 | U41 | Shared content II: Elf, Warden, Weaver abilities; 6 companions + 24 companion abilities; `itm_echo_bolt` | Sonnet | ⏳ needs U40 ✅ |
 | U39 | Batch runner (workers, `__DEV__` off — D-086), metrics, coverage, BALANCE.md generator | Sonnet | ⏳ needs U38 |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |

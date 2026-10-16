@@ -1,7 +1,7 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete through **C2** (U10–U35, U26b); first content (U40), scenarios (U36) and the sim runner with `random`/`melee` bots (U37) done — 1,908 tests. Next: U34b, U38, U41, U39 (see §4). Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete through **C2** plus gear passives (U34b); sim harness complete (U36–U39: scenarios, six policy bots + pathBot, batch/metrics/BALANCE generator); shared content I–II (U40–U41) — 2,323 tests. Next: U42 ∥ U34c, then U45 ∥ U43 (see §4). Unit list: PLAN §9.2.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-088), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
@@ -81,8 +81,12 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U36 | loadScenario builders — brief `briefs/u36.md` | Sonnet | ✅ 9f79ad7 (spot-reviewed) — 13 scenarios × 9 packs, dev-only; 1790 tests |
 | U37 | Sim runner, random + melee bots, soft-lock detector — brief `briefs/u37.md` | Opus | ✅ e1083e8 (spot-checked) — `npm run sim`; 0 errors / 0 soft-locks over 420k random steps; melee Loop 1 closer 840/840; 1906 tests; bot purity lint added by lead; D-086 |
 | U38 | Bots: caster, explorer, speedrunner, pacifist, `pathBot` (PLAN §7.2, §7.8) — brief `briefs/u38.md` | Sonnet | ✅ d67199f (spot-reviewed) — 720/720 Loop 1 closers, 9 fixture ending scripts; 2137 tests; D-087 |
-| U41 | Shared content II: Elf, Warden, Weaver abilities; 6 companions + 24 companion abilities; `itm_echo_bolt` — brief `briefs/u41.md` | Sonnet | ▶ in progress (companions authored, registered at U56 — D-088) |
-| U39 | Batch runner (workers, `__DEV__` off — D-086), metrics, coverage, BALANCE.md generator — brief `briefs/u39.md` | Sonnet | ▶ in progress |
+| U41 | Shared content II: Elf, Warden, Weaver abilities; 6 companions + 24 companion abilities; `itm_echo_bolt` — brief `briefs/u41.md` | Sonnet | ✅ 5c87139 (spot-reviewed) — 75 class abilities + Echo Bolt + Amulet registered; companions authored, registered at U56 (D-088); D-089 |
+| U39 | Batch runner (workers, `__DEV__` off — D-086), metrics, coverage, BALANCE.md generator — brief `briefs/u39.md` | Sonnet | ✅ 549dfe8 (spot-reviewed) — `npm run sim:balance`; 108 µs/step; 2323 tests; D-089 |
+| U34c | Companion signature scripts: Lanternreed Bloom 30 % max-HP party heal, Archive Light reveals hidden intents 2 turns (D-089) | Opus | ⏳ ready |
+| U42 | Region data: Silverwood Ruins (first region file; adds the Amulet's `sources`) | Opus | ⏳ ready |
+| U45 | Region data: Glowlands & Nexus + the Apex, both Tyrants | Opus | ⏳ needs U42 |
+| U43 | Region data: Mistwood & the Ironclad Reach | Sonnet | ⏳ needs U42 |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
 
@@ -192,11 +196,14 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. **U34b** (Opus, brief to write) ∥ **U38** (Sonnet, brief to write) — independent paths; both commit their own files.
-2. **U41** (Sonnet) ∥ **U39** (Sonnet, after U38). U39's batches run with `__DEV__` off (D-086).
-3. Then **U42** (Opus, first region file — Silverwood Ruins; unlocks `--pack real` sims and U43–U49 in parallel).
-4. Open engine follow-ups to fold into content units: D-083 (Foresight, Horde Rising), D-084 (`talk` in threshold mode,
-   merchant schema gaps), D-080/D-081 balance flags (Hold the Line, Resist vs press).
+1. **U42** (Opus, Silverwood Ruins — the first region file sets the pattern for U43–U48; add the Amulet's
+   `sources: ['loc:loc_whispering_ruins']`) ∥ **U34c** (Opus, small engine: the two companion signature scripts, D-089).
+2. **U45** (Opus, Glowlands & Nexus + Apex + both Tyrants — unlocks real Tyrant sims, DESIGN §19 #19) ∥ **U43** (Sonnet).
+3. Then U44, U46–U49 (Sonnet, need U42) in pairs; generate the first real `docs/BALANCE.md` once U45 lands
+   (`npm run sim:balance -- --pack real --workers 2`).
+4. Open follow-ups: D-084 (`talk` in threshold mode, merchant schema gaps) in the Threshold/merchant content units;
+   D-080/D-081/D-089 balance flags (Hold the Line, Resist vs press, Warden/Weaver vs bosses); companions register at
+   U56 (D-088). First ✦ Fable units: U53–U57 (remind Tim before them).
 
 ## 4b. Dev quickstart
 

@@ -1233,3 +1233,35 @@ owning unit (PLAN §9.1).
 - **The unit that lands the last reference registers them (planned: U56, the last companion-arc unit).** Each region unit
   that authors a companion's NPC must use the id U41 used.
 - Until then, real-pack sims run without companions.
+
+### D-089 · U41/U39 details; companion signature gaps queued (U34c); balance flags, 2026-10-15
+- **Content (U41, 5c87139):** 45 class rows (every class now has 15), `itm_echo_bolt` and `item_amulet_of_echoes` are
+  registered; 113 pending checks remain, and rule 13 is cleared.
+- **Companions (U41):** the six records and their 24 abilities are authored but not registered (D-088). They reference 42
+  outside ids:
+  - NPCs `npc_<name>`, each with `companionId` set back;
+  - three arc quests each, per STORY §11.4;
+  - camp scenes `scene_<name>_camp_1..3`, coined here because STORY names none, so U54–U56 may rename them.
+  Brak is `permadeath_scripted` (§12.6). Dask's restriction uses `requiresTemporallyUnstable` plus `constraintText`.
+- **Values DESIGN leaves open:** Silverwood Bloom's Regen is `6 + 0.3·SP`, and Last Bastion's Shield lasts 2 turns (the
+  fixture's numbers). Out of combat, Ley Mend and Steady Breath heal a flat 22 and 20 (U40's convention).
+- **Amulet handover:** the Amulet has no `sources` yet. U42 adds `loc:loc_whispering_ruins` when the location exists.
+- **Engine gap → U34c (Opus, small):**
+  - DESIGN §12.4 Mireya's *Lanternreed Bloom* "party heal 30% max HP" can't be expressed: `heal` is base + coef·stat.
+  - Ilyra's *Archive Light* "all hidden intents revealed for 2 turns" has nothing to reveal hidden intents.
+  - Script both by ability id, like ABILITY_SCRIPTS (no C1 change), and pin them in tests. The data rows describe the rest.
+- **Batch (U39, 549dfe8):**
+  - The `sim:balance` and `sim:batch` scripts run bun with `--define __DEV__=false --define __E2E__=true`. E2E stays on
+    for `loadScenario`.
+  - Speed: the median `step` takes 108 µs with DEV off and 213 µs with it on. The whole bot loop takes about 380 µs/step
+    with DEV off, so D-086's 0.65–0.9 ms was the whole loop with DEV on.
+  - Results with 1 worker and with N workers are identical, and the determinism sample is clean.
+  - A scenario that can't be built, or whose builder fight is lost on every retry, is "skipped" and named in
+    Recommendations.
+  - Row 18 (roll-replay harness) stays n/a until that harness exists, so gate G5 can't pass before then.
+  - No BALANCE.md is committed: the lead generates it once real regions exist.
+  - This box has 2 CPUs, so pass `--workers 2`.
+- **Balance flag (fixtures):** every one of the 42 fixture blockers is a combat stall (> 60 rounds) at a Tyrant:
+  - Shadow Weaver caster and elf/warden pacifist runs on `economy`;
+  - melee/caster Ironclad Warden runs in the pre-Tyrant scenarios.
+  Watch Warden and Weaver damage against bosses when the real Tyrants land (U45; DESIGN §19 #19 wants 12–18 rounds).

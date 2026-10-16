@@ -9,19 +9,20 @@
 //                         zero by Frayed Clock, DESIGN §10.1), reveal_region (the region's places discovered)
 //   derive()              hp_max_pct, mp_max_pct, custom `crit` { amount } (Keen Eye)
 //   XP                    xp_pct — with the gear's kill-XP bonus at most +20 % (DESIGN §10.7 hard cap, XP_BONUS_CAP)
-//   combat                custom `second_wind` (reducers/combat.ts), `reveal_resistances` (Echo-Sense, combat/rewards.ts)
+//   combat                custom `second_wind` (reducers/combat.ts), `reveal_resistances` (Echo-Sense, combat/rewards.ts),
+//                         `foresight` (next-next intents all fight, combat/gear.ts `keepForesight`, U34b)
 //   explore               custom `travel_regen` { hpPct, mpPct } (Light Step), `remembered_steps`, `free_inn_rest` (Old
 //                         Road) — reducers/explore.ts
 //   companions            custom `loyalty_gain` { pct } (Companion's Trust: the `loyalty` effect's gains) and
 //                         loyalty_start (added to a recruit's start, effects.ts `recruit` and echoes.ts bond starts) — U33
 //   prices and fees       shop_discount_pct (Kaelen's Ledger: reducers/economy.ts `ledgerDiscount`), custom
 //                         `forge_discount` { pct } (Borin's Favor: reducers/crafting.ts `forgeDiscount`) — U34
-//   not read yet          custom `foresight` (intents), rest_heal_pct, flee_pct (no DESIGN row uses them)
+//   not read yet          rest_heal_pct, flee_pct (no DESIGN row uses them)
 // Modifiers (`meta.modifiers`, copied from the profile's toggles when the run starts): `clock_base_watches` (newRun) and
 // its halving (effects.ts `changeLimit`, and the Attunement clock above), `damage_multiplier` (combat/damage.ts on hits,
 // `modifierDamageMult` on DoT ticks), `xp_sources` (no kill XP; the other XP ×2, VOW_XP_MULT), `disable_attunements`
-// (here), `disable_echo_shortcuts` (Mute Ley: echoes.ts, U32). Not read yet: `elite_chance` (Horde Rising: +1 enemy
-// from the region pool and 30 % elite variants — encounter setup has no elite-variant form). Their Resonance
+// (here), `disable_echo_shortcuts` (Mute Ley: echoes.ts, U32), `elite_chance` (Horde Rising: +1 enemy from the region
+// pool and elite variants at that chance — reducers/combat.ts `hordeRising`, U34b). Their Resonance
 // multipliers are engine constants (`MODIFIER_RESONANCE_MULT`, no schema field, D-082), applied to the loop's total at
 // its end (reducers/threshold.ts).
 import type { Attunement, AttunementEffect } from '@schema/attunement';
@@ -61,7 +62,7 @@ export const ATT_SCRIPT = {
   rememberedSteps: 'remembered_steps',
   /** Old Road: one free inn rest per loop. */
   freeInnRest: 'free_inn_rest',
-  /** Foresight (not read yet): intents one turn earlier. */
+  /** Foresight: next-next intents for the whole fight (combat/gear.ts `keepForesight`, U34b). */
   foresight: 'foresight',
   /** Borin's Favor: `{ pct: 0.15 }` off Emberforge fees (reducers/crafting.ts `forgeDiscount`, U34). */
   forgeDiscount: 'forge_discount',

@@ -119,10 +119,35 @@ export function fleeChance(agility: number, maxEnemyAgility: number, failedAttem
   return Math.min(100, clamp(f.base + f.perAgi * agility - f.perEnemyAgi * maxEnemyAgility, f.min, f.max) + f.perFail * failedAttempts);
 }
 
+/** `source` prefixes of what gear does in a fight (U34b, combat/gear.ts): the item's own passive, or an affix's. */
+export const GEAR_SOURCE = 'gear:';
+export const AFFIX_SOURCE = 'affix:';
+/** A `source` (an event's, a hit's) that names a piece of gear or an affix (`gear:<itemId>` / `affix:<affixId>`). */
+export const isGearSource = (source: string): boolean => source.startsWith(GEAR_SOURCE) || source.startsWith(AFFIX_SOURCE);
+/**
+ * The `custom` passive scripts combat implements (content/shared/affixes.ts header; U34b, combat/gear.ts and damage.ts).
+ * `kill_xp` is combat/rewards.ts `KILL_XP_SCRIPT`. Any other script id is ignored in a fight (the validator owns them).
+ */
+export const GEAR_SCRIPT = {
+  /** affix_of_embers weapon `{ damageType, pct }`: a landed basic attack adds pct × its damage as a hit of that type. */
+  basicAttackRider: 'basic_attack_rider',
+  /** affix_of_iron weapon `{ status, pct }`: × (1 + pct) at step 7 when the target holds the status. */
+  damageVsStatus: 'damage_vs_status',
+  /** affix_of_thorns armor `{ damageType, pct }`: pct × the HP a melee blow took goes back to the attacker. */
+  reflectMelee: 'reflect_melee',
+} as const;
+
+/** A gear passive with what carries it: `gear:<itemId>` or `affix:<affixId>` (U34b: the `source` of its events). */
+export interface SourcedPassive {
+  source: string;
+  passive: Passive;
+}
+
 interface Acc {
   stats: ItemStats;
   resist: Partial<Record<DamageType, number>>;
   passives: Passive[];
+  sourced: SourcedPassive[];
 }
 
 const zeroStats = (): ItemStats => ({
@@ -142,21 +167,22 @@ const zeroStats = (): ItemStats => ({
   initiative: 0,
 });
 
-function addSource(acc: Acc, stats: ItemStats, resistSteps: readonly DamageType[], passives: readonly Passive[]): void {
+function addSource(acc: Acc, stats: ItemStats, resistSteps: readonly DamageType[], passives: readonly Passive[], source: string): void {
   for (const key of Object.keys(stats) as (keyof ItemStats)[]) acc.stats[key] += stats[key];
   for (const type of resistSteps) acc.resist[type] = (acc.resist[type] ?? 0) + 1;
   acc.passives.push(...passives);
+  for (const passive of passives) acc.sourced.push({ source, passive });
 }
 
 /** Equipped gear (with rarity and affixes) and carried slotless quest/key items, summed. */
 function gearSources(player: PlayerState, content: ContentPack): Acc {
-  const acc: Acc = { stats: zeroStats(), resist: {}, passives: [] };
+  const acc: Acc = { stats: zeroStats(), resist: {}, passives: [], sourced: [] };
   const uniqueSeen = new Set<string>();
   for (const slot of EQUIP_SLOTS) {
     const inst = player.equipment[slot];
     if (!inst) continue;
     const def = need(content.items[inst.itemId], inst);
-    addSource(acc, itemStats(def, inst.rarity, content), def.resistSteps, def.passives);
+    addSource(acc, itemStats(def, inst.rarity, content), def.resistSteps, def.passives, `${GEAR_SOURCE}${def.id}`);
     for (const affixId of inst.affixes) {
       const affix = content.affixes[affixId];
       const effect: AffixSlotEffect | undefined = affix?.[gearKindOf(slot)];
@@ -165,7 +191,7 @@ function gearSources(player: PlayerState, content: ContentPack): Acc {
         if (uniqueSeen.has(affixId)) continue;
         uniqueSeen.add(affixId);
       }
-      addSource(acc, effect.stats, effect.resistSteps, effect.passives);
+      addSource(acc, effect.stats, effect.resistSteps, effect.passives, `${AFFIX_SOURCE}${affixId}`);
     }
   }
   // DESIGN §7.1: quest items with passive stats (the Amulet of Echoes) apply without a slot; one copy counts.
@@ -174,9 +200,18 @@ function gearSources(player: PlayerState, content: ContentPack): Acc {
     const def = need(content.items[inst.itemId], inst);
     if ((def.type !== 'quest' && def.type !== 'key') || def.slot !== undefined || carried.has(def.id)) continue;
     carried.add(def.id);
-    addSource(acc, def.stats, def.resistSteps, def.passives);
+    addSource(acc, def.stats, def.resistSteps, def.passives, `${GEAR_SOURCE}${def.id}`);
   }
   return acc;
+}
+
+/**
+ * Every passive the player's gear carries, with its source, in a fixed order (U34b, combat/gear.ts): equipment by slot
+ * (weapon, armor, trinket 1, trinket 2) — each item's own passives in listed order, then its affixes' in instance order —
+ * then the carried slotless quest/key items. `derive().passives` is the same list without the sources.
+ */
+export function gearPassives(player: PlayerState, content: ContentPack): SourcedPassive[] {
+  return gearSources(player, content).sourced;
 }
 
 function need(def: Item | undefined, inst: ItemInstance): Item {

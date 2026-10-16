@@ -8,8 +8,8 @@
 //   basic_attack_rider affix_of_embers weapon: a basic attack adds `pct` of its damage as `damageType`;
 //   damage_vs_status   affix_of_iron weapon: +`pct` damage against a target holding `status`;
 //   reflect_melee      affix_of_thorns armor: `pct` of the damage a melee hit deals you goes back as `damageType`.
-// The last three, like the statusOnHit / regen passives, are read by the engine's gear hooks when the items unit wires
-// them; the data is final.
+// The last three, like the statusOnHit / regen passives, are read by the engine's gear hooks (engine/combat/gear.ts and
+// damage.ts `gearStatusMults`, U34b); the data is final.
 import type { AffixInput } from '@schema/affix';
 
 export const affixes = [

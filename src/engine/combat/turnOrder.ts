@@ -2,7 +2,8 @@
 //
 // Setup turns an encounter into a CombatState: a snapshot of the player's derived stats (DESIGN §3.2), the active
 // companion (§4.9, §12.3), and 1–3 enemies from creature records in slots left → right (§4.8), with the loop variety
-// nudge (§6.6). Each combatant rolls `initiative = AGI (+ gear) + d4` once — player, companion, then enemies by slot —
+// nudge (§6.6) and Horde Rising's elite variants (§15.1; U34b — the arrival code picks them, `EncounterSpec.elites`,
+// reducers/combat.ts). Each combatant rolls `initiative = AGI (+ gear) + d4` once — player, companion, then enemies by slot —
 // and keeps it for the fight. `status_rested` (§9.5) is baked into the snapshot and consumed; the out-of-combat DoTs
 // (Poison, Bleed, Curse, §4.5) move onto the player's Combatant and back when the fight ends.
 //
@@ -20,7 +21,7 @@ import { DAMAGE_TYPES, derive } from '../derived';
 import { modifierDamageMult } from '../runRules';
 import type { Combatant, CombatState, DamageType, GameState, Resistance, SpawnedEncounter, StatusInstance } from '../types/state';
 import { round } from '../util/math';
-import { actsFirst } from './buffs';
+import { actsFirst, addTag, hasTag } from './buffs';
 import { dotDamage, statusMods } from './damage';
 
 /** DESIGN §4.1: the initiative die, rolled once per fight. */
@@ -50,6 +51,10 @@ export interface EncounterSpec {
   onVictory: readonly Effect[];
   onDefeat: readonly Effect[];
   onFleeEffects: readonly Effect[];
+  /** The record's `elite` flag: its creatures are already elite (Horde Rising upgrades only non-elites). */
+  elite?: boolean;
+  /** Horde Rising (U34b, reducers/combat.ts): which enemies, in slot order, fight as elite variants. */
+  elites?: readonly boolean[];
 }
 
 /** An encounter record (location or table) as a fight spec. */
@@ -65,6 +70,7 @@ export function encounterSpec(enc: Encounter): EncounterSpec {
     onFleeEffects: enc.onFleeEffects,
   };
   if (enc.intro !== undefined) spec.intro = enc.intro;
+  if (enc.elite) spec.elite = true;
   return spec;
 }
 
@@ -269,6 +275,24 @@ export function enemyCombatant(ctx: StepCtx, creatureId: string, name: string, h
   };
 }
 
+/** DESIGN §15.1 Horde Rising's elite variant (D-083, U34b): +40 % max HP, +20 % ATK, "Elite" before the name. */
+export const ELITE_VARIANT = { hpMult: 1.4, atkMult: 1.2, prefix: 'Elite' } as const;
+/** The `pattern.firedOnce` tag of an elite variant (fight-scoped; combat/rewards.ts pays its kill XP × `fodderXp.eliteMult`). */
+export const ELITE_VARIANT_TAG = 'elite_variant';
+
+export const isEliteVariant = (c: Pick<Combatant, 'pattern'>): boolean => hasTag(c, ELITE_VARIANT_TAG);
+
+/** Makes a fresh enemy an elite variant: max HP × 1.4 (rounded, current HP moves with it), ATK × 1.2, "Elite <name>". */
+export function makeEliteVariant(c: Combatant): void {
+  if (isEliteVariant(c)) return;
+  const hpMax = Math.max(1, round(c.hpMax * ELITE_VARIANT.hpMult));
+  c.hp = Math.min(hpMax, Math.max(1, c.hp + hpMax - c.hpMax));
+  c.hpMax = hpMax;
+  c.atk *= ELITE_VARIANT.atkMult;
+  c.name = `${ELITE_VARIANT.prefix} ${c.name}`;
+  addTag(c, ELITE_VARIANT_TAG);
+}
+
 /** Display names: "Corrupted Shade A", "Corrupted Shade B" when a creature appears more than once. */
 function enemyNames(content: ContentPack, ids: readonly string[]): string[] {
   const total: Record<string, number> = {};
@@ -354,6 +378,7 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
   const held = s.world.locationStates[locationId]?.encounterHp[spec.id];
   const names = enemyNames(content, creatureIds);
   const enemies = creatureIds.map((id, i) => enemyCombatant(ctx, id, names[i] ?? id, held?.[id]));
+  enemies.forEach((e, i) => void (spec.elites?.[i] && makeEliteVariant(e))); // Horde Rising (U34b)
   const canFlee = spec.fleeable && creatureIds.every((id) => content.creatures[id]?.fleeable ?? true);
 
   const combat: CombatState = {

@@ -31,11 +31,16 @@
 // player's turn end lets an attack forfeit the current question; `commune` is the dialogue actions; a spared Tyrant ends
 // the fight without spoils after the chosen outcome (`finishSpared`); after a rejection `flee` leaves (`finishLeft`).
 //
+// U34b gear hooks (combat/gear.ts): the start of the player's turn (regen, Foresight) before its `turn_start` resource;
+// after a basic attack (the rider, then on-hit) and after a damaging ability (on-hit per target); `applyHit` gives the
+// player's `reflect_melee` its answer after `reactToHit`.
+//
 // Arrival encounters (ARRIVAL_HOOKS, reducers/explore.ts; DESIGN §4.7–4.8, WORLD §3 and §10.0), in order: a group a
 // `spawn` effect placed here; the location's fixed encounters (not scattered or cleared, `when` holds, not bypassable
 // by `optionalWhen`; `first:` groups below 100 % roll on the loop's first visit only, `respawn: 'on_return'` groups on
 // later visits); then, on a return visit to a non-`safe` node, the region's wandering pool at its return chance
-// (1 creature 70 %, 2 creatures 30 %). Nothing rolls on Retreat or *Not yet*.
+// (1 creature 70 %, 2 creatures 30 %). Nothing rolls on Retreat or *Not yet*. Under Horde Rising (U34b, `hordeRising`)
+// a fixed or wandering fight then gains +1 pool creature and elite variants, on its own Rng stream.
 // TODO(later unit): anomaly spawns (DESIGN §6.6) — the schema does not yet tie an anomaly encounter to a region.
 import type { Move } from '@schema/creature';
 import type { Effect } from '@schema/effect';
@@ -47,7 +52,8 @@ import { derive } from '../derived';
 import { apply, applyAll, locationState } from '../effects';
 import type { Enumerator } from '../legalActions';
 import { grantXp, resourceGain, type ResourceEventName } from '../progression';
-import { ATT_SCRIPT, attunementScript } from '../runRules';
+import { Rng } from '../rng';
+import { ATT_SCRIPT, attunementScript, modifierRules } from '../runRules';
 import type { Handler, PostStepHook } from '../step';
 import type { ActionOf } from '../types/actions';
 import type { CloserReason } from '../types/ids';
@@ -65,6 +71,7 @@ import {
 } from '../combat/abilities';
 import { consumeShield, resolveHit, rollPct, type HitResult, type HitSpec } from '../combat/damage';
 import { attemptFlee, fleeOutcome, fleeProblem } from '../combat/flee';
+import { gearAfterBasic, gearAfterCast, gearReflect, gearTurnStart, keepForesight } from '../combat/gear';
 import { expireStances, reactToHit, type CombatOps, type HitKind } from '../combat/specials';
 import { STATUS, afterHit, applyStatus, blocksAction, endOfTurnStatuses, isBoss, skipsTurn, startOfTurnStatuses } from '../combat/statuses';
 import { afterStunnedTurn, executeIntent, generateIntent, openingIntents, refreshIntents } from '../combat/intents';
@@ -86,6 +93,7 @@ import {
 } from '../combat/companionAi';
 import {
   CARRIED_STATUSES,
+  MAX_ENEMIES,
   beginCombat,
   combatLog,
   currentActor,
@@ -302,7 +310,10 @@ export function applyHit(ctx: StepCtx, combat: CombatState, attacker: Combatant,
   if (playerHit) gainResource(ctx, combat, target, 'hit_taken');
   afterHit(ctx, combat, attacker, target, spec, result); // interplay that changes statuses (U24, DESIGN §4.6)
   if (target.hp <= 0 && !secondWind(ctx, combat, target)) knockOut(ctx, combat, target);
-  else reactToHit(ctx, combat, OPS, attacker, target, spec, result); // counter stances and ripostes answer (U26)
+  else {
+    reactToHit(ctx, combat, OPS, attacker, target, spec, result); // counter stances and ripostes answer (U26)
+    gearReflect(OPS, ctx, combat, attacker, target, spec, result); // U34b: reflect_melee (affix_of_thorns)
+  }
   checkPhases(ctx, combat); // boss phase triggers and reinforcements after every damage event (U27, DESIGN §4.10)
 }
 
@@ -331,7 +342,9 @@ function startTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
   if (ticks.ticks.length > 0) checkPhases(ctx, combat); // a tick is a damage event (U27, DESIGN §4.10)
   fireDelayed(OPS, ctx, combat, actor);
   if (!isActive(actor)) return;
-  if (actor.kind === 'player') gainResource(ctx, combat, actor, 'turn_start');
+  if (actor.kind !== 'player') return;
+  gearTurnStart(ctx, combat, actor); // U34b: gear regen (before the Wizard's mana regen), Foresight
+  gainResource(ctx, combat, actor, 'turn_start');
 }
 
 /** DESIGN §4.1 (3): the end of a combatant's turn. */
@@ -376,6 +389,7 @@ export function runCombat(ctx: StepCtx): void {
   if (opening?.phase === 'start') {
     openPhases(ctx, opening); // bosses enter their opening phase (U27)
     openingIntents(ctx, opening); // DESIGN §4.1 Setup: every enemy's first intent (U25)
+    keepForesight(ctx, opening); // att_foresight: next-next intents from the start (U34b)
     springTraps(OPS, ctx, opening); // traps set at this node (U26)
   }
   for (let n = 0; n < MAX_COMBAT_TURNS; n++) {
@@ -594,6 +608,7 @@ export const attackHandler: Handler<'attack'> = (ctx: StepCtx, a: ActionOf<'atta
     applyStatus(ctx, combat, player, target, STATUS.stun, { duration: 1 });
   }
   if (result.hit && !result.immune) applyCoats(ctx, combat, player, target, null); // Venom Coat (U26)
+  gearAfterBasic(OPS, ctx, combat, player, target, result); // U34b: the rider, then the on-hit passives
   finishPlayerTurn(ctx, combat, player);
 };
 
@@ -628,7 +643,9 @@ export const guardEnumerator: Enumerator<'guard'> = (s, content) => {
 export const abilityHandler: Handler<'ability'> = (ctx: StepCtx, a: ActionOf<'ability'>): void => {
   if (ctx.s.mode !== 'combat') return useFieldAbility(ctx, a);
   const combat = requirePlayerTurn(ctx);
+  const from = ctx.events.length;
   usePlayerAbility(OPS, ctx, combat, a);
+  gearAfterCast(ctx, combat, playerOf(combat), a.abilityId, from); // U34b: the on-hit passives, per target struck
   finishPlayerTurn(ctx, combat, playerOf(combat));
 };
 
@@ -811,9 +828,56 @@ export function arrivalEncounter(ctx: StepCtx, arrival: Arrival): EncounterSpec 
     if (enc.when !== undefined && !evaluate(enc.when, s, profile, content)) continue;
     if (enc.optionalWhen !== undefined && evaluate(enc.optionalWhen, s, profile, content)) continue;
     if (!ctx.rng.chance(enc.chance)) continue;
-    return encounterSpec(enc);
+    return hordeRising(ctx, loc, encounterSpec(enc));
   }
-  return wanderingEncounter(ctx, loc, arrival);
+  const wandering = wanderingEncounter(ctx, loc, arrival);
+  return wandering && hordeRising(ctx, loc, wandering);
+}
+
+// ---- Horde Rising (U34b; DESIGN §4.8, §15.1; D-083) ------------------------------------------------------------------------
+
+/** The run's Horde Rising elite chance (its `elite_chance` rule; the highest if several), or null when it is off. */
+export function hordeRisingChance(s: GameState, content: ContentPack): number | null {
+  const rules = modifierRules(s.meta.modifiers, content, 'elite_chance');
+  return rules.length === 0 ? null : Math.max(...rules.map((r) => r.pct));
+}
+
+/**
+ * The fight's own Rng stream for Horde Rising: seeded by the run seed, the loop, the node, the encounter id and the run's
+ * fight count, so the modifier never moves the run Rng and every fight rolls afresh (like merchant stock, D-084).
+ */
+export function hordeRisingRng(s: GameState, locationId: string, encounterId: string): Rng {
+  return Rng.fromSeed(`${s.meta.seed}:${s.meta.loop}:${locationId}:${encounterId}:${s.counters.fights}:horde_rising`);
+}
+
+/**
+ * Horde Rising on an arrival fight (DESIGN §15.1, D-083): a fight with no boss that can be fled gains +1 enemy (up to 3)
+ * drawn by weight from its region's wandering pool (boss entries left out), as the last slot; then every enemy that is not
+ * a boss or an elite — by role, or the encounter record's `elite` flag for its own groups — fights as an elite variant
+ * at the rule's chance (30 %; turnOrder.ts `makeEliteVariant`), rolled in slot order. All draws on the fight's own stream.
+ * Untouched: bosses, story gates (`fleeable: false`), and the fights story effects set up (a `spawn` group, `startCombat`).
+ */
+export function hordeRising(ctx: StepCtx, loc: Location, spec: EncounterSpec): EncounterSpec {
+  const { s, content } = ctx;
+  const chance = hordeRisingChance(s, content);
+  if (chance === null || !spec.fleeable) return spec;
+  const role = (id: string) => content.creatures[id]?.role;
+  if (spec.groups.some((g) => role(g.creatureId) === 'boss' || content.creatures[g.creatureId]?.fleeable === false)) return spec;
+  const rng = hordeRisingRng(s, loc.id, spec.id);
+  const slots = spec.groups.flatMap((g) => Array.from({ length: g.count }, () => ({ creatureId: g.creatureId, own: true })));
+  const pool = (content.regions[loc.regionId]?.wanderingPool ?? []).filter((e) => e.weight > 0 && content.creatures[e.creatureId] !== undefined && role(e.creatureId) !== 'boss');
+  const groups = spec.groups.map((g) => ({ ...g }));
+  if (slots.length < MAX_ENEMIES && pool.length > 0) {
+    const creatureId = rng.weighted(pool.map((e) => ({ weight: e.weight, value: e.creatureId })));
+    groups.push({ creatureId, count: 1 }); // its own group, so it takes the last slot (names still run A, B…)
+    slots.push({ creatureId, own: false });
+  }
+  const elites = slots.map((slot) => {
+    const r = role(slot.creatureId);
+    const eligible = r !== 'boss' && r !== 'elite' && !(slot.own && spec.elite === true);
+    return eligible && rng.chance(chance);
+  });
+  return { ...spec, groups, elites };
 }
 
 /** ARRIVAL_HOOKS entry (reducers/explore.ts): starts the arrival's fight; it plays from the combat post-step hook. */

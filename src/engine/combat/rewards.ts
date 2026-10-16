@@ -9,7 +9,8 @@
 // Shade's `onDefeat` sets (PLAN §5.4); run flags reset with the loop.
 // Kill XP (DESIGN §6.2): the creature's authored `xp` × the loop nudge (§6.6). The role multipliers — elite ×1.8,
 // anomaly ×1.3 — are part of that authored number (WORLD §6: the L6 elite Golem 200, the L4 anomaly Wisp 92), so the
-// engine does not apply them again; `expectedKillXp` is DESIGN's formula for content checks. The fight's summed kill XP
+// engine does not apply them again — only a Horde Rising elite variant of a non-elite pays × `fodderXp.eliteMult` (U34b,
+// turnOrder.ts `makeEliteVariant`); `expectedKillXp` is DESIGN's formula for content checks. The fight's summed kill XP
 // then gains the best equipped `kill_xp` bonus (U26b, DESIGN §7.3 `affix_of_echoes`: a trinket's `custom` passive
 // `{ scriptId: 'kill_xp', params: { pct: 0.1 } }`, a `unique` affix — "not stackable": one copy counts, and bonuses from
 // several sources do not add up), rounded half-up.
@@ -47,7 +48,7 @@ import type { BestiaryEntry } from '../types/profile';
 import type { CombatState, GameState, ItemInstance, Rarity } from '../types/state';
 import { round } from '../util/math';
 import { roundHalfUp } from './damage';
-import { loopNudge } from './turnOrder';
+import { isEliteVariant, loopNudge } from './turnOrder';
 
 /** What a won fight pays (the `combatEnded` numbers). */
 export interface Spoils {
@@ -180,7 +181,7 @@ export function rollSpoils(ctx: StepCtx, combat: CombatState): Spoils {
   for (const enemy of combat.enemies.filter((e) => !e.alive)) {
     const def = content.creatures[enemy.refId];
     if (!def) continue;
-    if (xpAllowed && pays) spoils.xp += creatureXp(s, content, enemy.refId);
+    if (xpAllowed && pays) spoils.xp += isEliteVariant(enemy) ? round(creatureXp(s, content, enemy.refId) * content.config.fodderXp.eliteMult) : creatureXp(s, content, enemy.refId); // U34b: Horde Rising's elite ×1.8
     if (pays) spoils.gold += def.gold.min === def.gold.max ? def.gold.min : ctx.rng.int(def.gold.min, def.gold.max);
     for (const row of pays ? def.loot : []) {
       if (row.when !== undefined && !evaluate(row.when, s, ctx.profile, content)) continue;

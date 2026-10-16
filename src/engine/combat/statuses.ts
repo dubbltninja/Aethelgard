@@ -215,6 +215,8 @@ export interface StatusApplyOptions {
   power?: { base: number; coef: number; stat: ScaleStat };
   /** An explicit magnitude (overheal → Shield, a move's computed shield); wins over every formula. */
   amount?: number;
+  /** What put it there, when not the source's own action: `gear:<itemId>` / `affix:<affixId>` (U34b) → `statusApplied.source`. */
+  source?: string;
 }
 
 /**
@@ -317,7 +319,7 @@ export function applyStatus(ctx: StepCtx, combat: CombatState, source: Combatant
     target.statuses.push(inst);
     outcome = 'applied';
   }
-  ctx.emit({ t: 'statusApplied', targetUid: target.uid, statusId, stacks: inst.stacks, duration: inst.duration });
+  ctx.emit({ t: 'statusApplied', targetUid: target.uid, statusId, stacks: inst.stacks, duration: inst.duration, ...(opts.source === undefined ? {} : { source: opts.source }) });
   const stacks = def.stackable ? ` ×${inst.stacks}` : '';
   const amount = inst.tick === undefined ? '' : `, ${inst.tick}`;
   note(combat, `${target.name}: ${def.name}${stacks} (${inst.duration}${amount}).`);

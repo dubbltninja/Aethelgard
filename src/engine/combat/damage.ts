@@ -15,7 +15,8 @@
 // Status rules that change a number live here (U24, DESIGN §4.5–4.6): Phase evades a single-target non-Chrono attack
 // (hit% 0, interplay 10); Void treats `resist` as neutral against a Cursed target (D-067.18, hits and ticks); step 6
 // is the interplay table's multipliers (rows 1, 2, 9, 13); step 7 adds Shock's +25 % Storm and a boss phase's damage
-// taken / per-round ramp (U27, `phaseMults`), and a Trusted companion's +10 % (U28; its heals too). The Shield pool is the
+// taken / per-round ramp (U27, `phaseMults`), a Trusted companion's +10 % (U28; its heals too), and the player's gear
+// `damage_vs_status` on its direct hits (U34b, `gearStatusMults`; the rest of the gear hooks: gear.ts). The Shield pool is the
 // Shield instance's `StatusInstance.tick` (the status's stored magnitude, like a DoT's tick or Regen's heal).
 // What a status rule *does* to statuses (removals, spreads, stacks) is combat/statuses.ts `afterHit`.
 //
@@ -23,11 +24,11 @@
 import type { Phase } from '@schema/creature';
 import type { Status } from '@schema/status';
 import type { ContentPack } from '../ctx';
-import { derive, hitChance } from '../derived';
+import { GEAR_SCRIPT, derive, gearPassives, hitChance, isGearSource } from '../derived';
 import type { Rng } from '../rng';
 import type { Combatant, DamageType, GameState, Resistance, StatusInstance } from '../types/state';
 import { clamp, round } from '../util/math';
-import { buffedResistance, critBonusOf, critMultOf, dealtMultOf, evasionBonusOf, hitCapOf, holdsNextCrit, takenMultOf } from './buffs';
+import { COUNTER_PREFIX, buffedResistance, critBonusOf, critMultOf, dealtMultOf, evasionBonusOf, hitCapOf, holdsNextCrit, takenMultOf } from './buffs';
 
 /** DESIGN §4.4: the four resistance steps. */
 export const RESIST_MULT: Readonly<Record<Resistance, number>> = { weak: 1.5, neutral: 1, resist: 0.5, immune: 0 };
@@ -248,6 +249,32 @@ export function phaseMults(r: PipelineRead, attacker: Combatant, target: Combata
   return out;
 }
 
+/**
+ * A direct hit by the player (U34b; combat/gear.ts rule 1): its basic attack or one of its abilities — not a counter,
+ * reflect or aura (`counter:` sources), not gear's own damage (`gear:` / `affix:` sources), not a thrown item (an ability
+ * a consumable unleashes, D-078).
+ */
+export function isPlayerDirectHit(content: ContentPack, attacker: Pick<Combatant, 'kind'>, spec: Pick<HitSpec, 'source'>): boolean {
+  if (attacker.kind !== 'player' || spec.source.startsWith(COUNTER_PREFIX) || isGearSource(spec.source)) return false;
+  const owner = content.abilities[spec.source]?.ownerId;
+  return owner === undefined || content.items[owner]?.type !== 'consumable';
+}
+
+/**
+ * Step 7, the gear's `damage_vs_status` scripts (U34b, DESIGN §7.3 `affix_of_iron`: +10 % vs Armor Broken): on a player
+ * direct hit, × (1 + pct) per passive whose status the target holds, named by its source (`affix:<id>`).
+ */
+export function gearStatusMults(r: PipelineRead, attacker: Combatant, target: Combatant, spec: HitSpec): PipelineStep[] {
+  if (!isPlayerDirectHit(r.content, attacker, spec)) return [];
+  const out: PipelineStep[] = [];
+  for (const { source, passive: p } of gearPassives(r.s.player, r.content)) {
+    if (p.kind !== 'custom' || p.scriptId !== GEAR_SCRIPT.damageVsStatus) continue;
+    const { status, pct } = p.params;
+    if (typeof status === 'string' && typeof pct === 'number' && pct !== 0 && hasStatus(target, status)) out.push({ name: source, value: 1 + pct });
+  }
+  return out;
+}
+
 /** DESIGN §4.3 step 7 — every percentage modifier, multiplicatively, in a fixed order. */
 function statusStepMults(r: PipelineRead, attacker: Combatant, target: Combatant, spec: HitSpec): PipelineStep[] {
   const out: PipelineStep[] = [];
@@ -256,6 +283,7 @@ function statusStepMults(r: PipelineRead, attacker: Combatant, target: Combatant
     // gear `damageBonus` and Corruption (+5 % Void / −3 % Ley per point, DESIGN §6.7), from derive()
     const pct = derive(r.s.player, r.content).damagePct[spec.type] ?? 0;
     if (pct !== 0) out.push({ name: 'gear', value: 1 + pct });
+    out.push(...gearStatusMults(r, attacker, target, spec)); // U34b: affix_of_iron
   }
   if (isTrusted(r.s, attacker)) out.push({ name: 'trusted', value: TRUSTED_MULT });
   for (const pct of statusMods(target, r.content).incoming) out.push({ name: 'target status', value: 1 + pct });

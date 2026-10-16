@@ -87,7 +87,8 @@ export type GameEvent =
       refId: string | null;
     }
   | { t: 'healed'; targetUid: string; amount: number; source: string }
-  | { t: 'statusApplied'; targetUid: string; statusId: string; stacks: number; duration: number }
+  /** `source`: the gear or affix that applied it (`gear:<itemId>` / `affix:<affixId>`, U34b; C1 addition), else absent. */
+  | { t: 'statusApplied'; targetUid: string; statusId: string; stacks: number; duration: number; source?: string }
   | { t: 'statusExpired'; targetUid: string; statusId: string }
   | { t: 'statusTicked'; targetUid: string; statusId: string; amount: number }
   /** 'storm_on_soaked', 'fire_on_soaked', 'chrono_on_haste', 'void_on_shield' … */

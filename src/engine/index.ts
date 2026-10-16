@@ -26,6 +26,7 @@ export * from './combat/rewards';
 export * from './combat/companionAi';
 export * from './combat/buffs';
 export * from './combat/buffHooks';
+export * from './combat/gear';
 export * from './communion';
 export * from './horde';
 export * from './runRules';

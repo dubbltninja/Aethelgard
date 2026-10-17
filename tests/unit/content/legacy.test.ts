@@ -17,18 +17,24 @@ const pack = buildContentPack();
 
 /** The legacy ids that exist in the real pack so far. Later region units append theirs here. */
 const LANDED = {
-  // U42: Silverwood Ruins
   locations: [
+    // U42: Silverwood Ruins
     'loc_whispering_ruins', 'loc_crumbling_archway', 'loc_darkened_corridor', 'loc_shattered_library', 'loc_silverwood_plaza', 'loc_sunken_archives', 'loc_heartstone_depths',
+    // U43: Mistwood & the Ironclad Reach
+    'loc_mistwood_path', 'loc_wayfarers_respite', 'loc_ironclad_camp', 'loc_barren_peaks', 'loc_blighted_outpost', 'loc_emberforge',
     // U45: Glowlands & Nexus
     'loc_veridian_glowlands', 'loc_chronos_nexus', 'loc_temporal_breach_apex',
   ],
   creatures: [
-    'cr_corrupted_shade', 'cr_arcane_wisp', 'cr_drowned_archivist',
+    'cr_corrupted_shade', 'cr_arcane_wisp', 'cr_drowned_archivist', // U42
+    'cr_wildling_brute', 'cr_stone_hide_golem', // U43
     // U45: Glowlands & Nexus (the legacy Tyrant is the Loop 1 form, D-051)
     'cr_glowfen_mireling', 'cr_temporal_aberration', 'cr_chronos_tyrant_contained',
   ],
-  npcs: ['npc_ilyra'],
+  npcs: [
+    'npc_ilyra', // U42
+    'npc_kaelen_stonehand', 'npc_brak', 'npc_borin_stonefist', // U43
+  ],
 } as const;
 
 // ---- Reading the Python source -------------------------------------------------------------------------------------------------

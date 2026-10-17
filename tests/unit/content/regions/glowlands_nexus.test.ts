@@ -958,9 +958,10 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     expect(report.errors).toEqual([]);
     const about = report.warnings.filter((w) => mine.has(w.id) || locations.some((l) => w.message.includes(` ${l.id}`)));
     const real = about.filter((w) => !w.message.startsWith('pending — content not yet authored'));
-    // the two placement warnings are the Ruins' (the Corridor's husks, the exploited Depths' crawlers), pinned there
-    expect(real.map((w) => `${w.rule} ${w.id}`).sort()).toEqual(['rule-11 cr_horde_husk', 'rule-11 cr_hourglass_crawler']);
-    for (const w of real) expect(w.message).toMatch(/loc_(darkened_corridor|heartstone_depths)/);
+    // the only real warnings are placements of this region's creatures in other regions (the Ruins' Corridor husks and
+    // exploited-Depths crawlers, the Ironclad Camp's Horde husks), pinned in those regions' tests (D-091 gap 6)
+    expect([...new Set(real.map((w) => `${w.rule} ${w.id}`))].sort()).toEqual(['rule-11 cr_horde_husk', 'rule-11 cr_hourglass_crawler']);
+    for (const w of real) expect(w.message).toMatch(/loc_(darkened_corridor|heartstone_depths|ironclad_camp)/);
     for (const w of about.filter((x) => x.message.startsWith('pending — content not yet authored (reference): '))) {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
       expect([w.message, INCOMPLETE_TABLES.includes(table as (typeof INCOMPLETE_TABLES)[number])]).toEqual([w.message, true]);

@@ -218,3 +218,6 @@ test-results/
 playwright-report/
 package-lock.json
 .DS_Store
+
+# Agent worktrees (Claude Code)
+.claude/worktrees/

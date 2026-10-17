@@ -1,7 +1,7 @@
 // D-090: while the real pack is authored region by region, a reference into a table still being authored (INCOMPLETE_TABLES)
 // is a pending warning, not an error — for the authored tables only. Test packs stay fully resolved.
 import { describe, expect, test } from 'bun:test';
-import { buildContentPack, contentTables, parseContentPack, type ContentTables } from '@content/index';
+import { ContentError, buildContentPack, contentTables, parseContentPack, type ContentTables } from '@content/index';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { validateContent } from '@content/validate';
 import { TABLE_NAMES } from '@schema/contentPack';
@@ -39,8 +39,20 @@ describe('validateContent({ incompleteTables })', () => {
 describe('the real pack uses INCOMPLETE_TABLES by default; other packs do not', () => {
   test('buildContentPack() builds the authored tables; an explicit incompleteTables relaxes a test pack the same way', () => {
     expect(() => buildContentPack()).not.toThrow();
-    expect(() => buildContentPack(withoutDagger())).toThrow(/item_rusty_dagger/);
-    expect(() => buildContentPack(withoutDagger(), { incompleteTables: ['items'] })).not.toThrow();
+    // a copy of the tables is not the authored set: every dangling reference is an error (the dagger's among the region
+    // files' pending ones, U42), and `incompleteTables` relaxes exactly the tables it names
+    const thrown = (() => {
+      try {
+        buildContentPack(withoutDagger());
+        return null;
+      } catch (e) {
+        return e as ContentError;
+      }
+    })();
+    expect(thrown).toBeInstanceOf(ContentError);
+    expect(daggerIssue(thrown?.report.errors.map((e) => e.message) ?? []).length).toBeGreaterThan(0);
+    expect(() => buildContentPack(withoutDagger(), { incompleteTables: ['items'] })).toThrow(ContentError);
+    expect(() => buildContentPack(withoutDagger(), { incompleteTables: INCOMPLETE_TABLES })).not.toThrow();
   });
 
   test('the validate CLI: the authored tables report pending references; a test table set stays strict', () => {

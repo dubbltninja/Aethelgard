@@ -4,6 +4,7 @@
 // expected rules fire. Completeness-count rules are strict-mode only; `pending` turns their errors into warnings.
 import { describe, expect, test } from 'bun:test';
 import { ContentError, buildContentPack, contentTables, formatIssue, parseContentPack, type ContentPack, type ContentReport, type ContentTables } from '@content/index';
+import { INCOMPLETE_TABLES } from '@content/progress';
 import {
   ATTUNEMENT_IDS,
   EXPECTED_COUNTS,
@@ -78,13 +79,16 @@ describe('the fixture pack', () => {
     expect(() => buildContentPack(broken, { validate: false })).not.toThrow();
   });
 
-  test('the real pack (no locations yet) validates clean (non-strict) and passes strict with everything pending', () => {
+  test('the real pack (regions still being authored, D-090) has no errors and passes strict with the rest pending', () => {
     const pack = buildContentPack(contentTables);
-    expect(validateContent(pack)).toEqual({ errors: [], warnings: [] });
-    const strict = validateContent(pack, { strict: true, pending: true });
+    expect(validateContent(pack, { incompleteTables: INCOMPLETE_TABLES }).errors).toEqual([]);
+    const strict = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(strict.errors).toEqual([]);
-    expect(strict.warnings.length).toBeGreaterThan(100);
-    expect(strict.warnings.every((w) => w.message.startsWith('pending — content not yet authored: '))).toBe(true);
+    const pending = strict.warnings.filter((w) => w.message.startsWith('pending — content not yet authored'));
+    expect(pending.length).toBeGreaterThan(100);
+    expect(pending.some((w) => w.message.startsWith('pending — content not yet authored (reference): '))).toBe(true);
+    // the only real warnings are flags later units set (rule 2) and WORLD's deliberately out-of-band placements (rule 11)
+    expect(strict.warnings.filter((w) => !pending.includes(w)).every((w) => w.rule === 'rule-02' || w.rule === 'rule-11')).toBe(true);
   });
 
   test('the rule table lists rules 1–22 in order, with the completeness rules marked', () => {
@@ -899,25 +903,26 @@ function run(argv: string[], tables?: Partial<ContentTables>): { code: number; o
 }
 
 describe('the validate CLI', () => {
-  test('the real pack has no locations yet: strict, exit 0, completeness rules pending', () => {
+  test('the real pack is still being authored (D-090): strict, exit 0, completeness rules and references pending', () => {
     const { code, out } = run([]);
     expect(code).toBe(0);
     expect(out).toContain('validate: 22 rules, strict');
-    expect(out).toContain('locations 0');
+    expect(out).toMatch(/ locations [1-9]\d* · /); // U42 landed the first region
     expect(out).toMatch(/pending rule-21: \d+ completeness check\(s\) — content not yet authored/);
-    expect(out).toMatch(/validate: ok — 0 errors, 0 warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\) \(\d+ table\(s\) still being authored\)/);
+    expect(out).toMatch(/pending rule-01: \d+ reference\(s\) into tables still being authored — content not yet authored/);
+    expect(out).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\) \(\d+ table\(s\) still being authored\)/);
     expect(out).not.toContain('  error ');
   });
 
-  test('--verbose lists each pending check, --lenient skips them', () => {
+  test('--verbose lists each pending check, --lenient skips the counts but keeps the pending references', () => {
     const verbose = run(['--verbose']);
     expect(verbose.code).toBe(0);
-    expect(verbose.out).toContain('pending rule-21: regions.-: pending — content not yet authored: 0 regions; expected 12');
+    expect(verbose.out).toMatch(/pending rule-21: regions\.-: pending — content not yet authored: \d+ regions; expected 12/);
     const lenient = run(['--lenient']);
     expect(lenient.code).toBe(0);
     expect(lenient.out).toContain('22 rules, lenient');
-    expect(lenient.out).not.toContain('pending');
-    expect(lenient.out).toContain('validate: ok — 0 errors, 0 warning(s)');
+    expect(lenient.out).not.toMatch(/pending rule-\d+: \d+ completeness check/);
+    expect(lenient.out).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), 0 pending completeness check\(s\), \d+ pending reference\(s\)/);
   });
 
   test('once the pack has any content the counts are errors: the fixture fails strict, passes lenient', () => {

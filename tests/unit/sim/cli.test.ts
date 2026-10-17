@@ -93,8 +93,8 @@ describe('packs', () => {
     await expect(loadPack('no/such/file.ts')).rejects.toThrow("unknown pack 'no/such/file.ts'");
   });
 
-  test('the real pack loads (no world yet); a module path loads with its export', async () => {
-    expect(Object.keys((await loadPack('real')).locations)).toHaveLength(0);
+  test('the real pack loads (U42: the Ruins so far); a module path loads with its export', async () => {
+    expect(Object.keys((await loadPack('real')).locations)).toContain('loc_whispering_ruins');
     const file = path.join(ROOT, 'tests/fixtures/miniContent.ts');
     expect(Object.keys((await loadPack(`${file}#fixturePack`)).locations).length).toBeGreaterThan(0);
     await expect(loadPack(`${file}#FIXTURE_VERSION`)).rejects.toThrow('is not a ContentPack');
@@ -130,10 +130,11 @@ describe('main', () => {
     expect(data.results[0]?.trace).toBeUndefined();
   });
 
-  test('configuration errors exit 2: the real pack has no world, an unknown bot', async () => {
-    const real = await run(['--pack', 'real', '--seeds', '1']);
-    expect(real.code).toBe(2);
-    expect(real.out[0]).toContain('no start location');
+  test('the real pack runs until its first dangling reference (D-090): a blocker, exit 1; an unknown bot is a configuration error, exit 2', async () => {
+    const real = await run(['--pack', 'real', '--seeds', '1', '--max-steps', '200']);
+    expect(real.code).toBe(1);
+    expect(real.out.join('\n')).toMatch(/BLOCKER real .* stop error/);
+    expect(real.out.join('\n')).toMatch(/unknown (item|location|creature)/);
     expect((await run(['--bot', 'pathBot'])).code).toBe(2);
   });
 

@@ -3,9 +3,9 @@
 // validator rule 13 checks). Picked up on Day 1 of Loop 1 and already on the neck from Loop 2 (`config.startItems`); the one
 // thing the loop reset spares (D-047). The engine finds it by id (AMULET_ITEM_ID); *Listen* is the dialogue unit's.
 //
-// HANDOVER: the item unit that authors the quest items (WORLD §7) moves this record to its home file and deletes it here, and
-// then adds `sources: ['loc:loc_whispering_ruins']` (WORLD's "Day 1, every loop"): `sources` are left out until the location
-// exists (rule 1), as in items/starter.ts.
+// HANDOVER: the item unit that authors the quest items (WORLD §7) moves this record to its home file and deletes it here.
+// `sources` names the Whispering Ruins (WORLD's "Day 1, every loop"; placed in regions/silverwood_ruins/locations.ts, U42,
+// D-089).
 import type { ItemInput } from '@schema/item';
 
 export const amuletItems = [
@@ -18,6 +18,7 @@ export const amuletItems = [
     tier: 0,
     stats: { magic: 1 },
     passives: [{ kind: 'grantAbility', abilityId: 'itm_echo_bolt' }],
+    sources: ['loc:loc_whispering_ruins'],
     value: 60,
     art: { icon: 'amulet', major: true },
   },

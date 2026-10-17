@@ -15,6 +15,7 @@ import { wizardAbilities } from '@content/abilities/wizard';
 import { buildContentPack, contentTables } from '@content/index';
 import { amuletItems } from '@content/items/amulet';
 import { starterItems } from '@content/items/starter';
+import { INCOMPLETE_TABLES } from '@content/progress';
 import { affixes } from '@content/shared/affixes';
 import { classes } from '@content/shared/classes';
 import { statuses } from '@content/shared/statuses';
@@ -73,11 +74,15 @@ describe('the real pack (U40 tables)', () => {
     expect(pack.index.abilitiesByClass.wizard).toHaveLength(15);
   });
 
-  test('validates: no errors or warnings; strict mode leaves only the completeness counts of content not yet authored', () => {
-    expect(validateContent(pack)).toEqual({ errors: [], warnings: [] });
-    const strict = validateContent(pack, { strict: true, pending: true });
+  test('validates: no errors; strict mode leaves only the completeness counts and references of content not yet authored (D-090)', () => {
+    // U42: the real pack carries region tables whose references into tables still being authored are pending (D-090);
+    // regions/silverwood_ruins.test.ts pins the few real warnings they leave (flags later units set, out-of-band levels).
+    const report = validateContent(pack, { incompleteTables: INCOMPLETE_TABLES });
+    expect(report.errors).toEqual([]);
+    const strict = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(strict.errors).toEqual([]);
-    expect(strict.warnings.every((w) => w.message.startsWith('pending — content not yet authored: '))).toBe(true);
+    const real = strict.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored'));
+    expect(real.every((w) => w.rule === 'rule-02' || w.rule === 'rule-11')).toBe(true);
     // all 19 statuses are here (rule 14 is quiet); U41 landed the three other trees and the Amulet's bolt, so rule 13 is quiet too
     expect(strict.warnings.filter((w) => w.rule === 'rule-14')).toEqual([]);
     expect(strict.warnings.filter((w) => w.rule === 'rule-13')).toEqual([]);
@@ -85,10 +90,10 @@ describe('the real pack (U40 tables)', () => {
     expect(strict.warnings.filter((w) => w.rule === 'rule-21' && (w.table === 'classes' || w.table === 'statuses'))).toEqual([]);
   });
 
-  test('`npm run validate` passes on the partial pack (counts pending while it has no locations)', () => {
+  test('`npm run validate` passes on the partial pack (counts and references pending while tables are still being authored)', () => {
     const out: string[] = [];
     expect(validateCli([], (line) => out.push(line))).toBe(0);
-    expect(out.join('\n')).toMatch(/validate: ok — 0 errors, 0 warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\) \(\d+ table\(s\) still being authored\)/);
+    expect(out.join('\n')).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\) \(\d+ table\(s\) still being authored\)/);
   });
 });
 

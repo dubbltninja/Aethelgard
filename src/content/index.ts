@@ -50,6 +50,7 @@ import { weaverAbilities } from './abilities/weaver';
 import { wizardAbilities } from './abilities/wizard';
 import { amuletItems } from './items/amulet';
 import { starterItems } from './items/starter';
+import * as regionTables from './regions';
 import { affixes } from './shared/affixes';
 import { classes } from './shared/classes';
 import { configInput, gameConfig } from './shared/config';
@@ -97,20 +98,22 @@ export interface ContentTables {
  * and the starting kits' item records (items/starter.ts, until the item units own them). U41: the Elf, Warden and Weaver
  * trees, the Amulet of Echoes and its Echo Bolt. The six companions and their 24 abilities (shared/companions.ts,
  * abilities/companions.ts) are authored but NOT listed here until the unit that lands the last NPC/quest/scene they
- * reference registers them (D-088, planned U56).
+ * reference registers them (D-088, planned U56). U42+: the region folders' tables arrive through regions/index.ts (one
+ * import line per region there; nothing changes here), with their references into tables still being authored pending
+ * under D-090.
  */
 export const contentTables: ContentTables = {
-  regions: [],
-  locations: [],
-  creatures: [],
-  items: [...starterItems, ...amuletItems],
+  regions: [...regionTables.regions],
+  locations: [...regionTables.locations],
+  creatures: [...regionTables.creatures],
+  items: [...starterItems, ...amuletItems, ...regionTables.items],
   recipes: [],
   abilities: [...rangerAbilities, ...wizardAbilities, ...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities],
   classes: [...classes],
   statuses: [...statuses],
   quests: [],
   dialogues: [],
-  npcs: [],
+  npcs: [...regionTables.npcs],
   companions: [],
   echoes: [],
   codex: [],

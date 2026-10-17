@@ -228,8 +228,13 @@ describe('configuration', () => {
     expect(() => resolveClass('auto', randomBot(), { ...fixturePack(), classes: {} } as ContentPack)).toThrow('no classes');
   });
 
-  test('the real pack has no world yet: a clear configuration error', () => {
-    expect(() => runLoop({ seed: 's', classId: 'ranger', bot: meleeBot() }, buildContentPack())).toThrow('no start location');
+  test('the real pack starts (U42: the Ruins exist) and stops on its first dangling reference, as D-090 expects', () => {
+    // Only the Silverwood Ruins are authored: the Loop opens at the Whispering Ruins and the run ends with an engine error the
+    // first time it touches a table still being authored (an item placed on the ground, a loot row, an exit to another region).
+    const r = runLoop({ seed: 's', classId: 'ranger', bot: meleeBot(), maxSteps: 200 }, buildContentPack());
+    expect(r.steps).toBeGreaterThan(0);
+    expect(r.stopReason).toBe('error');
+    expect(r.errors[0]?.message).toMatch(/unknown (item|location|creature|quest|scene|dialogue)/);
   });
 
   test('modifiers are toggled before Loop 1 (Frayed Clock: an earlier expiry); unknown ones throw', () => {

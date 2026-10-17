@@ -1265,3 +1265,25 @@ owning unit (PLAN §9.1).
   - Shadow Weaver caster and elf/warden pacifist runs on `economy`;
   - melee/caster Ironclad Warden runs in the pre-Tyrant scenarios.
   Watch Warden and Weaver damage against bosses when the real Tyrants land (U45; DESIGN §19 #19 wants 12–18 rounds).
+
+### D-090 · Forward references while the world is authored; region-unit ownership, 2026-10-16
+- **Forward references.** Region files name creatures, items, quests, scenes, Echoes and NPCs that later units author.
+  - `src/content/progress.ts` lists `INCOMPLETE_TABLES`, the tables still being authored. Today that is every table except
+    classes, statuses, affixes and abilities.
+  - In the real pack (`buildContentPack()` with no arguments, or `npm run validate`), a reference into one of those tables
+    that does not resolve is a **pending** warning, "content not yet authored (reference)". A reference into any other
+    table must resolve. Test and fixture packs stay fully resolved (`BuildOptions.incompleteTables`, default none).
+  - The validate CLI stays in pending mode while the list is non-empty. This replaces "the pack has no locations".
+  - The unit that completes a table removes it from the list in the same commit. Whatever still dangles then surfaces as
+    errors, and that unit fixes it together with the lead.
+  - Authors use the **final ids exactly as WORLD, STORY and BIBLE spell them** and never coin an id the documents lack;
+    any that is needed is listed in the reply. Typos into incomplete tables surface when the table completes.
+- **Who authors what:**
+  - A region unit authors its region record, locations (with their encounters and events), the NPCs whose home location
+    is in the region, and the creatures whose **first** region in WORLD §6's Regions column is its region.
+  - Item placements are references. Item records belong to U49/U50, except the Amulet, which already exists.
+  - Quests, dialogue scenes, Echoes and codex entries are referenced by id and authored by their own units.
+  - Companion NPCs use `npc_<name>` with `companionId` set. That reference stays pending until U56 registers the
+    companions (D-088).
+- **Sims on the real pack** are only meaningful for scenario and combat runs until items, quests and Echoes exist (U49–U52).
+  An engine error caused by a dangling reference before then is expected and is not an engine bug.

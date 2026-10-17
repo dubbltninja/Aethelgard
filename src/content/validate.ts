@@ -51,6 +51,11 @@ export interface ValidateOptions {
   pending?: boolean;
   /** Rules 4 and 5 (warnings); each registry is checked only when given. */
   registries?: ValidateRegistries;
+  /**
+   * Tables still being authored (D-090; the real pack passes `INCOMPLETE_TABLES` from src/content/progress.ts): a reference
+   * into one of them that does not resolve is a pending warning ("content not yet authored"), not an error.
+   */
+  incompleteTables?: readonly TableName[];
 }
 
 export interface RuleInfo {
@@ -218,6 +223,8 @@ function canon(value: unknown): string {
 const same = (a: unknown, b: unknown): boolean => canon(a) === canon(b);
 
 const PENDING = 'pending — content not yet authored: ';
+/** A reference into a table still being authored (D-090). Starts with the same mark as PENDING, so tools group both. */
+const PENDING_REF = 'pending — content not yet authored (reference): ';
 
 class Validation {
   readonly errors: ContentIssue[] = [];
@@ -257,7 +264,9 @@ class Validation {
   need(rule: string, table: string, id: string, path: string, to: TableName, target: unknown, what: string): boolean {
     if (typeof target !== 'string') return true;
     if (hasOwn(this.pack[to], target)) return true;
-    this.error(rule, table, id, path, `${what} ${quote(target)} not found in ${to}`);
+    const message = `${what} ${quote(target)} not found in ${to}`;
+    if (this.options.incompleteTables?.includes(to)) this.warn(rule, table, id, path, `${PENDING_REF}${message}`);
+    else this.error(rule, table, id, path, message);
     return false;
   }
 

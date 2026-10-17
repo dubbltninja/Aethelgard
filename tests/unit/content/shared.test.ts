@@ -88,7 +88,7 @@ describe('the real pack (U40 tables)', () => {
   test('`npm run validate` passes on the partial pack (counts pending while it has no locations)', () => {
     const out: string[] = [];
     expect(validateCli([], (line) => out.push(line))).toBe(0);
-    expect(out.join('\n')).toMatch(/validate: ok — 0 errors, 0 warning\(s\), \d+ pending completeness check\(s\) \(the pack has no locations yet\)/);
+    expect(out.join('\n')).toMatch(/validate: ok — 0 errors, 0 warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\) \(\d+ table\(s\) still being authored\)/);
   });
 });
 

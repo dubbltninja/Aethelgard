@@ -54,6 +54,7 @@ import { affixes } from './shared/affixes';
 import { classes } from './shared/classes';
 import { configInput, gameConfig } from './shared/config';
 import { statuses } from './shared/statuses';
+import { INCOMPLETE_TABLES } from './progress';
 import { validateContent } from './validate';
 
 export type { ContentIndex, ContentIssue, ContentPack, ContentReport, GameConfig, TableName } from '@schema/contentPack';
@@ -150,6 +151,8 @@ export interface BuildOptions {
    * `false`: skipped (a deliberately partial pack in a test).
    */
   validate?: ((pack: ContentPack) => ContentReport) | false;
+  /** Tables still being authored (D-090). Default: `INCOMPLETE_TABLES` for the authored `contentTables`, none otherwise. */
+  incompleteTables?: readonly TableName[];
 }
 
 export interface BuildResult {
@@ -271,7 +274,9 @@ export function parseContentPack(tables: Partial<ContentTables> = contentTables,
   const body: Omit<ContentPack, 'index' | 'version'> = { ...parsed, config };
   const pack: ContentPack = { ...body, index: buildIndex(body), version: options.version ?? CONTENT_VERSION };
 
-  const validate = options.validate === false ? undefined : (options.validate ?? validateContent);
+  // The authored content is still being written (D-090): references into its incomplete tables are pending, not errors.
+  const incompleteTables = options.incompleteTables ?? (tables === contentTables ? INCOMPLETE_TABLES : []);
+  const validate = options.validate === false ? undefined : (options.validate ?? ((p: ContentPack) => validateContent(p, { incompleteTables })));
   if (validate && report.errors.length === 0) {
     const extra = validate(pack);
     report.errors.push(...extra.errors);

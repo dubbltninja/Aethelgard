@@ -905,7 +905,7 @@ describe('the validate CLI', () => {
     expect(out).toContain('validate: 22 rules, strict');
     expect(out).toContain('locations 0');
     expect(out).toMatch(/pending rule-21: \d+ completeness check\(s\) — content not yet authored/);
-    expect(out).toMatch(/validate: ok — 0 errors, 0 warning\(s\), \d+ pending completeness check\(s\) \(the pack has no locations yet\)/);
+    expect(out).toMatch(/validate: ok — 0 errors, 0 warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\) \(\d+ table\(s\) still being authored\)/);
     expect(out).not.toContain('  error ');
   });
 

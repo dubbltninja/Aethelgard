@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete through **C2** plus gear passives (U34b); sim harness complete (U36–U39: scenarios, six policy bots + pathBot, batch/metrics/BALANCE generator); shared content I–II (U40–U41) — 2,323 tests. Next: U42 ∥ U34c, then U45 ∥ U43 (see §4). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-088), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-090), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -83,8 +83,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U38 | Bots: caster, explorer, speedrunner, pacifist, `pathBot` (PLAN §7.2, §7.8) — brief `briefs/u38.md` | Sonnet | ✅ d67199f (spot-reviewed) — 720/720 Loop 1 closers, 9 fixture ending scripts; 2137 tests; D-087 |
 | U41 | Shared content II: Elf, Warden, Weaver abilities; 6 companions + 24 companion abilities; `itm_echo_bolt` — brief `briefs/u41.md` | Sonnet | ✅ 5c87139 (spot-reviewed) — 75 class abilities + Echo Bolt + Amulet registered; companions authored, registered at U56 (D-088); D-089 |
 | U39 | Batch runner (workers, `__DEV__` off — D-086), metrics, coverage, BALANCE.md generator — brief `briefs/u39.md` | Sonnet | ✅ 549dfe8 (spot-reviewed) — `npm run sim:balance`; 108 µs/step; 2323 tests; D-089 |
-| U34c | Companion signature scripts: Lanternreed Bloom 30 % max-HP party heal, Archive Light reveals hidden intents 2 turns (D-089) | Opus | ⏳ ready |
-| U42 | Region data: Silverwood Ruins (first region file; adds the Amulet's `sources`) | Opus | ⏳ ready |
+| U34c | Companion signature scripts (Lanternreed Bloom 30 % heal, Archive Light reveal) + `talk` at the Threshold (D-084) — brief `briefs/u34c.md` | Opus | ▶ in progress |
+| U42 | Region data: Silverwood Ruins (first region file; adds the Amulet's `sources`) — brief `briefs/u42.md` | ✦ Fable (Tim) | ▶ in progress — forward refs pending per D-090 |
 | U45 | Region data: Glowlands & Nexus + the Apex, both Tyrants | Opus | ⏳ needs U42 |
 | U43 | Region data: Mistwood & the Ironclad Reach | Sonnet | ⏳ needs U42 |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |

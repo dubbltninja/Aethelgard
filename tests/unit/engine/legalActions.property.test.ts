@@ -149,7 +149,9 @@ function startState(content: ContentPack, profile: Profile, variant: Variant, se
     }
   }
   const spot = apex ? NEXUS : variant === 'forge' ? forgeOf(content) : variant === 'horde' ? PLAZA : undefined;
-  const locationId = spot ?? rng.pick(content.index.locationIds.filter((id) => !id.includes('before') && id !== APEX));
+  // never a Threshold place (U34c's Still Shore): it is reached only by a loop's end, never stood on in explore mode
+  const onMap = (id: string): boolean => !id.includes('before') && id !== APEX && !(content.locations[id]?.tags.includes('threshold') ?? false);
+  const locationId = spot ?? rng.pick(content.index.locationIds.filter(onMap));
   let out: GameState = {
     ...s,
     meta: { ...s.meta, nextUid: uid },

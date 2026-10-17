@@ -45,6 +45,9 @@
 //               Unbroken, Null Plate, Oathbound's immunity, Iron Silence's immunity, Last Bastion's reflect,
 //               Mountainfall's no-Guard, Leech Veil, Soul Tether;
 //   tags        Shadowstep's next crit, Breach Echo's free Unmaking ability.
+// Companion signatures (DESIGN §12.4; D-089, U34c) have their own table, COMPANION_SCRIPTS: no content mirror is needed,
+// as both rows also do something in data (cleanse, Regen, Shield). Lanternreed Bloom's party heal of 30 % max HP lands at
+// the heal stage (before its cleanse, so Curse still halves it); Archive Light's reveal comes last (intents.ts).
 // The Moment Between: the player's uid is inserted after the current slot of the turn order, so the reducer runs a
 // second player turn at once; the turn end in between is taken back (the fight's cooldown table +1 here, the status
 // countdown and turn count in buffHooks.ts), and that bonus turn's start ticks nothing — one turn, two actions.
@@ -58,12 +61,12 @@ import { abilityCost, playerAbilityCost, type AbilityCost } from '../progression
 import type { ActionOf } from '../types/actions';
 import type { Combatant, CombatState, DamageType, GameState } from '../types/state';
 import { BONUS_KEY, BONUS_PENDING, FREE_CAST_TAG, NEXT_CRIT_TAG, USED_TAG, addTag, bonusState, hasTag, removeTag, setBuff } from './buffs';
-import { GUARD_VALUE_KEY, hasStatus, resolveHeal, resolveHit, resolveTick, roundHalfUp, type HealSpec, type HitSpec } from './damage';
+import { GUARD_VALUE_KEY, TRUSTED_MULT, hasStatus, isTrusted, resolveHeal, resolveHit, resolveTick, roundHalfUp, statusMods, type HealSpec, type HitSpec } from './damage';
 import { grantFleeAuto } from './flee';
-import { compilePattern, evalCombatWhen, interruptIntent, patternOf, type IntentRead } from './intents';
+import { compilePattern, evalCombatWhen, interruptIntent, patternOf, revealIntents, type IntentRead } from './intents';
 import { firePhaseStrikes } from './phases';
 import { STATUS, applyStatus, applyStatusRows, blocksAction, cleanse, cooldownsOf, findStatus, isOwnTurn, removeStatus, skipsTurn, type WhenEval } from './statuses';
-import { FORESIGHT_KEY, TRAP_FLAG, fixedHit, healFlat, hooksOf, setTimer, struckSince, type CombatOps, type HitKind, type SpecialUse } from './specials';
+import { FORESIGHT_KEY, REVEAL_KEY, TRAP_FLAG, fixedHit, healFlat, hooksOf, setTimer, struckSince, type CombatOps, type HitKind, type SpecialUse } from './specials';
 import { combatLog, combatantByUid, isActive, playerOf } from './turnOrder';
 
 // ---- scripts --------------------------------------------------------------------------------------------------------------
@@ -158,6 +161,22 @@ export const ABILITY_SCRIPTS: Readonly<Record<string, AbilityScript>> = {
   wvr_collapse: { missingHpCap: 0.5 },
   wvr_unravel: { strip: { statuses: [STATUS.shield, STATUS.regen, STATUS.rewind, STATUS.haste], mult: 1.5 } },
 };
+
+/** What a companion signature's DESIGN §12.4 row says that its data fields cannot (D-089). */
+export interface CompanionScript {
+  /** Each living member of the caster's side heals this share of its own max HP: × Trusted and its healing modifiers, rounded down, no overheal. */
+  healMaxHpPct?: number;
+  /** Every enemy intent is generated and shown unhidden for the player's next n turns; hidden ones are revealed at once. */
+  revealTurns?: number;
+}
+
+export const COMPANION_SCRIPTS: Readonly<Record<string, CompanionScript>> = {
+  comp_mireya_lanternreed_bloom: { healMaxHpPct: 0.3 }, // "party heal 30% max HP"
+  comp_ilyra_archive_light: { revealTurns: 2 }, // "all hidden intents revealed for 2 turns"
+};
+
+/** Floors must not lose a point to binary fractions (as in gear.ts: 0.29 × 100 = 28.999…). */
+const FLOOR_EPSILON = 1e-9;
 
 /** `coat:<ability id>` in the caster's cooldown table while a coating lasts. */
 export const COAT_KEY = 'coat:';
@@ -405,6 +424,27 @@ function supportTargets(combat: CombatState, caster: Combatant, ability: Ability
   return [caster];
 }
 
+/**
+ * Lanternreed Bloom (COMPANION_SCRIPTS `healMaxHpPct`): `pct` of the recipient's max HP, × the caster's Trusted (+10 %)
+ * and the recipient's healing modifiers (Curse ×0.5), rounded down, clamped to its missing HP. No variance: no draw.
+ */
+function healMaxHpShare(ctx: StepCtx, combat: CombatState, caster: Combatant, t: Combatant, pct: number, source: string): void {
+  let x = pct * t.hpMax;
+  if (isTrusted(ctx.s, caster)) x *= TRUSTED_MULT;
+  for (const m of statusMods(t, ctx.content).healing) x *= 1 + m;
+  const amount = Math.min(Math.max(0, Math.floor(x + FLOOR_EPSILON)), Math.max(0, t.hpMax - t.hp));
+  t.hp += amount;
+  if (amount > 0) ctx.emit({ t: 'healed', targetUid: t.uid, amount, source });
+  combatLog(combat, `${t.name} recovers ${amount} HP.`, 'heal');
+}
+
+/** Archive Light (COMPANION_SCRIPTS `revealTurns`): the fight's REVEAL_KEY for the player's next n turns; hidden intents clear now. */
+function startReveal(ctx: StepCtx, combat: CombatState, ability: Ability, turns: number): void {
+  setTimer(combat, playerOf(combat), REVEAL_KEY, turns);
+  combatLog(combat, `${ability.name}: every intent shows plainly for ${turns} turns.`, 'intent');
+  revealIntents(ctx, combat);
+}
+
 /** Doom Sigil: the hit and its rows wait in the target's cooldown table (see DELAY_KEY). */
 function plantDelayed(combat: CombatState, caster: Combatant, target: Combatant, ability: Ability, turns: number): void {
   cooldownsOf(combat, target)[`${DELAY_KEY}${ability.id}:${caster.uid}`] = turns + 1;
@@ -540,6 +580,8 @@ export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState
         combatLog(combat, `${t.name} recovers ${r.amount} HP.`, 'heal');
       }
     }
+    const share = COMPANION_SCRIPTS[ability.id]?.healMaxHpPct;
+    if (share !== undefined) for (const t of sideOf(combat, caster)) healMaxHpShare(ctx, combat, caster, t, share, ability.id);
     if (ability.shield) {
       const { base, coef, stat, turns } = ability.shield;
       for (const t of supportTargets(combat, caster, ability, picked, false)) applyStatus(ctx, combat, caster, t, STATUS.shield, { power: { base, coef, stat }, duration: turns });
@@ -592,6 +634,8 @@ export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState
   if (script.buff && script.buff.on !== 'target' && isActive(caster)) for (const h of buffHolders(combat, caster, script.buff.on)) giveBuff(combat, h, ability, script.buff.turns);
   if (script.tag !== undefined && isActive(caster)) addTag(caster, script.tag);
   if (script.bonusAction && caster.kind === 'player' && isActive(caster)) grantBonusAction(combat, caster, ability);
+  const reveal = COMPANION_SCRIPTS[ability.id]?.revealTurns;
+  if (reveal !== undefined) startReveal(ctx, combat, ability, reveal);
 }
 
 /**

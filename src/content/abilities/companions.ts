@@ -10,10 +10,11 @@
 // camp scenes, none of which exist yet (validator rule 1), so these rows are exported but left out of `contentTables`
 // (D-088). Registered by the unit that lands the last NPC/quest/scene they reference (U56).
 //
-// Two clauses of DESIGN §12.4 the ability fields cannot say, so the descriptions leave them out (the U28 fixture does too):
+// Two clauses of DESIGN §12.4 the ability fields cannot say are scripted by ability id in the engine
+// (src/engine/combat/abilities.ts COMPANION_SCRIPTS; D-089, U34c), so these rows carry the rest of their effect as data and
+// the descriptions state the whole of it:
 //   comp_mireya_lanternreed_bloom  "party heal 30% max HP": `heal` is base + coef·stat, with no share of max HP;
 //   comp_ilyra_archive_light       "all hidden intents revealed for 2 turns": no field or special reveals hidden intents.
-// Whoever adds either (an effect atom or a special; a C1 change) also restores the clause here.
 import type { AbilityInput } from '@schema/ability';
 
 export const companionAbilities = [
@@ -51,7 +52,7 @@ export const companionAbilities = [
     ownerId: 'ilyra',
     kind: 'signature',
     name: 'Archive Light',
-    description: 'Cleanse your party and Shield you both for 10 + 1.5·SP.',
+    description: 'Cleanse your party, Shield you both for 10 + 1.5·SP, and reveal every hidden enemy intent for 2 turns.',
     target: 'party',
     shield: { base: 10, coef: 1.5, stat: 'sp' },
     special: 'cleanse',
@@ -226,7 +227,7 @@ export const companionAbilities = [
     ownerId: 'mireya',
     kind: 'signature',
     name: 'Lanternreed Bloom',
-    description: 'Cleanse your party and give everyone Regen of 4 + 0.4·SP per turn for 3 turns.',
+    description: 'Heal your party for 30% of max HP, cleanse it, and give everyone Regen of 4 + 0.4·SP per turn for 3 turns.',
     target: 'party',
     special: 'cleanse',
     statuses: [{ status: 'status_regen', target: 'all_allies', duration: 3, power: { base: 4, coef: 0.4, stat: 'sp' } }],

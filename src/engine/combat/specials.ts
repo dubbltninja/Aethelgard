@@ -19,7 +19,7 @@
 //
 // Timers live in cooldown tables (the player's: `CombatState.cooldowns`; anyone else's: `Combatant.cooldowns`), which
 // count down at the end of the holder's turns (D-076 keeps Stun's recovery window there too): `counter:<id>`,
-// `riposte:<move>`, `foresight`. A key set during the holder's own turn gets +1, so it lasts through the turns after it;
+// `riposte:<move>`, `foresight`, `reveal`. A key set during the holder's own turn gets +1, so it lasts through the turns after it;
 // the stances (counter, riposte, a stronger Guard) end when the holder's next turn begins (`expireStances`).
 import type { Move, StatusApply } from '@schema/creature';
 import type { SpecialId, SpecialScope } from '@schema/specials';
@@ -105,6 +105,11 @@ export const COUNTER_SOURCE = 'counter:';
 export const FORESIGHT_KEY = 'foresight';
 /** DESIGN §5.2 Hunter's Eye / §12.4 Glimpse: the foresight lasts 3 of the caster's turns. */
 export const FORESIGHT_TURNS = 3;
+/**
+ * While this key is in the player's cooldown table no enemy intent is hidden: each is generated, and shown, unhidden
+ * (DESIGN §12.4 Archive Light, 2 player turns; abilities.ts COMPANION_SCRIPTS, intents.ts `intentsRevealed`; D-089).
+ */
+export const REVEAL_KEY = 'reveal';
 /** A location flag `trap:<ability id>`: the trap set there springs at the next fight (trap). */
 export const TRAP_FLAG = 'trap:';
 /** chain: the repeated hit's share. */

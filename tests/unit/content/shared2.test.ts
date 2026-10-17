@@ -20,7 +20,7 @@ import { amuletItems } from '@content/items/amulet';
 import { companions } from '@content/shared/companions';
 import { gameConfig } from '@content/shared/config';
 import { validateContent } from '@content/validate';
-import { DRAIN_SHARES, companionAllowedAt, derive, knownAbilities, newRun } from '@engine/index';
+import { COMPANION_SCRIPTS, DRAIN_SHARES, companionAllowedAt, derive, knownAbilities, newRun } from '@engine/index';
 import { AbilitySchema, COMPANION_KIND_COOLDOWN, SCRIPTED_ABILITIES, type Ability, type AbilityInput } from '@schema/ability';
 import { CompanionSchema, type CompanionInput } from '@schema/companion';
 import type { DialogueSceneInput } from '@schema/dialogue';
@@ -519,12 +519,13 @@ describe('the 24 companion abilities vs DESIGN §12.4', () => {
     }
   });
 
-  test('the two clauses the fields cannot say are the two the descriptions leave out (a signature heal of 30% max HP; hidden intents revealed)', () => {
+  test('the two clauses the fields cannot say are scripted by the engine (U34c), and the descriptions state them (a signature heal of 30% max HP; hidden intents revealed for 2 turns)', () => {
     expect(TABLE.find((r) => unquote(r[0] ?? '') === 'comp_mireya_lanternreed_bloom')?.[3]).toContain('party heal 30% max HP');
     expect(abilityOf('comp_mireya_lanternreed_bloom').heal).toBeUndefined();
-    expect(abilityOf('comp_mireya_lanternreed_bloom').description).not.toMatch(/30%/);
+    expect(abilityOf('comp_mireya_lanternreed_bloom').description).toMatch(/30% of max HP/);
     expect(TABLE.find((r) => unquote(r[0] ?? '') === 'comp_ilyra_archive_light')?.[3]).toContain('all hidden intents revealed for 2 turns');
-    expect(abilityOf('comp_ilyra_archive_light').description).not.toMatch(/hidden/);
+    expect(abilityOf('comp_ilyra_archive_light').description).toMatch(/hidden enemy intent for 2 turns/);
+    expect(COMPANION_SCRIPTS).toEqual({ comp_mireya_lanternreed_bloom: { healMaxHpPct: 0.3 }, comp_ilyra_archive_light: { revealTurns: 2 } });
   });
 });
 

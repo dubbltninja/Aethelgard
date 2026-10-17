@@ -10,12 +10,14 @@
 // start → effect visible for every wired Attunement, the modifiers' effects and Resonance multiplier, the Far Light's
 // class change with mastery, quests started at the Threshold kept, New Game+, and legal/step agreement for every U31
 // action (DESIGN §10.6–10.9, §14.2, §15.1; D-011, D-012, D-021, D-067.15, D-082; PLAN §8.1).
+// U34c (last): `talk` at the Threshold — Dask on the fixture's Still Shore, his scene, back to the Threshold (D-012, D-084).
 import { describe, expect, test } from 'bun:test';
 import {
   AMULET_ITEM_ID,
   CLOSER_TEXT,
   MULTIPLIER_REASON,
   REFUND_REASON,
+  THRESHOLD_LOCATIONS,
   THRESHOLD_TEXT,
   derive,
   modifierDamageMult,
@@ -23,6 +25,7 @@ import {
   newGamePlusProfile,
   resonanceMultiplier,
   thresholdArea,
+  thresholdLocationId,
   xpBonus,
   type ThresholdArea,
   ECHO_AMULET_MEMORY,
@@ -56,7 +59,7 @@ import { freshProfile, makeState, type StateOverrides } from '@tests/fixtures/he
 import { hordePack } from '@tests/fixtures/hordeContent';
 import { FIXTURE_VERSION, fixturePack } from '@tests/fixtures/miniContent';
 import type { AttunementInput } from '@schema/attunement';
-import { INN_COST, thresholdPack, thresholdTables } from '@tests/fixtures/thresholdContent';
+import { DASK_NPC, DASK_SHORE_SCENE, INN_COST, SHORE, thresholdPack, thresholdTables } from '@tests/fixtures/thresholdContent';
 import { buildContentPack } from '@content/index';
 
 const mini = fixturePack();
@@ -960,5 +963,70 @@ describe('legalActions agrees with step for every U31 action (PLAN §4.7)', () =
       }
     }
     expect([...seen].sort()).toEqual(['chooseClass', 'equipAttunement', 'newGamePlus', 'newLoop', 'thresholdGo', 'thresholdRefund', 'thresholdSpend', 'toggleModifier']);
+  });
+});
+
+// ==== U34c: talk at the Threshold =================================================================================================
+
+describe('U34c · talk at the Threshold: whoever stands at the place (Dask on the Still Shore; D-012, D-084)', () => {
+  const TALK: Action = { type: 'talk', npcId: DASK_NPC };
+
+  test('on the Shore Dask is listed; talk opens his scene, its choice lands, and the scene ends back at the Threshold', () => {
+    const r = shore();
+    expect([r.s.mode, r.s.meta.loop, thresholdLocationId(r.s)]).toEqual(['threshold', 3, SHORE]);
+    expect(legalOf(r, 'talk')).toEqual([TALK]);
+    const open = act(r, TALK);
+    expect(open.s.mode).toBe('dialogue');
+    expect(open.s.dialogue).toMatchObject({ sceneId: DASK_SHORE_SCENE, npcId: DASK_NPC, nodeId: 'greet', returnMode: 'threshold' });
+    expect(ofType(open.last, 'modeChanged')).toEqual([{ t: 'modeChanged', from: 'threshold', to: 'dialogue' }]);
+    expect(legalActions(open.s, tp, open.prof)).toEqual([
+      { type: 'choose', choiceId: 'ask' },
+      { type: 'choose', choiceId: 'leave' },
+    ]);
+    const asked = act(open, { type: 'choose', choiceId: 'ask' });
+    expect(asked.s.flags.flag_fixture_dask_asked).toBe(true);
+    // Resonance gained in a Threshold conversation is the profile's, not the next loop's tally (×modifiers at its end)
+    expect([asked.prof.resonance - open.prof.resonance, asked.s.counters.resonance ?? 0]).toEqual([5, 0]);
+    const back = act(asked, { type: 'continue' });
+    expect([back.s.mode, thresholdArea(back.s), back.s.dialogue]).toEqual(['threshold', 'still_shore', null]);
+    expect(ofType(back.last, 'modeChanged')).toEqual([{ t: 'modeChanged', from: 'dialogue', to: 'threshold' }]);
+    // not repeatable: said for this visit; the Threshold goes on as before
+    expect(legalOf(back, 'talk')).toEqual([]);
+    expect(refused(back, TALK)).toBe('Dask has nothing more to say');
+    expect(legalOf(back, 'thresholdGo')).toEqual([go('far_light'), go('gallery'), go('loom')]);
+  });
+
+  test('only where he stands and while his scene is available; nowhere else, and not in another pack', () => {
+    const r = shore();
+    for (const to of ['gallery', 'loom', 'far_light'] as const) {
+      const there = act(r, go(to));
+      expect([thresholdLocationId(there.s), legalOf(there, 'talk'), refused(there, TALK)]).toEqual([THRESHOLD_LOCATIONS[to], [], 'Dask is not here']);
+    }
+    const loopTwo = patch(r, (s) => void (s.meta.loop = 2)); // his scene is from Loop 3 (WORLD §3.12)
+    expect([legalOf(loopTwo, 'talk'), refused(loopTwo, TALK)]).toEqual([[], 'Dask has nothing more to say']);
+    const nobody = start(makeState({ mode: 'threshold' }, { content: pack }), freshProfile({ loopCounter: 3 }), pack); // no Shore record
+    expect([legalOf(nobody, 'talk'), refused(nobody, { type: 'talk', npcId: 'npc_ilyra' })]).toEqual([[], 'Ilyra is not here']);
+    expect(refused(at(RUINS, { loop: 3 }, rich(), tp), TALK)).toBe('Dask is not here'); // explore: the Ruins, not the Shore
+  });
+
+  test('isLegal ⇔ step accepts for every talk, in every place of the Threshold and around it', () => {
+    const talks: Action[] = [...Object.keys(tp.npcs).sort(), 'npc_nobody', 'toString'].map((npcId) => ({ type: 'talk', npcId }));
+    const corpus = [
+      shore(),
+      ...(['gallery', 'loom', 'far_light'] as const).map((to) => act(shore(), go(to))),
+      act(shore(), TALK),
+      run(shore(), [TALK, { type: 'choose', choiceId: 'leave' }]),
+      at(RUINS, { loop: 3 }, rich(), tp),
+    ];
+    let accepted = 0;
+    for (const r of corpus) {
+      for (const a of talks) {
+        const ok = ofType(r.step(r.s, a, r.pack, r.prof).events, 'actionRejected').length === 0;
+        expect({ a, mode: r.s.mode, area: thresholdArea(r.s), legal: isLegal(r.s, a, r.pack, r.prof) }).toEqual({ a, mode: r.s.mode, area: thresholdArea(r.s), legal: ok });
+        expect({ a, listed: legalOf(r, 'talk').some((x) => JSON.stringify(x) === JSON.stringify(a)) }).toEqual({ a, listed: ok });
+        if (ok) accepted += 1;
+      }
+    }
+    expect(accepted).toBeGreaterThanOrEqual(2); // the Shore, and Ilyra at the Ruins
   });
 });

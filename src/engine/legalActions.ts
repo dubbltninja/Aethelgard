@@ -101,7 +101,7 @@ export const ACTION_MODES: { readonly [K in ActionType]: readonly Mode[] } = {
   rest: ['explore'],
   retreat: ['explore'],
   gather: ['explore'],
-  talk: ['explore'],
+  talk: ['explore', 'threshold'], // threshold: whoever stands at the Threshold place (Dask, D-012, D-084)
   enterPortal: ['explore'],
   interact: ['explore'],
   wait: ['explore'],

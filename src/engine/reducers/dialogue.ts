@@ -3,9 +3,11 @@
 // reaction, `onEnd` and the return to the interrupted mode — is effects.ts `openScene` / `enterNode` / `closeScene`
 // (the `startDialogue` effect needs it inside the step). This file picks scenes and plays the player's side:
 //
-//   talk (explore)   to an NPC standing here: of the scenes with that `npcId` whose `when` holds — a non-repeatable one
-//                    only until it has ended this loop (`flag_scene_done_<scene>`) — the highest `priority` opens
-//                    (content order on ties). No scene: nothing to say (not legal).
+//   talk (explore,   to an NPC standing here: of the scenes with that `npcId` whose `when` holds — a non-repeatable one
+//    threshold)      only until it has ended this loop (`flag_scene_done_<scene>`) — the highest `priority` opens
+//                    (content order on ties). No scene: nothing to say (not legal). "Here" at the Threshold is the place
+//                    the Wayfinder stands in (threshold.ts `thresholdLocationId`: Dask on the Still Shore, D-012, D-084);
+//                    the scene returns to the Threshold when it ends.
 //   choose           the current node's choices: one whose `when` fails is hidden, or shown greyed when it has a
 //                    `disabledText`; one whose `disabledWhen` holds is greyed with its `disabledText` (default "(You do
 //                    not yet know this)"); a `once` choice is hidden after it was taken in this visit of the scene, an
@@ -38,6 +40,7 @@ import {
   npcsAt,
   restHandler,
 } from './explore';
+import { thresholdLocationId } from './threshold';
 
 type Pr = Readonly<Profile>;
 
@@ -74,10 +77,13 @@ export function sceneForNpc(s: GameState, content: ContentPack, profile: Pr, npc
   );
 }
 
+/** Where `talk` looks for people: the current location, or at the Threshold the place the Wayfinder stands in. */
+export const talkLocationId = (s: GameState): string => (s.mode === 'threshold' ? thresholdLocationId(s) : s.world.currentLocationId);
+
 /** Why the player cannot talk to `npcId` now (null: they can). */
 export function talkProblem(s: GameState, content: ContentPack, profile: Pr, npcId: string): string | null {
   const name = content.npcs[npcId]?.name ?? npcId;
-  if (!npcsAt(s, content, s.world.currentLocationId).includes(npcId)) return `${name} is not here`;
+  if (!npcsAt(s, content, talkLocationId(s)).includes(npcId)) return `${name} is not here`;
   return sceneForNpc(s, content, profile, npcId) === undefined ? `${name} has nothing more to say` : null;
 }
 
@@ -89,7 +95,7 @@ export function talkHandler(ctx: StepCtx, a: ActionOf<'talk'>): void {
 }
 
 export const talkEnumerator: Enumerator<'talk'> = (s, content, profile) =>
-  npcsAt(s, content, s.world.currentLocationId)
+  npcsAt(s, content, talkLocationId(s))
     .filter((npcId) => talkProblem(s, content, profile, npcId) === null)
     .map((npcId) => ({ type: 'talk', npcId }));
 

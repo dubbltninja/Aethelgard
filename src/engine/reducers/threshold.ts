@@ -14,7 +14,10 @@
 //                  again, DESIGN §10.9), newLoop ("Step into the light": `nextLoopState` for the chosen class with what
 //                  the Loom set — equipped Attunements, toggled modifiers — keeping the quests and Echoes the Threshold
 //                  itself gave (D-067.15), then `beginLoop`: Day 1)
-// `threshold.visited` lists the places walked this visit; the last one is where the Wayfinder stands.
+// `threshold.visited` lists the places walked this visit; the last one is where the Wayfinder stands. Each place is also a
+// WORLD §3.12 location (THRESHOLD_LOCATIONS): whoever stands there can be spoken to with `talk` (reducers/dialogue.ts),
+// as Dask on the Still Shore (D-012, D-084; U34c). A scene opened here returns to the Threshold when it ends; Resonance
+// gained in it is not the running loop's tally.
 //
 // New Game+ (D-021: "a fresh save that starts with all Echoes and codex of a completed save (any true ending) and loop
 // counter continuing"): offered on a true ending's screens (PLAN §4.4) and at the Loom (DESIGN §10.8) once an ending
@@ -69,6 +72,17 @@ export function thresholdArea(s: GameState): ThresholdArea {
   const visited = s.threshold?.visited ?? [];
   return visited[visited.length - 1] ?? 'still_shore';
 }
+
+/** WORLD §2.12 / §3.12: the location each of the four places is. */
+export const THRESHOLD_LOCATIONS: Readonly<Record<ThresholdArea, string>> = {
+  still_shore: 'loc_still_shore',
+  gallery: 'loc_gallery_of_loops',
+  loom: 'loc_loom',
+  far_light: 'loc_far_light',
+};
+
+/** The location the Wayfinder stands in at the Threshold (its NPCs are who can be talked to there). */
+export const thresholdLocationId = (s: GameState): string => THRESHOLD_LOCATIONS[thresholdArea(s)];
 
 /** The class the next loop starts as: the Far Light's choice, else the class just played. */
 export const chosenClass = (s: GameState): string => s.threshold?.pendingClassId ?? s.player.classId;
@@ -343,7 +357,7 @@ export const newGamePlusEnumerator: Enumerator<'newGamePlus'> = (s, _content, pr
 
 /** The running loop's Resonance gains this step (not the multiplier itself) join `counters.resonance`. */
 function tallyResonance(ctx: StepCtx, events: readonly GameEvent[]): void {
-  if (!TALLY_MODES.includes(ctx.s.mode)) return;
+  if (!TALLY_MODES.includes(ctx.s.mode) || ctx.s.dialogue?.returnMode === 'threshold') return; // a Threshold conversation is not the loop
   let gained = 0;
   for (const e of events) if (e.t === 'resonanceGained' && e.amount > 0 && e.reason !== MULTIPLIER_REASON) gained += e.amount;
   if (gained > 0) ctx.s.counters.resonance = (ctx.s.counters.resonance ?? 0) + gained;

@@ -36,6 +36,9 @@
 // (Taunt; a dead target → the rule's next valid pick, which with a party of at most two is the other member) and
 // re-projected against the current state — the move is never re-chosen — and a hidden intent whose creature acts
 // before the player's next turn is revealed (DESIGN: "at the start of the player's turn immediately preceding it").
+// Archive Light (DESIGN §12.4; D-089, U34c): while specials.ts REVEAL_KEY runs in the player's cooldown table (its next 2
+// player turns), every intent is generated unhidden and any still hidden is revealed; the cast reveals the hidden ones
+// at once (`revealIntents`).
 //
 // Wind-ups (`windUp: { turns, then }`, tyr_gather → tyr_chrono_strike): the wind-up move holds the creature for `turns`
 // turns (the move itself, then continuation intents of the same move), then `then` lands on the same target; the
@@ -60,7 +63,7 @@ import type { ContentPack, StepCtx } from '../ctx';
 import type { Rng } from '../rng';
 import type { Combatant, CombatState, Intent } from '../types/state';
 import { damageRange, hasStatus, resolveHeal, resolveHit, roundHalfUp, type HitResult, type HitSpec, type RangeOptions } from './damage';
-import { beginMove, finishMove, moveHits, replaceMove, type CombatOps, type HitKind } from './specials';
+import { REVEAL_KEY, beginMove, finishMove, moveHits, replaceMove, type CombatOps, type HitKind } from './specials';
 import { STATUS, applyStatus, applyStatusRows, cleanse, isBoss, skipsTurn, tauntedBy, type WhenEval } from './statuses';
 import { MAX_ENEMIES, combatLog, combatantByUid, enemyCombatant, isActive, sortTurnOrder } from './turnOrder';
 
@@ -360,7 +363,7 @@ function makeIntent(r: IntentRead, combat: CombatState, c: Combatant, moveId: st
     moveId,
     targetUid: aim === 'single' || (aim === 'ally' && target !== c) ? (target?.uid ?? null) : null,
     projected: [0, 0],
-    hidden: move.hidden,
+    hidden: move.hidden && !intentsRevealed(combat),
     text: move.line,
     tags: aim === 'all' ? [TAG_ALL, ...tags] : tags,
   };
@@ -517,10 +520,29 @@ function actsBeforePlayerAgain(ctx: StepCtx, combat: CombatState, c: Combatant):
 const sameChip = (a: Intent, b: Intent): boolean =>
   a.targetUid === b.targetUid && a.hidden === b.hidden && a.projected[0] === b.projected[0] && a.projected[1] === b.projected[1];
 
+/** Archive Light's reveal is running (specials.ts REVEAL_KEY in the player's cooldown table): no intent is hidden. */
+export const intentsRevealed = (combat: CombatState): boolean => (combat.cooldowns[REVEAL_KEY] ?? 0) > 0;
+
+function unhide(ctx: StepCtx, combat: CombatState, c: Combatant, intent: Intent): void {
+  intent.hidden = false;
+  const name = ctx.content.creatures[c.refId]?.moves[intent.moveId]?.name ?? intent.moveId;
+  combatLog(combat, `${c.name}'s intent clears: ${name}.`, 'intent');
+}
+
+/** Archive Light's cast: every living enemy's hidden intent becomes fully visible now; `intentRevealed` for each. */
+export function revealIntents(ctx: StepCtx, combat: CombatState): void {
+  for (const c of combat.enemies) {
+    const intent = combat.intents[c.uid];
+    if (!intent || !intent.hidden || !isActive(c)) continue;
+    unhide(ctx, combat, c, intent);
+    ctx.emit({ t: 'intentRevealed', uid: c.uid, intent: copyOf(intent) });
+  }
+}
+
 /**
  * At the start of the player's turn: every stored intent is re-aimed and re-projected against the current state (the
- * move is never re-chosen), and a hidden one whose creature acts before the player's next turn is revealed (DESIGN §4.2).
- * Emits `intentRevealed` for each chip that changed.
+ * move is never re-chosen), and a hidden one whose creature acts before the player's next turn — or any, while Archive
+ * Light's reveal runs — is revealed (DESIGN §4.2, §12.4). Emits `intentRevealed` for each chip that changed.
  */
 export function refreshIntents(ctx: StepCtx, combat: CombatState): void {
   for (const c of combat.enemies) {
@@ -533,11 +555,7 @@ export function refreshIntents(ctx: StepCtx, combat: CombatState): void {
       intent.targetUid = t === null || t === c ? null : t.uid;
     }
     intent.projected = projectIntent(ctx, combat, c, intent);
-    if (intent.hidden && actsBeforePlayerAgain(ctx, combat, c)) {
-      intent.hidden = false;
-      const name = ctx.content.creatures[c.refId]?.moves[intent.moveId]?.name ?? intent.moveId;
-      combatLog(combat, `${c.name}'s intent clears: ${name}.`, 'intent');
-    }
+    if (intent.hidden && (intentsRevealed(combat) || actsBeforePlayerAgain(ctx, combat, c))) unhide(ctx, combat, c, intent);
     if (!sameChip(before, intent)) ctx.emit({ t: 'intentRevealed', uid: c.uid, intent: copyOf(intent) });
   }
 }

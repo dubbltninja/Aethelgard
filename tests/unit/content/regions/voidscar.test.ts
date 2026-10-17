@@ -715,7 +715,12 @@ describe('the real pack with the region registered (D-090)', () => {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
       expect([w.message, INCOMPLETE_TABLES.includes(table as (typeof INCOMPLETE_TABLES)[number])]).toEqual([w.message, true]);
     }
-    const real = report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored') && (mine.has(w.id) || [...here].some((id) => w.message.includes(` ${id}`))));
+    // Order-agnostic (U47): a warning that names a location outside this region is that region's (the Void-Touched Stalker is this
+    // region's creature, but the Veil's Scar Shelf places it too, and rule 11 reads the band of the Shelf there).
+    const elsewhere = (w: { message: string }): boolean => [...w.message.matchAll(/\bloc_[a-z0-9_]+/g)].some((m) => !here.has(m[0]));
+    const real = report.warnings.filter(
+      (w) => !w.message.startsWith('pending — content not yet authored') && !elsewhere(w) && (mine.has(w.id) || [...here].some((id) => w.message.includes(` ${id}`))),
+    );
     // WORLD gives the Sentry level 10 and the Chasm 4–5, the Hollow 5–7: rule 11 (non-fatal) says so, once per placement
     expect([...new Set(real.map((w) => `${w.rule} ${w.id}`))].sort()).toEqual(['rule-11 cr_veil_sentry']);
     expect(real.every((w) => /loc_(chasm_of_whispers|voidscar_hollow)/.test(w.message))).toBe(true);

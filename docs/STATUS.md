@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete through **C2** + gear passives + companion signatures; sim harness complete (U36–U39); shared content I–II (U40–U41); regions: Silverwood Ruins, Mistwood & the Ironclad Reach, Glowlands & Nexus (16 of 73 locations, 23 creatures) — 2,506 tests. Next: U44 ∥ U46, then U47 ∥ U48 (worktrees, D-092). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-095), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-096), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -89,7 +89,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U43 | Region data: Mistwood & the Ironclad Reach — brief `briefs/u43.md` | Sonnet | ✅ 23a869b, merged a3272d2 (spot-reviewed) — 6 locations, 5 creatures, 3 NPCs; 2506 tests |
 | U44 | Region data: The Voidscar + Aether-Kissed Highlands — brief `briefs/u44.md` | Sonnet | ✅ 44928b3 (spot-reviewed) — 5 locations, 8 creatures, Nyx, Dask; Apex reachable; D-094 |
 | U46 | Region data: The Drowned Reach + The Ashen Steppe — brief `briefs/u46.md` | Sonnet | ✅ b5da198, merged d3520de (spot-reviewed) — 17 locations, 10 creatures, 7 NPCs; 2711 tests; D-094 |
-| U47 | Region data: The Glowfen + The Veil — brief `briefs/u47.md` | Sonnet | ▶ in progress (worktree) |
+| U47 | Region data: The Glowfen + The Veil — brief `briefs/u47.md` | Sonnet | ✅ 480047f, merged db8d1fd (spot-reviewed) — 16 locations, 6 creatures, 7 NPCs; 2902 tests; D-096 |
 | U48b | Region data: Silverwood Before + The Threshold — brief `briefs/u48b.md` | Opus (Tim, D-093) | ✅ 8879f95 — 14 locations, 5 creatures, 16 NPCs; Before + Threshold mechanics proven; D-095 |
 | U48a | Region data: The Skyreach — brief `briefs/u48a.md` | Opus (Tim, D-093) | ▶ in progress (worktree, alongside U47) |
 | U34d | Expressiveness gaps from region authoring (D-091 list + whatever U43–U48 add) | Opus | ⏳ after U48 |

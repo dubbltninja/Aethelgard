@@ -1453,3 +1453,20 @@ owning unit (PLAN §9.1).
   - the early-hound anomaly;
   - `thresholdGo` runs no arrival hooks, so Threshold location events never fire (pinned in a test).
 - **Test infrastructure:** the 1-vs-2-worker batch test now has a 30 s timeout. It takes about 6 s on the shared 2-core box.
+
+### D-096 · U47 details — the Veil and the Glowfen, 2026-10-17
+- **U47 (9ed46ab, 480047f):** the Veil has 8 locations, 4 creatures and 3 NPCs. The Glowfen has 8 locations, 2 creatures
+  (Barrow-Light, Lantern Matron) and 4 NPCs. All 16 locations are reachable.
+- **Readings:**
+  - The Glowfen's first-visit fights follow §3.9 (Barrows 40% by day, 100% at dusk or night) over §10.3's printed 4.4.
+  - Umbra is L16, which is out of band at the Eye: WORLD §3.8 says band 13, §6.1 says 10–14.
+  - The Pool cleanse is a conditional `sanctum` rest at Corruption ≥ 6. Short rests cleanse there too.
+  - Mireya's lantern being "lit" reads as Mireya active plus the lantern carried.
+- **Gaps added to U34d:**
+  - weather and hazards (Glowfen rain and Soaked, spore-fog, Shallows sinking, Gullet draw, the Veil's Unmaking hazard,
+    Gallery Blind);
+  - conditioned pool entries (the Barrow-light is only 2% at dusk or night);
+  - `killed` that holds across loops (Umbra's Phase 1 skip);
+  - per-move use caps, currently approximated (Matron Drink, Umbra Cling);
+  - "cannot be reapplied" (the Matron's Phase 3, approximated with `stripBuffs`);
+  - creature loot gated on `killed` (the Barrow vial is a hidden location item).

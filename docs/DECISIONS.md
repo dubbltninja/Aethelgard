@@ -1470,3 +1470,26 @@ owning unit (PLAN §9.1).
   - per-move use caps, currently approximated (Matron Drink, Umbra Cling);
   - "cannot be reapplied" (the Matron's Phase 3, approximated with `stripBuffs`);
   - creature loot gated on `killed` (the Barrow vial is a hidden location item).
+
+### D-097 · U48a details; every region and location authored, 2026-10-17
+- **U48a, the Skyreach (f2a7263):**
+  - 5 locations and 4 creatures, the Stormcrown with three phases.
+  - The Crown, Roost, Eyrie and Perch are `safe`.
+  - The Eyrie is a free camp: the Skyreach inn was dropped in C-31.
+  - The Stormcrown bargain is gated `loop ≥ 2`, following §2.11, STORY and BIBLE.
+  - The greataxe is given by an interact event (Ironclad −10 without `echo_sky_oath`).
+  - The Perch's 3 storm glass lie on the ground.
+  - The L9 Sentinel stays in `pool_skyreach` as WORLD places it, even though §10.1 says pools hold in-band fodder only.
+  - Open for U51: `echo_sky_oath`'s source is the Cairns in WORLD and the Perch in STORY §12. Decide it in the Echo catalog.
+- **Every region and location is authored:** 12 regions and 73 locations, each reachable from `loc_whispering_ruins`
+  (rule 8 reports nothing).
+  - `regions` and `locations` are off `INCOMPLETE_TABLES`, and every location reference resolves.
+  - **Creatures:** 56 of WORLD §6's 57. `cr_unmade` (Loop 3+ anomaly) and WORLD §10.2's 16 `cr_anomaly_*` variants go to
+    U34d with anomaly spawns.
+  - **NPCs:** all 38 of WORLD §4's. The 8 other §4 ids are former names (§4's mapping table). `npcs` stays on the list in
+    case STORY quests need an NPC §4 lacks.
+- **Real-pack sims** stop on the first missing item (`item_glyphbound_lantern`, `mat_rootbone`, `mat_shadow_ash`), as D-090
+  expects. U49/U50 unblock them.
+- **Gaps added to U34d:** a % HP cost (fleeing the Stair costs 10% HP), a pickup with a cost, "dark" description variants,
+  and Skyreach weather (Gale, lightning on Soaked).
+- **Totals:** 2,960 tests; 24 known warnings, all rule-11 deliberate placements or rule-2 flags that later units set.

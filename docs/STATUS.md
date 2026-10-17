@@ -1,9 +1,9 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete through **C2** + gear passives + companion signatures; sim harness complete (U36–U39); shared content I–II (U40–U41); regions: Silverwood Ruins, Mistwood & the Ironclad Reach, Glowlands & Nexus (16 of 73 locations, 23 creatures) — 2,506 tests. Next: U44 ∥ U46, then U47 ∥ U48 (worktrees, D-092). Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete through **C2** + gear passives + companion signatures; sim harness complete (U36–U39); shared content I–II (U40–U41); **the whole world: 12 regions, 73 locations, 56 creatures, 38 NPCs** (U42–U48b) — 2,960 tests. Next: U49 ∥ U51, then U50 ∥ U34d (see §4). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-096), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-097), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -91,7 +91,10 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U46 | Region data: The Drowned Reach + The Ashen Steppe — brief `briefs/u46.md` | Sonnet | ✅ b5da198, merged d3520de (spot-reviewed) — 17 locations, 10 creatures, 7 NPCs; 2711 tests; D-094 |
 | U47 | Region data: The Glowfen + The Veil — brief `briefs/u47.md` | Sonnet | ✅ 480047f, merged db8d1fd (spot-reviewed) — 16 locations, 6 creatures, 7 NPCs; 2902 tests; D-096 |
 | U48b | Region data: Silverwood Before + The Threshold — brief `briefs/u48b.md` | Opus (Tim, D-093) | ✅ 8879f95 — 14 locations, 5 creatures, 16 NPCs; Before + Threshold mechanics proven; D-095 |
-| U48a | Region data: The Skyreach — brief `briefs/u48a.md` | Opus (Tim, D-093) | ▶ in progress (worktree, alongside U47) |
+| U48a | Region data: The Skyreach — brief `briefs/u48a.md` | Opus (Tim, D-093) | ✅ f2a7263, merged f66b184 — 5 locations, 4 creatures; **all 12 regions / 73 locations done**, regions+locations off INCOMPLETE_TABLES (D-097) |
+| U49 | Items I: weapons, armor, trinkets T1–T5 (WORLD §7) | Sonnet | ⏳ ready |
+| U51 | Echo catalog, achievements, attunements, modifiers, ending/closer records (data) | Sonnet | ⏳ ready |
+| U50 | Items II: consumables, materials, quest/key/recipe/tome items, 30 recipes, 8 merchants | Sonnet | ⏳ needs U49 |
 | U34d | Expressiveness gaps from region authoring (D-091 list + whatever U43–U48 add) | Opus | ⏳ after U48 |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
@@ -202,13 +205,13 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-Tim's batch (2026-10-17): "run all five units" — U44, U46, U47, U48a, U48b (D-093).
-1. **Round 1:** U44 ∥ U46 (Sonnet, worktrees). **Round 2:** U47 (Sonnet) ∥ U48b (Opus). **Round 3:** U48a (Opus).
-   Each worktree agent first runs `git merge --ff-only unraveling` (D-092); the lead merges after each round.
-2. After U48a: every location exists → remove `regions`/`locations` (and `creatures`/`npcs` if complete) from
-   `INCOMPLETE_TABLES` (D-090), fix what surfaces, and check all 73 locations are reachable.
-3. Then U49/U50 (items; re-run the Tyrant scenario sims with band gear, D-092), U34d (Opus, the gap list in D-091/D-092),
-   U51 (Echo catalog etc.).
+1. **U49** (Sonnet, Items I: weapons/armor/trinkets) ∥ **U51** (Sonnet, Echo catalog + achievements + attunements +
+   modifiers + ending records; settle `echo_sky_oath`'s source, D-097). Worktrees (D-092).
+2. **U50** (Sonnet, Items II + 30 recipes + 8 merchants; then `items`/`recipes`/`merchants` leave INCOMPLETE_TABLES and the
+   real-pack sims run) ∥ **U34d** (Opus: the gap list in D-091/D-092/D-094–D-097 — NPC schedules for the Before first,
+   location-item chance and late spawns, anomalies + `cr_unmade`, on-death moves, condition atoms, hazards; scope it into
+   two units if it is too big for one window).
+3. After U50: re-run the Tyrant scenario sims with band gear (D-092) and generate the first real `docs/BALANCE.md`.
 4. Open follow-ups: D-080/D-081/D-089 balance flags; companions register at U56 (D-088). First ✦ Fable units: U53–U57
    (remind Tim before them).
 

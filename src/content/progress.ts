@@ -8,9 +8,8 @@
 // always fully resolved.
 import type { TableName } from '@schema/contentPack';
 
+// U48a (2026-10-17): `regions` and `locations` are complete — all 12 regions and 73 locations, every one reachable.
 export const INCOMPLETE_TABLES: readonly TableName[] = [
-  'regions',
-  'locations',
   'creatures',
   'items',
   'recipes',

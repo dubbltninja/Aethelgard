@@ -8,9 +8,11 @@ import type { ItemInput } from '@schema/item';
 import type { LocationInput } from '@schema/location';
 import type { NpcInput } from '@schema/npc';
 import type { RegionInput } from '@schema/region';
+import * as aetherKissedHighlands from './aether_kissed_highlands';
 import * as glowlandsNexus from './glowlands_nexus';
 import * as mistwoodIroncladReach from './mistwood_ironclad_reach';
 import * as silverwoodRuins from './silverwood_ruins';
+import * as voidscar from './voidscar';
 
 /** What every region folder exports (its index.ts). */
 export interface RegionFolder {
@@ -21,8 +23,17 @@ export interface RegionFolder {
   items: readonly ItemInput[];
 }
 
-/** Every authored region, in WORLD §2 order. U42: Silverwood Ruins. U43: Mistwood & the Ironclad Reach. U45: Glowlands & Nexus. */
-export const REGION_FOLDERS: readonly RegionFolder[] = [silverwoodRuins, mistwoodIroncladReach, glowlandsNexus];
+/**
+ * Every authored region, in WORLD §2 order. U42: Silverwood Ruins. U43: Mistwood & the Ironclad Reach. U44: The Voidscar and the
+ * Aether-Kissed Highlands. U45: Glowlands & Nexus.
+ */
+export const REGION_FOLDERS: readonly RegionFolder[] = [
+  silverwoodRuins,
+  mistwoodIroncladReach,
+  voidscar,
+  aetherKissedHighlands,
+  glowlandsNexus,
+];
 
 export const regions: readonly RegionInput[] = REGION_FOLDERS.map((f) => f.region);
 export const locations: readonly LocationInput[] = REGION_FOLDERS.flatMap((f) => f.locations);

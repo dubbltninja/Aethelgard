@@ -411,25 +411,32 @@ describe('WORLD §11 map data', () => {
     expect(section(WORLD, '### 3.13', '### Conventions for §4–6')).toContain('| loc_temporal_breach_apex | … Glowlands → Nexus → Apex (8; W10) |');
   });
 
-  test('from loc_whispering_ruins the Apex is reachable only through regions not authored yet: rule 8 reports it pending, never an error', () => {
+  test('from loc_whispering_ruins the Apex is reachable through the Plateau once the Highlands are authored (U44); until then rule 8 reports it pending, never an error', () => {
     const report = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
-    const r8 = report.warnings.filter((w) => w.rule === 'rule-08');
-    expect(r8.map((w) => w.id)).toEqual([GLOWLANDS, NEXUS, APEX, GLOWLANDS, NEXUS, APEX]);
-    for (const w of r8) {
-      expect(w.message.startsWith('pending — content not yet authored (reference): ')).toBe(true);
-      expect(w.message).toContain('loc_sky_whisper_plateau'); // WORLD §3.13: … Plateau → Glowlands → Nexus → Apex
-      expect(w.message).toMatch(/not found in locations$/);
-    }
+    const mineIds = new Set([GLOWLANDS, NEXUS, APEX]);
+    const r8 = report.warnings.filter((w) => w.rule === 'rule-08' && mineIds.has(w.id));
     // the same pack read as complete (no incomplete tables): those are the errors rule 8 exists for
-    const strictErrors = validateContent(pack, { strict: false }).errors.filter((e) => e.rule === 'rule-08');
-    expect(strictErrors.map((e) => [e.id, e.message.split(' (')[0]])).toEqual([
-      [GLOWLANDS, 'unreachable from the start location loc_whispering_ruins'],
-      [NEXUS, 'unreachable from the start location loc_whispering_ruins'],
-      [APEX, 'unreachable from the start location loc_whispering_ruins'],
-      [GLOWLANDS, 'legacy location unreachable in Loop 1'],
-      [NEXUS, 'legacy location unreachable in Loop 1'],
-      [APEX, 'legacy location unreachable in Loop 1'],
-    ]);
+    const strictErrors = validateContent(pack, { strict: false }).errors.filter((e) => e.rule === 'rule-08' && mineIds.has(e.id));
+    if (pack.locations['loc_sky_whisper_plateau'] !== undefined) {
+      // order-agnostic (U44): the road is whole, so the three are reachable and rule 8 says nothing about them
+      expect(r8).toEqual([]);
+      expect(strictErrors).toEqual([]);
+    } else {
+      expect(r8.map((w) => w.id)).toEqual([GLOWLANDS, NEXUS, APEX, GLOWLANDS, NEXUS, APEX]);
+      for (const w of r8) {
+        expect(w.message.startsWith('pending — content not yet authored (reference): ')).toBe(true);
+        expect(w.message).toContain('loc_sky_whisper_plateau'); // WORLD §3.13: … Plateau → Glowlands → Nexus → Apex
+        expect(w.message).toMatch(/not found in locations$/);
+      }
+      expect(strictErrors.map((e) => [e.id, e.message.split(' (')[0]])).toEqual([
+        [GLOWLANDS, 'unreachable from the start location loc_whispering_ruins'],
+        [NEXUS, 'unreachable from the start location loc_whispering_ruins'],
+        [APEX, 'unreachable from the start location loc_whispering_ruins'],
+        [GLOWLANDS, 'legacy location unreachable in Loop 1'],
+        [NEXUS, 'legacy location unreachable in Loop 1'],
+        [APEX, 'legacy location unreachable in Loop 1'],
+      ]);
+    }
     // and a pack whose locations are all authored and connected has nothing to report (the fixture's road joins them)
     const fixture = buildContentPack(miniContentTables, { validate: false });
     expect(validateContent(fixture, { incompleteTables: INCOMPLETE_TABLES }).warnings.filter((w) => w.rule === 'rule-08')).toEqual([]);
@@ -972,12 +979,18 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     const out: string[] = [];
     expect(validateCli([], (line) => out.push(line))).toBe(0);
     expect(out.join('\n')).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)/);
-    expect(out.join('\n')).toMatch(/pending rule-08: 6 reference\(s\) into tables still being authored/);
+    // order-agnostic (U44): before the Highlands landed the road to the Apex was pending (six rule-08 references); with them
+    // landed it is whole, and whatever rule 8 still reports belongs to regions not yet authored (the line says only a count)
+    if (pack.locations['loc_sky_whisper_plateau'] === undefined) {
+      expect(out.join('\n')).toMatch(/pending rule-08: 6 reference\(s\) into tables still being authored/);
+    }
   });
 
   test('the pending references are exactly the ids WORLD/STORY/DESIGN spell: neighbouring locations, items, materials, quests, Echoes, endings, codex entries, Mireya', () => {
     const { report } = parseContentPack(contentTables);
     const targets = new Set(report.warnings.filter((w) => w.message.includes('(reference)') && mine.has(w.id)).map((w) => /'([a-z_0-9]+)' not found/.exec(w.message)?.[1] ?? w.message));
+    // order-agnostic (U44): a neighbouring location is a pending target only until its region lands
+    const stillPending = (id: string): boolean => !(id.startsWith('loc_') && pack.locations[id] !== undefined);
     expect([...targets].sort()).toEqual(
       [
         'loc_sky_whisper_plateau', 'loc_reedmarch_descent', 'loc_lantern_causeway', 'loc_silver_gate', 'loc_conflux_chamber', 'loc_aetherium_spires',
@@ -994,7 +1007,9 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
         'codex_region_glowlands_nexus', 'codex_creatures_green', 'codex_creatures_watch_wardens', 'codex_creatures_unravelled',
         'codex_tyrant_holding', 'codex_tyrant_six', 'codex_veyran_thal',
         'mireya', // the companion record (D-088: registered by U56)
-      ].sort(),
+      ]
+        .filter(stillPending)
+        .sort(),
     );
     // every one is an id the documents spell
     const docs = `${WORLD}\n${STORY}\n${DESIGN}`;

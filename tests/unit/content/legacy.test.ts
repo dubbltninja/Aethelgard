@@ -22,18 +22,22 @@ const LANDED = {
     'loc_whispering_ruins', 'loc_crumbling_archway', 'loc_darkened_corridor', 'loc_shattered_library', 'loc_silverwood_plaza', 'loc_sunken_archives', 'loc_heartstone_depths',
     // U43: Mistwood & the Ironclad Reach
     'loc_mistwood_path', 'loc_wayfarers_respite', 'loc_ironclad_camp', 'loc_barren_peaks', 'loc_blighted_outpost', 'loc_emberforge',
+    // U44: The Voidscar; Aether-Kissed Highlands
+    'loc_chasm_of_whispers', 'loc_voidscar_hollow', 'loc_shimmering_pass', 'loc_aetherium_spires', 'loc_sky_whisper_plateau',
     // U45: Glowlands & Nexus
     'loc_veridian_glowlands', 'loc_chronos_nexus', 'loc_temporal_breach_apex',
   ],
   creatures: [
     'cr_corrupted_shade', 'cr_arcane_wisp', 'cr_drowned_archivist', // U42
     'cr_wildling_brute', 'cr_stone_hide_golem', // U43
+    'cr_void_touched_stalker', 'cr_shimmering_phantom', 'cr_aetherial_weaver', 'cr_sky_whisper_sentinel', // U44
     // U45: Glowlands & Nexus (the legacy Tyrant is the Loop 1 form, D-051)
     'cr_glowfen_mireling', 'cr_temporal_aberration', 'cr_chronos_tyrant_contained',
   ],
   npcs: [
     'npc_ilyra', // U42
     'npc_kaelen_stonehand', 'npc_brak', 'npc_borin_stonefist', // U43
+    'npc_nyx', // U44
   ],
 } as const;
 

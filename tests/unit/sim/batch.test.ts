@@ -272,7 +272,7 @@ describe('runBatch', () => {
     expect(one.runs.some((r) => r.suite === 'scenario')).toBe(true);
     expect(one.runs.some((r) => r.suite === 'script')).toBe(true);
     expect(Object.values(one.determinism).reduce((t, d) => t + d.sampled, 0)).toBe(4);
-  });
+  }, 30_000); // two full batches with worker threads: ~6 s on a shared 2-core box (bun's default is 5 s)
 });
 
 describe('comparable, metricsOf, blockerCount', () => {

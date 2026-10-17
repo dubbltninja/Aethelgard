@@ -318,7 +318,7 @@ describe('the eight locations vs WORLD §3.6 blocks', () => {
     expect(row?.[3]).toBe('TW, SY, BS, BM');
   });
 
-  test('return rolls at WORLD’s chances, each ahead of the pool’s 20 %; the Black Sluice and the Bellmouth name no pool, so they are `safe` (no wandering roll)', () => {
+  test('return rolls at WORLD’s chances, each ahead of the pool’s 20 %; the Black Sluice, the Bellmouth and the Deep name no pool, so they are `safe` (no wandering roll)', () => {
     const e = (l: string, id: string) => byId(loc(l).encounters, id);
     const back = (l: string, id: string) => [e(l, id).chance, e(l, id).respawn, e(l, id).once, e(l, id).groups.map((g) => `${g.creatureId}×${g.count}`)];
     expect(WL[TW]?.block).toContain('return: cr_tide_clerk ×1 (30%) or pool 20%.');
@@ -332,7 +332,7 @@ describe('the eight locations vs WORLD §3.6 blocks', () => {
     expect(back(BS, 'enc_sluice_lampreys_return')).toEqual([0.4, 'on_return', false, ['cr_brine_lamprey×2']]);
     expect(WL[BM]?.block).toContain('return: cr_pale_diver ×2 (35%).');
     expect(back(BM, 'enc_bellmouth_divers')).toEqual([0.35, 'on_return', false, ['cr_pale_diver×2']]);
-    expect([DS, TW, CI, LR, SY, BS, BM, BW].map((id) => loc(id).safe)).toEqual([false, false, false, true, false, true, true, false]);
+    expect([DS, TW, CI, LR, SY, BS, BM, BW].map((id) => loc(id).safe)).toEqual([false, false, false, true, false, true, true, true]);
   });
 
   test('events: every WORLD event, its text verbatim, legacy-less ids as WORLD spells them, once; WORLD’s conditions, grants and time cost', () => {

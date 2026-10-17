@@ -8,6 +8,7 @@ import type { ItemInput } from '@schema/item';
 import type { LocationInput } from '@schema/location';
 import type { NpcInput } from '@schema/npc';
 import type { RegionInput } from '@schema/region';
+import * as ashenSteppe from './ashen_steppe';
 import * as drownedReach from './drowned_reach';
 import * as glowlandsNexus from './glowlands_nexus';
 import * as mistwoodIroncladReach from './mistwood_ironclad_reach';
@@ -22,8 +23,8 @@ export interface RegionFolder {
   items: readonly ItemInput[];
 }
 
-/** Every authored region, in WORLD §2 order. U42: Silverwood Ruins. U43: Mistwood & the Ironclad Reach. U45: Glowlands & Nexus. U46: The Drowned Reach. */
-export const REGION_FOLDERS: readonly RegionFolder[] = [silverwoodRuins, mistwoodIroncladReach, glowlandsNexus, drownedReach];
+/** Every authored region, in WORLD §2 order. U42: Silverwood Ruins. U43: Mistwood & the Ironclad Reach. U45: Glowlands & Nexus. U46: The Drowned Reach & The Ashen Steppe. */
+export const REGION_FOLDERS: readonly RegionFolder[] = [silverwoodRuins, mistwoodIroncladReach, glowlandsNexus, drownedReach, ashenSteppe];
 
 export const regions: readonly RegionInput[] = REGION_FOLDERS.map((f) => f.region);
 export const locations: readonly LocationInput[] = REGION_FOLDERS.flatMap((f) => f.locations);

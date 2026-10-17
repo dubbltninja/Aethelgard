@@ -10,7 +10,8 @@
 //     every loop. The Depths ↔ Cistern crack (`gate_cistern_crack`) is the Cistern's east exit;
 //   - WORLD names no pool on the Black Sluice and the Bellmouth ("return: X (p%)" and nothing else), and §10.3's expected
 //     return fights (2.0 over the sweep) count p alone, so those two are `safe` (the schema's "no wandering roll"; the
-//     fixed `on_return` groups still roll), as the Apex is (U45);
+//     fixed `on_return` groups still roll), as the Apex is (U45). The Deep names no pool either (a forced boss and nothing
+//     else, and §10.3's sweep counts no return fight there), so it is `safe` too;
 //   - an event whose grant carries a condition ("grants X with {rep…}") is two events with complementary `when`s, the
 //     WORLD id on the one that grants and a coined `_plain` id on the one that does not (an event's effects carry no
 //     per-effect condition: U34d's gap);
@@ -357,6 +358,7 @@ export const locations = [
         intro: 'In the well the drowned giant shifts its grip on the clapper.',
       },
     ],
+    safe: true,
     events: [{ id: 'ev_deep_hour', text: "The Warden lifts its head. 'Is it the hour?' it asks, in the voice of a city." }],
     art: { template: 'cavern', horizon: 0.45, silhouettes: ['well', 'seated_giant_with_clapper', 'hanging_chains'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 8, max: 8 },

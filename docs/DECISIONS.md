@@ -1516,3 +1516,25 @@ owning unit (PLAN §9.1).
   - anomaly spawns with `cr_unmade` and the 16 `cr_anomaly_*` variants;
   - re-check pattern cadence in the Ruins and Mistwood;
   - small items: `pathBot`'s `talk` outside explore; Foresight's chip and hidden intents.
+
+### D-099 · U49 details — 70 pieces of gear, 2026-10-17
+- **U49 (3732c2b):** 32 weapons, 18 armor and 20 trinkets. The kit gear moved out of `starter.ts` with the same ids.
+- **Readings:**
+  - Ironclad Mail is tier 2, because its armor 4 fits only T2.
+  - The Heartstone pair is tier 0, fixed Common, and bound.
+  - Crafted rows are fixed Common.
+  - "Never sold" means no merchant stocks the item.
+  - The five kit weapons drop from the Redundant Wayfinder, and the Bell Shard from the Bell-Ringer.
+- **New `custom` passive scripts the engine does not read yet → U34e:** `basic_stun_chance` (Clapper),
+  `status_duration_reduction` (Diver's Coat, Salt Charm), `low_hp_status` (Lantern-Moth Brooch), `foresight` (Unlidded Eye),
+  `ability_mp_cost_reduction` (Oriel's Quill), `hazard_immunity` (Weaver's Thread Ring).
+- **Balance flags (pinned, not fixed):**
+  - Three T3 trinkets give +1 instead of +2: Choir Mask, Dask's Scout Badge, Salt Charm.
+  - Four plates have ward under their tier: Cinderhorn 1, Ironclad Plate −2 (the legacy "weak to magic"), Oathplate 2,
+    Sunderforged 3.
+  - The Sky-Whisper Talisman sells for 32 g, under T2 (legacy).
+  - The Umbral Mirror has its own 15% Curse plus `affix_of_the_void`'s 15% Curse, about 28% per hit together. That is as
+    WORLD writes it. The fun/balance pass decides.
+- **Open for U50:**
+  - Merchant stock can't name a fixed affix.
+  - The Clapper recipe needs `output.rarity: 'common'`.

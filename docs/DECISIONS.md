@@ -1335,3 +1335,46 @@ owning unit (PLAN §9.1).
   6. Rule 11 should ignore Horde-gated and anomaly placements.
   7. `pathBot`'s `talk` works only in explore mode.
   8. Foresight's next-next chip ignores hidden flags.
+
+### D-092 · U43/U45 details; first Tyrant numbers; worktree method, 2026-10-17
+- **U43, Mistwood & the Ironclad Reach (23a869b):** 6 locations, 5 creatures and 3 NPCs (`npc_brak` has
+  `companionId`). All 13 landed locations are reachable from the start.
+  - Readings: a WORLD "30%" second spawn is a second roll; story gates are a holding gate, then the plain legacy group,
+    and the gate's win scatters the plain group. The Camp counts as "infected" from `horde_moves` ≥ 8, or ≥ 10 after
+    expiry.
+  - The Brute's Maul follows DESIGN §4.12's pattern, not WORLD's `everyNthTurn: 3`. Where a worked example and WORLD
+    disagree, DESIGN wins.
+- **U45, Glowlands & Nexus (98ac100):** 3 locations and 11 creatures: both Tyrants with the full §4.11 communion,
+  `cr_tyrants_reach` and `cr_horde_husk`. The Tyrant's Reach lives here even though WORLD lists the Highlands first, so
+  U44 must not duplicate it.
+  - XP comes from DESIGN's formula, so the Orrery Knight has 589 (WORLD says 588).
+  - Listen's "full-strength Time Lash" is superseded by D-069.8/D-081 and not transcribed.
+  - WORLD lists the Glow Gland twice; the item unit checks it.
+  - Coined: outcome ids `pass_into_before`, `pass_beyond`, `take_its_place`, `consent_mending`.
+- **Validator (U45):** in rule 8, while `locations` is incomplete, a location reachable only through unauthored locations
+  is a pending warning. Complete packs are unaffected.
+- **Pattern form:** U45 writes patterns as a first-match `if` chain plus `everyNthAmong`. This keeps cadences such as
+  "every 3rd turn" that do not divide the cycle evenly. Later regions use it whenever a cadence matters. U34d re-checks
+  the Ruins and Mistwood patterns for cadence fidelity.
+- **First Tyrant numbers (U45, a scratch pack with a stub route; not tuning):**
+  - L11 solo: 0% wins for every class against DESIGN §19 #19's ≥ 60%.
+  - L13: Warden 13%, Wizard 2%.
+  - Cause: the `pre_tyrant` scenarios have only starter gear, because no gear exists yet (ATK/SP 22–27, armor 0–2, against
+    the Tyrant's armor 6 and ward 8), and there is no companion.
+  - **Ruling:** #19 is measured only after U49/U50 add level-banded gear. The scenario builders must then equip
+    band-appropriate gear (U36 marks gear as "constructed"), and companions must be registered (U56). Until then this
+    number is not a balance signal.
+- **Gaps added to U34d:**
+  - an on-death move (Spore Drift);
+  - a move that costs the Breach Clock (Hour Leech);
+  - location items with a chance, and items that appear after the first visit (Frayed Moments);
+  - per-effect conditions inside one event (dust "with the key");
+  - infected-node description text;
+  - a boss line at a low-HP threshold;
+  - region hazards;
+  - condition atoms "ally down", "ally below 50%" and "repeat previous move";
+  - more than one gatherable item per node;
+  - placing the caravan merchant (Tessaly) at runtime.
+- **Worktree method:** a unit that runs in parallel gets an `isolation: "worktree"` agent. The worktree starts from
+  `main`, so the agent first runs `git merge --ff-only unraveling` and then commits on its own branch. The lead merges
+  (the only conflicts are the barrel, `LANDED` and shared pins), then deletes the worktree and branch.

@@ -1420,3 +1420,36 @@ owning unit (PLAN §9.1).
   - the exploited Heartstone's +1 level;
   - `q_lightless_stair`'s giver.
 - **Merge state:** 7 of 12 regions, 38 of 73 locations; 2,711 tests.
+
+### D-095 · U48b details — Silverwood Before and the Threshold, 2026-10-17
+- **U48b (8879f95):** the Before has 10 locations, 5 creatures and 16 NPCs. The Threshold has 4 locations. The barrel
+  order is 6 and 12.
+- **Mechanics proven on the real pack:**
+  - entering through the Nexus door and through the Apex tear;
+  - Garret rests advancing Day 1 → 2 → 3;
+  - Last Bell resetting the echo, except after `q_stop_the_ritual`;
+  - a Conflux Anchor showing up in the Depths;
+  - the Bell encounter chances, checked over 300 seeds;
+  - Threshold *Let go* landing on the Still Shore, each place listing its legal actions, and `chooseClass` → `newLoop`
+    returning to the Ruins.
+- **Readings:**
+  - Bell conditions use `beforeDay`.
+  - A Bell encounter below 100% uses `respawn: 'daily'`.
+  - Drawing a weapon in the Plaza is an `interact` event that starts a Watch fight.
+  - The Gate event fires once per echo, through `flag_before_gate_whole`.
+  - `flag_visited_before` is set at the Gate and at the Conflux.
+  - The Conflux pillars wake only when you come by the stair.
+  - The region is gated with `unlockWhen loop ≥ 2`.
+  - The Threshold's band is 1–20, because the schema needs one. "After any ending" means any of `echo_ending_a`–`f`.
+  - The Library adepts spawn at 60% (§3.11/§12.1 over §6.9).
+  - `ev_conflux_sundering` is superseded by D-083 and left out.
+  - `q_the_mending` uses STORY's stage 2, not WORLD §7.10's stage 3.
+- **Gaps added to U34d:**
+  - NPC presence by Bell or hour. Today every NPC stands at its home. **This matters most for the living city** — make it
+    a priority in U34d.
+  - the non-lethal arrest;
+  - the Corridor's ley-flare hazard;
+  - "noon" under the frozen clock;
+  - the early-hound anomaly;
+  - `thresholdGo` runs no arrival hooks, so Threshold location events never fire (pinned in a test).
+- **Test infrastructure:** the 1-vs-2-worker batch test now has a 30 s timeout. It takes about 6 s on the shared 2-core box.

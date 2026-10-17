@@ -456,18 +456,19 @@ describe('the NPCs vs WORLD §4', () => {
 // ---- The real pack ------------------------------------------------------------------------------------------------------------
 
 describe('the real pack with the Ruins registered (D-090)', () => {
-  test('builds; the region barrel carries exactly this folder; `contentTables` holds the region tables', () => {
-    expect(REGION_FOLDERS).toHaveLength(1);
-    expect(Object.keys(pack.regions)).toEqual([REGION]);
-    expect(Object.keys(pack.locations)).toEqual(locations.map((l) => l.id));
-    expect(Object.keys(pack.creatures)).toEqual(creatures.map((c) => c.id));
-    expect(Object.keys(pack.npcs)).toEqual(npcs.map((n) => n.id));
-    expect(contentTables.regions).toEqual([region]);
+  // The Ruins are the first folder; later regions follow them (U43 onward), so the pins are on this folder's own records.
+  test('builds; the region barrel starts with this folder; `contentTables` holds the region tables', () => {
+    expect(REGION_FOLDERS[0]?.region).toEqual(region);
+    expect(Object.keys(pack.regions)[0]).toBe(REGION);
+    expect(Object.keys(pack.locations).slice(0, locations.length)).toEqual(locations.map((l) => l.id));
+    expect(Object.keys(pack.creatures).slice(0, creatures.length)).toEqual(creatures.map((c) => c.id));
+    expect(Object.keys(pack.npcs).slice(0, npcs.length)).toEqual(npcs.map((n) => n.id));
+    expect(contentTables.regions[0]).toEqual(region);
     expect(pack.index.locationsByRegion[REGION]).toEqual(locations.map((l) => l.id));
     expect(pack.index.startLocationId).toBe('loc_whispering_ruins');
   });
 
-  test('validates with 0 errors; pending references name only tables still being authored; the real warnings are the known six', () => {
+  test('validates with 0 errors; pending references name only tables still being authored; the Ruins’ own real warnings are the known six', () => {
     const report = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(report.errors).toEqual([]);
     const pending = report.warnings.filter((w) => w.message.startsWith('pending — content not yet authored (reference): '));
@@ -476,7 +477,9 @@ describe('the real pack with the Ruins registered (D-090)', () => {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
       expect([w.message, INCOMPLETE_TABLES.includes(table as (typeof INCOMPLETE_TABLES)[number])]).toEqual([w.message, true]);
     }
-    const real = report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored'));
+    // (other regions' warnings are their own tests': only warnings on the Ruins' records are pinned here)
+    const ruins = new Set<string>([...locations.map((l) => l.id), ...creatures.map((c) => c.id), ...npcs.map((n) => n.id)]);
+    const real = report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored') && ruins.has(w.id));
     expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual(
       [
         // flags later content units set (the Heartstone choice, the Before); the engine's own (Horde, portal, Anchors) are
@@ -496,32 +499,36 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     const out: string[] = [];
     expect(validateCli([], (line) => out.push(line))).toBe(0);
     const text = out.join('\n');
-    expect(text).toMatch(/ regions 1 · locations 7 · creatures 7 · /);
-    expect(text).toMatch(/ npcs 3 · /);
+    expect(text).toMatch(/ regions \d+ · locations \d+ · creatures \d+ · /);
+    expect(text).toMatch(/ npcs \d+ · /);
     expect(text).toMatch(/pending rule-01: \d+ reference\(s\) into tables still being authored/);
-    expect(text).toMatch(/validate: ok — 0 errors, 6 warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
+    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
   });
 
-  test('the pending references are exactly the ids WORLD/STORY spell: other regions’ locations, items, quests, Echoes, a scene, the Husk, merchants, a codex entry', () => {
+  test('the Ruins’ pending references name only ids WORLD/STORY spell (other regions’ locations, items, quests, Echoes, a scene, the Husk, merchants, codex entries); the Mistwood Path now resolves', () => {
     const { report } = parseContentPack(contentTables);
-    const targets = new Set(report.warnings.filter((w) => w.message.includes('(reference)')).map((w) => /'([a-z_0-9]+)' not found/.exec(w.message)?.[1] ?? w.message));
-    expect([...targets].sort()).toEqual(
-      [
-        'loc_mistwood_path', 'loc_chasm_of_whispers', 'loc_drowned_stair', 'loc_shimmering_pass', 'loc_cistern_of_names',
-        'item_remnant_wax_seal', 'item_echo_crystal', 'item_korrs_marginalia', 'item_bell_shard', 'item_glyphbound_lantern', 'item_cistern_key',
-        'item_scholars_lost_scroll', 'item_travelers_sword', 'item_necromancer_staff', 'item_chronal_dust',
-        'mat_shadow_ash', 'mat_wildling_hide', 'mat_ley_resin', 'mat_sodden_vellum', 'mat_ley_spark', 'mat_frayed_moment',
-        'cr_horde_husk', 'cr_hourglass_crawler', 'cr_unmade',
-        'q_echoing_heartbeat', 'q_lost_scroll',
-        'echo_heartstone_path', 'echo_nine_voices', 'echo_crystal_location', 'echo_archive_door', 'echo_oriel_drowned',
-        'scene_heartstone_choice',
-        'ilyra', // the companion record (D-088: registered by U56)
-        'npc_tamsin_reed', // the merchant record (WORLD §9)
-        'remnants', // the faction record (region.factionId)
-        'echo_apex_resonance', // config.apexGate (D-048), checked once the pack has locations
-        'codex_region_silverwood_ruins', 'codex_creatures_hollowed', 'codex_creatures_wilds', 'codex_creatures_drowned', 'codex_creatures_spireborn', 'codex_creatures_unravelled',
-      ].sort(),
+    const ruins = new Set<string>([REGION, ...locations.map((l) => l.id), ...creatures.map((c) => c.id), ...npcs.map((n) => n.id)]);
+    const targets = new Set(
+      report.warnings.filter((w) => w.message.includes('(reference)') && ruins.has(w.id)).map((w) => /'([a-z_0-9]+)' not found/.exec(w.message)?.[1] ?? w.message),
     );
+    // Later units resolve these one by one (regions U43–U48, items U49/U50, quests U52–U59): the list may only shrink
+    const known = new Set([
+      'loc_chasm_of_whispers', 'loc_drowned_stair', 'loc_shimmering_pass', 'loc_cistern_of_names',
+      'item_remnant_wax_seal', 'item_echo_crystal', 'item_korrs_marginalia', 'item_bell_shard', 'item_glyphbound_lantern', 'item_cistern_key',
+      'item_scholars_lost_scroll', 'item_travelers_sword', 'item_necromancer_staff', 'item_chronal_dust',
+      'mat_shadow_ash', 'mat_wildling_hide', 'mat_ley_resin', 'mat_sodden_vellum', 'mat_ley_spark', 'mat_frayed_moment',
+      'cr_horde_husk', 'cr_hourglass_crawler', 'cr_unmade',
+      'q_echoing_heartbeat', 'q_lost_scroll',
+      'echo_heartstone_path', 'echo_nine_voices', 'echo_crystal_location', 'echo_archive_door', 'echo_oriel_drowned',
+      'scene_heartstone_choice',
+      'ilyra', // the companion record (D-088: registered by U56)
+      'npc_tamsin_reed', // the merchant record (WORLD §9)
+      'remnants', // the faction record (region.factionId)
+      'codex_region_silverwood_ruins', 'codex_creatures_hollowed', 'codex_creatures_wilds', 'codex_creatures_drowned', 'codex_creatures_spireborn', 'codex_creatures_unravelled',
+    ]);
+    expect([...targets].filter((t) => !known.has(t))).toEqual([]);
+    expect(targets.has('loc_mistwood_path')).toBe(false); // the east exit and the Plaza's south exit resolve (U43)
+    expect(targets.size).toBeGreaterThan(0);
   });
 
   test('a new game opens at the Whispering Ruins: the Amulet on the ground, Ilyra present, the hum, three ways out; the first step into a table still being authored is the engine error D-090 expects', () => {
@@ -540,8 +547,9 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     const north = step(s, { type: 'move', to: 'loc_crumbling_archway' }, pack, started.profile);
     expect(north.state.world.currentLocationId).toBe('loc_crumbling_archway');
     expect(north.state.world.locationStates['loc_crumbling_archway']?.eventsFired).toContain('ev_archway_whisper');
-    // out of the region, or onto a placed item that does not exist yet: the dangling reference throws (D-090, expected)
-    expect(() => step(s, { type: 'move', to: 'loc_mistwood_path' }, pack, started.profile)).toThrow(/unknown location 'loc_mistwood_path'/);
+    // east is the Mistwood Path (U43): the exit resolves and the step is taken
+    expect(step(s, { type: 'move', to: 'loc_mistwood_path' }, pack, started.profile).state.world.currentLocationId).toBe('loc_mistwood_path');
+    // onto a placed item that does not exist yet: the dangling reference throws (D-090, expected)
     expect(() => step(s, { type: 'move', to: 'loc_sunken_archives' }, pack, started.profile)).toThrow(/unknown item 'item_glyphbound_lantern'/);
   });
 });

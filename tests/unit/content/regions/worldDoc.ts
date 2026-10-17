@@ -190,7 +190,8 @@ export function worldCreature(id: string): WorldCreatureBlock {
   const next = WORLD.slice(start + 5).search(/\n#{3,4} /);
   const block = next < 0 ? WORLD.slice(start) : WORLD.slice(start, start + 5 + next);
   const head = /^#### `cr_[a-z_]+` — ([^(\n]+)/.exec(block);
-  const stats = /- \*\*Stats:\*\* HP (\d+) · ATK (\d+) · DEF (\d+)\/(\d+) · AGI (\d+)/.exec(block);
+  // (`HP 130 (DESIGN §6.5 Mistwood elite)`: WORLD may annotate the HP figure)
+  const stats = /- \*\*Stats:\*\* HP (\d+)(?: \([^)]*\))? · ATK (\d+) · DEF (\d+)\/(\d+) · AGI (\d+)/.exec(block);
   if (!stats) throw new Error(`worldCreature: no stats line for ${id}`);
   const resistLine = bullet(block, 'Resist:') ?? '';
   const types = (label: string): string[] => {

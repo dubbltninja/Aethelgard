@@ -1386,3 +1386,37 @@ owning unit (PLAN §9.1).
   their data must match those exactly. They will also need the most judgment calls about what the schema can't express.
 - The prose is still WORLD's, verbatim.
 - Fable stays reserved for U53–U57, which write new dialogue and scenes.
+
+### D-094 · U44/U46 details, 2026-10-17
+- **U44 (44928b3), the Voidscar and the Aether-Kissed Highlands:**
+  - 5 locations, 8 creatures, and Nyx and Dask (both with `companionId`).
+  - The Glowlands, Nexus and Apex are now reachable from the start, in 6, 7 and 8 watches.
+  - `cr_steppe_harrier` belongs to U44, because its first region is the Highlands.
+  - Constructs carry Poison and Bleed immunity, following WORLD's conventions line 1622. The engine adds only Poison for the
+    `construct` tag, so U34d checks every construct (the U43 Golems too), or the engine adds Bleed for the tag.
+  - The Harrier drops Storm Glass at 30% (DESIGN §8.2 and WORLD §8.1 beat the creature block).
+  - Mortals use a `portrait` sigil, because the schema requires one.
+- **U46 (04028ea, b5da198), the Drowned Reach and the Ashen Steppe:**
+  - 17 locations, 10 creatures and 7 NPCs, with the Bell-Warden and Ashmaw at three phases each.
+  - Boss arenas that name no wandering pool are `safe: true`.
+  - Ashmaw's armor 0 becomes `damageTakenMult` 1.185.
+  - The Grave adds `item_dreyls_pyre_ledger` (100% on the first clear).
+  - `ev_hallows_cairn` grants only `echo_iron_that_does_not_wish` (WORLD over BIBLE).
+  - Readings that are pinned: the Steppe return sweep is 2.0 against WORLD's 1.9, and the Flats' second roll is `chance`
+    0.999.
+- **Gaps added to U34d:**
+  - hazards (Soaked on entry, ashfall, Pan glare, Cairns lightning, Void-chill, Pass mirage);
+  - the lamp-dark state;
+  - the Warden's Soaked each round;
+  - the `ambush` flag, which the engine never reads;
+  - a second region's pool share ("pool(glowfen) 10%");
+  - "misses if Guard";
+  - boss lines at HP thresholds;
+  - the Choir's priority order;
+  - `optionalWhen` bypasses that hide the fight forever;
+  - the Glass Mote's on-death Shatter;
+  - "ally down", currently approximated as `allyCountBelow: 1`;
+  - Dask as a Loop 1 flicker;
+  - the exploited Heartstone's +1 level;
+  - `q_lightless_stair`'s giver.
+- **Merge state:** 7 of 12 regions, 38 of 73 locations; 2,711 tests.

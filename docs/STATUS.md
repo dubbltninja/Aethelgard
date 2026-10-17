@@ -87,10 +87,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U42 | Region data: Silverwood Ruins (first region file; adds the Amulet's `sources`) — brief `briefs/u42.md` | ✦ Fable (Tim) | ✅ fd079c0 + lead 8e95f0b (shared2 pins, `horde_moves`, engine flags) — 7 locations, 7 creatures, 3 NPCs; the region pattern (D-091) |
 | U45 | Region data: Glowlands & Nexus + the Apex, both Tyrants, `cr_horde_husk` — brief `briefs/u45.md` | Opus | ✅ 98ac100 — 3 locations, 11 creatures, communion; Tyrant sims not meaningful until gear exists (D-092) |
 | U43 | Region data: Mistwood & the Ironclad Reach — brief `briefs/u43.md` | Sonnet | ✅ 23a869b, merged a3272d2 (spot-reviewed) — 6 locations, 5 creatures, 3 NPCs; 2506 tests |
-| U44 | Region data: The Voidscar + Aether-Kissed Highlands | Sonnet | ⏳ ready |
-| U46 | Region data: The Drowned Reach + The Ashen Steppe | Sonnet | ⏳ ready |
-| U47 | Region data: The Glowfen + The Veil | Sonnet | ⏳ ready |
-| U48 | Region data: The Skyreach + Silverwood Before + The Threshold | Sonnet (consider Fable: the Before) | ⏳ ready |
+| U44 | Region data: The Voidscar + Aether-Kissed Highlands — brief `briefs/u44.md` | Sonnet | ▶ in progress (worktree) |
+| U46 | Region data: The Drowned Reach + The Ashen Steppe — brief `briefs/u46.md` | Sonnet | ▶ in progress (worktree) |
+| U47 | Region data: The Glowfen + The Veil — brief `briefs/u47.md` | Sonnet | ⏳ round 2 |
+| U48b | Region data: Silverwood Before + The Threshold — brief `briefs/u48b.md` | Opus (Tim, D-093) | ⏳ round 2 |
+| U48a | Region data: The Skyreach — brief `briefs/u48a.md` | Opus (Tim, D-093) | ⏳ round 3 |
 | U34d | Expressiveness gaps from region authoring (D-091 list + whatever U43–U48 add) | Opus | ⏳ after U48 |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
@@ -201,12 +202,13 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. **U44** (Voidscar + Highlands; must not duplicate `cr_tyrants_reach`) ∥ **U46** (Drowned Reach + Ashen Steppe), both
-   Sonnet, each in its own worktree (D-092: the agent runs `git merge --ff-only unraveling` first; the lead merges).
-2. **U47** (Glowfen + Veil) ∥ **U48** (Skyreach + Silverwood Before + Threshold). When U48 lands, every location exists:
-   remove `locations`/`regions` from `INCOMPLETE_TABLES` (D-090) and fix whatever then surfaces.
-3. Then U49/U50 (items; then re-run the Tyrant scenario sims with band gear, D-092), U34d (Opus, the gap list in
-   D-091/D-092), U51 (Echo catalog etc.).
+Tim's batch (2026-10-17): "run all five units" — U44, U46, U47, U48a, U48b (D-093).
+1. **Round 1:** U44 ∥ U46 (Sonnet, worktrees). **Round 2:** U47 (Sonnet) ∥ U48b (Opus). **Round 3:** U48a (Opus).
+   Each worktree agent first runs `git merge --ff-only unraveling` (D-092); the lead merges after each round.
+2. After U48a: every location exists → remove `regions`/`locations` (and `creatures`/`npcs` if complete) from
+   `INCOMPLETE_TABLES` (D-090), fix what surfaces, and check all 73 locations are reachable.
+3. Then U49/U50 (items; re-run the Tyrant scenario sims with band gear, D-092), U34d (Opus, the gap list in D-091/D-092),
+   U51 (Echo catalog etc.).
 4. Open follow-ups: D-080/D-081/D-089 balance flags; companions register at U56 (D-088). First ✦ Fable units: U53–U57
    (remind Tim before them).
 

@@ -1378,3 +1378,11 @@ owning unit (PLAN §9.1).
 - **Worktree method:** a unit that runs in parallel gets an `isolation: "worktree"` agent. The worktree starts from
   `main`, so the agent first runs `git merge --ff-only unraveling` and then commits on its own branch. The lead merges
   (the only conflicts are the barrel, `LANDED` and shared pins), then deletes the worktree and branch.
+
+### D-093 · U48 split; both halves on Opus, 2026-10-17
+- U48 is split, on Tim's call: **U48a** is the Skyreach (5 locations) and **U48b** is Silverwood Before and the Threshold
+  (14 locations).
+- Both halves run on **Opus**. The Before and the Threshold run on engine mechanics that already exist (U31, U32, U34c), so
+  their data must match those exactly. They will also need the most judgment calls about what the schema can't express.
+- The prose is still WORLD's, verbatim.
+- Fable stays reserved for U53–U57, which write new dialogue and scenes.

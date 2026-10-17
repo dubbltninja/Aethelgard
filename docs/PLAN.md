@@ -2583,7 +2583,8 @@ The 20-workstream fan-out of the first draft is withdrawn: usage windows end mid
 | U45 | Region data: Glowlands & Nexus + the Apex, incl. both Tyrants (phases, moves, communion spec, `cr_tyrants_reach`) | Opus | U42 | `regions/glowlands_nexus/**` | validates; Tyrant numbers equal DESIGN §4.10 |
 | U46 | Region data: The Drowned Reach + The Ashen Steppe | Sonnet | U42 | `regions/{drowned_reach,ashen_steppe}/**` | validates |
 | U47 | Region data: The Glowfen + The Veil | Sonnet | U42 | `regions/{glowfen,veil}/**` | validates |
-| U48 | Region data: The Skyreach + Silverwood Before + The Threshold | Sonnet | U42 | `regions/{skyreach,silverwood_before,threshold}/**` | validates; all 73 locations reachable |
+| U48a | Region data: The Skyreach (split from U48, D-093) | Opus | U42 | `regions/skyreach/**` | validates; all 73 locations reachable once U48b has landed |
+| U48b | Region data: Silverwood Before + The Threshold (split from U48, D-093) | Opus | U42 | `regions/{silverwood_before,threshold}/**` | validates; Before and Threshold mechanics proven on the real pack |
 | U49 | Items I: weapons, armor, trinkets T1–T5 (WORLD §7) | Sonnet | U42 | `src/content/shared/items/{weapons,armor,trinkets}.ts` | validates; legacy items equal DESIGN §7.7 |
 | U50 | Items II: consumables, materials, quest/key/recipe/tome items, 30 recipes, 8 merchants (WORLD §7–9) | Sonnet | U49 | `items/{consumables,materials,quest}.ts`, `recipes.ts`, `merchants.ts` | validates; item count ≥ 120 |
 | U51 | Echo catalog (STORY §12, 101), achievements (40), attunements (15), modifiers (6), ending/closer records — data only | Sonnet | U48 | `src/content/shared/{echoes,achievements,attunements,modifiers,endings}.ts` | validates; every Echo granted somewhere (rule 16 warnings listed) — **C3a data** |

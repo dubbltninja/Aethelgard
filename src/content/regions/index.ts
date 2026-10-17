@@ -15,6 +15,7 @@ import * as glowlandsNexus from './glowlands_nexus';
 import * as mistwoodIroncladReach from './mistwood_ironclad_reach';
 import * as silverwoodBefore from './silverwood_before';
 import * as silverwoodRuins from './silverwood_ruins';
+import * as skyreach from './skyreach';
 import * as threshold from './threshold';
 import * as voidscar from './voidscar';
 
@@ -41,6 +42,7 @@ export const REGION_FOLDERS: readonly RegionFolder[] = [
   silverwoodBefore,
   drownedReach,
   ashenSteppe,
+  skyreach,
   threshold,
 ];
 

@@ -98,11 +98,11 @@ describe('the real pack (U41 tables)', () => {
     expect(strict.warnings.filter((w) => w.rule === 'rule-22').map((w) => w.id)).not.toContain('item_amulet_of_echoes');
   });
 
-  test('`npm run validate` shows 76 abilities (75 class abilities + itm_echo_bolt), 11 items and fewer pending checks than before', () => {
+  test('`npm run validate` shows 76 abilities (75 class abilities + itm_echo_bolt), 75 items (U49: + 70 gear) and fewer pending checks than before', () => {
     const out: string[] = [];
     expect(validateCli([], (line) => out.push(line))).toBe(0);
     const text = out.join('\n');
-    expect(text).toMatch(/ items 11 · /);
+    expect(text).toMatch(/ items 75 · /);
     expect(text).toMatch(/ abilities 76 · /);
     expect(text).not.toContain('pending rule-13');
     const pending = Number(/(\d+) pending completeness check/.exec(text)?.[1]);
@@ -632,6 +632,8 @@ function stubTables(drop?: string): ContentTables {
   const keep = <T extends { id: string }>(list: readonly T[]): T[] => list.filter((r) => r.id !== drop);
   return {
     ...contentTables,
+    // the gear's `sources` name merchants, recipes, quests and creatures this stub pack does not have (U49)
+    items: contentTables.items.map((i) => ({ ...i, sources: [] })),
     // the real apexGate reads `echo_apex_resonance`, which no table here defines (config conditions are checked once there are locations)
     config: { ...contentTables.config, apexGate: { counter: { name: 'quests_completed', min: 6 } } },
     regions: [stubRegion],

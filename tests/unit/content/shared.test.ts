@@ -14,7 +14,10 @@ import { weaverAbilities } from '@content/abilities/weaver';
 import { wizardAbilities } from '@content/abilities/wizard';
 import { buildContentPack, contentTables } from '@content/index';
 import { amuletItems } from '@content/items/amulet';
+import { armor } from '@content/items/armor';
 import { starterItems } from '@content/items/starter';
+import { trinkets } from '@content/items/trinkets';
+import { weapons } from '@content/items/weapons';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { affixes } from '@content/shared/affixes';
 import { classes } from '@content/shared/classes';
@@ -66,7 +69,8 @@ describe('the real pack (U40 tables)', () => {
     // U41 appended the other three trees, the Amulet's bolt and the Amulet (tests/unit/content/shared2.test.ts)
     const abilityRows = [...rangerAbilities, ...wizardAbilities, ...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities];
     expect(Object.keys(pack.abilities)).toEqual(abilityRows.map((a) => a.id));
-    expect(Object.keys(pack.items)).toEqual([...starterItems, ...amuletItems].map((i) => i.id));
+    // U49 moved the kit gear out of starter.ts and added the rest of the weapons, armor and trinkets (items/gear.test.ts)
+    expect(Object.keys(pack.items)).toEqual([...starterItems, ...amuletItems, ...weapons, ...armor, ...trinkets].map((i) => i.id));
     expect(contentTables.classes).toEqual(classes);
     expect(contentTables.statuses).toEqual(statuses);
     expect(contentTables.affixes).toEqual(affixes);
@@ -516,15 +520,18 @@ function expectNumbers(item: Item, cell: string): void {
 }
 
 describe('the starting kits\' items vs DESIGN §7.7 and §5.5–5.6', () => {
-  test('ten records, each in some class kit, none elsewhere in the pack yet', () => {
-    const kits = new Set(Object.values(pack.classes).flatMap((c) => c.starterItems.map((s) => s.itemId)));
-    expect(starterItems.map((i) => i.id).sort()).toEqual([...kits].sort());
+  // the ten items the five kits name; U49 moved the five weapons and the harness to items/{weapons,armor}.ts, the rest wait in starter.ts for U50
+  const kitIds = new Set(Object.values(pack.classes).flatMap((c) => c.starterItems.map((s) => s.itemId)));
+
+  test('ten records, each in some class kit: four in starter.ts, the five kit weapons and the Scrap Harness among the U49 gear', () => {
+    const kitGear = [...weapons, ...armor, ...trinkets].filter((i) => kitIds.has(i.id));
+    expect(kitGear).toHaveLength(6);
+    expect([...starterItems, ...kitGear].map((i) => i.id).sort()).toEqual([...kitIds].sort());
   });
 
   test('the seven legacy items: §7.7 name (kept exactly), type, weapon type, tier, numbers and value', () => {
     const legacy = rows(section('### 7.7 Legacy items', '### 7.8'), /^[A-Z]/).filter((r) => /^`item_/.test(r[1] ?? ''));
     let seen = 0;
-    const kitIds = new Set<string>(starterItems.map((i) => i.id));
     for (const [name = '', idCell = '', type = '', tier = '', numbers = '', value = ''] of legacy) {
       const item = pack.items[unquote(idCell)];
       if (!item || !kitIds.has(item.id)) continue; // the Amulet (quest item) is checked in shared2.test.ts

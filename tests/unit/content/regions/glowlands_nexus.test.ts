@@ -994,8 +994,9 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     expect([...targets].sort()).toEqual(
       [
         'loc_sky_whisper_plateau', 'loc_reedmarch_descent', 'loc_lantern_causeway', 'loc_silver_gate', 'loc_conflux_chamber', 'loc_aetherium_spires',
-        'item_chronos_lens', 'item_orrery_key', 'item_aberrant_eye', 'item_aetherium_shard', 'item_antidote_root', 'item_breach_anchor', 'item_chronal_dust',
-        'item_heartstone_core', 'item_pattern_hour_spindle', 'item_stabilized_heartstone',
+        // (item_chronos_lens and the two Heartstone trinkets dropped out when U49 authored the gear)
+        'item_orrery_key', 'item_aberrant_eye', 'item_aetherium_shard', 'item_antidote_root', 'item_breach_anchor', 'item_chronal_dust',
+        'item_pattern_hour_spindle',
         'mat_breach_glass', 'mat_frayed_moment', 'mat_glow_gland', 'mat_iron_rivet', 'mat_tyrant_shard',
         'q_unlidded_eye',
         'echo_anchor_mechanic', 'echo_apex_resonance', 'echo_breathing_pool', 'echo_eye_of_masque', 'echo_hallow_said_stop', 'echo_heartstone_resonance',

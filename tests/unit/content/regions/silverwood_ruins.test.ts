@@ -540,7 +540,7 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     expect(targets.size).toBeGreaterThan(0);
   });
 
-  test('a new game opens at the Whispering Ruins: the Amulet on the ground, Ilyra present, the hum, three ways out; the first step into a table still being authored is the engine error D-090 expects', () => {
+  test('a new game opens at the Whispering Ruins: the Amulet on the ground, Ilyra present, the hum, three ways out; the Glyphbound Lantern at the Sunken Archives resolves since U49 (no dangling-item error)', () => {
     const profile = freshProfile();
     const title: GameState = { ...newRun('u42', 'ranger', pack, profile), mode: 'title' };
     const started = step(title, { type: 'newGame', name: 'Wayfinder', classId: 'ranger' }, pack, profile);
@@ -558,8 +558,10 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     expect(north.state.world.locationStates['loc_crumbling_archway']?.eventsFired).toContain('ev_archway_whisper');
     // east is the Mistwood Path (U43): the exit resolves and the step is taken
     expect(step(s, { type: 'move', to: 'loc_mistwood_path' }, pack, started.profile).state.world.currentLocationId).toBe('loc_mistwood_path');
-    // onto a placed item that does not exist yet: the dangling reference throws (D-090, expected)
-    expect(() => step(s, { type: 'move', to: 'loc_sunken_archives' }, pack, started.profile)).toThrow(/unknown item 'item_glyphbound_lantern'/);
+    // south is the Sunken Archives, whose placed Glyphbound Lantern is authored since U49 (it threw "unknown item" while the item did not exist, D-090)
+    const south = step(s, { type: 'move', to: 'loc_sunken_archives' }, pack, started.profile);
+    expect(south.state.world.currentLocationId).toBe('loc_sunken_archives');
+    expect(south.state.world.locationStates['loc_sunken_archives']?.items.map((i) => i.itemId)).toContain('item_glyphbound_lantern');
   });
 });
 

@@ -1493,3 +1493,26 @@ owning unit (PLAN §9.1).
 - **Gaps added to U34d:** a % HP cost (fleeing the Stair costs 10% HP), a pickup with a cost, "dark" description variants,
   and Skyreach weather (Gale, lightning on Soaked).
 - **Totals:** 2,960 tests; 24 known warnings, all rule-11 deliberate placements or rule-2 flags that later units set.
+
+### D-098 · U34d split into world-state (U34d) and combat (U34e), 2026-10-17
+- The gap list in D-091, D-092 and D-094–D-097 is too big for one unit, so it is split.
+- **U34d (Opus, this batch) — world state.** In priority order:
+  1. NPC schedules: the Before's Bells, Tessaly's caravan, Dask's flicker.
+  2. Location items: `chance`, spawns after the first entry, more than one gatherable per node.
+  3. Per-effect `when` in events, and pickup costs.
+  4. Pool entries with a `when`, and a second region's pool share.
+  5. Threshold arrival hooks.
+  6. Infected and dark description variants, the Before's "noon", the non-lethal arrest.
+  7. Validator: rule-11 exemptions; new engine flags.
+- **U34e (Opus, queued) — combat.**
+  - condition atoms "ally down", "ally below X%", "repeat previous move";
+  - `killed` across loops, and "died here in a previous loop";
+  - on-death moves, and moves that cost the Breach Clock;
+  - per-move use caps, "cannot be reapplied", "misses if Guard";
+  - boss lines at HP thresholds, and a % HP damage effect;
+  - construct Bleed immunity, the `drowned` tag, the `ambush` flag;
+  - the exploited Heartstone's +1 level;
+  - hazards and weather;
+  - anomaly spawns with `cr_unmade` and the 16 `cr_anomaly_*` variants;
+  - re-check pattern cadence in the Ruins and Mistwood;
+  - small items: `pathBot`'s `talk` outside explore; Foresight's chip and hidden intents.

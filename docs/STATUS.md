@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete through **C2** + gear passives + companion signatures; sim harness complete (U36–U39); shared content I–II (U40–U41); **the whole world: 12 regions, 73 locations, 56 creatures, 38 NPCs** (U42–U48b) — 2,960 tests. Next: U49 ∥ U51, then U50 ∥ U34d (see §4). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-097), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-098), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -94,8 +94,9 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U48a | Region data: The Skyreach — brief `briefs/u48a.md` | Opus (Tim, D-093) | ✅ f2a7263, merged f66b184 — 5 locations, 4 creatures; **all 12 regions / 73 locations done**, regions+locations off INCOMPLETE_TABLES (D-097) |
 | U49 | Items I: weapons, armor, trinkets T1–T5 (WORLD §7) — brief `briefs/u49.md` | Sonnet | ▶ in progress (worktree) |
 | U51 | Echo catalog, achievements, attunements, modifiers, ending/closer records, factions (data) — brief `briefs/u51.md` | Sonnet | ▶ in progress (worktree) |
-| U50 | Items II: consumables, materials, quest/key/recipe/tome items, 30 recipes, 8 merchants | Sonnet | ⏳ needs U49 |
-| U34d | Expressiveness gaps from region authoring (D-091 list + whatever U43–U48 add) | Opus | ⏳ after U48 |
+| U50 | Items II: consumables, materials, quest/key/recipe/tome items, 30 recipes, 8 merchants; Tyrant scenarios get band gear — brief `briefs/u50.md` | Sonnet | ⏳ round 2 (needs U49) |
+| U34d | World-state expressiveness: NPC schedules, location-item chance/late spawns, event/pool conditions, Threshold arrivals (D-098) — brief `briefs/u34d.md` | Opus | ⏳ round 2 |
+| U34e | Combat expressiveness: condition atoms, on-death/clock moves, caps, hazards, anomalies (D-098) | Opus | ⏳ queued |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
 

@@ -1287,3 +1287,51 @@ owning unit (PLAN §9.1).
     companions (D-088).
 - **Sims on the real pack** are only meaningful for scenario and combat runs until items, quests and Echoes exist (U49–U52).
   An engine error caused by a dangling reference before then is expected and is not an engine bug.
+
+### D-091 · U34c/U42 details; the region pattern; expressiveness gaps queued (U34d), 2026-10-16
+- **U34c (0d30d4c):**
+  - Lanternreed Bloom's heal and Archive Light's reveal are scripted by ability id in `COMPANION_SCRIPTS`, separate from
+    ABILITY_SCRIPTS, so there is no content mirror and no C1 change.
+  - The Bloom heal applies healing modifiers (Trusted +10%; Curse halves it, since the heal lands before the cleanse).
+  - Archive Light holds `REVEAL_KEY` for 2 player turns.
+  - `talk` is legal in threshold mode. `THRESHOLD_LOCATIONS` uses WORLD §3.12's ids. Resonance gained in a Threshold talk
+    doesn't count toward the next loop's tally.
+  - Balance note: a hidden intent is already revealed just before its creature acts (DESIGN §4.2). So Archive Light
+    matters only when Slow or Haste reorders turns, or for companion AI decisions. Review it in the fun rounds.
+- **U42, Silverwood Ruins (fd079c0) — the region pattern:**
+  - One folder per region (`region`, `locations`, `creatures`, `npcs`, `items`, `index`). A region unit adds one import
+    line and one `REGION_FOLDERS` entry in `src/content/regions/index.ts`; `contentTables` spreads the barrel.
+  - The conventions are in `silverwood_ruins/index.ts`'s header. Encounter ids are `enc_<place>_<group>`, event ids take
+    `ev_` (the schema wins over WORLD's "verbatim legacy ids"), and boss phases are `<creature>_<phase>`.
+  - Test readers for WORLD live in `tests/unit/content/regions/worldDoc.ts`. `legacy.test.ts` keeps a `LANDED` list that
+    each region appends to.
+  - The lead checked the words U42 wrote for tone: 9 encounter intros, the Library nook rest text and a few
+    descriptions. They are listed in the commit.
+- **Rulings on U42's readings:**
+  - The Whispering Ruins are `safe: false` (WORLD's 20% return pool beats PLAN §5.17).
+  - The Library portal is the engine's `enterPortal`, not an exit.
+  - The palette follows DESIGN §17.1 (D-062).
+  - "Ilyra Trusted" means loyalty ≥ 75 (§12.5).
+  - `ev_ruins_thirtieth` fires on entering at the last dusk (`daysLeft ≤ 0`, so it scales with Frayed Clock).
+  - WORLD §6.8's one `tide_crest` id becomes two moves (`tide_crest` and a coined `tide_fall`).
+  - The Scholar's Lost Scroll is gated loot on the Drowned Archivist.
+- **Lead fixes (8e95f0b):**
+  - The engine counts **`horde_moves`** (`HORDE_MOVES_COUNTER`), so the Corridor Tide can block after move 14.
+  - **`ENGINE_WRITTEN_FLAGS`** (`schema/flags.ts`, kept in sync with `FLAG_*` constants by a test) stops rule 2 from
+    warning about flags the engine sets.
+  - shared2's real-pack pins now follow D-090.
+- **Owner:** `cr_horde_husk` has no first region in WORLD §6 ("Horde, any infected node"), so **U45** authors it: the
+  Nexus waves in `q_weavers_dawn`.
+- **Known rule-11 warnings:** two placements are out of band on purpose: the Loop 4+ Redundant Wayfinder (L12) at the
+  Ruins, and the L14 Horde Tide in the band-2–3 Corridor.
+- **Expressiveness gaps → U34d (Opus, after U43–U48 surface their own):**
+  1. Location items have no `chance`: the wax seal (30%) and bell shard (10%) are placed at 100%, hidden.
+  2. Location items spawn only at a loop's first entry, so the Corridor's Horde tonic appears only when that first entry
+     happens during a Horde.
+  3. The Redundant Wayfinder can't mirror the class's damage type and resistance, and "the player died here in a
+     previous loop" can't be expressed. The Paradox Wisp can't copy "your last spell's type". Both want a `special`.
+  4. Anomaly spawns and variants (DESIGN §6.6, WORLD §10.2) — the D-087 TODO.
+  5. The `drowned` tag is never read.
+  6. Rule 11 should ignore Horde-gated and anomaly placements.
+  7. `pathBot`'s `talk` works only in explore mode.
+  8. Foresight's next-next chip ignores hidden flags.

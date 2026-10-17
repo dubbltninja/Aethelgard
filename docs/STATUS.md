@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete through **C2** plus gear passives (U34b); sim harness complete (U36–U39: scenarios, six policy bots + pathBot, batch/metrics/BALANCE generator); shared content I–II (U40–U41) — 2,323 tests. Next: U42 ∥ U34c, then U45 ∥ U43 (see §4). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-090), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-091), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -83,10 +83,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U38 | Bots: caster, explorer, speedrunner, pacifist, `pathBot` (PLAN §7.2, §7.8) — brief `briefs/u38.md` | Sonnet | ✅ d67199f (spot-reviewed) — 720/720 Loop 1 closers, 9 fixture ending scripts; 2137 tests; D-087 |
 | U41 | Shared content II: Elf, Warden, Weaver abilities; 6 companions + 24 companion abilities; `itm_echo_bolt` — brief `briefs/u41.md` | Sonnet | ✅ 5c87139 (spot-reviewed) — 75 class abilities + Echo Bolt + Amulet registered; companions authored, registered at U56 (D-088); D-089 |
 | U39 | Batch runner (workers, `__DEV__` off — D-086), metrics, coverage, BALANCE.md generator — brief `briefs/u39.md` | Sonnet | ✅ 549dfe8 (spot-reviewed) — `npm run sim:balance`; 108 µs/step; 2323 tests; D-089 |
-| U34c | Companion signature scripts (Lanternreed Bloom 30 % heal, Archive Light reveal) + `talk` at the Threshold (D-084) — brief `briefs/u34c.md` | Opus | ▶ in progress |
-| U42 | Region data: Silverwood Ruins (first region file; adds the Amulet's `sources`) — brief `briefs/u42.md` | ✦ Fable (Tim) | ▶ in progress — forward refs pending per D-090 |
-| U45 | Region data: Glowlands & Nexus + the Apex, both Tyrants | Opus | ⏳ needs U42 |
-| U43 | Region data: Mistwood & the Ironclad Reach | Sonnet | ⏳ needs U42 |
+| U34c | Companion signature scripts (Lanternreed Bloom 30 % heal, Archive Light reveal) + `talk` at the Threshold (D-084) — brief `briefs/u34c.md` | Opus | ✅ 0d30d4c (+ lead: D-091) |
+| U42 | Region data: Silverwood Ruins (first region file; adds the Amulet's `sources`) — brief `briefs/u42.md` | ✦ Fable (Tim) | ✅ fd079c0 + lead 8e95f0b (shared2 pins, `horde_moves`, engine flags) — 7 locations, 7 creatures, 3 NPCs; the region pattern (D-091) |
+| U45 | Region data: Glowlands & Nexus + the Apex, both Tyrants, `cr_horde_husk` — brief `briefs/u45.md` | Opus | ▶ in progress (own worktree) |
+| U43 | Region data: Mistwood & the Ironclad Reach — brief `briefs/u43.md` | Sonnet | ▶ in progress (own worktree) |
+| U34d | Expressiveness gaps from region authoring (D-091 list + whatever U43–U48 add) | Opus | ⏳ after U48 |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
 
@@ -196,14 +197,13 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. **U42** (Opus, Silverwood Ruins — the first region file sets the pattern for U43–U48; add the Amulet's
-   `sources: ['loc:loc_whispering_ruins']`) ∥ **U34c** (Opus, small engine: the two companion signature scripts, D-089).
-2. **U45** (Opus, Glowlands & Nexus + Apex + both Tyrants — unlocks real Tyrant sims, DESIGN §19 #19) ∥ **U43** (Sonnet).
-3. Then U44, U46–U49 (Sonnet, need U42) in pairs; generate the first real `docs/BALANCE.md` once U45 lands
-   (`npm run sim:balance -- --pack real --workers 2`).
-4. Open follow-ups: D-084 (`talk` in threshold mode, merchant schema gaps) in the Threshold/merchant content units;
-   D-080/D-081/D-089 balance flags (Hold the Line, Resist vs press, Warden/Weaver vs bosses); companions register at
-   U56 (D-088). First ✦ Fable units: U53–U57 (remind Tim before them).
+1. **U45** (Opus, Glowlands & Nexus + Apex + both Tyrants + `cr_horde_husk`; first real Tyrant sims) ∥ **U43** (Sonnet,
+   Mistwood & the Ironclad Reach). Each runs in **its own git worktree**; the lead merges both into `unraveling` (the only
+   overlap is one line each in `src/content/regions/index.ts`).
+2. Then U44, U46, U47, U48 (Sonnet, region transcriptions) and U49 (Sonnet, Items I) in pairs, same worktree method.
+3. U34d (Opus): the expressiveness gaps the region units list (D-091) — one engine/schema pass after U48.
+4. Open follow-ups: D-080/D-081/D-089 balance flags; companions register at U56 (D-088); remove tables from
+   `INCOMPLETE_TABLES` as they complete (D-090). First ✦ Fable units: U53–U57 (remind Tim before them).
 
 ## 4b. Dev quickstart
 

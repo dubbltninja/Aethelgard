@@ -8,6 +8,7 @@ import type { ItemInput } from '@schema/item';
 import type { LocationInput } from '@schema/location';
 import type { NpcInput } from '@schema/npc';
 import type { RegionInput } from '@schema/region';
+import * as glowlandsNexus from './glowlands_nexus';
 import * as silverwoodRuins from './silverwood_ruins';
 
 /** What every region folder exports (its index.ts). */
@@ -20,7 +21,7 @@ export interface RegionFolder {
 }
 
 /** Every authored region, in WORLD §2 order. U42: Silverwood Ruins. */
-export const REGION_FOLDERS: readonly RegionFolder[] = [silverwoodRuins];
+export const REGION_FOLDERS: readonly RegionFolder[] = [silverwoodRuins, glowlandsNexus];
 
 export const regions: readonly RegionInput[] = REGION_FOLDERS.map((f) => f.region);
 export const locations: readonly LocationInput[] = REGION_FOLDERS.flatMap((f) => f.locations);

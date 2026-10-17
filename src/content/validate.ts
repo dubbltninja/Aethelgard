@@ -1069,6 +1069,19 @@ function rule08(v: Validation): void {
   }
 
   const gated = (loc: Location): boolean => pack.regions[loc.regionId]?.unlockWhen !== undefined;
+  // D-090 (U45): while `locations` is still being authored, a location whose exits lead on to a location not authored
+  // yet may be reached through it (a region authored before the regions between, the Glowlands before the Highlands):
+  // a pending reference, not an error. Packs without incomplete tables are unaffected.
+  const unauthoredWay = (id: string): string[] => {
+    if (v.options.incompleteTables?.includes('locations') !== true) return [];
+    const near = [...reach(v, id, 'any')].flatMap((x) => pack.locations[x]?.exits.map((e) => e.to) ?? []);
+    return [...new Set(near.filter((to) => !v.has('locations', to)))];
+  };
+  const unreachable = (loc: Location, message: string): void => {
+    const via = unauthoredWay(loc.id);
+    if (via.length > 0) v.warn(R, 'locations', loc.id, '', `${PENDING_REF}${message} until its way on is authored (${via.join(', ')}): '${via[0]}' not found in locations`);
+    else v.error(R, 'locations', loc.id, '', message);
+  };
   const fromStart = reach(v, start, 'any');
   for (const loc of locations) {
     if (fromStart.has(loc.id) || loc.tags.includes('threshold')) continue;
@@ -1078,7 +1091,7 @@ function rule08(v: Validation): void {
       if (!door) v.warn(R, 'locations', loc.id, '', `region ${loc.regionId} is gated (unlockWhen) and this location has no exit leading to it`);
       continue;
     }
-    v.error(R, 'locations', loc.id, '', `unreachable from the start location ${start} (conditions treated as satisfiable)`);
+    unreachable(loc, `unreachable from the start location ${start} (conditions treated as satisfiable)`);
   }
 
   // Threshold locations are reached from the Still Shore.
@@ -1098,9 +1111,7 @@ function rule08(v: Validation): void {
   const loopOne = reach(v, start, 'loop1');
   for (const loc of locations) {
     const legacy = loc.legacyName !== undefined || hasOwn(LEGACY_LOCATIONS, loc.id);
-    if (legacy && !loopOne.has(loc.id)) {
-      v.error(R, 'locations', loc.id, '', `legacy location unreachable in Loop 1 (loop = 1, no Echoes) from ${start}`);
-    }
+    if (legacy && !loopOne.has(loc.id)) unreachable(loc, `legacy location unreachable in Loop 1 (loop = 1, no Echoes) from ${start}`);
   }
 }
 

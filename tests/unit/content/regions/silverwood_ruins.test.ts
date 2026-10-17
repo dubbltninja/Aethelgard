@@ -456,18 +456,19 @@ describe('the NPCs vs WORLD §4', () => {
 // ---- The real pack ------------------------------------------------------------------------------------------------------------
 
 describe('the real pack with the Ruins registered (D-090)', () => {
-  test('builds; the region barrel carries exactly this folder; `contentTables` holds the region tables', () => {
-    expect(REGION_FOLDERS).toHaveLength(1);
-    expect(Object.keys(pack.regions)).toEqual([REGION]);
-    expect(Object.keys(pack.locations)).toEqual(locations.map((l) => l.id));
-    expect(Object.keys(pack.creatures)).toEqual(creatures.map((c) => c.id));
-    expect(Object.keys(pack.npcs)).toEqual(npcs.map((n) => n.id));
-    expect(contentTables.regions).toEqual([region]);
+  // Later region units add their folders after this one (WORLD §2 order): these checks read the Ruins' share of the pack.
+  test('builds; the region barrel carries this folder first; `contentTables` holds the region tables', () => {
+    expect(REGION_FOLDERS[0]?.region).toBe(region);
+    expect(Object.keys(pack.regions)[0]).toBe(REGION);
+    expect(Object.keys(pack.locations).slice(0, locations.length)).toEqual(locations.map((l) => l.id));
+    expect(Object.keys(pack.creatures).slice(0, creatures.length)).toEqual(creatures.map((c) => c.id));
+    expect(Object.keys(pack.npcs).slice(0, npcs.length)).toEqual(npcs.map((n) => n.id));
+    expect(contentTables.regions[0]).toEqual(region);
     expect(pack.index.locationsByRegion[REGION]).toEqual(locations.map((l) => l.id));
     expect(pack.index.startLocationId).toBe('loc_whispering_ruins');
   });
 
-  test('validates with 0 errors; pending references name only tables still being authored; the real warnings are the known six', () => {
+  test('validates with 0 errors; pending references name only tables still being authored; the real warnings about the Ruins are the known eight', () => {
     const report = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(report.errors).toEqual([]);
     const pending = report.warnings.filter((w) => w.message.startsWith('pending — content not yet authored (reference): '));
@@ -476,7 +477,11 @@ describe('the real pack with the Ruins registered (D-090)', () => {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
       expect([w.message, INCOMPLETE_TABLES.includes(table as (typeof INCOMPLETE_TABLES)[number])]).toEqual([w.message, true]);
     }
-    const real = report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored'));
+    // the Ruins' own: warnings on its locations, and placement warnings (rule 11) naming one of them
+    const ruins = locations.map((l) => l.id as string);
+    const aboutRuins = (w: (typeof report.warnings)[number]): boolean =>
+      (w.table === 'locations' && ruins.includes(w.id)) || (w.rule === 'rule-11' && ruins.some((id) => w.message.includes(` ${id}`)));
+    const real = report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored') && aboutRuins(w));
     expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual(
       [
         // flags later content units set (the Heartstone choice, the Before); the engine's own (Horde, portal, Anchors) are
@@ -485,9 +490,12 @@ describe('the real pack with the Ruins registered (D-090)', () => {
         'rule-02 loc_heartstone_depths descriptionVariants.0.when.flag',
         'rule-02 loc_heartstone_depths descriptionVariants.1.when.flag',
         'rule-02 loc_heartstone_depths descriptionVariants.2.when.flag',
-        // WORLD's deliberate out-of-band placements: the Loop 4+ anomaly at the start, the Horde boss in the Corridor
+        // WORLD's deliberate out-of-band placements (D-091 gap 6): the Loop 4+ anomaly at the start, the Horde boss and
+        // (since U45 authored them) the Horde Husks in the Corridor, the exploited Depths' Hourglass Crawlers
         'rule-11 cr_redundant_wayfinder level',
         'rule-11 cr_unraveling_tide level',
+        'rule-11 cr_horde_husk level',
+        'rule-11 cr_hourglass_crawler level',
       ].sort(),
     );
   });
@@ -496,22 +504,27 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     const out: string[] = [];
     expect(validateCli([], (line) => out.push(line))).toBe(0);
     const text = out.join('\n');
-    expect(text).toMatch(/ regions 1 · locations 7 · creatures 7 · /);
-    expect(text).toMatch(/ npcs 3 · /);
+    // the counts grow as region units land (the Ruins' own records are pinned above)
+    expect(text).toMatch(/ regions [1-9]\d* · locations [1-9]\d* · creatures [1-9]\d* · /);
+    expect(text).toMatch(/ npcs [1-9]\d* · /);
     expect(text).toMatch(/pending rule-01: \d+ reference\(s\) into tables still being authored/);
-    expect(text).toMatch(/validate: ok — 0 errors, 6 warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
+    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
   });
 
-  test('the pending references are exactly the ids WORLD/STORY spell: other regions’ locations, items, quests, Echoes, a scene, the Husk, merchants, a codex entry', () => {
+  test('the pending references are exactly the ids WORLD/STORY spell: other regions’ locations, items, quests, Echoes, a scene, merchants, a codex entry', () => {
     const { report } = parseContentPack(contentTables);
-    const targets = new Set(report.warnings.filter((w) => w.message.includes('(reference)')).map((w) => /'([a-z_0-9]+)' not found/.exec(w.message)?.[1] ?? w.message));
+    // the Ruins' records and the config (later region units add their own references)
+    const mine = new Set<string>([REGION, ...locations.map((l) => l.id), ...creatures.map((c) => c.id), ...npcs.map((n) => n.id), '-']);
+    const targets = new Set(
+      report.warnings.filter((w) => w.message.includes('(reference)') && mine.has(w.id)).map((w) => /'([a-z_0-9]+)' not found/.exec(w.message)?.[1] ?? w.message),
+    );
     expect([...targets].sort()).toEqual(
       [
         'loc_mistwood_path', 'loc_chasm_of_whispers', 'loc_drowned_stair', 'loc_shimmering_pass', 'loc_cistern_of_names',
         'item_remnant_wax_seal', 'item_echo_crystal', 'item_korrs_marginalia', 'item_bell_shard', 'item_glyphbound_lantern', 'item_cistern_key',
         'item_scholars_lost_scroll', 'item_travelers_sword', 'item_necromancer_staff', 'item_chronal_dust',
         'mat_shadow_ash', 'mat_wildling_hide', 'mat_ley_resin', 'mat_sodden_vellum', 'mat_ley_spark', 'mat_frayed_moment',
-        'cr_horde_husk', 'cr_hourglass_crawler', 'cr_unmade',
+        'cr_unmade', // (U45 authored cr_horde_husk and cr_hourglass_crawler)
         'q_echoing_heartbeat', 'q_lost_scroll',
         'echo_heartstone_path', 'echo_nine_voices', 'echo_crystal_location', 'echo_archive_door', 'echo_oriel_drowned',
         'scene_heartstone_choice',

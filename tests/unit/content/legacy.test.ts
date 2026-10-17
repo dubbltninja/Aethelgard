@@ -18,8 +18,16 @@ const pack = buildContentPack();
 /** The legacy ids that exist in the real pack so far. Later region units append theirs here. */
 const LANDED = {
   // U42: Silverwood Ruins
-  locations: ['loc_whispering_ruins', 'loc_crumbling_archway', 'loc_darkened_corridor', 'loc_shattered_library', 'loc_silverwood_plaza', 'loc_sunken_archives', 'loc_heartstone_depths'],
-  creatures: ['cr_corrupted_shade', 'cr_arcane_wisp', 'cr_drowned_archivist'],
+  locations: [
+    'loc_whispering_ruins', 'loc_crumbling_archway', 'loc_darkened_corridor', 'loc_shattered_library', 'loc_silverwood_plaza', 'loc_sunken_archives', 'loc_heartstone_depths',
+    // U45: Glowlands & Nexus
+    'loc_veridian_glowlands', 'loc_chronos_nexus', 'loc_temporal_breach_apex',
+  ],
+  creatures: [
+    'cr_corrupted_shade', 'cr_arcane_wisp', 'cr_drowned_archivist',
+    // U45: Glowlands & Nexus (the legacy Tyrant is the Loop 1 form, D-051)
+    'cr_glowfen_mireling', 'cr_temporal_aberration', 'cr_chronos_tyrant_contained',
+  ],
   npcs: ['npc_ilyra'],
 } as const;
 
@@ -143,14 +151,19 @@ describe('legacy locations (aethelgard_data.py LOCATION_DEFS; echoes_of_aethelga
     expect(pack.locations['loc_whispering_ruins']?.items).toEqual([{ itemId: 'item_amulet_of_echoes', count: 1, when: { loop: { max: 1 } }, hidden: false, once: true }]);
   });
 
-  test('legacy enemies stand where they stood: a 100 % fixed encounter of that creature (WORLD may hold it off during a Horde)', () => {
+  test('legacy enemies stand where they stood: a 100 % fixed encounter of that creature (WORLD may hold it off during a Horde; the legacy Tyrant is Loop 1’s, D-051)', () => {
     const hordeOff = JSON.stringify({ not: { flag: 'flag_horde_active' } });
+    const loopOne = JSON.stringify({ loop: { max: 1 } });
     for (const id of LANDED.locations) {
       const loc = need(pack.locations[id], id);
       for (const name of pyStringList(pyBlock(DATA, 'LOCATION_DEFS', loc.legacyName ?? ''), 'enemies')) {
         const creatureId = need(idOfCreature[name], name);
         const enc = loc.encounters.find(
-          (e) => e.groups.some((g) => g.creatureId === creatureId) && e.chance === 1 && e.once && (e.when === undefined || JSON.stringify(e.when) === hordeOff),
+          (e) =>
+            e.groups.some((g) => g.creatureId === creatureId) &&
+            e.chance === 1 &&
+            e.once &&
+            (e.when === undefined || JSON.stringify(e.when) === hordeOff || (creatureId === 'cr_chronos_tyrant_contained' && JSON.stringify(e.when) === loopOne)),
         );
         expect([id, name, enc !== undefined]).toEqual([id, name, true]);
       }

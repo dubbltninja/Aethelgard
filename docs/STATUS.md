@@ -92,8 +92,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U47 | Region data: The Glowfen + The Veil — brief `briefs/u47.md` | Sonnet | ✅ 480047f, merged db8d1fd (spot-reviewed) — 16 locations, 6 creatures, 7 NPCs; 2902 tests; D-096 |
 | U48b | Region data: Silverwood Before + The Threshold — brief `briefs/u48b.md` | Opus (Tim, D-093) | ✅ 8879f95 — 14 locations, 5 creatures, 16 NPCs; Before + Threshold mechanics proven; D-095 |
 | U48a | Region data: The Skyreach — brief `briefs/u48a.md` | Opus (Tim, D-093) | ✅ f2a7263, merged f66b184 — 5 locations, 4 creatures; **all 12 regions / 73 locations done**, regions+locations off INCOMPLETE_TABLES (D-097) |
-| U49 | Items I: weapons, armor, trinkets T1–T5 (WORLD §7) | Sonnet | ⏳ ready |
-| U51 | Echo catalog, achievements, attunements, modifiers, ending/closer records (data) | Sonnet | ⏳ ready |
+| U49 | Items I: weapons, armor, trinkets T1–T5 (WORLD §7) — brief `briefs/u49.md` | Sonnet | ▶ in progress (worktree) |
+| U51 | Echo catalog, achievements, attunements, modifiers, ending/closer records, factions (data) — brief `briefs/u51.md` | Sonnet | ▶ in progress (worktree) |
 | U50 | Items II: consumables, materials, quest/key/recipe/tome items, 30 recipes, 8 merchants | Sonnet | ⏳ needs U49 |
 | U34d | Expressiveness gaps from region authoring (D-091 list + whatever U43–U48 add) | Opus | ⏳ after U48 |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |

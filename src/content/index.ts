@@ -49,7 +49,10 @@ import { wardenAbilities } from './abilities/warden';
 import { weaverAbilities } from './abilities/weaver';
 import { wizardAbilities } from './abilities/wizard';
 import { amuletItems } from './items/amulet';
+import { armor } from './items/armor';
 import { starterItems } from './items/starter';
+import { trinkets } from './items/trinkets';
+import { weapons } from './items/weapons';
 import * as regionTables from './regions';
 import { affixes } from './shared/affixes';
 import { classes } from './shared/classes';
@@ -106,7 +109,7 @@ export const contentTables: ContentTables = {
   regions: [...regionTables.regions],
   locations: [...regionTables.locations],
   creatures: [...regionTables.creatures],
-  items: [...starterItems, ...amuletItems, ...regionTables.items],
+  items: [...starterItems, ...amuletItems, ...weapons, ...armor, ...trinkets, ...regionTables.items],
   recipes: [],
   abilities: [...rangerAbilities, ...wizardAbilities, ...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities],
   classes: [...classes],

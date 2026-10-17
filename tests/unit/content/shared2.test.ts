@@ -17,6 +17,7 @@ import { wardenAbilities } from '@content/abilities/warden';
 import { weaverAbilities } from '@content/abilities/weaver';
 import { buildContentPack, contentTables, parseContentPack, type ContentTables } from '@content/index';
 import { amuletItems } from '@content/items/amulet';
+import { INCOMPLETE_TABLES } from '@content/progress';
 import { companions } from '@content/shared/companions';
 import { gameConfig } from '@content/shared/config';
 import { validateContent } from '@content/validate';
@@ -85,11 +86,13 @@ describe('the real pack (U41 tables)', () => {
     expect(companionAbilities).toHaveLength(24);
   });
 
-  test('validates with no errors or warnings, and rule 13 (15 per class, itm_echo_bolt and its Amulet) has nothing pending', () => {
-    expect(validateContent(pack)).toEqual({ errors: [], warnings: [] });
-    const strict = validateContent(pack, { strict: true, pending: true });
+  test('validates with no errors, and rule 13 (15 per class, itm_echo_bolt and its Amulet) has nothing pending', () => {
+    // D-090 (U42+): the region tables' references into tables still being authored are pending; the only real warnings are
+    // flags later units set (rule 2) and WORLD's out-of-band placements (rule 11), pinned in regions/silverwood_ruins.test.ts
+    expect(validateContent(pack, { incompleteTables: INCOMPLETE_TABLES }).errors).toEqual([]);
+    const strict = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(strict.errors).toEqual([]);
-    expect(strict.warnings.every((w) => w.message.startsWith('pending — content not yet authored: '))).toBe(true);
+    expect(strict.warnings.every((w) => w.message.startsWith('pending — content not yet authored') || w.rule === 'rule-02' || w.rule === 'rule-11')).toBe(true);
     expect(strict.warnings.filter((w) => w.rule === 'rule-13')).toEqual([]);
     // the Amulet's legacy name is there too (rule 22 counts it no more)
     expect(strict.warnings.filter((w) => w.rule === 'rule-22').map((w) => w.id)).not.toContain('item_amulet_of_echoes');
@@ -633,6 +636,7 @@ function stubTables(drop?: string): ContentTables {
     config: { ...contentTables.config, apexGate: { counter: { name: 'quests_completed', min: 6 } } },
     regions: [stubRegion],
     locations: [...stubLocations],
+    creatures: [], // the region units' creatures (U42+) reference items and creatures outside this stub pack
     abilities: [...contentTables.abilities, ...companionAbilities],
     companions: [...companions],
     npcs: keep(stubNpcs),

@@ -467,7 +467,7 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     expect(pack.index.startLocationId).toBe('loc_whispering_ruins');
   });
 
-  test('validates with 0 errors; pending references name only tables still being authored; the real warnings are the known nine', () => {
+  test('validates with 0 errors; pending references name only tables still being authored; the real warnings are the known six', () => {
     const report = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(report.errors).toEqual([]);
     const pending = report.warnings.filter((w) => w.message.startsWith('pending — content not yet authored (reference): '));
@@ -479,14 +479,12 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     const real = report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored'));
     expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual(
       [
-        // flags the engine (Horde, Anchors) or later content units (the Heartstone choice, the Before) set
-        'rule-02 loc_darkened_corridor items.0.when.flag',
-        'rule-02 loc_shattered_library descriptionVariants.0.when.all.0.flag',
+        // flags later content units set (the Heartstone choice, the Before); the engine's own (Horde, portal, Anchors) are
+        // ENGINE_WRITTEN_FLAGS and raise nothing
         'rule-02 loc_silverwood_plaza events.1.when.flag',
         'rule-02 loc_heartstone_depths descriptionVariants.0.when.flag',
         'rule-02 loc_heartstone_depths descriptionVariants.1.when.flag',
         'rule-02 loc_heartstone_depths descriptionVariants.2.when.flag',
-        'rule-02 loc_heartstone_depths events.1.when.flag',
         // WORLD's deliberate out-of-band placements: the Loop 4+ anomaly at the start, the Horde boss in the Corridor
         'rule-11 cr_redundant_wayfinder level',
         'rule-11 cr_unraveling_tide level',
@@ -501,7 +499,7 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     expect(text).toMatch(/ regions 1 · locations 7 · creatures 7 · /);
     expect(text).toMatch(/ npcs 3 · /);
     expect(text).toMatch(/pending rule-01: \d+ reference\(s\) into tables still being authored/);
-    expect(text).toMatch(/validate: ok — 0 errors, 9 warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
+    expect(text).toMatch(/validate: ok — 0 errors, 6 warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
   });
 
   test('the pending references are exactly the ids WORLD/STORY spell: other regions’ locations, items, quests, Echoes, a scene, the Husk, merchants, a codex entry', () => {

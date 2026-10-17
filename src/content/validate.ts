@@ -20,6 +20,7 @@ import { TABLE_NAMES, type ContentIssue, type ContentPack, type ContentReport, t
 import { BOSS_PHASES, walkSteps } from '@schema/creature';
 import { COMBAT_SCOPE_EFFECTS } from '@schema/effect';
 import { ENGINE_GRANTED_ECHOES } from '@schema/echo';
+import { ENGINE_WRITTEN_FLAGS } from '@schema/flags';
 import { CLOSER_IDS, TRUE_ENDING_IDS } from '@schema/ending';
 import { EQUIPMENT_TYPES, ITEM_SOURCE_RE } from '@schema/item';
 import type { Exit, Location } from '@schema/location';
@@ -293,7 +294,7 @@ interface Scan {
   unlockedExits: Set<string>;
 }
 
-/** Engine-written flags (C-58): never set by content. */
+/** Engine-written flag families (C-58): never set by content. The named ones are ENGINE_WRITTEN_FLAGS (schema/flags.ts). */
 const ENGINE_FLAG = /^flag_(?:choice|scene_done)_/;
 
 // ---- The tree walk: rules 2 and 11 (combat scope), and the facts rules 9, 15, 16, 17 read -------------------------------
@@ -883,7 +884,7 @@ function rule02(v: Validation): void {
   const { scan } = v;
   // Flags are free (warning only): a flag that is read but that nothing sets, and that the engine does not write itself.
   for (const [flag, where] of scan.flagsRead) {
-    if (!scan.flagsSet.has(flag) && !ENGINE_FLAG.test(flag)) {
+    if (!scan.flagsSet.has(flag) && !ENGINE_FLAG.test(flag) && !ENGINE_WRITTEN_FLAGS.includes(flag)) {
       v.warn('rule-02', where.table, where.id, where.path, `flag ${quote(flag)} is tested but no setFlag effect anywhere sets it`);
     }
   }

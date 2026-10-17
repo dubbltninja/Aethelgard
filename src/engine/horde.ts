@@ -45,6 +45,11 @@ export const TYRANT_HORDE_DELAY = 1;
 export const FLAG_HORDE_ACTIVE = 'flag_horde_active';
 /** WORLD §12.1: the Library portal is open (any Horde; content may also set it for Ilyra's deliberate tear). */
 export const FLAG_LIBRARY_PORTAL_OPEN = 'flag_library_portal_open';
+/**
+ * Moves made since the Horde began (a `counters.custom` entry content reads with `{ counter: { name: 'horde_moves' } }`):
+ * WORLD §3.1 / §11 — the Unraveling Tide blocks the Darkened Corridor after move 14 (U42, D-091).
+ */
+export const HORDE_MOVES_COUNTER = 'horde_moves';
 /** reducers/combat.ts `FLAG_TYRANT_DEAD` (not imported: import cycle). */
 const FLAG_TYRANT_DEAD = 'flag_tyrant_dead';
 /** STORY §7.2 outcome A of `q_the_line_he_holds`. */
@@ -283,6 +288,7 @@ function lash(ctx: StepCtx): boolean {
 export const hordeArrivalHook: ArrivalHook = (ctx, arrival) => {
   const { s } = ctx;
   if (!s.world.hordeActive || (arrival.via !== 'move' && arrival.via !== 'retreat')) return;
+  s.counters.custom[HORDE_MOVES_COUNTER] = (s.counters.custom[HORDE_MOVES_COUNTER] ?? 0) + 1; // before the encounter roll reads it
   if (s.world.infected.includes(arrival.locationId)) {
     if (lash(ctx)) return;
   } else {

@@ -120,8 +120,8 @@ export const locations = [
     items: [{ itemId: 'item_ley_touched_tonic', when: { flag: 'flag_horde_active' } }],
     encounters: [
       // Horde (WORLD §12.2 `tide: { at: loc_darkened_corridor, afterMoves: 14 }`): the Tide blocks the way after move 14.
-      // No counter of Horde moves exists yet; `horde_moves` names the one the Horde code must keep (an unknown counter
-      // reads 0, so the Tide never spawns until it does). Horde fights hold (R10-1).
+      // The engine counts the moves since the Horde began in `horde_moves` (HORDE_MOVES_COUNTER, D-091). Horde fights
+      // hold (R10-1).
       {
         id: 'enc_corridor_tide',
         groups: [{ creatureId: 'cr_unraveling_tide' }],

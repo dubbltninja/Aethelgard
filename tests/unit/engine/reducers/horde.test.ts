@@ -12,6 +12,7 @@ import {
   FLAG_BRAK_KEPT_AWAY,
   FLAG_HORDE_ACTIVE,
   FLAG_LIBRARY_PORTAL_OPEN,
+  HORDE_MOVES_COUNTER,
   HORDE_EDGE_DELAYS,
   HORDE_TEXT,
   NEVER_INFECTED_REGIONS,
@@ -207,6 +208,13 @@ describe('a Tyrant killed in combat starts the Horde at the Apex (D-060; legacy 
       expect(s.world.npcOverrides.npc_brak).toBeUndefined();
       expect(s.echoesThisLoop).not.toContain(ECHO_BRAK_DEATH);
     }
+  });
+
+  test('horde_moves counts every move since the Horde began (D-091: the Corridor Tide after move 14)', () => {
+    const r = killContained(loop1AtNexus());
+    expect(r.s.counters.custom[HORDE_MOVES_COUNTER] ?? 0).toBe(0); // the kill is not a move
+    const moved = run(r, [move(NEXUS), move(APEX), move(NEXUS)]);
+    expect(moved.s.counters.custom[HORDE_MOVES_COUNTER]).toBe(3);
   });
 
   test('a Tyrant killed while an expiry Horde runs: defeated, the Horde keeps its cause and spread', () => {

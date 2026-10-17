@@ -821,7 +821,12 @@ describe('the real pack with the region registered (D-090)', () => {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
       expect([w.message, INCOMPLETE_TABLES.includes(table as (typeof INCOMPLETE_TABLES)[number])]).toEqual([w.message, true]);
     }
-    const real = report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored') && (mine.has(w.id) || [...here].some((id) => w.message.includes(` ${id}`))));
+    // order-agnostic (U48a): a rule-11 placement warning names the place a creature stands; one that names another region's place
+    // or pool (the Skyreach places this region's Weaver, Mote and Sentinel below its band 12–15, WORLD §3.10, §10.1) is that
+    // region's to pin, whether or not it has landed
+    const placedElsewhere = (w: { rule: string; path: string; message: string }): boolean =>
+      w.rule === 'rule-11' && w.path === 'level' && ![...here, REGION].some((id) => w.message.includes(` ${id}`));
+    const real = report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored') && !placedElsewhere(w) && (mine.has(w.id) || [...here].some((id) => w.message.includes(` ${id}`))));
     // the Heartstone flags the Spires read are set by the Heartstone unit's effects (rule 02, once per flag at its first use, in
     // table order: the Ruins' Depths report them, silverwood_ruins.test.ts); nothing real is reported about this region
     expect([...new Set(real.map((w) => `${w.rule} ${w.id}`))].sort()).toEqual([]);

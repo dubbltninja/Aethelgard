@@ -917,7 +917,7 @@ describe('the validate CLI', () => {
   test('--verbose lists each pending check, --lenient skips the counts but keeps the pending references', () => {
     const verbose = run(['--verbose']);
     expect(verbose.code).toBe(0);
-    expect(verbose.out).toMatch(/pending rule-21: regions\.-: pending — content not yet authored: \d+ regions; expected 12/);
+    expect(verbose.out).toMatch(/pending rule-21: [a-z]+\.-: pending — content not yet authored: \d+ [a-z ]+; expected \d+/); // (regions and locations are complete since U48a)
     const lenient = run(['--lenient']);
     expect(lenient.code).toBe(0);
     expect(lenient.out).toContain('22 rules, lenient');

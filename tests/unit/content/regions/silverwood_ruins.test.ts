@@ -468,7 +468,7 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     expect(pack.index.startLocationId).toBe('loc_whispering_ruins');
   });
 
-  test('validates with 0 errors; pending references name only tables still being authored; the real warnings about the Ruins are the known eight', () => {
+  test('validates with 0 errors; pending references name only tables still being authored; the real warnings about the Ruins are the known ones (eight until the Before lands, then seven)', () => {
     const report = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(report.errors).toEqual([]);
     const pending = report.warnings.filter((w) => w.message.startsWith('pending — content not yet authored (reference): '));
@@ -482,11 +482,14 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     const aboutRuins = (w: (typeof report.warnings)[number]): boolean =>
       (w.table === 'locations' && ruins.includes(w.id)) || (w.rule === 'rule-11' && ruins.some((id) => w.message.includes(` ${id}`)));
     const real = report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored') && aboutRuins(w));
+    // order-agnostic (U48b): the Plaza's `flag_visited_before` is set by Silverwood Before's entry events, so it warns only
+    // until that region has landed
+    const beforeLanded = pack.regions['region_silverwood_before'] !== undefined;
     expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual(
       [
         // flags later content units set (the Heartstone choice, the Before); the engine's own (Horde, portal, Anchors) are
         // ENGINE_WRITTEN_FLAGS and raise nothing
-        'rule-02 loc_silverwood_plaza events.1.when.flag',
+        ...(beforeLanded ? [] : ['rule-02 loc_silverwood_plaza events.1.when.flag']),
         'rule-02 loc_heartstone_depths descriptionVariants.0.when.flag',
         'rule-02 loc_heartstone_depths descriptionVariants.1.when.flag',
         'rule-02 loc_heartstone_depths descriptionVariants.2.when.flag',

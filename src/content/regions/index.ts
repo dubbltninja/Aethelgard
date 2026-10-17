@@ -13,7 +13,9 @@ import * as ashenSteppe from './ashen_steppe';
 import * as drownedReach from './drowned_reach';
 import * as glowlandsNexus from './glowlands_nexus';
 import * as mistwoodIroncladReach from './mistwood_ironclad_reach';
+import * as silverwoodBefore from './silverwood_before';
 import * as silverwoodRuins from './silverwood_ruins';
+import * as threshold from './threshold';
 import * as voidscar from './voidscar';
 
 /** What every region folder exports (its index.ts). */
@@ -27,7 +29,8 @@ export interface RegionFolder {
 
 /**
  * Every authored region, in WORLD §2 order. U42: Silverwood Ruins. U43: Mistwood & the Ironclad Reach. U44: The Voidscar and the
- * Aether-Kissed Highlands. U45: Glowlands & Nexus. U46: The Drowned Reach and The Ashen Steppe.
+ * Aether-Kissed Highlands. U45: Glowlands & Nexus. U46: The Drowned Reach and The Ashen Steppe. U48b: Silverwood Before and
+ * the Threshold.
  */
 export const REGION_FOLDERS: readonly RegionFolder[] = [
   silverwoodRuins,
@@ -35,8 +38,10 @@ export const REGION_FOLDERS: readonly RegionFolder[] = [
   voidscar,
   aetherKissedHighlands,
   glowlandsNexus,
+  silverwoodBefore,
   drownedReach,
   ashenSteppe,
+  threshold,
 ];
 
 export const regions: readonly RegionInput[] = REGION_FOLDERS.map((f) => f.region);

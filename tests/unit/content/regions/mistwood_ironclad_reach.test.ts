@@ -775,12 +775,17 @@ describe('the real pack with the region registered (D-090)', () => {
     }
     const mine = new Set<string>([...locations.map((l) => l.id), ...creatures.map((c) => c.id), ...npcs.map((n) => n.id)]);
     const real = report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored') && mine.has(w.id));
+    // order-agnostic (U48b): once Silverwood Before has landed, its day-scripted Warding Pillars (WORLD §3.11: the Archives on
+    // Second Bell, the Conflux stair on First and Second Bell) sit far under the Before's band, and rule 11 notes it on this
+    // region's record once per placement (D-091 gap 6; silverwood_before.test.ts pins them)
+    const beforePillars = ['loc_archives_of_danthe', 'loc_conflux_chamber'].filter((id) => pack.locations[id] !== undefined).map(() => 'rule-11 cr_warding_pillar level');
     expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual(
       [
         // Tessaly's caravan flag is a later unit's to set; the engine's own (Horde, Brak kept away, the expiry) are
         // ENGINE_WRITTEN_FLAGS and raise nothing. The Heartstone flags the Forge reads raise rule-02 once per flag, at their
         // first use in table order, which is the Ruins' Depths (silverwood_ruins.test.ts pins those three).
         'rule-02 loc_ironclad_camp events.1.when.flag',
+        ...beforePillars,
       ].sort(),
     );
   });

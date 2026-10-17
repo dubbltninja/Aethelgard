@@ -26,6 +26,7 @@ const LANDED = {
     'loc_chasm_of_whispers', 'loc_voidscar_hollow', 'loc_shimmering_pass', 'loc_aetherium_spires', 'loc_sky_whisper_plateau',
     // U45: Glowlands & Nexus
     'loc_veridian_glowlands', 'loc_chronos_nexus', 'loc_temporal_breach_apex',
+    // U48b: Silverwood Before and the Threshold are new regions (PLAN Appendix A.1): no legacy location, creature or NPC
   ],
   creatures: [
     'cr_corrupted_shade', 'cr_arcane_wisp', 'cr_drowned_archivist', // U42

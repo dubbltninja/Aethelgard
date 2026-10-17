@@ -38,6 +38,14 @@ export interface WorldExit {
   conditional: boolean;
 }
 
+/** An exit row whose direction cell carries a note: `south (the waystone road)`. */
+export interface WorldNoteExit {
+  dir: string;
+  note: string;
+  to: string;
+  conditional: boolean;
+}
+
 export interface WorldLocation {
   id: string;
   name: string;
@@ -51,6 +59,8 @@ export interface WorldLocation {
   description: string;
   legacyDescription: string | null;
   exits: WorldExit[];
+  /** Exit rows like `south (the waystone road)` (§3.6 onward); the legacy blocks have none. */
+  noteExits: WorldNoteExit[];
   itemIds: string[];
   creatureIds: string[];
   npcIds: string[];
@@ -70,49 +80,79 @@ function bullet(block: string, label: string): string | null {
   return (end < 0 ? rest : rest.slice(0, end)).replace(/^- \*\*[^*]+\*\*\.?\s*/, '').trim();
 }
 
-/** The `#### \`loc_x\` — Name` blocks of one §3.x region section. */
+const LABELS = 'Items|Encounters|NPCs|Events|Art spec';
+
+/**
+ * A field of the §3.6-onward blocks, where `**Items:** … **Encounters:** … **NPCs:** …` may share one bullet line: the text
+ * after `**label:**` up to the next field label or the end of the line.
+ */
+function inlineField(block: string, label: string): string | null {
+  const m = new RegExp(`\\*\\*${label}:\\*\\* ?([^\\n]*)`).exec(block);
+  if (!m) return null;
+  const text = m[1] ?? '';
+  const next = new RegExp(`\\*\\*(?:${LABELS}):\\*\\*`).exec(text);
+  return (next ? text.slice(0, next.index) : text).trim();
+}
+
+/** The §3.6-onward meta line: `- **Band / map / rest / merchant:** 4–5 · (−16, 8) · no · no` (band `8 (boss)`, the minus sign U+2212). */
+const BLOCK_META = /- \*\*Band \/ map \/ rest \/ merchant:\*\* (\d+)(?:–(\d+))?(?: \(boss\))? · \(([−-]?\d+), ([−-]?\d+)\) · (.*)$/m;
+const num = (s: string | undefined): number => Number((s ?? '').replace('−', '-'));
+const DIR_NOTE = /^(north|south|east|west|up|down|in|out|path) \((.+)\)$/;
+
+/** The `#### \`loc_x\` — Name` blocks of one §3.x region section (the legacy format of §3.1–3.5 and the §3.6-onward format). */
 export function worldLocations(regionSection: string): WorldLocation[] {
   const out: WorldLocation[] = [];
+  const sectionRegion = /^### 3\.\d+ [^\n]*\(`(region_[a-z_]+)`/.exec(regionSection)?.[1] ?? '';
   const parts = regionSection.split(/\n(?=#### `loc_)/);
   for (const part of parts) {
     const head = /^#### `(loc_[a-z_]+)` — (.+)$/m.exec(part);
     if (!head) continue;
     const block = part.trimEnd();
-    const meta = /- \*\*Region \/ band \/ map:\*\* (region_[a-z_]+) · (\d+)–(\d+)[^·]*· \((-?\d+), (-?\d+)\) · (.*)$/m.exec(block);
-    if (!meta) throw new Error(`worldLocations: no meta line for ${head[1]}`);
-    const tail = meta[6] ?? '';
+    const legacyMeta = /- \*\*Region \/ band \/ map:\*\* (region_[a-z_]+) · (\d+)–(\d+)[^·]*· \((-?\d+), (-?\d+)\) · (.*)$/m.exec(block);
+    const newMeta = legacyMeta ? null : BLOCK_META.exec(block);
+    if (!legacyMeta && !newMeta) throw new Error(`worldLocations: no meta line for ${head[1]}`);
+    const regionId = legacyMeta ? (legacyMeta[1] ?? '') : sectionRegion;
+    const band = legacyMeta ? { min: Number(legacyMeta[2]), max: Number(legacyMeta[3]) } : { min: num(newMeta?.[1]), max: newMeta?.[2] === undefined ? num(newMeta?.[1]) : num(newMeta[2]) };
+    const map = legacyMeta ? { x: Number(legacyMeta[4]), y: Number(legacyMeta[5]) } : { x: num(newMeta?.[3]), y: num(newMeta?.[4]) };
+    const tail = (legacyMeta ? legacyMeta[6] : newMeta?.[5]) ?? '';
     const rest: WorldLocation['rest'] = /Rest point: yes|Rest: yes/.test(tail) ? 'yes' : /Rest: no \([^)]*yes/.test(tail) ? 'cond' : 'no';
     const merchant = /Merchant: yes\*\* \((npc_[a-z_]+)/.exec(tail)?.[1] ?? null;
     const desc = bullet(block, 'Description.') ?? '';
     const [legacy, added] = desc.split('`+`').map((s) => s.trim());
     const description = added ? `${legacy} ${added}` : (legacy ?? '');
     const exits: WorldExit[] = [];
+    const noteExits: WorldNoteExit[] = [];
     const exitsStart = block.indexOf('- **Exits**');
     const exitsText = exitsStart < 0 ? '' : block.slice(exitsStart, block.indexOf('\n- **', exitsStart + 1));
     for (const cells of tableRows(exitsText)) {
       const dir = cells[0] ?? '';
+      const conditional = !(cells[2] ?? '—').startsWith('—');
+      const noted = DIR_NOTE.exec(dir);
+      if (noted) noteExits.push({ dir: noted[1] ?? '', note: noted[2] ?? '', to: unquote(cells[1] ?? ''), conditional });
       if (!DIRS.has(dir)) continue; // the header row, arrivals and portal edges (⟂) are not walkable exits
       // `—` = open; WORLD sometimes adds a note in parentheses after the dash
-      exits.push({ dir, to: unquote(cells[1] ?? ''), conditional: !(cells[2] ?? '—').startsWith('—') });
+      exits.push({ dir, to: unquote(cells[1] ?? ''), conditional });
     }
-    const itemsText = (bullet(block, 'Items:') ?? '').split('**Anchors**')[0] ?? '';
+    const field = (label: string, bulletLabel: string): string => (legacyMeta ? bullet(block, bulletLabel) : inlineField(block, label)) ?? '';
+    const itemsText = field('Items', 'Items:').split('**Anchors**')[0] ?? '';
     const events: Record<string, string> = {};
-    for (const m of (bullet(block, 'Events:') ?? '').matchAll(/`([a-z_]+)` — "([^"]+)"/g)) events[m[1] ?? ''] = m[2] ?? '';
+    for (const m of field('Events', 'Events:').matchAll(/`([a-z_]+)` — "([^"]+)"/g)) events[m[1] ?? ''] = m[2] ?? '';
     const horizon = /horizon (\d\.\d+)/.exec(bullet(block, 'Art spec:') ?? '')?.[1];
     out.push({
       id: head[1] ?? '',
       name: head[2] ?? '',
-      regionId: meta[1] ?? '',
-      band: { min: Number(meta[2]), max: Number(meta[3]) },
-      map: { x: Number(meta[4]), y: Number(meta[5]) },
+      regionId,
+      band,
+      map,
       rest,
       merchant,
       description,
       legacyDescription: added ? (legacy ?? null) : null,
       exits,
+      noteExits,
       itemIds: ids(itemsText, 'item').concat(ids(itemsText, 'mat')),
-      creatureIds: ids(bullet(block, 'Encounters:') ?? '', 'cr'),
-      npcIds: ids(bullet(block, 'NPCs:') ?? '', 'npc'),
+      creatureIds: ids(field('Encounters', 'Encounters:'), 'cr'),
+      npcIds: ids(field('NPCs', 'NPCs:'), 'npc'),
       events,
       horizon: horizon === undefined ? null : Number(horizon),
       block,
@@ -190,8 +230,9 @@ export function worldCreature(id: string): WorldCreatureBlock {
   const next = WORLD.slice(start + 5).search(/\n#{3,4} /);
   const block = next < 0 ? WORLD.slice(start) : WORLD.slice(start, start + 5 + next);
   const head = /^#### `cr_[a-z_]+` — ([^(\n]+)/.exec(block);
-  // (`HP 130 (DESIGN §6.5 Mistwood elite)`: WORLD may annotate the HP figure)
-  const stats = /- \*\*Stats:\*\* HP (\d+)(?: \([^)]*\))? · ATK (\d+) · DEF (\d+)\/(\d+) · AGI (\d+)/.exec(block);
+  // (`HP 130 (DESIGN §6.5 Mistwood elite)`, `HP 300 (~~420~~; 12 × (30 − 5 armor) = 300, D-067.20) · ATK 20 (~~18~~)`: WORLD may
+  // annotate any figure, with nested parentheses; the middle dot separates the fields)
+  const stats = /- \*\*Stats:\*\* HP (\d+)[^·]*· ATK (\d+)[^·]*· DEF (\d+)\/(\d+)[^·]*· AGI (\d+)/.exec(block);
   if (!stats) throw new Error(`worldCreature: no stats line for ${id}`);
   const resistLine = bullet(block, 'Resist:') ?? '';
   const types = (label: string): string[] => {

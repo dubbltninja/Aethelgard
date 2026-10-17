@@ -411,14 +411,14 @@ describe('WORLD §11 map data', () => {
     expect(section(WORLD, '### 3.13', '### Conventions for §4–6')).toContain('| loc_temporal_breach_apex | … Glowlands → Nexus → Apex (8; W10) |');
   });
 
-  test('from loc_whispering_ruins the Apex is reachable through the Plateau once the Highlands are authored (U44); until then rule 8 reports it pending, never an error', () => {
+  test('from loc_whispering_ruins the Apex is reachable through a neighbouring region once one lands (the Highlands’ Plateau, U44; the Steppe’s Reedmarch Descent, U46); until then rule 8 reports it pending, never an error', () => {
     const report = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     const mineIds = new Set([GLOWLANDS, NEXUS, APEX]);
     const r8 = report.warnings.filter((w) => w.rule === 'rule-08' && mineIds.has(w.id));
     // the same pack read as complete (no incomplete tables): those are the errors rule 8 exists for
     const strictErrors = validateContent(pack, { strict: false }).errors.filter((e) => e.rule === 'rule-08' && mineIds.has(e.id));
-    if (pack.locations['loc_sky_whisper_plateau'] !== undefined) {
-      // order-agnostic (U44): the road is whole, so the three are reachable and rule 8 says nothing about them
+    if (pack.locations['loc_sky_whisper_plateau'] !== undefined || pack.locations['loc_reedmarch_descent'] !== undefined) {
+      // order-agnostic (U44, U46): the road is whole, so the three are reachable and rule 8 says nothing about them
       expect(r8).toEqual([]);
       expect(strictErrors).toEqual([]);
     } else {
@@ -966,9 +966,9 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     const about = report.warnings.filter((w) => mine.has(w.id) || locations.some((l) => w.message.includes(` ${l.id}`)));
     const real = about.filter((w) => !w.message.startsWith('pending — content not yet authored'));
     // the only real warnings are placements of this region's creatures in other regions (the Ruins' Corridor husks and
-    // exploited-Depths crawlers, the Ironclad Camp's Horde husks), pinned in those regions' tests (D-091 gap 6)
+    // exploited-Depths crawlers, the Ironclad Camp's and the Scorched Gate's Horde husks), pinned in those regions' tests (D-091 gap 6)
     expect([...new Set(real.map((w) => `${w.rule} ${w.id}`))].sort()).toEqual(['rule-11 cr_horde_husk', 'rule-11 cr_hourglass_crawler']);
-    for (const w of real) expect(w.message).toMatch(/loc_(darkened_corridor|heartstone_depths|ironclad_camp)/);
+    for (const w of real) expect(w.message).toMatch(/loc_(darkened_corridor|heartstone_depths|ironclad_camp|scorched_gate)/);
     for (const w of about.filter((x) => x.message.startsWith('pending — content not yet authored (reference): '))) {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
       expect([w.message, INCOMPLETE_TABLES.includes(table as (typeof INCOMPLETE_TABLES)[number])]).toEqual([w.message, true]);
@@ -981,7 +981,7 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     expect(out.join('\n')).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)/);
     // order-agnostic (U44): before the Highlands landed the road to the Apex was pending (six rule-08 references); with them
     // landed it is whole, and whatever rule 8 still reports belongs to regions not yet authored (the line says only a count)
-    if (pack.locations['loc_sky_whisper_plateau'] === undefined) {
+    if (pack.locations['loc_sky_whisper_plateau'] === undefined && pack.locations['loc_reedmarch_descent'] === undefined) {
       expect(out.join('\n')).toMatch(/pending rule-08: 6 reference\(s\) into tables still being authored/);
     }
   });
@@ -989,7 +989,7 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
   test('the pending references are exactly the ids WORLD/STORY/DESIGN spell: neighbouring locations, items, materials, quests, Echoes, endings, codex entries, Mireya', () => {
     const { report } = parseContentPack(contentTables);
     const targets = new Set(report.warnings.filter((w) => w.message.includes('(reference)') && mine.has(w.id)).map((w) => /'([a-z_0-9]+)' not found/.exec(w.message)?.[1] ?? w.message));
-    // order-agnostic (U44): a neighbouring location is a pending target only until its region lands
+    // the neighbouring locations drop out as their regions land (the Steppe's Reedmarch Descent, U46; the Highlands' Plateau, U44)
     const stillPending = (id: string): boolean => !(id.startsWith('loc_') && pack.locations[id] !== undefined);
     expect([...targets].sort()).toEqual(
       [

@@ -419,11 +419,11 @@ describe('WORLD §11 map data', () => {
     });
   });
 
-  test('exits resolve: the Ruins’ east exit and the Plaza’s south exit reach the Path; only the two Steppe/Highlands targets are still pending', () => {
+  test('exits resolve: the Ruins’ east exit and the Plaza’s south exit reach the Path, and the Outpost’s east door reaches the Scorched Gate (U46); the Plateau is the Highlands’ (U44)', () => {
     const targets = new Set<string>([...locations.flatMap((l) => l.exits.map((e) => e.to)), ...ruinsLocations.flatMap((l) => l.exits.map((e) => e.to))]);
     const unresolved = [...targets].filter((t) => pack.locations[t] === undefined).sort();
-    // order-agnostic (U44): the Plateau is pending until the Highlands land and resolves after; the Steppe's gate is still pending
-    expect(unresolved).toContain('loc_scorched_gate');
+    expect(unresolved).not.toContain('loc_scorched_gate');
+    expect(pack.locations['loc_scorched_gate']?.exits.map((e) => e.to)).toContain(BO);
     expect(unresolved).not.toContain(MP);
     for (const t of locations.flatMap((l) => l.exits.map((e) => e.to))) if (!here.has(t) && t !== WR && t !== 'loc_silverwood_plaza') expect(['loc_sky_whisper_plateau', 'loc_scorched_gate']).toContain(t);
     expect(pack.locations[MP]?.exits.map((e) => e.to)).toContain(WR);

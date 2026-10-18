@@ -1722,3 +1722,27 @@ owning unit (PLAN §9.1).
 - **U53** follows U52's conventions (D-105). **U60** writes the people, Nine, Wayfinder, faction and history entries; U61
   writes places, regions, creatures, items, magic and the loop.
 - U51's Echo `codexLine`s (D-100) are rewritten in **U61** (or the first fun review), not in U60.
+
+### D-107 · U64 details — the Explore screen and node map, 2026-10-18
+- **U64 (937c84c):**
+  - The Explore screen with scene, description, NPCs, items, ExitBar, ActionBar, HUD, StatusBar and log.
+  - `MapPanel`, used both as an overlay and docked.
+  - First art pieces: `Scene`, `RegionPalette` and `Icon` (20 templates → horizon plus far, mid and near shapes, coloured
+    from DESIGN §17.1).
+  - The `?scenario=` boot. Production drops the builders, and a bundle test proves it.
+  - Bundles: production 357.1 kB, e2e 512.6 kB gzip. `explore.spec.ts` passes 8/8 on desktop and mobile.
+- **Patterns added:**
+  - A pure model helper per screen (`exploreModel.ts`, `mapModel.ts`) and `legalSet(legal)`.
+  - The hotkey level `inPanel`.
+  - `bootGame({ start })`.
+  - Loop-ending actions ask for confirmation.
+  - The `--text-warn` token.
+- **Rulings:**
+  - The HUD is a top band, following PLAN's grid. DESIGN §16.1's left column is superseded.
+  - The visible log is `role="log"` with `aria-live="off"`: one spoken sentence per step through the Shell's live region
+    beats PLAN §8.4's "the log is a live region".
+  - The mobile tab bar is decided in U69: PLAN §6.8 says Scene · Actions · Log · Map · Menu, DESIGN §16.1 says Explore ·
+    Journal · Pack · Map · Menu.
+  - In Loop 1 the clock chip shows only the day and watch.
+- **Left for later units:** the Fall forecast and Threshold inset (U70), quest rings on the map (U66), merchant and forge
+  buttons (U67), the bottom tab bar (U69), per-location silhouettes and focal pieces (U71/U72).

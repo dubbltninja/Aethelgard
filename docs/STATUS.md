@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b/c/d); sim harness complete; all world data except most quests/dialogue and the codex; legacy quests + dialogue pattern (U52); UI foundation (U63: store, Shell, Title, Class Select) — 3,318 tests. Next: U34e, U60 (✦), U53 (✦), U64 (see §4). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-106), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-107), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -100,7 +100,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U63 | UI foundation: store, App, Shell, hotkeys, tokens/themes, Title + Class Select — brief `briefs/u63.md` | Opus | ✅ 6501262 — store, Shell, hotkeys, themes, Title, Class Select; 3268 tests; e2e 11; D-104 |
 | U60 | Codex I: people, the Nine, Wayfinders, factions, history — brief `briefs/u60.md` | ✦ Fable | ▶ in progress (worktree, `wip/u60`) |
 | U53 | Faction chain quests + dialogue — brief `briefs/u53.md` | ✦ Fable | ▶ in progress (worktree, `wip/u53`) |
-| U64 | Explore screen + node map + bars + HUD + `?scenario=` hook — brief `briefs/u64.md` | Opus | ▶ in progress (worktree, `wip/u64`) |
+| U64 | Explore screen + node map + bars + HUD + `?scenario=` hook — brief `briefs/u64.md` | Opus | ✅ 937c84c — playable exploring in the browser; 3389 tests; e2e explore 8/8; D-107 |
 | U34e | Combat expressiveness: Heartstone effects, item custom passives, creature mechanics, scenario bug, hazards, anomalies — brief `briefs/u34e.md` | Opus | ▶ in progress (worktree, `wip/u34e`) |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 

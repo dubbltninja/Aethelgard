@@ -1562,3 +1562,47 @@ owning unit (PLAN §9.1).
   mechanics notes. **The ✦ codex unit rewrites them** in the BIBLE's voice (STORY §14's codex plan).
 - **Gaps → the achievement/engine work:** 13 engine-only `tally_*` counters (listed in the `achievements.ts` header).
   `flag_named_nyx` must be set by dialogue.
+
+### D-101 · U50 details — the items are complete; first Tyrant numbers with gear, 2026-10-17
+- **U50 (60cba5c):** 157 items in total (U49's 70 gear, plus consumables, materials, and quest, key, recipe and tome items),
+  30 recipes, 8 merchants, and 7 thrown-consumable `itm_*` abilities. `starter.ts` and `amulet.ts` were folded into the
+  category files. `items`, `recipes` and `merchants` are off `INCOMPLETE_TABLES`, which leaves creatures, quests,
+  dialogues, npcs, companions, codex and encounters.
+- **Deviations:**
+  - Trusted merchant pieces are Rare with a rolled affix, because stock can't name a fixed affix.
+  - Pieces for Loop 2+ and for Days 1–2 are core stock entries with a `when`.
+  - The Veil Sigil costs 30 g only at Neutral (`priceMult` 5/6).
+  - The Sworn gift pieces are not stock.
+  - Fenlight Regen 4 is a guess, pinned in a test.
+- **Gaps → U34e:**
+  - The engine does not read the custom passives `cleanse`, `whetstone_strip`, `remnant_ink`, `lantern_oil_ward`,
+    `keepers_copy`, `scouts_whistle`, `remnant_wax_seal` and `counts_as_spellbook`, nor U49's six (D-099).
+  - `readBook` counts toward `spellbooksRead` only when it raises Corruption.
+  - A Hostile Hollis is still refused at Corruption 3.
+  - Kaelen's pool rule contradicts his list.
+  - WORLD §9.3's Glow Moss prices disagree (11 against 20).
+- **Tyrant scenarios** now equip the band's best Common gear (`gearTierOf` and `bestGear` in `src/sim/scenarios.ts`).
+  Potions are band-aware.
+- **First Contained-Tyrant numbers with gear (solo, 20 seeds, real pack; DESIGN §19 #19 wants ≥ 60% wins at L11, ≥ 80% at
+  L13 and 12–18 rounds) — report only:**
+  - L11 wins, caster/melee:
+
+    | Class | Caster | Melee |
+    |---|---|---|
+    | Ranger | 80% | 85% |
+    | Wizard | 85% | 35% |
+    | Elf | 50% | 70% |
+    | Warden | 0% | 0% |
+
+    The Shadow Weaver died on the walk to the Apex.
+  - L13 wins sit between 0% and 72%, all under 80%. The Ranger drops from 85% at L11 to 25% at L13, which looks like a
+    scenario problem.
+  - The median is 20 rounds, against 12–18. Elite fights run 13 rounds, against 6–9.
+  - **Warden 0% plus `guard` loops past round 60** repeat D-089's flag: the Warden's damage against bosses, and the bots'
+    Warden play.
+  - None of this is tuned yet. It feeds the balance unit, together with companions (U56).
+- **Real-pack blockers now:**
+  1. `unknown codex entry 'codex_maelis_korr'`: reading Korr's Marginalia unlocks a codex entry. The codex table arrives
+     with ✦ U60/U61. STORY §14.1 also lacks Vask, Rhune and Dreyl.
+  2. Scenario `communion_movement_2` crashes on the real pack (`cannot walk in ending mode` at the Corridor, Day 30). This
+     is a scenario builder bug → U34e.

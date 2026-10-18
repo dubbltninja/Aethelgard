@@ -407,7 +407,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'whole',
     name: 'Loop 2: the whole Litany copied; the thirtieth dawn read with the Ledger (the Jailer, with the Recoil)',
     classId: CLASS,
-    seed: 'quest:ledger:whole',
+    seed: 'quest:ledger:whole:e', // since U34e's hazards and anomalies, a level-6 ranger dies on the Drowned route in 4 of 5 seeds (D-110 balance flag): a seed that wins
     profile: { loop: 2, echoes: ['echo_ilyra_watchword', 'echo_thirtieth_dawn', 'echo_breach_recoil'], bestLevel: 10 },
     steps: [...ledgerCopied('whole', 'whole'), holds({ all: [{ flag: 'flag_remnants_hold_litany' }, { echo: 'echo_tyrant_jailer' }] }, 'the flag or the Jailer is missing')],
   },

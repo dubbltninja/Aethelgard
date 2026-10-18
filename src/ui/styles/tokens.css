@@ -23,6 +23,8 @@
   --text-accent: #9fd8ff;
   --text-gold: #e2b14b;
   --text-danger: #f08a8a;
+  /* the Breach Clock's amber (DESIGN §10.1: 10 dawns left and fewer) */
+  --text-warn: #f2b45a;
 
   /* glyphs (DESIGN §17.1: HP, MP, gold, Echo, Corruption) */
   --glyph-hp: #e24b4b;

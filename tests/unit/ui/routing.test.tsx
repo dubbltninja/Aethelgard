@@ -41,11 +41,12 @@ describe('App', () => {
     expect(html.match(/<main/g)).toHaveLength(1);
   });
 
-  test('explore names the place; a placeholder offers the way back to the title', () => {
+  test('explore names the place, the loop and the day, and offers the way back to the title (U64)', () => {
     const html = renderIn('explore');
     expect(html).toContain(content.locations[content.config.startLocationId]!.name);
     expect(html).toContain('Return to title');
-    expect(html).toContain('Loop 1, day 1, dawn.');
+    expect(html).toContain('Loop 1');
+    expect(html).toContain('Day 1, dawn.');
   });
 
   test('ScreenFor covers every mode', () => {

@@ -10,8 +10,12 @@ import { createContext, useContext, useId, useLayoutEffect, useRef, useSyncExter
 import { createEmitter } from '../store/eventBus';
 import type { HotkeyLayer, HotkeyMap } from './hotkeys';
 
-/** Layer order: dialogs over panels over the screen over the Shell's global keys. */
-export const HOTKEY_LEVELS = { global: 0, screen: 10, panel: 20, dialog: 30 } as const;
+/**
+ * Layer order: dialogs over panels over the screen over the Shell's global keys. `inPanel` (U64) is for the keys of a
+ * panel's own content (the map's arrows, a list's Delete): the panel's Modal registers its modal Esc layer after its
+ * children (a parent's layout effect runs last), so content keys need the level above it to be reached at all.
+ */
+export const HOTKEY_LEVELS = { global: 0, screen: 10, panel: 20, inPanel: 25, dialog: 30 } as const;
 export type HotkeyLevel = keyof typeof HOTKEY_LEVELS;
 
 interface Entry {

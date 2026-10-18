@@ -3,6 +3,7 @@
 // Pattern: a new screen replaces its placeholder line in `ScreenFor`, and nothing else here changes.
 import type { ReactNode } from 'react';
 import type { Mode } from '@engine/index';
+import { ExploreScreen } from './screens/ExploreScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { TitleScreen } from './screens/TitleScreen';
 import { Shell } from './Shell';
@@ -13,7 +14,7 @@ export function ScreenFor({ mode }: { mode: Mode }): ReactNode {
     case 'title':
       return <TitleScreen />;
     case 'explore':
-      return <PlaceholderScreen key="explore" mode="explore" />; // U64: <ExploreScreen />
+      return <ExploreScreen />;
     case 'combat':
       return <PlaceholderScreen key="combat" mode="combat" />; // U65: <CombatScreen />
     case 'dialogue':

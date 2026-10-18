@@ -19,7 +19,7 @@ import { Toasts, noticeLifetime } from './components/Toasts';
 import { resolveHotkey, type HotkeyMap } from './hooks/hotkeys';
 import { HotkeyRegistryContext, createHotkeyRegistry, useHotkeyLayers, useHotkeys, type HotkeyRegistry } from './hooks/useHotkeys';
 import { PANEL_COMPONENTS, PanelHost } from './panels/PanelHost';
-import { legalPanels, type PanelId } from './panels/panels';
+import { PANEL_KEYS, PANEL_TITLES, legalPanels, type PanelId } from './panels/panels';
 import { ShellContext, type ConfirmOptions, type ShellApi } from './shellContext';
 import type { GameStore } from './store/gameStore';
 import { useGame, useGameEvents, useNotices, useProfile, useStore } from './store/useGame';
@@ -101,6 +101,11 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
     },
     'ctrl+l': { run: () => api.openPanel('saves'), label: 'Saves', group: 'system', when: () => canOpen('saves') },
   };
+  // DESIGN §16.4 panel letters (I, Q, C, B, M, L): a panel's key works once its component is registered and the mode
+  // allows it; in a fight it needs Shift (the resolver's `panel` group).
+  for (const [id, key] of Object.entries(PANEL_KEYS) as [PanelId, string][]) {
+    global[key] = { run: () => api.openPanel(id), label: PANEL_TITLES[id], group: 'panel', when: () => canOpen(id) };
+  }
 
   // ---- live region and toasts ----
   useGameEvents((events, state) => {

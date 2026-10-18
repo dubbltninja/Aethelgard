@@ -97,6 +97,13 @@ const ALLOW: Record<Layer, readonly string[]> = {
   app: ['app', 'ui', 'engine', 'schema', 'content', 'audio', 'types'],
 };
 
+/**
+ * D-104 ruling 1 (U64): the app layer (src/main.tsx) — and no other — may import the scenario builders for the dev/e2e
+ * `?scenario=` boot, behind `__DEV__ || __E2E__` (production drops them; tests/unit/ui/scenarioBoot.test.ts proves it).
+ * Only this one module of sim: the runner, the bots and the CLI stay out of the app.
+ */
+export const APP_SCENARIOS = 'src/sim/scenarios.ts';
+
 /** Bare packages allowed per layer (PLAN §2.3: engine and content import only zod). Absent = any package. */
 const PACKAGES: Partial<Record<Layer, readonly string[]>> = {
   engine: ['zod'],
@@ -490,7 +497,10 @@ export function lint(options: LintOptions = {}): { files: number; findings: Find
         continue;
       }
       const grants = ALLOW[from];
-      const ok = grants.includes(to) || (to === 'engine' && grants.includes('engine/types') && target.path.startsWith('src/engine/types/'));
+      const ok =
+        grants.includes(to) ||
+        (to === 'engine' && grants.includes('engine/types') && target.path.startsWith('src/engine/types/')) ||
+        (from === 'app' && target.path === APP_SCENARIOS);
       if (!ok) {
         findings.push({ file, ...where(ref.pos), rule: 'layers', message: `${from} must not import ${to} ('${ref.spec}', PLAN §2.1)` });
       }

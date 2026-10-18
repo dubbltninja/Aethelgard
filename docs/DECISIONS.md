@@ -1765,3 +1765,21 @@ owning unit (PLAN §9.1).
 - **Fact choice:** the Choir has sung verse VIII wrong for "four hundred years" (BIBLE/§14.1), longer than Ysolde (Year
   243): their practice is older than she is.
 - `echo_hadrek_clockwright` mentions a codex entry that doesn't exist. U61 writes it, or the Echo line is amended.
+
+### D-109 · U53 details — the faction chains, 2026-10-18
+- **U53 (c60c778):** the four faction chain quests and 19 scenes on U52's pattern. 8 proofs complete on the real pack.
+  - The first three top-level `encounters` records are the Day of Teeth's Horde-echo waves. `enc` is now a lint id prefix.
+  - Rule 16 pending went from 84 to 80.
+- **Written words:** 56 nodes, 17 choices and 16 journal lines, pinned in the test's `WRITTEN`. Among them is the eighth
+  verse as the Choir sings it wrong: "We name it, and it enters us. / Open, and enter."
+- **Readings:**
+  - The Ledger is read inside the offer scene and grants `echo_seven_wayfinders`.
+  - Blackreed's Axe is handed back ("Keep it"), with no second reward.
+  - `q_hollow_choir` opens at Weavers ≥ −9, following STORY over DESIGN §11.4's Trusted.
+  - Accepting `q_unlidded_eye` after the Nexus Aberration is already dead spawns a second one.
+  - `item_pells_day_count` sits at the Cistern while the Ledger quest is active (WORLD §9; the §3.6 block omits it).
+- **Balance flag → the balance unit:** a carry-over start (level 10, starter kit; the bots never buy weapons) loses to
+  the L12 elite Aberration about half the time solo, and to the three chained Husk waves after it about a third of the
+  time. A first visit to the Nexus on the Telling stage runs that whole chain with no breath between fights.
+- **Left for U55/U56/U58/U62:** Nyx's side of `q_unlidded_eye`, Brak refusing the Choir, what `echo_day_of_teeth` and
+  `echo_choir_knows` gate, and the Horde's "Go, Wayfinder!" lines.

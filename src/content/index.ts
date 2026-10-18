@@ -60,6 +60,7 @@ import { achievements } from './shared/achievements';
 import { affixes } from './shared/affixes';
 import { attunements } from './shared/attunements';
 import { classes } from './shared/classes';
+import { codex } from './shared/codex';
 import { configInput, gameConfig } from './shared/config';
 import { dialogues } from './shared/dialogues';
 import { echoes } from './shared/echoes';
@@ -118,7 +119,8 @@ export interface ContentTables {
  * import line per region there; nothing changes here), with their references into tables still being authored pending
  * under D-090. U51: the 103 Echoes, 40 achievements, 15 Attunements, six modifiers, the eight ending and closer records and
  * the three factions (shared/{echoes,achievements,attunements,modifiers,endings,factions}.ts). U52: the six legacy quests and their
- * scenes (shared/quests/, shared/dialogues/: one file per quest unit, spread by each folder's index.ts).
+ * scenes (shared/quests/, shared/dialogues/: one file per quest unit, spread by each folder's index.ts). U60: Codex I, the 42
+ * history, Nine, Wayfinder, faction and people entries (shared/codex/, one barrel; U61 appends Codex II there and completes `codex`).
  */
 export const contentTables: ContentTables = {
   regions: [...regionTables.regions],
@@ -142,7 +144,7 @@ export const contentTables: ContentTables = {
   npcs: [...regionTables.npcs],
   companions: [],
   echoes: [...echoes],
-  codex: [],
+  codex: [...codex],
   achievements: [...achievements],
   attunements: [...attunements],
   modifiers: [...modifiers],

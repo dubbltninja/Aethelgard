@@ -658,6 +658,9 @@ function stubTables(drop?: string): ContentTables {
     // the recipes and merchants (U50) name quests, NPCs, factions, flags and Echoes this stub pack does not have
     recipes: [],
     merchants: [],
+    // U60: the codex entries' unlocks and cross-links name Echoes, quests, locations and codex entries of the whole game;
+    // tests/unit/content/codex/codexI.test.ts builds them with the real pack
+    codex: [],
     abilities: [...contentTables.abilities, ...companionAbilities],
     companions: [...companions],
     npcs: keep(stubNpcs),

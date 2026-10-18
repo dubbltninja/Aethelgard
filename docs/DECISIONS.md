@@ -1638,3 +1638,12 @@ owning unit (PLAN §9.1).
 - **Real-pack sim** (18 runs × 3,000 steps, 6 bots × classes): the only errors are codex entries (`codex_oriel_danthe`,
   `codex_maelis_korr`) unlocked by `readBook`. The ✦ codex units (U60/U61) fix them. There are no soft-locks, and 3,153
   tests pass.
+
+### D-103 · Worktree agents back up their branches, 2026-10-17
+- A worktree agent's commits live only on this cloud machine until the lead merges them. If the usage window cuts the
+  session off and the machine is then reclaimed, those commits are lost.
+- From U52 on, every worktree agent pushes its branch after each commit to `origin wip/<unit>`
+  (`git push -q origin HEAD:refs/heads/wip/<unit>`). It never pushes `main` or `unraveling`.
+- The lead still merges into `unraveling` and deletes the `wip/` branch after the merge.
+- Parallelism is Tim's call per batch. Running four at once is fine when the units barely overlap. The 2-core box makes
+  each check slower, so raise test timeouts that are sensitive to timing.

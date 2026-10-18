@@ -986,7 +986,7 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     }
   });
 
-  test('the pending references are exactly the ids WORLD/STORY/DESIGN spell: neighbouring locations, items, materials, quests, Echoes, endings, codex entries, Mireya', () => {
+  test('the pending references are exactly the ids WORLD/STORY/DESIGN spell: neighbouring locations, quests, Echoes, endings, codex entries, Mireya', () => {
     const { report } = parseContentPack(contentTables);
     const targets = new Set(report.warnings.filter((w) => w.message.includes('(reference)') && mine.has(w.id)).map((w) => /'([a-z_0-9]+)' not found/.exec(w.message)?.[1] ?? w.message));
     // the neighbouring locations drop out as their regions land (the Steppe's Reedmarch Descent, U46; the Highlands' Plateau, U44)
@@ -994,10 +994,7 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     expect([...targets].sort()).toEqual(
       [
         'loc_sky_whisper_plateau', 'loc_reedmarch_descent', 'loc_lantern_causeway', 'loc_silver_gate', 'loc_conflux_chamber', 'loc_aetherium_spires',
-        // (item_chronos_lens and the two Heartstone trinkets dropped out when U49 authored the gear)
-        'item_orrery_key', 'item_aberrant_eye', 'item_aetherium_shard', 'item_antidote_root', 'item_breach_anchor', 'item_chronal_dust',
-        'item_pattern_hour_spindle',
-        'mat_breach_glass', 'mat_frayed_moment', 'mat_glow_gland', 'mat_iron_rivet', 'mat_tyrant_shard',
+        // (every item and material dropped out when U49 authored the gear and U50 the rest: the items table is complete)
         'q_unlidded_eye',
         'echo_anchor_mechanic', 'echo_apex_resonance', 'echo_breathing_pool', 'echo_eye_of_masque', 'echo_hallow_said_stop', 'echo_heartstone_resonance',
         'echo_korr_marginalia', 'echo_litany_complete', 'echo_litany_verse_1', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4',

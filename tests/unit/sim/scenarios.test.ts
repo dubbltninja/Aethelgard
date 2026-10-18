@@ -27,12 +27,15 @@ import {
   type Profile,
 } from '@engine/index';
 import { ProfileSchema } from '@engine/saves';
+import { buildContentPack } from '@content/index';
 import {
   RESONANCE_FLOOR,
   SCENARIOS,
   SCENARIO_IDS,
   ScenarioError,
   ScenarioUnavailable,
+  bestGear,
+  gearTierOf,
   loadScenario,
   type ScenarioId,
   type ScenarioOptions,
@@ -231,6 +234,52 @@ describe.each(['pre_tyrant_l11_ranger', 'pre_tyrant_l13_ranger'] as const)('%s',
     const later = play(b, { type: 'choose', choiceId: APEX_NOT_YET }, 'horde');
     expect(later.state.mode).toBe('explore');
     expect(later.state.world.currentLocationId).not.toBe(APEX_LOCATION_ID);
+  });
+});
+
+// D-092: the Tyrant scenarios wear the band's best Common gear (WORLD "Tiers": T1 1–4 · T2 5–8 · T3 9–13 · T4 14–15 · T5 16–18).
+describe('the Tyrant scenarios\' gear (D-092)', () => {
+  test('the tier of a level band', () => {
+    const tiers = [1, 4, 5, 8, 9, 13, 14, 15, 16, 18].map(gearTierOf);
+    expect(tiers).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
+  });
+
+  test('the real pack: a class-fit weapon, an armor and two different trinkets, all Common-capable, none above the band', () => {
+    const pack = buildContentPack();
+    for (const level of [11, 13]) {
+      for (const classId of Object.keys(pack.classes)) {
+        const pick = bestGear(pack, classId, level);
+        const starter = pack.classes[classId]?.starterItems.map((k) => pack.items[k.itemId]).find((d) => d?.type === 'weapon');
+        const all = [pick.weapon, pick.armor, ...pick.trinkets].map((id) => pack.items[id as string]);
+        expect(all.every((d) => d !== undefined), `${classId} L${level} has a full kit`).toBe(true);
+        expect(pick.weapon !== undefined && pack.items[pick.weapon]?.weaponType === starter?.weaponType, `${classId} weapon fits`).toBe(true);
+        expect(pack.items[pick.armor as string]?.type).toBe('armor');
+        expect(pick.trinkets.length).toBe(2);
+        expect(new Set(pick.trinkets).size).toBe(2);
+        for (const d of all) {
+          expect(d?.tier ?? 99).toBeLessThanOrEqual(gearTierOf(level));
+          expect(d?.rarityRule === 'rolled' || d?.fixedRarity === 'common').toBe(true);
+          expect(d?.sellable).toBe(true);
+        }
+      }
+    }
+  });
+
+  test('the real pack: the Apex prompt opens on a character who wears exactly that kit and carries a combat potion of the band', () => {
+    const pack = buildContentPack();
+    const { state: s } = loadScenario('pre_tyrant_l11_ranger', pack, { seed: 'gear' });
+    const pick = bestGear(pack, 'ranger', 11);
+    const worn = Object.values(s.player.equipment).map((i) => i?.itemId);
+    for (const id of [pick.weapon, ...pick.trinkets, pick.armor]) expect(worn).toContain(id);
+    expect(s.player.equipment.trinket1?.itemId).not.toBe(s.player.equipment.trinket2?.itemId);
+    const potions = s.player.inventory.filter((i) => pack.items[i.itemId]?.type === 'consumable' && pack.items[i.itemId]?.usableInCombat);
+    expect(potions.every((i) => (pack.items[i.itemId]?.tier ?? 99) <= gearTierOf(11))).toBe(true);
+    expect(potions.reduce((n, i) => n + i.qty, 0)).toBeGreaterThanOrEqual(5);
+  });
+
+  test('a fixture pack with no gear to wear still builds (nothing is granted)', () => {
+    const { state: s } = load('pre_tyrant_l11_ranger', 'horde');
+    expect(isApexPromptOpen(s)).toBe(true);
   });
 });
 

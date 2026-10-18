@@ -52,7 +52,8 @@ describe('the real pack uses INCOMPLETE_TABLES by default; other packs do not', 
     expect(thrown).toBeInstanceOf(ContentError);
     expect(daggerIssue(thrown?.report.errors.map((e) => e.message) ?? []).length).toBeGreaterThan(0);
     expect(() => buildContentPack(withoutDagger(), { incompleteTables: ['items'] })).toThrow(ContentError);
-    expect(() => buildContentPack(withoutDagger(), { incompleteTables: INCOMPLETE_TABLES })).not.toThrow();
+    // (U50 completed the items table, so the dagger is no longer a pending reference: relaxing it takes 'items' as well)
+    expect(() => buildContentPack(withoutDagger(), { incompleteTables: [...INCOMPLETE_TABLES, 'items'] })).not.toThrow();
   });
 
   test('the validate CLI: the authored tables report pending references; a test table set stays strict', () => {

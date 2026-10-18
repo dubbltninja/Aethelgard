@@ -84,7 +84,8 @@ export const EXPECTED_COUNTS = {
   achievements: 40,
   classAbilities: 75,
   companionAbilities: 24,
-  itemAbilities: 1,
+  /** `itm_echo_bolt` (the Amulet, D-047) plus the seven the consumables unleash (U50, D-078: abilities/consumables.ts). */
+  itemAbilities: 8,
   endings: 8,
   factions: 3,
   attunements: 15,

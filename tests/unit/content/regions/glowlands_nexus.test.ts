@@ -986,7 +986,7 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     }
   });
 
-  test('the pending references are exactly the ids WORLD/STORY/DESIGN spell: neighbouring locations, items, materials, quests, Echoes, endings, codex entries, Mireya', () => {
+  test('the pending references are exactly the ids WORLD/STORY/DESIGN spell: neighbouring locations, items, materials, quests, codex entries, Mireya (the Echoes and endings resolve since U51)', () => {
     const { report } = parseContentPack(contentTables);
     const targets = new Set(report.warnings.filter((w) => w.message.includes('(reference)') && mine.has(w.id)).map((w) => /'([a-z_0-9]+)' not found/.exec(w.message)?.[1] ?? w.message));
     // the neighbouring locations drop out as their regions land (the Steppe's Reedmarch Descent, U46; the Highlands' Plateau, U44)
@@ -999,12 +999,6 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
         'item_pattern_hour_spindle',
         'mat_breach_glass', 'mat_frayed_moment', 'mat_glow_gland', 'mat_iron_rivet', 'mat_tyrant_shard',
         'q_unlidded_eye',
-        'echo_anchor_mechanic', 'echo_apex_resonance', 'echo_breathing_pool', 'echo_eye_of_masque', 'echo_hallow_said_stop', 'echo_heartstone_resonance',
-        'echo_korr_marginalia', 'echo_litany_complete', 'echo_litany_verse_1', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4',
-        'echo_litany_verse_5', 'echo_litany_verse_6', 'echo_litany_verse_7', 'echo_ritual_inevitable', 'echo_seven_wayfinders', 'echo_spire_note',
-        'echo_stone_hide_origin', 'echo_thirtieth_dawn', 'echo_tyrant_consent', 'echo_tyrant_jailer', 'echo_tyrant_never_struck', 'echo_tyrant_speaks',
-        'echo_void_resonance',
-        'ending_mending', 'ending_unbound', 'ending_wardens_vigil',
         'codex_region_glowlands_nexus', 'codex_creatures_green', 'codex_creatures_watch_wardens', 'codex_creatures_unravelled',
         'codex_tyrant_holding', 'codex_tyrant_six', 'codex_veyran_thal',
         'mireya', // the companion record (D-088: registered by U56)

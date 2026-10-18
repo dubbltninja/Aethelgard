@@ -381,6 +381,9 @@ export function endingSlides(s: GameState, content: ContentPack, profile: Readon
   const def = content.endings[pending.outcome];
   if (def !== undefined) {
     const texts = def.sequence.map((x) => x.text);
+    // A Condition cannot read a Fall's reason, so `closer_fall`'s record carries the part every reason shares (U51); the
+    // reason's own lead-in stays here.
+    if (pending.outcome === 'closer_fall') texts.unshift(CLOSER_TEXT.fall[pending.reason ?? 'death']);
     for (const ep of def.epilogues) if (ep.when === undefined || evaluate(ep.when, s, profile, content)) texts.push(ep.text);
     return texts;
   }

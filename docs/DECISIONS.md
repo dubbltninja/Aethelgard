@@ -1678,3 +1678,36 @@ owning unit (PLAN §9.1).
   `canPersist`. `listSlots` also returns empty and damaged slots (DESIGN §14.4).
 - **Housekeeping:** the git proxy refuses remote branch deletion, so merged `wip/<unit>` backups stay on GitHub. They are
   harmless, and Tim can delete them.
+
+### D-105 · U52 details — the quest/dialogue pattern, 2026-10-17
+- **U52 (ddc6c52):** all six legacy quests and 23 scenes are in `src/content/shared/{quests,dialogues}/`.
+  - The conventions are in the two barrel headers.
+  - A `pathBot` proof per outcome (13/13) runs on the real pack: `npm run sim -- quest [<id>]`, `src/sim/scripts/quests.ts`.
+  - Rule 16 pending went from 97 to 84, rule 22 from 6 to 0, and rule-2 warnings from 21 to 17.
+- **Conventions U53–U59 copy:**
+  - One scene per purpose per NPC, each in a `SCENE_PRIORITY` band. NPC scenes close during the Horde (`NOT_IN_HORDE`).
+  - Every node is tagged `legacy`, `story` or `written`, and the first two are tested against their sources.
+  - Echo lines use `echoLocked()`.
+  - Consequences sit on the choice, with `questAdvance` last. `rewards` holds only what every outcome pays.
+  - A quest never opens a scene. Companion lines are `companionReactions`, and there is no `recruit` until U56.
+  - `loyaltyFor()` applies DESIGN §12.5.
+  - Each quest outcome gets a `QUEST_SCRIPTS` proof, played by `trained(pathBot)`.
+- **C1 addition:** a `statBonus` effect, which writes `passiveBonuses`. It pays the legacy +1 MAG, +15 max HP and
+  +20 max HP rewards.
+- **Rulings:**
+  - Echo-locked lines show **greyed from Loop 2**, as DESIGN §13.2 says: the tease is the point. Hiding them is a
+    one-line change if the fun review asks for it.
+  - Keeping the Crystal pays 60 XP and no gold (legacy).
+  - The Crystal-location Echo is granted when the Crystal is first taken.
+  - Refusing the shards completes `q_void_shards` (D-017).
+  - The warder's word is a choice in the scene (STORY §13), not an entry rule.
+  - Listen happens in the Crystal scene; the Library Listen goes to U58.
+  - `echo_heartstone_triune` is granted in the Heartstone choice, which resolves D-100's gap for it.
+- **Gaps → U34e:**
+  - Content never sets `world.heartstone`, so Destroy's Ley +25% MP and Breach-born −25% HP don't apply.
+  - At the Outpost the plain Golem group still fights when the gate is skipped by the Echo.
+  - The Depths' choice log text is duplicated.
+  - "Shimmering Pass" random lines would need a "visited" condition and a random pick.
+- **Open for the ✦ units:** `echo_borin_oath` has no line anywhere (STORY or legacy). Brak and Nyx recruitment, Ilyra's
+  déjà-vu lines, and companions leaving after an Exploit belong to U54–U56.
+- **Balance note:** the Hollow's two Stalkers beat a level-7 melee ranger about one seed in five.

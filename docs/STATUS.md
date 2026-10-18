@@ -1,9 +1,9 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete through **C2** + gear passives + companion signatures + world-state expressiveness (U34d); sim harness complete; **all world data except quests/dialogue/codex**: 12 regions, 73 locations, 56 creatures, 38 NPCs, 157 items, 30 recipes, 8 merchants, 103 Echoes, 40 achievements, 15 attunements, 6 modifiers, endings, factions — 3,153 tests. Next: U52 ∥ U63, then U34e ∥ U60 (✦). Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b/c/d); sim harness complete; all world data except most quests/dialogue and the codex; legacy quests + dialogue pattern (U52); UI foundation (U63: store, Shell, Title, Class Select) — 3,318 tests. Next: U34e, U60 (✦), U53 (✦), U64 (see §4). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-104), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-105), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -96,7 +96,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U51 | Echo catalog, achievements, attunements, modifiers, ending/closer records, factions (data) — brief `briefs/u51.md` | Sonnet | ✅ c27b972 (spot-reviewed) — 103 Echoes, 40 achievements, 15 attunements, 6 modifiers, 8 ending records, 3 factions; 3033 tests; D-100 |
 | U50 | Items II: consumables, materials, quest/key/recipe/tome items, 30 recipes, 8 merchants; Tyrant scenarios get band gear — brief `briefs/u50.md` | Sonnet | ✅ 60cba5c, merged d6c88ce (spot-reviewed) — 157 items, 30 recipes, 8 merchants; first Tyrant numbers (D-101); 3120 tests |
 | U34d | World-state expressiveness: NPC schedules, location-item chance/late spawns, event/pool conditions, Threshold arrivals (D-098) — brief `briefs/u34d.md` | Opus | ✅ 42be256 — schedules, item chance, onlyIf, pools, arrest; 3153 tests; D-102 |
-| U52 | Legacy quests + their dialogues (first quest/dialogue file) — brief `briefs/u52.md` | Opus | ▶ in progress (worktree, backup `wip/u52`) |
+| U52 | Legacy quests + their dialogues (first quest/dialogue file) — brief `briefs/u52.md` | Opus | ✅ ddc6c52 — 6 quests, 23 scenes, 13 quest proofs on the real pack; 3318 tests; D-105 |
 | U63 | UI foundation: store, App, Shell, hotkeys, tokens/themes, Title + Class Select — brief `briefs/u63.md` | Opus | ✅ 6501262 — store, Shell, hotkeys, themes, Title, Class Select; 3268 tests; e2e 11; D-104 |
 | U60 | Codex I (≈43 entries) — unblocks real-pack sims (D-102) | ✦ Fable | ⏳ ready |
 | U34e | Combat expressiveness: condition atoms, on-death/clock moves, caps, hazards, anomalies (D-098) | Opus | ⏳ queued |
@@ -209,12 +209,12 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. **U52** (Opus; legacy quests + dialogues, the first quest/dialogue file — sets the pattern for the ✦ quest units) ∥
-   **U63** (Opus; UI foundation — starts the UI track in parallel with content). Worktrees (D-092).
-2. **U34e** (Opus; combat expressiveness, unread custom passives, the `communion_movement_2` scenario bug, anomalies,
-   D-098/D-099/D-101) ∥ **U60** (✦ Fable; Codex I — clears the real-pack sim blockers). Tell Tim before U60.
-3. Then the ✦ quest units U53–U59 (need U52), U61/U62, and the UI units U64+ (need U63).
-4. Balance once companions register (U56): re-run the Tyrant sims (D-101: Warden 0%, fights 20 rounds vs 12–18).
+1. **U34e** (Opus; combat expressiveness + unread passives + `world.heartstone` + scenario bug + anomalies; D-098/D-099/
+   D-101/D-105) · **U60** (✦ Fable; Codex I; clears the real-pack sim blockers; rewrites U51's Echo codex lines, D-100) ·
+   **U53** (✦ Fable; faction chain quests, copying U52's conventions) · **U64** (Opus; Explore screen + node map; adds the
+   `?scenario=` boot hook, D-104). Independent — can run together (D-103 backups); Tim decides how many at once.
+2. Then U54–U59 (✦), U61–U62 (✦), U65+ (UI screens).
+3. Balance once companions register (U56): Tyrant sims (D-101).
 
 ## 4b. Dev quickstart
 

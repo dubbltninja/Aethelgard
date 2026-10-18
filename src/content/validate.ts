@@ -257,6 +257,22 @@ class Validation {
     else this.error(rule, table, id, path, message);
   }
 
+  /**
+   * A finding that a quest or a dialogue scene will resolve (an Echo's `grantEcho`, what reads an Echo, an ending's
+   * `{ ending }` effect). While `quests` or `dialogues` is still being authored (D-090, U51) it is a pending completeness
+   * check: shown with `strict`, like the counts, and skipped otherwise. Once both are complete it is reported as `severity`.
+   */
+  awaitsStory(rule: string, table: string, id: string, path: string, message: string, severity: 'error' | 'warn' = 'error'): void {
+    const incomplete = this.options.incompleteTables;
+    if (incomplete?.includes('quests') === true || incomplete?.includes('dialogues') === true) {
+      if (this.strict) this.warn(rule, table, id, path, PENDING + message);
+    } else if (severity === 'error') {
+      this.error(rule, table, id, path, message);
+    } else {
+      this.warn(rule, table, id, path, message);
+    }
+  }
+
   has(table: TableName, id: unknown): boolean {
     return hasOwn(this.pack[table], id);
   }
@@ -1383,7 +1399,7 @@ function rule15(v: Validation): void {
     if (e.kind !== 'true') continue;
     if (!mentionsEchoOrFlag(e.requirements)) v.error(R, 'endings', e.id, 'requirements', 'a true ending must require at least one echo or flag');
     // Closers are produced by the engine (death, expiry) or by an endLoop effect; only true endings need an `ending` effect.
-    if (!scan.endingTargets.has(e.id)) v.error(R, 'endings', e.id, '', `no { ending: '${e.id}' } effect anywhere in content: the ending cannot be reached`);
+    if (!scan.endingTargets.has(e.id)) v.awaitsStory(R, 'endings', e.id, '', `no { ending: '${e.id}' } effect anywhere in content: the ending cannot be reached`);
   }
 }
 
@@ -1402,8 +1418,8 @@ function rule16(v: Validation): void {
     for (const node of scene.nodes) for (const choice of node.choices) if (choice.echoHint !== undefined) gating.add(choice.echoHint);
   }
   for (const e of Object.values(pack.echoes)) {
-    if (!granted.has(e.id)) v.error(R, 'echoes', e.id, '', 'no grantEcho effect and no quest reward grants this Echo');
-    if (!gating.has(e.id)) v.warn(R, 'echoes', e.id, '', 'this Echo gates nothing: no condition, shortcut, choice or ending reads it');
+    if (!granted.has(e.id)) v.awaitsStory(R, 'echoes', e.id, '', 'no grantEcho effect and no quest reward grants this Echo');
+    if (!gating.has(e.id)) v.awaitsStory(R, 'echoes', e.id, '', 'this Echo gates nothing: no condition, shortcut, choice or ending reads it', 'warn');
     e.exclusiveWith.forEach((other, i) => {
       const o = pack.echoes[other];
       if (o && !o.exclusiveWith.includes(e.id)) v.error(R, 'echoes', e.id, `exclusiveWith.${i}`, `exclusiveWith is not symmetric: ${other} does not list ${e.id}`);

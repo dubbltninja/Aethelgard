@@ -106,7 +106,9 @@ describe('the real pack (U41 tables)', () => {
     expect(text).toMatch(/ abilities 76 · /);
     expect(text).not.toContain('pending rule-13');
     const pending = Number(/(\d+) pending completeness check/.exec(text)?.[1]);
-    expect(pending).toBeLessThan(130); // 130 before this unit (U40's pack)
+    // 130 before this unit (U40's pack); without U51's rule 15/16 findings, the Echo grants and ending effects the quests and dialogue bring
+    const waiting = [...text.matchAll(/pending rule-1[56]: (\d+) completeness/g)].reduce((n, m) => n + Number(m[1]), 0);
+    expect(pending - waiting).toBeLessThan(130);
   });
 });
 
@@ -637,6 +639,13 @@ function stubTables(drop?: string): ContentTables {
     regions: [stubRegion],
     locations: [...stubLocations],
     creatures: [], // the region units' creatures (U42+) reference items and creatures outside this stub pack
+    // U51: the loop records name quests, items, locations and Echoes of the whole game (and the Echoes are granted by quests and
+    // dialogue this pack does not have); tests/unit/content/shared/{echoes,loopRecords}.test.ts build them with the real pack
+    echoes: [],
+    achievements: [],
+    modifiers: [],
+    attunements: [],
+    endings: [],
     abilities: [...contentTables.abilities, ...companionAbilities],
     companions: [...companions],
     npcs: keep(stubNpcs),

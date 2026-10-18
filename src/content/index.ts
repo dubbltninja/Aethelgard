@@ -51,9 +51,15 @@ import { wizardAbilities } from './abilities/wizard';
 import { amuletItems } from './items/amulet';
 import { starterItems } from './items/starter';
 import * as regionTables from './regions';
+import { achievements } from './shared/achievements';
 import { affixes } from './shared/affixes';
+import { attunements } from './shared/attunements';
 import { classes } from './shared/classes';
 import { configInput, gameConfig } from './shared/config';
+import { echoes } from './shared/echoes';
+import { endings } from './shared/endings';
+import { factions } from './shared/factions';
+import { modifiers } from './shared/modifiers';
 import { statuses } from './shared/statuses';
 import { INCOMPLETE_TABLES } from './progress';
 import { validateContent } from './validate';
@@ -100,7 +106,8 @@ export interface ContentTables {
  * abilities/companions.ts) are authored but NOT listed here until the unit that lands the last NPC/quest/scene they
  * reference registers them (D-088, planned U56). U42+: the region folders' tables arrive through regions/index.ts (one
  * import line per region there; nothing changes here), with their references into tables still being authored pending
- * under D-090.
+ * under D-090. U51: the 103 Echoes, 40 achievements, 15 Attunements, six modifiers, the eight ending and closer records and
+ * the three factions (shared/{echoes,achievements,attunements,modifiers,endings,factions}.ts).
  */
 export const contentTables: ContentTables = {
   regions: [...regionTables.regions],
@@ -115,16 +122,16 @@ export const contentTables: ContentTables = {
   dialogues: [],
   npcs: [...regionTables.npcs],
   companions: [],
-  echoes: [],
+  echoes: [...echoes],
   codex: [],
-  achievements: [],
-  attunements: [],
-  modifiers: [],
-  endings: [],
+  achievements: [...achievements],
+  attunements: [...attunements],
+  modifiers: [...modifiers],
+  endings: [...endings],
   merchants: [],
   affixes: [...affixes],
   encounters: [],
-  factions: [],
+  factions: [...factions],
   config: configInput,
 };
 

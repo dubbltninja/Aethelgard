@@ -65,7 +65,7 @@ The Archive's entry on the Chronos Tyrant stands two shelves from this one. Keep
     related: ['codex_nine_overview', 'codex_weavers', 'codex_litany_8', 'codex_weaver_choir'],
     body: `Do not say her name in the Sanctum. The thread knows it already; the mouths do not need to.
 
-She was the youngest at the stone. The others held lines and gates and sky. She held the gap. *There is a dark between one moment and the next*: eight words, and the dark heard them, and learned the shape of the mouth that said them.
+She was the youngest at the stone. The others held lines and gates and sky. She held the gap. *There is a dark between one moment and the next*: ten words, and the dark heard them, and learned the shape of the mouth that said them.
 
 The recoil found her by that shape. It took the one mind that had named it and threw it the way you throw a thing you have burned your hand on: far, and forward. Five hundred years. She came down in the Veil in a bowl of glass that still shows stars at noon, with the Litany in her head and nothing else on her. She crawled to the Hollow. The Hollow was already full of people picking up what fell from the Breach and calling it power. She told them what it was. They called her prophet. She let them.
 

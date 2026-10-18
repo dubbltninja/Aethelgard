@@ -56,17 +56,18 @@ import type { CombatWhen } from '@schema/creature';
 import type { Item } from '@schema/item';
 import type { ContentPack, StepCtx } from '../ctx';
 import { derive } from '../derived';
-import { apply, applyAll } from '../effects';
+import { apply, applyAll, damageAmount } from '../effects';
 import { abilityCost, playerAbilityCost, type AbilityCost } from '../progression';
 import type { ActionOf } from '../types/actions';
 import type { Combatant, CombatState, DamageType, GameState } from '../types/state';
 import { BONUS_KEY, BONUS_PENDING, FREE_CAST_TAG, NEXT_CRIT_TAG, USED_TAG, addTag, bonusState, hasTag, removeTag, setBuff } from './buffs';
 import { GUARD_VALUE_KEY, TRUSTED_MULT, hasStatus, isTrusted, resolveHeal, resolveHit, resolveTick, roundHalfUp, statusMods, type HealSpec, type HitSpec } from './damage';
 import { grantFleeAuto } from './flee';
-import { compilePattern, evalCombatWhen, interruptIntent, patternOf, revealIntents, type IntentRead } from './intents';
+import { cleanseOnUse } from './gear';
+import { compilePattern, evalCombatWhen, interruptIntent, intentsRevealed, patternOf, revealIntents, unlitNow, type IntentRead } from './intents';
 import { firePhaseStrikes } from './phases';
 import { STATUS, applyStatus, applyStatusRows, blocksAction, cleanse, cooldownsOf, findStatus, isOwnTurn, removeStatus, skipsTurn, type WhenEval } from './statuses';
-import { FORESIGHT_KEY, REVEAL_KEY, TRAP_FLAG, fixedHit, healFlat, hooksOf, setTimer, struckSince, type CombatOps, type HitKind, type SpecialUse } from './specials';
+import { FORESIGHT_KEY, REVEAL_KEY, TRAP_FLAG, fixedHit, healFlat, hooksOf, noteLastAbility, setTimer, struckSince, type CombatOps, type HitKind, type SpecialUse } from './specials';
 import { combatLog, combatantByUid, isActive, playerOf } from './turnOrder';
 
 // ---- scripts --------------------------------------------------------------------------------------------------------------
@@ -657,6 +658,7 @@ export function castAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState, c
   combatLog(combat, `${caster.name} uses ${ability.name}.`, 'info');
   resolveAbility(ops, ctx, combat, caster, ability, picked, cost.hp);
   addTag(caster, `${USED_TAG}${ability.id}`); // after it resolves: "used earlier this fight" (Crescendo)
+  if (caster.kind === 'player') noteLastAbility(caster, ability.id); // U34e: the Paradox Wisp's "your last spell"
 }
 
 /** `ability` in a fight: check, cast (the reducer ends the turn). */
@@ -725,6 +727,16 @@ export function springTraps(ops: CombatOps, ctx: StepCtx, combat: CombatState): 
 
 export const foresightActive = (combat: CombatState): boolean => (combat.cooldowns[FORESIGHT_KEY] ?? 0) > 0;
 
+/** A move Foresight cannot show (U34e): a hidden one, or an unlit creature's, unless Archive Light reveals every intent. */
+const foreseenHidden = (r: IntentRead, combat: CombatState, c: Combatant, moveId: string): boolean =>
+  !intentsRevealed(combat) && ((r.content.creatures[c.refId]?.moves[moveId]?.hidden ?? false) || unlitNow(r, c));
+
+/** U34e (WORLD §10.2, the Frayed Brute): a `telegraphs_two` creature shows its next-next move as Foresight would. */
+export const TELEGRAPHS_TWO_TAG = 'telegraphs_two';
+/** Does the party see `c`'s next-next move (`foreseenMove`): Foresight running, or a creature that telegraphs two? */
+export const foreseesFor = (content: ContentPack, combat: CombatState, c: Combatant): boolean =>
+  foresightActive(combat) || (c.kind === 'enemy' && (content.creatures[c.refId]?.tags.includes(TELEGRAPHS_TWO_TAG) ?? false));
+
 /**
  * The move a creature's pattern commits to after its current intent — the dimmed second chip of `foresight` (DESIGN
  * §4.2): the program from the pointer, conditions read now for the turn after next. Null when a weighted pick or a
@@ -741,7 +753,8 @@ export function foreseenMove(r: IntentRead, combat: CombatState, c: Combatant): 
     const scope = (key: string) => ({ self: c, target: player, turn: c.pattern.turnsTaken + 2, round: combat.round + 1, onceKey: `${c.phase}:${key}` });
     switch (ins.op) {
       case 'move':
-        if (ins.when === undefined || evalCombatWhen(r, combat, ins.when, scope(ins.key))) return ins.move;
+        // U34e (D-091 gap 8): a hidden move stays a "?" in the second chip too, unless Archive Light reveals every intent
+        if (ins.when === undefined || evalCombatWhen(r, combat, ins.when, scope(ins.key))) return foreseenHidden(r, combat, c, ins.move) ? null : ins.move;
         pc += 1;
         break;
       case 'branch':
@@ -887,9 +900,10 @@ export function useCombatItem(ops: CombatOps, ctx: StepCtx, combat: CombatState,
       if (hp !== undefined) healFlat(ctx, combat, receiver, hp === 'full' ? receiver.hpMax : hp, source);
       if (mp !== undefined && receiver.mpMax > 0) ops.addMp(ctx, combat, receiver, mp === 'full' ? receiver.mpMax : mp, source);
     } else if ('damage' in e) {
-      player.hp = Math.max(1, player.hp - e.damage.hp);
+      player.hp = Math.max(1, player.hp - damageAmount(player.hpMax, e.damage.hp, e.damage.pctMax));
     } else apply(e, ctx, { source });
   }
+  cleanseOnUse(ctx, combat, receiver, def); // U34e (D-101): Antidote Root, Brine Draught, Hearth Broth
   for (const ability of itemAbilities(def, ctx.content)) {
     const picked = use.picked ?? (pickTargets(combat, player, ability) as Picked);
     resolveAbility(ops, ctx, combat, player, ability, picked, 0, 'item');

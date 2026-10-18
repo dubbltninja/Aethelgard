@@ -110,6 +110,8 @@ describe('CombatWhen (DESIGN §4.2)', () => {
     playerGuarding: [{ playerGuarding: false }],
     targetIsBoss: [{ targetIsBoss: true }],
     targetHasActed: [{ targetHasActed: false }],
+    allyDown: [{ allyDown: true }],
+    allyBelow: [{ allyBelow: 0.5 }, { allyBelow: 1 }],
   };
 
   test.each(COMBAT_WHEN_KEYS.map((k) => [k]))('%s parses', (key) => {

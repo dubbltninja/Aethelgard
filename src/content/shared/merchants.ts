@@ -45,7 +45,9 @@ export const merchants = [
       // "a cartwright's offcut, older than the cart" (D-067.6: heartwood is never Before-only)
       { itemId: 'mat_silverwood_heartwood', count: 1, when: LOOP_2_PLUS },
     ],
-    // any T1-T2 weapon or armor that is not quest-locked, except the Warrior's Sword and the Shadow-Kissed Dagger (legacy exclusion)
+    // WORLD §9.2's Pool line: its explicit list. The rule before it ("any T1-T2 weapon or armor that is not quest-locked, except the
+    // Warrior's Sword and the Shadow-Kissed Dagger") would also admit the Scrap Harness and the Diver's Coat, whose own Sources (WORLD
+    // §7) never name Kaelen: two places against one, so the list wins (U34e, D-101; pinned in tests/unit/content/items/economy.test.ts)
     rollStock: {
       pool: [
         'item_rusty_dagger',

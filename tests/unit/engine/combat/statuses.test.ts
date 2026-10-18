@@ -502,8 +502,10 @@ describe('status_poison', () => {
     expect(shade.combat.log.at(-1)?.text).toBe('Corrupted Shade: Immune to Poison.');
     expect(ofType(shade.ctx.events, 'statusApplied')).toEqual([]);
     const golem = setup([{ creatureId: GOLEM, count: 1 }], {}, variant);
-    expect(statusImmunities(golem.ctx.s, variant, golem.foe)).toEqual([STATUS.poison]);
+    // U34e (D-094): a construct is Bleed-immune by its tag too (WORLD §6 conventions)
+    expect(statusImmunities(golem.ctx.s, variant, golem.foe)).toEqual([STATUS.poison, STATUS.bleed]);
     expect(applyStatus(golem.ctx, golem.combat, golem.me, golem.foe, STATUS.poison).outcome).toBe('immune');
+    expect(applyStatus(golem.ctx, golem.combat, golem.me, golem.foe, STATUS.bleed).outcome).toBe('immune');
   });
 });
 

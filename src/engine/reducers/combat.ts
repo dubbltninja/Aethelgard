@@ -41,16 +41,23 @@
 // later visits); then, on a return visit to a non-`safe` node, the region's wandering pool at its return chance
 // (1 creature 70 %, 2 creatures 30 %). Nothing rolls on Retreat or *Not yet*. Under Horde Rising (U34b, `hordeRising`)
 // a fixed or wandering fight then gains +1 pool creature and elite variants, on its own Rng stream.
-// TODO(later unit): anomaly spawns (DESIGN §6.6) — the schema does not yet tie an anomaly encounter to a region.
-import type { Move } from '@schema/creature';
+// Anomalies (U34e; DESIGN §6.6, WORLD §10.2; `anomalyEncounter`): from Loop 2, a `move` onto a non-`safe` node that starts
+// no fixed fight rolls 10 % + 5 %·(loop − 1) (capped at 30 %; +10 % at night, DESIGN §10.1) for one of the region's
+// `cr_anomaly_*` variants whose `anomaly` spec holds, before the wandering pool; on its own Rng stream, like Horde Rising.
+// Anomaly twists the engine reads (WORLD §10.2): `innateStatuses` (the Frayed Brute's Haste, at the opening and each of
+// its turns), the `tethered` tag (half of each blow goes to the living twin, `applyHit`), and in their modules the
+// `void_lands` (damage.ts), `one_initiative` (turnOrder.ts), `shared_once` and `unlit` (intents.ts) and `telegraphs_two`
+// (abilities.ts) tags.
+import type { Creature, Move } from '@schema/creature';
 import type { Effect } from '@schema/effect';
 import type { Item } from '@schema/item';
 import type { Location } from '@schema/location';
 import { beforeArrest } from '../before';
-import { dayOf, evaluate } from '../conditions';
+import { WATCH_NAMES, dayOf, evaluate, watchOf } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
-import { derive } from '../derived';
+import { GEAR_SCRIPT, derive, scriptPassives } from '../derived';
 import { apply, applyAll, locationState } from '../effects';
+import { hazardsAtOpening, hazardsAtRound } from '../hazards';
 import type { Enumerator } from '../legalActions';
 import { grantXp, resourceGain, type ResourceEventName } from '../progression';
 import { Rng } from '../rng';
@@ -72,10 +79,10 @@ import {
 } from '../combat/abilities';
 import { consumeShield, resolveHit, rollPct, type HitResult, type HitSpec } from '../combat/damage';
 import { attemptFlee, fleeOutcome, fleeProblem } from '../combat/flee';
-import { gearAfterBasic, gearAfterCast, gearReflect, gearTurnStart, keepForesight } from '../combat/gear';
+import { gearAfterBasic, gearAfterCast, gearFightOpening, gearLowHp, gearReflect, gearTurnStart, keepForesight, whetstoneSpec } from '../combat/gear';
 import { expireStances, reactToHit, type CombatOps, type HitKind } from '../combat/specials';
 import { STATUS, afterHit, applyStatus, blocksAction, endOfTurnStatuses, isBoss, skipsTurn, startOfTurnStatuses } from '../combat/statuses';
-import { afterStunnedTurn, executeIntent, generateIntent, openingIntents, refreshIntents } from '../combat/intents';
+import { afterStunnedTurn, executeIntent, generateIntent, openingIntents, playDeathMove, refreshIntents } from '../combat/intents';
 import { checkPhases, openPhases, survivalRounds } from '../combat/phases';
 import { noteIntentsSeen, recordKill, recordSeen, rollSpoils, type Spoils } from '../combat/rewards';
 import {
@@ -127,6 +134,12 @@ export const MAX_COMBAT_TURNS = 10_000;
 export const WANDERING_PAIR_CHANCE = 0.3;
 /** `CombatState.encounterId` of a wandering-pool fight (no encounter record to clear). */
 export const WANDERING_ENCOUNTER_ID = 'wandering';
+/** `CombatState.encounterId` of an anomaly spawn (U34e, DESIGN §6.6; no encounter record to clear either). */
+export const ANOMALY_ENCOUNTER_ID = 'anomaly';
+/** DESIGN §10.1: "Night travel: +10 % anomaly/wandering chance" (the anomaly half; U34e). */
+export const NIGHT_ANOMALY_BONUS = 0.1;
+/** U34e (WORLD §10.2, the Tethered Stalkers): "damage to one is split between both". */
+export const TETHERED_TAG = 'tethered';
 /** PLAN §4.11 / D-069.6: set when either Tyrant dies in combat. */
 export const FLAG_TYRANT_DEAD = 'flag_tyrant_dead';
 export const TYRANT_IDS: readonly string[] = ['cr_chronos_tyrant_contained', 'cr_chronos_tyrant_unveiled'];
@@ -178,11 +191,18 @@ export function weaponTypeOf(s: GameState, content: ContentPack): WeaponType {
   return (weapon ? content.items[weapon.itemId]?.weaponType : undefined) ?? 'melee';
 }
 
-/** The player's basic attack with the equipped weapon. */
+/**
+ * The player's basic attack with the equipped weapon. U34e (D-099): gear's `basic_stun_chance` (the Bell-Warden's Clapper:
+ * "heavy Stun chance 20 % (base 10 %)") raises the Stun chance to its own when that is higher.
+ */
 export function basicAttackOf(s: GameState, content: ContentPack): BasicAttack {
   const weaponType = weaponTypeOf(s, content);
   const row = BASIC_ATTACKS[weaponType];
-  return { ...row, weaponType, spec: { ...row.spec }, gritOnHit: s.player.classId === WARDEN_CLASS_ID ? row.gritOnHit : 0 };
+  let stunChance = row.stunChance;
+  for (const { params } of scriptPassives(s.player, content, GEAR_SCRIPT.basicStunChance)) {
+    if (typeof params.chance === 'number' && params.chance > stunChance) stunChance = params.chance;
+  }
+  return { ...row, weaponType, spec: { ...row.spec }, gritOnHit: s.player.classId === WARDEN_CLASS_ID ? row.gritOnHit : 0, stunChance };
 }
 
 /** A creature move as a hit spec (null for a non-damaging move). */
@@ -266,6 +286,7 @@ function knockOut(ctx: StepCtx, combat: CombatState, target: Combatant): void {
     if (TYRANT_IDS.includes(target.refId)) ctx.s.flags[FLAG_TYRANT_DEAD] = true;
     combatLog(combat, `${target.name} falls.`, 'info');
     recordKill(ctx, target.refId); // the bestiary, at the moment of the kill (U27)
+    playDeathMove(ctx, combat, target, applyHit); // U34e: WORLD `onDeath` (Spore Drift, Glass Mote), before loot
   } else if (target.kind === 'companion') {
     ctx.emit({ t: 'companionKo', companionId: target.refId });
     combatLog(combat, `${target.name} is down.`, 'info');
@@ -288,7 +309,13 @@ export function applyHit(ctx: StepCtx, combat: CombatState, attacker: Combatant,
     return;
   }
   consumeShield(target, result);
-  target.hp = Math.max(0, target.hp - result.amount);
+  const twin = tetherTwin(ctx, combat, target); // U34e: the Tethered Stalkers split each blow
+  const share = twin === undefined ? 0 : Math.floor(result.amount / 2);
+  target.hp = Math.max(0, target.hp - (result.amount - share));
+  if (twin !== undefined && share > 0) {
+    twin.hp = Math.max(0, twin.hp - share);
+    combatLog(combat, `${twin.name} takes ${share} of it through the tether.`, 'damage');
+  }
   ctx.emit({
     t: 'damageDealt',
     sourceUid: attacker.uid,
@@ -314,8 +341,16 @@ export function applyHit(ctx: StepCtx, combat: CombatState, attacker: Combatant,
   else {
     reactToHit(ctx, combat, OPS, attacker, target, spec, result); // counter stances and ripostes answer (U26)
     gearReflect(OPS, ctx, combat, attacker, target, spec, result); // U34b: reflect_melee (affix_of_thorns)
+    gearLowHp(ctx, combat, target); // U34e: low_hp_status (the Lantern-Moth Brooch)
   }
+  if (twin !== undefined && twin.alive && twin.hp <= 0) knockOut(ctx, combat, twin);
   checkPhases(ctx, combat); // boss phase triggers and reinforcements after every damage event (U27, DESIGN §4.10)
+}
+
+/** A `tethered` enemy's living twin (another of the same creature), which takes half of each blow (rounded down). */
+function tetherTwin(ctx: StepCtx, combat: CombatState, target: Combatant): Combatant | undefined {
+  if (target.kind !== 'enemy' || !(ctx.content.creatures[target.refId]?.tags.includes(TETHERED_TAG) ?? false)) return undefined;
+  return combat.enemies.find((e) => e !== target && e.refId === target.refId && isActive(e));
 }
 
 /** The reducer's operations the combat modules call back into (U26: abilities, items, flee, specials, intents). */
@@ -341,8 +376,11 @@ function startTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
     return;
   }
   if (ticks.ticks.length > 0) checkPhases(ctx, combat); // a tick is a damage event (U27, DESIGN §4.10)
+  if (ticks.ticks.length > 0) gearLowHp(ctx, combat, actor); // U34e: a tick can wake the Lantern-Moth Brooch too
   fireDelayed(OPS, ctx, combat, actor);
   if (!isActive(actor)) return;
+  if (actor.kind === 'enemy' && ctx.content.creatures[actor.refId]?.tags.includes(DROWNED_TAG)) applyStatus(ctx, combat, actor, actor, STATUS.soaked); // U34e
+  if (actor.kind === 'enemy') innateStatuses(ctx, combat, actor); // U34e: the Frayed Brute's permanent Haste
   if (actor.kind !== 'player') return;
   gearTurnStart(ctx, combat, actor); // U34b: gear regen (before the Wizard's mana regen), Foresight
   gainResource(ctx, combat, actor, 'turn_start');
@@ -379,6 +417,31 @@ function endRound(ctx: StepCtx, combat: CombatState): void {
   const enemies = combat.enemies.length;
   checkPhases(ctx, combat);
   if (combat.enemies.length !== enemies) startRound(combat, ctx.content);
+  roundStartStatuses(ctx, combat); // U34e (D-094): a phase's `roundStatuses` (the Bell-Warden's rising water)
+  roundHazards(ctx, combat); // U34e: the place's round hazards (the Cairns' lightning, the gale's Haste)
+}
+
+/** WORLD §6 conventions: "`drowned`: re-applies Soaked to itself at the start of each of its turns" (U34e, D-091). */
+export const DROWNED_TAG = 'drowned';
+
+/** U34e: the place's `round` hazards; a strike that brings a combatant to 0 HP knocks it out (Second Wind first). */
+function roundHazards(ctx: StepCtx, combat: CombatState): void {
+  const { downed, struck } = hazardsAtRound(ctx, combat);
+  for (const c of downed) if (!secondWind(ctx, combat, c)) knockOut(ctx, combat, c);
+  if (struck) checkPhases(ctx, combat); // a strike is a damage event (DESIGN §4.10)
+}
+
+/** U34e (WORLD §10.2 "Permanent Haste"): an enemy's `innateStatuses`, put on again (the opening, each of its turns). */
+export function innateStatuses(ctx: StepCtx, combat: CombatState, c: Combatant): void {
+  for (const id of ctx.content.creatures[c.refId]?.innateStatuses ?? []) if (isActive(c)) applyStatus(ctx, combat, c, c, id);
+}
+
+/** U34e: every standing boss's current phase `roundStatuses` go on every living combatant as a round begins. */
+export function roundStartStatuses(ctx: StepCtx, combat: CombatState): void {
+  for (const boss of combat.enemies.filter(isActive)) {
+    const ids = ctx.content.creatures[boss.refId]?.phases[boss.phase]?.roundStatuses ?? [];
+    for (const id of ids) for (const c of [...combat.party, ...combat.enemies].filter(isActive)) applyStatus(ctx, combat, boss, c, id);
+  }
 }
 
 /**
@@ -391,7 +454,12 @@ export function runCombat(ctx: StepCtx): void {
     openPhases(ctx, opening); // bosses enter their opening phase (U27)
     openingIntents(ctx, opening); // DESIGN §4.1 Setup: every enemy's first intent (U25)
     keepForesight(ctx, opening); // att_foresight: next-next intents from the start (U34b)
+    gearFightOpening(ctx, opening); // U34e: a Whetstone Strip's charges, Remnant Ink's Shield (prepared out of combat)
     springTraps(OPS, ctx, opening); // traps set at this node (U26)
+    roundStartStatuses(ctx, opening); // U34e: an opening phase's round statuses hold from round 1
+    for (const e of opening.enemies) innateStatuses(ctx, opening, e); // U34e: what an anomaly holds all fight
+    hazardsAtOpening(ctx, opening); // U34e (D-094): the place's weather and hazards (Soaked, ashfall, glare …), a Void-chill
+    roundHazards(ctx, opening); // U34e: round 1's
   }
   for (let n = 0; n < MAX_COMBAT_TURNS; n++) {
     const combat = ctx.s.combat;
@@ -537,6 +605,7 @@ function finishDefeat(ctx: StepCtx, combat: CombatState): void {
   syncBack(ctx, combat);
   s.counters.deathsThisLoop = 1;
   recordSeen(ctx, combat); // U27
+  ctx.profileDraft().lastDeathLocation = combat.locationId; // U34e (D-091): the `diedHere` condition
   ctx.emit({ t: 'playerDied', loop: s.meta.loop });
   ctx.emit({ t: 'combatEnded', result: 'defeat', rounds: combat.round, xp: 0, gold: 0, loot: [] });
   applyAll(combat.onDefeat as Effect[], ctx, { source: `encounter:${combat.encounterId}` });
@@ -626,8 +695,9 @@ export const attackHandler: Handler<'attack'> = (ctx: StepCtx, a: ActionOf<'atta
     player.hp -= basic.hpCost;
     combatLog(combat, `The focus takes ${basic.hpCost} HP.`, 'info');
   }
-  const result = resolveHit(ctx, player, target, basic.spec);
-  applyHit(ctx, combat, player, target, basic.spec, result, 'basic');
+  const spec = whetstoneSpec(ctx, player, basic.spec); // U34e: a Whetstone Strip's charge (+power), if one is left
+  const result = resolveHit(ctx, player, target, spec);
+  applyHit(ctx, combat, player, target, spec, result, 'basic');
   if (result.hit) {
     gainResource(ctx, combat, player, result.crit && hasRule(ctx, 'basic_crit') ? 'basic_crit' : 'basic_hit');
     if (result.crit) gainResource(ctx, combat, player, 'crit');
@@ -751,6 +821,7 @@ function finishFled(ctx: StepCtx, combat: CombatState): void {
   recordSeen(ctx, combat); // U27
   ctx.emit({ t: 'combatEnded', result: 'fled', rounds: combat.round, xp: 0, gold: 0, loot: [] });
   applyAll(combat.onFleeEffects as Effect[], ctx, { source: `encounter:${combat.encounterId}` });
+  applyAll(ctx.content.locations[combat.locationId]?.fleeEffects ?? [], ctx, { source: `flee:${combat.locationId}` }); // U34e (D-097)
   fleeOutcome(ctx, combat);
   if (s.mode === 'explore' && s.world.currentLocationId === combat.locationId) autosaveAfterCombat(ctx);
 }
@@ -861,7 +932,44 @@ function wanderingEncounter(ctx: StepCtx, loc: Location, arrival: Arrival): Enco
     if (group) group.count += 1;
     else groups.push({ creatureId, count: 1 });
   }
-  return { id: WANDERING_ENCOUNTER_ID, groups, fleeable: true, onFlee: 'previous', ambush: false, onVictory: [], onDefeat: [], onFleeEffects: [] };
+  // U34e: a wandering roll is an ambush (WORLD's "at ambush onset" hazards; a fixed group is one only when it says so)
+  return { id: WANDERING_ENCOUNTER_ID, groups, fleeable: true, onFlee: 'previous', ambush: true, onVictory: [], onDefeat: [], onFleeEffects: [] };
+}
+
+// ---- anomalies (U34e; DESIGN §6.6, WORLD §10.2) ---------------------------------------------------------------------------
+
+/** DESIGN §6.6: the anomaly chance this loop — none in Loop 1, then 10 % + 5 %·(loop − 1) capped at 30 % — and +10 % at night. */
+export function anomalyChance(s: GameState, content: ContentPack): number {
+  if (s.meta.loop < 2) return 0;
+  const { base, perLoop, cap } = content.config.anomalyChance;
+  const night = WATCH_NAMES[watchOf(s.clock.ticks)] === 'night' ? NIGHT_ANOMALY_BONUS : 0;
+  return Math.min(cap, base + perLoop * (s.meta.loop - 1)) + night;
+}
+
+/** The anomaly variants that can spawn at `loc` now: its region's, from their loop, while their `when` holds. */
+export function anomaliesAt(ctx: StepCtx, loc: Location): Creature[] {
+  const { s, profile, content } = ctx;
+  return Object.values(content.creatures).filter(
+    (c) => c.anomaly !== undefined && c.anomaly.region === loc.regionId && s.meta.loop >= c.anomaly.loop && (c.anomaly.when === undefined || evaluate(c.anomaly.when, s, profile, content)),
+  );
+}
+
+/** The anomaly roll's own Rng stream (seed, loop, node, the run's travel count), so it never moves the run Rng. */
+export function anomalyRng(s: GameState, locationId: string): Rng {
+  return Rng.fromSeed(`${s.meta.seed}:${s.meta.loop}:${locationId}:${s.counters.travels}:anomaly`);
+}
+
+/** An anomaly on a `move` onto a non-`safe` node that started no fixed fight (DESIGN §6.6), or null. */
+function anomalyEncounter(ctx: StepCtx, loc: Location, arrival: Arrival): EncounterSpec | null {
+  if (arrival.via !== 'move' || loc.safe) return null;
+  const chance = anomalyChance(ctx.s, ctx.content);
+  const pool = chance > 0 ? anomaliesAt(ctx, loc) : [];
+  if (pool.length === 0) return null;
+  const rng = anomalyRng(ctx.s, loc.id);
+  if (!rng.chance(chance)) return null;
+  const def = rng.pick(pool);
+  const groups = [{ creatureId: def.id, count: def.anomaly?.count ?? 1 }];
+  return { id: ANOMALY_ENCOUNTER_ID, groups, fleeable: true, onFlee: 'previous', ambush: false, onVictory: [], onDefeat: [], onFleeEffects: [] };
 }
 
 /** The fight this arrival starts, if any (see the file header for the order and the rules). */
@@ -882,6 +990,8 @@ export function arrivalEncounter(ctx: StepCtx, arrival: Arrival): EncounterSpec 
     if (!ctx.rng.chance(enc.chance)) continue;
     return hordeRising(ctx, loc, encounterSpec(enc));
   }
+  const anomaly = anomalyEncounter(ctx, loc, arrival); // U34e (DESIGN §6.6)
+  if (anomaly) return hordeRising(ctx, loc, anomaly);
   const wandering = wanderingEncounter(ctx, loc, arrival);
   return wandering && hordeRising(ctx, loc, wandering);
 }

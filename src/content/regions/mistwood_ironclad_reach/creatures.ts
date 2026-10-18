@@ -10,14 +10,15 @@
 // two legacy records; a `description` where no legacy line exists is a sentence drawn from the bestiary entry.
 //
 // Readings the schema forces (each is repeated at its move):
-//   - "ifAllyDown" (an ally died this fight) has no atom; the Rootling uses `allyCountBelow: 2`, which holds once one of a
-//     group of three has fallen (WORLD: "they come in threes");
-//   - "the ally is below 50 %" (the Golem's Cover) has no atom (`hpBelow` is the creature's own HP); Cover is gated on an
-//     ally being present;
+//   - "ifAllyDown" (an ally died this fight) is the `allyDown` atom (U34e, D-092); the Rootling's Burrow, a self-move with no
+//     cadence, waits while its own Shield stands (U45's reading), or it would burrow every turn once one has fallen;
+//   - "the ally is below 50 %" (the Golem's Cover) has an atom since U34e (`allyBelow`, D-092), but the Cover still waits only
+//     on an ally being present: with WORLD's condition the Outpost pair stops spending turns on each other and kills the U52
+//     proof's level-5 Ranger (`q_blighted_outpost`) — a balance call for the lead (listed in the U34e reply);
 //   - "shield ally = 10 % of that ally's max HP" (the Pillar's Ward) is a scale on ATK: 1.0 × 14 = 14, the 10 % of a
 //     130-HP Outpost Golem; a boss in the Before would be shielded more by WORLD's rule than here;
-//   - "repeats its previous move" (the Hound's Echo) has no special; it is the Bite again, which is the move WORLD's own
-//     tactics say it repeats ("Guard the turn after a Bite").
+//   - "repeats its previous move" (the Hound's Echo) is the move's `repeatPrevious` (U34e, D-092): its last move again,
+//     exactly (WORLD's tactics: "Guard the turn after a Bite").
 import type { CreatureInput } from '@schema/creature';
 
 const REVEALS = [{ kills: 1, reveal: 'resist' }, { kills: 3, reveal: 'all' }] as const;
@@ -102,11 +103,15 @@ const rootling = {
     },
     rootling_burrow: { name: 'Burrow', line: 'It sinks into the loam, leaving a twitching mound.', shield: { power: { coef: 1.0, stat: 'atk' } } },
   },
+  // ifAllyDown (U34e: `allyDown`), while its own Shield is not standing (see the header). U34e's cadence re-check (D-092):
+  // WORLD's first match on every turn, then the Trip and the Jab by its own turn — the pointer walk tested the Burrow
+  // only on the Trip's turns.
   pattern: [
-    // ifAllyDown: fewer than two allies left of a group of three
-    { move: 'rootling_burrow', target: 'self', when: { allyCountBelow: 2 } },
-    { move: 'rootling_trip', target: 'player' },
-    { move: 'rootling_jab', target: 'player' },
+    {
+      if: { all: [{ allyDown: true }, { not: { selfHas: 'status_shield' } }] },
+      then: [{ move: 'rootling_burrow', target: 'self' }],
+      else: [{ if: { everyNth: 2 }, then: [{ move: 'rootling_jab', target: 'player' }], else: [{ move: 'rootling_trip', target: 'player' }] }],
+    },
   ],
   loot: [
     { itemId: 'mat_rootbone', chance: 0.5 },
@@ -167,7 +172,7 @@ const stoneHideGolem = {
   },
   pattern: [
     { move: 'golem_harden', target: 'self', when: { selfHas: 'status_armor_break' } },
-    // WORLD: "ifAllyPresent and the ally is below 50 %" — no atom reads an ally's HP, so Cover waits only on an ally
+    // WORLD: "ifAllyPresent and the ally is below 50 %" — `allyBelow: 0.5` would say it (U34e); held back, see the header
     { move: 'golem_cover', target: 'ally', when: { allyPresent: true } },
     { move: 'golem_slam', target: 'player' },
     { move: 'golem_grind', target: 'player' },
@@ -263,15 +268,8 @@ const stutterHound = {
       statuses: [{ status: 'status_bleed', chance: 0.3, duration: 2 }],
     },
     stutter_skip: { name: 'Skip', line: 'It is behind you. It was never in between.', statuses: [{ status: 'status_phase', duration: 1, target: 'self' }] },
-    // WORLD: "repeats its previous move". No move can read the previous one; the Bite is the move WORLD's tactics say it
-    // repeats, so the Echo is the Bite's numbers again.
-    stutter_echo: {
-      name: 'Echo',
-      line: 'It does the last thing again, exactly.',
-      type: 'chrono',
-      power: { coef: 0.6, stat: 'sp', hits: 2 },
-      statuses: [{ status: 'status_bleed', chance: 0.3, duration: 2 }],
-    },
+    // WORLD: "repeats its previous move" (U34e, D-092: `repeatPrevious`)
+    stutter_echo: { name: 'Echo', line: 'It does the last thing again, exactly.', repeatPrevious: true },
   },
   pattern: [
     { move: 'stutter_skip', target: 'self', when: { everyNth: 3 } },
@@ -296,4 +294,78 @@ const stutterHound = {
 } satisfies CreatureInput;
 
 /** WORLD §6 order within the region: the Wilds (§6.2), Wards (§6.4), Watch-wardens (§6.7). */
-export const creatures = [wildlingBrute, rootling, stoneHideGolem, wardingPillar, stutterHound] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_frayed_brute — Wilds · L4 anomaly, Loop 2+ · XP 92 ("Permanent Haste; telegraphs two intents") ---------------
+// `innateStatuses` keeps its Haste on; the `telegraphs_two` tag shows its next-next move (combat/abilities.ts `foreseesFor`).
+const frayedBrute = {
+  id: 'cr_anomaly_frayed_brute',
+  name: 'Frayed Brute',
+  description: 'A Brute moving a little ahead of itself, so you see what it will do twice.',
+  family: 'fam_wilds',
+  materialKin: 'wildling',
+  role: 'anomaly',
+  level: 4,
+  stats: wildlingBrute.stats,
+  tags: ['growth', 'anomaly', 'telegraphs_two'],
+  resistances: wildlingBrute.resistances,
+  innateStatuses: ['status_haste'],
+  moves: wildlingBrute.moves,
+  pattern: wildlingBrute.pattern,
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: wildlingBrute.gold,
+  xp: 92,
+  anomaly: { region: 'region_mistwood_ironclad_reach', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. The Brute again, but quick, always quick, and its next two swings show on it like bruises before they land. It knits the same way. It just gets there first.',
+    tactics: 'Read both intents and Guard the Maul; a Slow only cancels its Haste until its next turn; fire.',
+    codexId: 'codex_creatures_wilds',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'triangle', details: ['root_knots', 'double_outline'] },
+} satisfies CreatureInput;
+
+// ---- cr_anomaly_rootbound_pack — Wilds · L2 anomaly, Loop 2+ · XP 160 ("Three rootlings share one HP pool") ------------------
+// One HP pool is one combatant: the three Rootlings' HP (3 × 30) and their three actions a turn (each move hits three
+// times); its XP and gold are the three's. (WORLD's base column: cr_rootling ×3.)
+const rootboundPack = {
+  id: 'cr_anomaly_rootbound_pack',
+  name: 'Rootbound Pack',
+  description: 'Three rootlings grown into one root: one wound, one life, three mouths.',
+  family: 'fam_wilds',
+  materialKin: 'wildling',
+  role: 'anomaly',
+  level: 2,
+  stats: { ...rootling.stats, hp: 3 * rootling.stats.hp },
+  tags: ['growth', 'anomaly'],
+  resistances: rootling.resistances,
+  moves: {
+    pack_trip: { ...rootling.moves.rootling_trip, line: 'Three sets of roots slide toward your ankles at once.', power: { coef: 0.7, stat: 'atk', hits: 3 } },
+    pack_jab: { ...rootling.moves.rootling_jab, line: 'Three sharpened roots whip at your shins.', power: { coef: 1.0, stat: 'atk', hits: 3 } },
+  },
+  pattern: [
+    { move: 'pack_trip', target: 'player' },
+    { move: 'pack_jab', target: 'player' },
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: { min: 3 * rootling.gold.min, max: 3 * rootling.gold.max },
+  xp: 160,
+  anomaly: { region: 'region_mistwood_ironclad_reach', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. Three Rootlings, but the roots under them have joined. Cut one and the others bleed. There is one life in the three of them, and they spend it together: three trips, three jabs, every turn.',
+    tactics: 'It is one target: single heavy hits; fire; Guard against its three strikes.',
+    codexId: 'codex_creatures_wilds',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'triangle', details: ['root_tendrils', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [wildlingBrute, rootling, stoneHideGolem, wardingPillar, stutterHound, frayedBrute, rootboundPack] satisfies CreatureInput[];

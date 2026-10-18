@@ -8,7 +8,7 @@ import type { Ability } from '@schema/ability';
 import type { Class } from '@schema/class';
 import type { GameConfig } from '@schema/contentPack';
 import type { ContentPack, StepCtx } from './ctx';
-import { derive, syncMaxima } from './derived';
+import { GEAR_SCRIPT, derive, scriptPassives, syncMaxima } from './derived';
 import type { Profile } from './types/profile';
 import type { GameState } from './types/state';
 
@@ -218,8 +218,13 @@ export function playerAbilityCost(s: GameState, content: ContentPack, abilityId:
   if (!ability) throw new Error(`playerAbilityCost: unknown ability '${abilityId}'`);
   const player = s.player;
   const cls = content.classes[player.classId];
+  // U34e (D-099): `ability_mp_cost_reduction` gear (Oriel's Quill: Ley −10 %) adds to the staff's reduction for its type
+  let typed = 0;
+  for (const { params } of scriptPassives(player, content, GEAR_SCRIPT.abilityMpCostReduction)) {
+    if (params.damageType === ability.damageType && typeof params.pct === 'number') typed += params.pct;
+  }
   const opts: CostOptions = {
-    mpCostReduction: derive(player, content).mpCostReduction,
+    mpCostReduction: Math.min(1, derive(player, content).mpCostReduction + typed),
     corruption: player.corruption,
   };
   if (s.world.heartstone === 'destroyed' && ability.damageType === 'ley') opts.mpMult = DESTROYED_HEARTSTONE_LEY_MP;

@@ -80,6 +80,8 @@ export const ProfileSchema: z.ZodType<Profile> = z
     loopCounter: int.min(1),
     newGamePlus: int.min(0),
     lastClassId: z.string().nullable(),
+    // U34e (C1 addition): optional, so older profile files parse unchanged
+    lastDeathLocation: z.string().optional(),
   })
   .strict();
 

@@ -21,13 +21,11 @@
 //     100 %, WORLD §3.9") is the Barrows' hidden item once a light has been killed there (locations.ts), so the creature's loot
 //     holds the other two rows and nothing pays twice. Gather ("ifHpBelow:40", no "once") replaces the cycled move on every
 //     turn below 40 % HP, as WORLD's rule reads;
-//   - "heal self … ifAllyPresent (consumes the toad)" (the Matron's Drink): no effect removes an ally, so the heal waits on a
-//     living Lantern Toad (`allyPresent: 'cr_lantern_toad'`) and is capped at two uses a fight (`oncePerFight` on two copies of
-//     the step): her Call keeps at most two toads, so two are all that can stand when Phase 2 begins and she has no Call
-//     there; without the cap a living toad would be a heal every turn;
-//   - "her Regen and Shield end and cannot be reapplied" (Phase 3): the phase's `onEnter` strips both from her, and no move of
-//     Phase 3 (or of her other phases, which a boss never returns to: phases never go backwards) applies either, so they
-//     are not reapplied. There is no field that refuses a Regen or a Shield from another source;
+//   - "heal self … ifAllyPresent (consumes the toad)" (the Matron's Drink): the heal waits on a living Lantern Toad
+//     (`allyPresent: 'cr_lantern_toad'`) and the move's `consumesAlly` takes the toad (U34e, D-096: no XP, not a kill), so she
+//     drinks at most once per toad;
+//   - "her Regen and Shield end and cannot be reapplied" (Phase 3): the phase's `onEnter` strips both from her, and the phase's
+//     `statusImmunities` refuse them from any source after (U34e, D-096);
 //   - the Call's toads come from `matron_call` alone (WORLD gives the encounter no opening group: "adds cr_lantern_toad").
 import type { CombatWhen, CreatureInput, Step } from '@schema/creature';
 
@@ -45,9 +43,6 @@ const alternate = (odd: Step, even: Step): Step => ({ if: { everyNth: 2 }, then:
 const everyNthAmong = (step: Extract<Step, { move: string }>, n: number, cycle: readonly Step[]): Step[] =>
   cycle.flatMap((s) => [{ ...step, when: { everyNth: n } }, s]);
 
-/** `copies` first-match rows of a move that "consumes" an ally: it waits on one living, once each (see the header). */
-const consuming = (ally: `cr_${string}`, copies: number, step: Step): (readonly [CombatWhen, Step])[] =>
-  Array.from({ length: copies }, () => [{ all: [{ allyPresent: ally }, { oncePerFight: true }] }, step] as const);
 
 // ---- cr_barrow_light — Green · L11 fodder · XP 253 (WORLD §6.6) ---------------------------------------------------------------
 const barrowLight = {
@@ -185,6 +180,7 @@ const lanternMatron = {
       name: 'Drink',
       line: 'She lifts a toad to her mouth. Its light goes out.',
       heal: { power: { coef: 1.5, stat: 'atk' }, target: 'self' },
+      consumesAlly: 'cr_lantern_toad', // U34e (D-096): "(consumes the toad)"
     },
     matron_flood: {
       name: 'Flood',
@@ -210,9 +206,9 @@ const lanternMatron = {
       name: 'Counting the Names',
       enterWhen: [{ hpBelow: 0.65 }],
       line: "She looks at you properly for the first time. 'You have a name,' she says. 'Let me keep it.'",
-      // Drink replaces the cycled move while a toad stands (capped, see the header); Name You and Embrace in turn
+      // Drink replaces the cycled move while a toad stands (it consumes the toad, see the header); Name You and Embrace in turn
       pattern: [
-        firstOf(consuming('cr_lantern_toad', 2, { move: 'matron_drink', target: 'self' }), alternate({ move: 'matron_name_you', target: 'player' }, { move: 'matron_embrace', target: 'player' })),
+        firstOf([[{ allyPresent: 'cr_lantern_toad' }, { move: 'matron_drink', target: 'self' }]], alternate({ move: 'matron_name_you', target: 'player' }, { move: 'matron_embrace', target: 'player' })),
       ],
     },
     {
@@ -222,6 +218,7 @@ const lanternMatron = {
       line: 'The lanterns on her back crack. The names scratched in the glass go dark. She stops humming.',
       // "her Regen and Shield end and cannot be reapplied" (see the header)
       onEnter: [{ stripBuffs: { kinds: ['shield', 'regen'], target: 'self' } }],
+      statusImmunities: ['status_shield', 'status_regen'],
       // Flood on every second turn, otherwise Embrace
       pattern: [alternate({ move: 'matron_embrace', target: 'player' }, { move: 'matron_flood', target: 'all' })],
     },
@@ -245,4 +242,63 @@ const lanternMatron = {
 } satisfies CreatureInput;
 
 /** WORLD §6.6's block order within the Green: the Barrow-Light, then the Lantern Matron (the Mireling, Toad, Spore Drift and Reed Stalker between are other regions'). */
-export const creatures = [barrowLight, lanternMatron] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_seeding_toad — Green · L8 anomaly, Loop 2+ · XP 209 ("Adds one Spore Drift each turn (max 2)") --------------
+// The Lantern Toad's numbers and moves (glowlands_nexus/creatures.ts), each move also summoning a Spore Drift (two at most).
+const SEED = { creatureId: 'cr_spore_drift', count: 1, max: 2 } as const;
+const seedingToad = {
+  id: 'cr_anomaly_seeding_toad',
+  name: 'Seeding Toad',
+  description: 'A Lantern Toad that spits Spore Drifts out with its light.',
+  family: 'fam_green',
+  materialKin: 'mireling',
+  role: 'anomaly',
+  level: 8,
+  stats: { hp: 96, atk: 17, sp: 17, armor: 3, ward: 2, agi: 4 },
+  tags: ['anomaly'],
+  resistances: { fire: 'weak', void: 'weak', ley: 'resist' },
+  statusImmunities: ['status_poison'],
+  moves: {
+    toad_lure: { name: 'Lure', line: 'Its throat-sac lights like a lantern on a pole.', statuses: [{ status: 'status_blind', chance: 0.5, duration: 2 }], summon: SEED },
+    toad_tongue: {
+      name: 'Tongue',
+      line: 'A tongue the length of a reed snaps out.',
+      type: 'physical',
+      power: { coef: 1.0, stat: 'atk' },
+      statuses: [{ status: 'status_slow', chance: 0.3, duration: 2 }],
+      summon: SEED,
+    },
+    toad_swallow_light: { name: 'Swallow Light', line: 'It gulps, and the light goes into it.', shield: { power: { coef: 1.0, stat: 'atk' } }, summon: SEED },
+    toad_flop: { name: 'Flop', line: 'It gathers itself, heavy, over your feet.', type: 'physical', power: { coef: 1.3, stat: 'atk' }, summon: SEED },
+  },
+  pattern: [
+    firstOf(
+      [
+        [{ first: true }, { move: 'toad_lure', target: 'player' }],
+        [{ targetHas: 'status_blind' }, { move: 'toad_swallow_light', target: 'self' }],
+        [{ everyNth: 3 }, { move: 'toad_flop', target: 'player' }],
+      ],
+      { move: 'toad_tongue', target: 'player' },
+    ),
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: { min: 19, max: 30 },
+  xp: 209,
+  anomaly: { region: 'region_glowfen', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. A lantern-toad with a throat full of spores. Each time it moves, a Drift comes loose and floats toward me, two at a time, never more. Kill the toad and the seeding stops.',
+    tactics: 'Kill the toad first; fire; do not stand over a dying Drift.',
+    codexId: 'codex_creatures_green',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'circle_lit', details: ['throat_sac', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [barrowLight, lanternMatron, seedingToad] satisfies CreatureInput[];

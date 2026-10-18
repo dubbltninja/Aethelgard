@@ -61,8 +61,11 @@ export interface ConditionAtoms {
   corruption: Range;
   /** Current node. */
   location: `loc_${string}`;
-  /** This loop; `sinceStage` counts only kills after the current quest stage began. */
-  killed: { id: `cr_${string}`; count?: number; sinceStage?: boolean };
+  /**
+   * This loop; `sinceStage` counts only kills after the current quest stage began. U34e (C1 addition, D-096): `anyLoop`
+   * counts the profile's kills of it in every loop, this one included (the bestiary: "if killed in any earlier loop").
+   */
+  killed: { id: `cr_${string}`; count?: number; sinceStage?: boolean; anyLoop?: boolean };
   /** Named counters; engine-maintained: `quests_completed` (D-048), `factions_trusted`. */
   counter: { name: string } & Bounds;
   /** Communion only (DESIGN §4.11); false outside communion. */
@@ -71,6 +74,8 @@ export interface ConditionAtoms {
   modifier: `mod_${string}`;
   /** U34d (C1 addition): the current location is in the Horde's infected set (WORLD §12.1 `ws_infected`). */
   infected: true;
+  /** U34e (C1 addition, D-091): the player's last death (profile `lastDeathLocation`) was at the current location. */
+  diedHere: true;
 }
 
 export type ConditionKey = keyof ConditionAtoms;
@@ -102,11 +107,12 @@ export const CONDITION_ATOMS: { readonly [K in ConditionKey]: z.ZodType<Conditio
   loyalty: z.object({ companion: CompanionId, ...bounds }).strict().refine(ordered, 'min must be ≤ max'),
   corruption: RangeSchema,
   location: LocationId,
-  killed: z.object({ id: CreatureId, count: z.number().int().min(1).optional(), sinceStage: z.boolean().optional() }).strict(),
+  killed: z.object({ id: CreatureId, count: z.number().int().min(1).optional(), sinceStage: z.boolean().optional(), anyLoop: z.boolean().optional() }).strict(),
   counter: z.object({ name: z.string().min(1), ...bounds }).strict().refine(ordered, 'min must be ≤ max'),
   resolve: RangeSchema,
   modifier: ModifierId,
   infected: z.literal(true),
+  diedHere: z.literal(true),
 };
 
 export const CONDITION_KEYS = Object.keys(CONDITION_ATOMS) as ConditionKey[];

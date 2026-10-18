@@ -370,7 +370,7 @@ export const weapons = [
     art: { icon: 'hammer' },
   },
   // "Heavy Stun chance 20% (base 10%)": the shield_heavy basic attack's Stun chance (DESIGN §5.7: 10% on non-bosses) becomes 20%. No passive kind says
-  // it, so the number travels in the `basic_stun_chance` script (not yet read by the engine). WORLD also lists a Common copy under
+  // it, so the number travels in the `basic_stun_chance` script (read since U34e, D-099). WORLD also lists a Common copy under
   // `recipe_bell_clapper`: that is the recipe's `output.rarity: 'common'` (note crafting.ts keeps `fixedAffixes` on a Common piece).
   {
     id: 'item_bell_clapper',
@@ -466,7 +466,8 @@ export const weapons = [
     art: { icon: 'void_focus' },
   },
   // "Immune `status_blind` on the first turn of an ambush" (the Voidglass Gallery rule, WORLD §2.9). `statusImmunity` is the closest passive;
-  // it is broader than the rule (every Blind, not only an ambush's first turn). The Gallery's hazard itself is U34d's region-hazards gap.
+  // it is broader than the rule (every Blind, not only an ambush's first turn). The Gallery's Blind is a place hazard since U34e (D-096,
+  // veil/locations.ts); it goes through the status rules, so this immunity keeps it off. Kept broad: the Hollow Lantern's tactics lean on it.
   {
     id: 'item_hollow_lantern_focus',
     name: 'Hollow Lantern Focus',

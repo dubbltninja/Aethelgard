@@ -28,6 +28,7 @@ import {
 } from './reducers/loop';
 import { enterPortalHandler, hordePostStep } from './horde';
 import { echoPostStep } from './echoes';
+import { hazardPostStep } from './hazards';
 import {
   chooseClassHandler,
   equipAttunementHandler,
@@ -134,6 +135,7 @@ export const POST_STEP_HOOKS: readonly PostStepHook[] = [
   questPostStep, // U33: Echo shortcuts, auto-starts, the objective sweep; first, so its effects reach the hooks below
   arrivalHook, // U20: arrival pipeline for content teleports
   clockHook, // U20: per-watch status ticks, dawn hooks, clock warnings, expiry
+  hazardPostStep, // U34e: watches spent standing at a hazard (the Unmaking, the Void-chill); before a fight's opening reads them
   characterPostStep, // U21: Weaver mark at max Corruption; stored maxima = derive() outside combat
   companionPostStep, // U28: companion max HP by level; Dask's places (D-059) outside a fight
   combatPostStep, // U23: a fight started this step plays until the player's first turn

@@ -24,6 +24,8 @@ export const ENGINE_GRANTED_ECHOES: readonly string[] = [
   // U32: the two-of-five rule (D-067.16), the loop-end bonds and oaths (STORY §12), the Before's entry and Anchors
   'echo_tyrant_jailer', 'echo_nyx_bond', 'echo_ilyra_bond', 'echo_dask_bond', 'echo_mireya_bond', 'echo_caelum_bond',
   'echo_ironclad_oath', 'echo_weaver_sign', 'echo_before_route', 'echo_anchor_mechanic',
+  // U34e (D-101): three Dark Spellbooks read in one loop (WORLD §7.10; Korr's Marginalia counts as one)
+  'echo_litany_verse_2',
 ];
 
 export const EchoSchema = Base.extend({

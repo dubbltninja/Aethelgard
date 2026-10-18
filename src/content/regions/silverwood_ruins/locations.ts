@@ -43,14 +43,13 @@ export const locations = [
     // Day 1 of Loop 1 only: from Loop 2 the Amulet is already on the neck (config.startItems, D-047).
     items: [{ itemId: 'item_amulet_of_echoes', when: { loop: { max: 1 } } }],
     encounters: [
-      // WORLD §3.1 `ev_redundant_stand` (Loop 4+): replaces the pool roll at 10 %. WORLD adds "if the player died here in
-      // an earlier loop" (profile lastDeathLocation): no Condition atom reads the profile's death place, so that clause is
-      // not expressed (listed in the U42 reply).
+      // WORLD §3.1 `ev_redundant_stand` (Loop 4+): replaces the pool roll at 10 % "if the player died here in an earlier loop"
+      // (profile lastDeathLocation: the `diedHere` atom, U34e, D-091).
       {
         id: 'enc_ruins_redundant_stand',
         groups: [{ creatureId: 'cr_redundant_wayfinder' }],
         chance: 0.1,
-        when: { loop: { min: 4 } },
+        when: { all: [{ loop: { min: 4 } }, { diedHere: true }] },
         respawn: 'on_return',
         intro: 'Someone is standing where you fell. They are wearing what you wore.',
       },

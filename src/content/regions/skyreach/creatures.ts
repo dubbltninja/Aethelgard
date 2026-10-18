@@ -17,8 +17,8 @@
 // every pattern turn by turn. Readings (each repeated at its move; listed in the U48a reply):
 //   - the Spire Loom's Rethread ("ifHpBelow:50", no "once") waits while its own Shield stands (`not selfHas status_shield`),
 //     U44's reading of the Weaver's Mend;
-//   - the Stormcrown's "ifAllyDown" Call Kite has no atom: `allyCountBelow: 1` stands in (no kite standing), the Reach's and
-//     the Steppe's reading (D-094); with "max 1 alive" the summon's `max` is 1;
+//   - the Stormcrown's "ifAllyDown" Call Kite is `allyDown` (U34e, D-094) while no kite stands ("max 1 alive": the summon's
+//     `max` is 1, and a call it cannot answer would waste the turn);
 //   - the Stormcrown's Call Lightning comes "the turn after crown_rain": the Rain's `everyNth: 3` opens a `then` block of two
 //     steps, the Rain and then the Lightning, which DESIGN §4.2 runs to completion before the pointer continues, so the
 //     Lightning is the very next intent after every Rain and never comes without one;
@@ -27,7 +27,7 @@
 //     carries `when: hpBelow 0.3`, the Phase 3 threshold (the Stormcrown never heals, so the row holds exactly in Phase 3);
 //     the intent chip of a Phase 1 Talon still lists "hastens itself" (tags do not read a row's `when`), as the Cinderback's
 //     Guard-gated Burn still reads "may Burn".
-// Not expressible (the U48a reply): Skyborn Haste in the gale and the storm's lightning on Soaked (region weather, U34d);
+// Skyborn Haste in the gale and the storm's lightning on Soaked are the places' `hazards` (U34e, D-097, locations.ts);
 // the Cloud Ray's "×1.5 if you are Soaked" is the engine's Storm-on-Soaked interplay (DESIGN §4.6 row 1), not a field.
 import type { CombatWhen, CreatureInput, StatusApply, Step } from '@schema/creature';
 
@@ -315,7 +315,7 @@ const stormcrown = {
             { move: 'crown_rain', target: 'all' },
             { move: 'crown_call_lightning', target: 'player' },
           ],
-          else: [firstOf([[{ allyCountBelow: 1 }, { move: 'crown_call_kite', target: 'self' }]], { move: 'crown_gale', target: 'all' })],
+          else: [firstOf([[{ all: [{ allyDown: true }, { allyCountBelow: 1 }] }, { move: 'crown_call_kite', target: 'self' }]], { move: 'crown_gale', target: 'all' })],
         },
       ],
     },
@@ -348,4 +348,54 @@ const stormcrown = {
 } satisfies CreatureInput;
 
 /** WORLD §6.5 order: the Spire Loom, the Gale Kite, the Cloud Ray, the Stormcrown. */
-export const creatures = [spireLoom, galeKite, cloudRay, stormcrown] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_still_kite — Spireborn (Sentinel) · L12 anomaly, Loop 2+ · XP 376 ("Ignores the gale; strikes twice at dawn")
+// Not `skyborn`, so the gale's Haste passes it by (locations.ts hazards); at dawn its Slice hits twice.
+const stillKite = {
+  id: 'cr_anomaly_still_kite',
+  name: 'Still Kite',
+  description: 'A Gale Kite that flies in no wind, and cuts twice in the still dawn.',
+  family: 'fam_spireborn',
+  materialKin: 'sentinel',
+  role: 'anomaly',
+  level: 12,
+  stats: galeKite.stats,
+  tags: ['construct', 'anomaly'],
+  resistances: galeKite.resistances,
+  statusImmunities: galeKite.statusImmunities,
+  moves: {
+    ...galeKite.moves,
+    still_cut: { ...galeKite.moves.kite_slice, name: 'Still Cut', line: 'In the still air it passes through you twice.', power: { coef: 1.1, stat: 'atk', hits: 2 } },
+  },
+  pattern: [
+    firstOf(
+      [
+        [{ first: true }, { move: 'kite_tether', target: 'player' }],
+        [{ targetHas: 'status_mark' }, { move: 'kite_swoop', target: 'player' }],
+        [{ everyNth: 3 }, { move: 'kite_updraft', target: 'player' }],
+        [{ watch: 'dawn' }, { move: 'still_cut', target: 'player' }],
+      ],
+      { move: 'kite_slice', target: 'player' },
+    ),
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: galeKite.gold,
+  xp: 376,
+  anomaly: { region: 'region_skyreach', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. A kite in no wind at all. The gale does not touch it, and at dawn, when the air stops, it cuts twice in one pass. Fight it by day.',
+    tactics: 'Avoid it at dawn; clear the Mark; plain steel.',
+    codexId: 'codex_creatures_spireborn',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'rhombus', details: ['wind_tail', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [spireLoom, galeKite, cloudRay, stormcrown, stillKite] satisfies CreatureInput[];

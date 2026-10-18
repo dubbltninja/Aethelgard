@@ -87,4 +87,9 @@ export interface Profile {
   /** How many NG+ starts. */
   newGamePlus: number;
   lastClassId: string | null;
+  /**
+   * U34e (C1 addition, D-091; WORLD §12.1 `ws_loop_4` "profile `lastDeathLocation`"): where the player last fell (any
+   * death: a Loop 1 FALLEN, The Fall); absent until then. The `diedHere` condition reads it.
+   */
+  lastDeathLocation?: string;
 }

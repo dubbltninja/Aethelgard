@@ -15,7 +15,7 @@
 // seams." is the engine's, added to any infected node's text but the Apex's (whose own Horde text is the legacy one, read
 // off `flag_horde_active`); the 50 % Glow Gland is an item `chance`; the Frayed Moments after the fall appear on the
 // first entry after it; the orrery's "with the key, item_chronal_dust ×2" is an `onlyIf` effect.
-import type { LocationInput } from '@schema/location';
+import type { HazardInput, LocationInput } from '@schema/location';
 
 /** The legacy text, legacy/aethelgard_data.py, and WORLD's appended sentence. */
 const APEX_BASE =
@@ -24,6 +24,11 @@ const APEX_BASE =
 const APEX_HORDE = 'The Apex is collapsing into violent rifts. The air screams with tearing time, and every breath tastes of ash and panic. You must get out now.';
 /** The legacy encounter line, `f"You sense danger... {threat_name} approaches!"` with the Tyrant's name (STORY §13 keeps it). */
 const TYRANT_APPROACHES = 'You sense danger... The Chronos Tyrant approaches!';
+
+
+// U34e (D-094): the Glowlands sinkholes (WORLD §2.5): Slow for 1 turn on an ambush. The Nexus's temporal shear stays
+// unmodelled (10 % a watch to lose or gain one: net zero, a visible stutter).
+const SINKHOLES: Omit<HazardInput, 'id'> = { on: 'ambush', status: { id: 'status_slow', duration: 1, to: 'party' } };
 
 export const locations = [
   // ---- Veridian Glowlands — the swamp that glows; Dask cannot stay (WORLD §3.5; D-068.2) -----------------------------------
@@ -70,6 +75,7 @@ export const locations = [
     // WORLD's particles are "green glow pulses rising from the ground"; spores is the nearest preset.
     art: { template: 'swamp', horizon: 0.6, silhouettes: ['reed_clumps', 'bent_lantern_trees', 'causeway_line'], particles: 'spores', timeOfDay: 'dusk' },
     levelBand: { min: 9, max: 10 },
+    hazards: [{ id: 'glowlands_sinkholes', ...SINKHOLES }], // U34e (D-094)
     map: { x: 32, y: 10 },
     tags: ['legacy'],
   },

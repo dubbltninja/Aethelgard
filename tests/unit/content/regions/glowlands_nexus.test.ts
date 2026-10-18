@@ -9,7 +9,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildContentPack, contentTables, parseContentPack } from '@content/index';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { REGION_FOLDERS } from '@content/regions';
-import { creatures } from '@content/regions/glowlands_nexus/creatures';
+import { creatures as folderCreatures } from '@content/regions/glowlands_nexus/creatures';
 import { locations } from '@content/regions/glowlands_nexus/locations';
 import { npcs } from '@content/regions/glowlands_nexus/npcs';
 import { region } from '@content/regions/glowlands_nexus/region';
@@ -42,6 +42,10 @@ import { CONTAINED as FIXTURE_CONTAINED, combatTables } from '@tests/fixtures/co
 import { miniContentTables } from '@tests/fixtures/miniContent';
 import { main as validateCli } from '../../../../tools/validate-content';
 import { PLAN, WORLD, appendixLegacyLocations, ids, section, tableRows, unquote, worldCreature, worldCreatureTable, worldEdges, worldLocations, worldNodes } from './worldDoc';
+
+// U34e (D-087): WORLD §10.2's anomaly variants live in this folder too; WORLD §6's checks below are on the
+// others (tests/unit/engine/u34e/anomalies.test.ts checks the variants).
+const creatures = folderCreatures.filter((c) => !c.id.startsWith('cr_anomaly_'));
 
 const ROOT = path.resolve(import.meta.dirname, '../../../..');
 const DESIGN = fs.readFileSync(path.join(ROOT, 'docs/DESIGN.md'), 'utf8');

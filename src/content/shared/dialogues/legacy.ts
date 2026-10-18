@@ -572,6 +572,7 @@ export const dialogues = [
             text: 'Stabilize the Heartstone and align it with the ley lines.',
             effects: [
               { setFlag: 'flag_heartstone_stabilized' },
+              { heartstone: 'stabilized' }, // U34e (D-105): world.heartstone, which the engine reads
               { clockWatches: 24 },
               { rep: { faction: 'remnants', delta: 15 } },
               { grantEcho: 'echo_heartstone_resonance' },
@@ -588,6 +589,7 @@ export const dialogues = [
             text: 'Exploit its power and claim it for yourself.',
             effects: [
               { setFlag: 'flag_heartstone_exploited' },
+              { heartstone: 'exploited' }, // U34e (D-105): world.heartstone, which the engine reads
               { clockWatches: -20 },
               { rep: { faction: 'weavers', delta: 15 } },
               { rep: { faction: 'remnants', delta: -15 } },
@@ -605,6 +607,7 @@ export const dialogues = [
             // DESIGN §13.3 ex. 1, in its order, then the legacy +20 max HP and full heal
             effects: [
               { setFlag: 'flag_heartstone_destroyed' },
+              { heartstone: 'destroyed' }, // U34e (D-105): world.heartstone, which the engine reads
               { clockWatches: -40 },
               { rep: { faction: 'ironclad', delta: 20 } },
               { rep: { faction: 'remnants', delta: -25 } },

@@ -32,7 +32,7 @@
 import type { CombatWhen, StatusApply } from '@schema/creature';
 import type { Status } from '@schema/status';
 import type { ContentPack, StepCtx } from '../ctx';
-import { derive } from '../derived';
+import { derive, statusDurationCut } from '../derived';
 import { modifierDamageMult } from '../runRules';
 import type { Combatant, CombatState, GameState, StatusInstance } from '../types/state';
 import { afterHitBuffs, buffTurnEnd, buffTurnStart, tetherHeal } from './buffHooks';
@@ -71,6 +71,8 @@ export const STUN_RECOVERY_TURNS = 2;
 export const STUN_RECOVERY_KEY = STATUS.stun;
 /** DESIGN §4.5 Poison: constructs and breach-born are immune (creature tags). */
 export const POISON_IMMUNE_TAGS: readonly string[] = ['construct', 'breach_born'];
+/** U34e (D-094): WORLD §6's conventions — "`construct`: Poison and Bleed immune" (creature tag). */
+export const BLEED_IMMUNE_TAGS: readonly string[] = ['construct'];
 /** DESIGN §4.5 / D-066 #1: a boss's Rewind restores at most 10 % of its max HP. */
 export const BOSS_REWIND_CAP = 0.1;
 /** DESIGN §4.5 Rewind: what its restore also cleanses. */
@@ -143,7 +145,7 @@ const sideOf = (combat: CombatState, c: Combatant): Combatant[] => (c.kind === '
 const opponentsOf = (combat: CombatState, c: Combatant): Combatant[] => (c.kind === 'enemy' ? combat.party : combat.enemies);
 
 /**
- * What `c` cannot be given: a creature's `statusImmunities` (+ Poison for constructs and breach-born, + Taunt when
+ * What `c` cannot be given: a creature's `statusImmunities` (+ Poison for constructs and breach-born, Bleed for constructs, + Taunt when
  * `tauntImmune`), a companion's record, the player's gear passives (derive).
  */
 export function statusImmunities(s: GameState, content: ContentPack, c: Combatant): string[] {
@@ -152,7 +154,10 @@ export function statusImmunities(s: GameState, content: ContentPack, c: Combatan
     if (!def) return [];
     const out = [...def.statusImmunities];
     if (def.tags.some((t) => POISON_IMMUNE_TAGS.includes(t)) && !out.includes(STATUS.poison)) out.push(STATUS.poison);
+    if (def.tags.some((t) => BLEED_IMMUNE_TAGS.includes(t)) && !out.includes(STATUS.bleed)) out.push(STATUS.bleed); // U34e (D-094)
     if (def.tauntImmune && !out.includes(STATUS.taunt)) out.push(STATUS.taunt);
+    // U34e (D-096): a boss phase's own immunities ("her Regen and Shield … cannot be reapplied")
+    for (const id of def.phases[c.phase]?.statusImmunities ?? []) if (!out.includes(id)) out.push(id);
     return out;
   }
   if (c.kind === 'companion') return [...(content.companions[c.refId]?.statusImmunities ?? [])];
@@ -292,7 +297,9 @@ export function applyStatus(ctx: StepCtx, combat: CombatState, source: Combatant
   }
 
   const ownTurn = isOwnTurn(combat, target);
-  const duration = Math.max(1, opts.duration ?? def.defaultDuration);
+  // U34e (D-099): the wearer's `status_duration_reduction` gear (Diver's Coat, Salt Charm) takes turns off, never below 1
+  const cut = target.kind === 'player' ? statusDurationCut(ctx.s.player, ctx.content, statusId) : 0;
+  const duration = Math.max(1, (opts.duration ?? def.defaultDuration) - cut);
   const magnitude = magnitudeOf(def, source, target, opts);
   const existing = findStatus(target, statusId);
   let inst: StatusInstance;

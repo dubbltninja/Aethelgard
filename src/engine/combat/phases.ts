@@ -45,7 +45,7 @@ import type { ContentPack, StepCtx } from '../ctx';
 import { apply } from '../effects';
 import type { Combatant, CombatState } from '../types/state';
 import { resolveHit, roundHalfUp } from './damage';
-import { evalCombatWhen, generateIntent, intentHitSpec, resetPattern, withdrawFromCombat } from './intents';
+import { evalCombatWhen, forceIntent, generateIntent, intentHitSpec, resetPattern, withdrawFromCombat } from './intents';
 import { STRIP_KINDS, moveHits, type CombatOps } from './specials';
 import { applyStatusRows, removeStatus, type WhenEval } from './statuses';
 import { MAX_ENEMIES, combatLog, enemyCombatant, isActive, startRound } from './turnOrder';
@@ -208,6 +208,29 @@ export function checkPhases(ctx: StepCtx, combat: CombatState, event?: PhaseEven
     reinforce(ctx, combat, boss);
     advance(ctx, combat, boss, event);
   }
+  for (const c of combat.enemies) hpLines(ctx, combat, c);
+}
+
+/** `pattern.firedOnce` tag of an `hpLines` entry that has been spoken (`hpline:<index>`). */
+export const HP_LINE_TAG = 'hpline:';
+
+/**
+ * U34e (D-094, D-098 "boss lines at HP thresholds"): each `hpLines` entry whose threshold the creature's HP is now under,
+ * once a fight, in order: its line (the combat log, kind 'phase', and the run log), then with a `move` its next action
+ * becomes that move (intents.ts `forceIntent`).
+ */
+function hpLines(ctx: StepCtx, combat: CombatState, c: Combatant): void {
+  const lines = ctx.content.creatures[c.refId]?.hpLines ?? [];
+  lines.forEach((line, i) => {
+    const tag = `${HP_LINE_TAG}${i}`;
+    if (!isActive(c) || !(c.hp < line.below * c.hpMax) || c.pattern.firedOnce.includes(tag)) return;
+    c.pattern.firedOnce.push(tag);
+    if (line.text !== undefined) {
+      combatLog(combat, line.text, 'phase');
+      ctx.log(line.text, 'combat');
+    }
+    if (line.move !== undefined) forceIntent(ctx, combat, c, line.move);
+  });
 }
 
 /** An `event` trigger reported by another system (U29: `communionMovementEnd`). */

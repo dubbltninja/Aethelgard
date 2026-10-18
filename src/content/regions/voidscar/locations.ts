@@ -16,12 +16,12 @@
 // withdraws her protection, so the Chasm is `safe` (no pool) and carries the whole Wary pool as two Wary-gated encounters:
 // the sentry at 8 % and the stalker at 12 % of what is left (a second roll of p / (1 − p1), as U43's Rootlings).
 //
-// Not expressible (listed in the U44 reply): WORLD §12.1 `ws_heartstone_exploited`'s "Void-touched +1 level variants" at
-// the Hollow (no creature-level slot on an encounter; the brighter glow is an art patch only); `q_lightless_stair` "begins
-// here, at the curtain" (a quest giver is the quest unit's; the gate below already reads it); the Void-chill (region.ts).
+// WORLD §12.1 `ws_heartstone_exploited`'s "Void-touched +1 level variants" at the Hollow are the location's `levelBonus`
+// (U34e, D-098/D-105; the brighter glow is the art patch). Not expressible (listed in the U44 reply): `q_lightless_stair`
+// "begins here, at the curtain" (a quest giver is the quest unit's; the gate below already reads it); the Void-chill (region.ts).
 // Exits to other regions name their WORLD ids and stay pending until those units land (D-090).
 import type { Condition } from '@schema/condition';
-import type { LocationInput } from '@schema/location';
+import type { HazardInput, LocationInput } from '@schema/location';
 
 /** WORLD §12.1 `ws_weavers_wary`: `{rep:{faction:"weavers",max:-10}}`: Wary is −39..−10, Hostile ≤ −40. */
 const WEAVERS_WARY: Condition = { rep: { faction: 'weavers', max: -10 } };
@@ -29,6 +29,16 @@ const WEAVERS_WARY: Condition = { rep: { faction: 'weavers', max: -10 } };
 const SENTRY_JOINS_B: Condition = { all: [{ loop: { min: 2 } }, WEAVERS_WARY] };
 /** WORLD §11.3 `gate_veil_curtain`: the Trusted, those who know the hand-sign, or `q_lightless_stair` once in the journal (W12). */
 const VEIL_CURTAIN: Condition = { any: [{ rep: { faction: 'weavers', min: 20 } }, { echo: 'echo_weaver_sign' }, { quest: { id: 'q_lightless_stair' } }] };
+
+
+// U34e (D-094): the Void-chill (WORLD §2.3): standing in the Hollow more than two watches without moving applies Weaken
+// for 1 turn at the next combat.
+const VOID_CHILL: Omit<HazardInput, 'id'> = {
+  on: 'linger',
+  watches: 2,
+  status: { id: 'status_weaken', duration: 1, to: 'player' },
+  text: 'The cold of the Hollow has found its way under your skin.',
+};
 
 export const locations = [
   // ---- Chasm of Whispers — the rift, Nyx at the lip, the rope bridge (WORLD §3.3, §11.3 `gate_chasm_bridge`) ------------------
@@ -108,6 +118,8 @@ export const locations = [
     ],
     // "item_void_shard ×1 lies loose in the crystal (first visit; the other shards drop from Stalkers)"
     items: [{ itemId: 'item_void_shard' }],
+    // U34e (D-105): "Heartstone exploited: the Hollow's crystal glows brighter (Void-touched +1 level variant encounters)"
+    levelBonus: [{ when: { flag: 'flag_heartstone_exploited' }, creatures: ['cr_void_touched_stalker'], levels: 1 }],
     encounters: [
       // first: group A ×2 (100 %), the legacy three's first two (the legacy fight, scatter: WORLD §10.4)
       {
@@ -168,6 +180,7 @@ export const locations = [
       variants: [{ when: { flag: 'flag_heartstone_exploited' }, patch: { particles: 'shards' } }],
     },
     levelBand: { min: 5, max: 7 },
+    hazards: [{ id: 'void_chill', ...VOID_CHILL }], // U34e (D-094)
     map: { x: 24, y: 0 },
     tags: ['legacy', 'shards'],
   },

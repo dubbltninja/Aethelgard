@@ -57,6 +57,10 @@ export interface CombatWhenAtoms {
   targetIsBoss: boolean;
   /** The target has acted this fight (Ambush: "act before the target has acted"). */
   targetHasActed: boolean;
+  /** U34e (C1 addition, D-091/D-094): an ally on the creature's side has fallen this fight (WORLD `ifAllyDown`). */
+  allyDown: true;
+  /** U34e (C1 addition, D-092): a living ally (itself excluded) is below this fraction of its max HP ("the ally is below 50 %"). */
+  allyBelow: number;
 }
 
 type WorldKey = Exclude<ConditionKey, 'all' | 'any' | 'not'>;
@@ -82,6 +86,8 @@ export const COMBAT_WHEN_ATOMS: { readonly [K in keyof CombatWhenAtoms]: z.ZodTy
   playerGuarding: z.boolean(),
   targetIsBoss: z.boolean(),
   targetHasActed: z.boolean(),
+  allyDown: z.literal(true),
+  allyBelow: z.number().gt(0, 'allyBelow is a fraction of max HP in (0, 1]').max(1, 'allyBelow is a fraction of max HP in (0, 1]'),
 };
 
 const WORLD_KEYS = CONDITION_KEYS.filter((k): k is WorldKey => k !== 'all' && k !== 'any' && k !== 'not');
@@ -157,6 +163,18 @@ const MoveObject = z
     effects: Effects,
     /** Engine-coded script (specials.ts, 'move' scope). */
     special: SpecialFor('move').optional(),
+    /**
+     * U34e (C1 additions, D-092/D-094/D-096; WORLD §6 intent effects):
+     * `repeatPrevious` — the move plays the creature's previous move again, aimed by that move's step ("repeats its previous
+     * move"; skipped while it has none); `missesIfGuarded` — against a Guarding target it misses outright, no damage and no
+     * status ("misses entirely if you Guard"); `consumesAlly` — one living ally of that creature leaves the fight when the move
+     * is used (no XP, no loot, not a kill: "consumes the toad"); `clockCost` — the Breach Clock's limit moves `watches` earlier
+     * when the move is used, at most once a fight with `oncePerFight` (the Hour Leech).
+     */
+    repeatPrevious: z.boolean().default(false),
+    missesIfGuarded: z.boolean().default(false),
+    consumesAlly: CreatureId.optional(),
+    clockCost: z.object({ watches: int.min(1), oncePerFight: z.boolean().default(false) }).strict().optional(),
   })
   .strict();
 
@@ -302,6 +320,10 @@ export const PhaseSchema = z
     damageTakenMult: z.number().positive().default(1),
     /** Outgoing damage +x per round spent in this phase, uncapped (Unveiled `tyr_phase_4`: 0.1). */
     damageDealtRampPerRound: z.number().min(0).default(0),
+    /** U34e (C1 addition, D-096): statuses the boss cannot be given while in this phase ("cannot be reapplied"). */
+    statusImmunities: z.array(StatusId).default([]),
+    /** U34e (C1 addition, D-094): applied to every living combatant at the start of each round in this phase ("every combatant is Soaked"). */
+    roundStatuses: z.array(StatusId).default([]),
   })
   .strict();
 
@@ -421,6 +443,35 @@ const CreatureObject = Base.extend({
   sigil: z.object({ base: z.string(), accent: z.string().optional(), details: z.array(z.string()).default([]) }).strict(),
   onDefeat: Effects,
   legacyName: z.string().optional(),
+  /** U34e (C1 addition, D-092/D-094; WORLD `onDeath`): a move of its own that resolves the moment it falls, before loot. */
+  deathMove: z.object({ move: Id, target: TargetRule.default('all') }).strict().optional(),
+  /**
+   * U34e (C1 addition, D-094/D-098 "boss lines at HP thresholds"): the first time in a fight its HP drops below `below`, the
+   * line is spoken and, with `move`, its next action becomes that move (aimed at itself; the committed intent is replaced,
+   * as a phase entry resets it). Each entry once a fight.
+   */
+  hpLines: z
+    .array(
+      z
+        .object({ below: z.number().gt(0).lt(1), text: Text.optional(), move: Id.optional() })
+        .strict()
+        .refine((l) => l.text !== undefined || l.move !== undefined, 'an hpLine needs text and/or a move'),
+    )
+    .default([]),
+  /**
+   * U34e (C1 addition, D-091 gap 4, D-097; WORLD §10.2 "Permanent Haste"): statuses it holds for the whole fight, put on at
+   * the opening and again at the start of each of its turns.
+   */
+  innateStatuses: z.array(StatusId).default([]),
+  /**
+   * U34e (C1 addition, D-087, D-091 gap 4; DESIGN §6.6, WORLD §10.2): a `cr_anomaly_*` variant's spawn — in `region` from
+   * Loop `loop`, `count` of it, while `when` holds — on an arrival that starts no fixed encounter (engine: reducers/combat.ts
+   * `anomalyEncounter`).
+   */
+  anomaly: z
+    .object({ region: PId('region_'), loop: int.min(2), count: int.min(1).max(3).default(1), when: ConditionSchema.optional() })
+    .strict()
+    .optional(),
 }).strict();
 
 type CreatureShape = z.output<typeof CreatureObject>;
@@ -504,6 +555,16 @@ function checkCreature(c: CreatureShape, ctx: z.RefinementCtx): void {
   }
 
   if (c.gold.min > c.gold.max) issue(['gold'], 'gold.min must be ≤ gold.max');
+
+  // 7. U34e: the death move and the HP lines name its own moves; a move repeats or consumes in a way it can.
+  if (c.deathMove && !known.has(c.deathMove.move)) issue(['deathMove', 'move'], `deathMove references unknown move '${c.deathMove.move}'`);
+  c.hpLines.forEach((l, i) => {
+    if (l.move !== undefined && !known.has(l.move)) issue(['hpLines', i, 'move'], `hpLines move references unknown move '${l.move}'`);
+  });
+  for (const [id, m] of Object.entries(c.moves)) {
+    if (m.repeatPrevious && (m.power !== undefined || m.windUp !== undefined)) issue(['moves', id, 'repeatPrevious'], 'a repeating move plays the previous one: it has no power or wind-up of its own');
+  }
+  if (c.anomaly !== undefined && c.role !== 'anomaly') issue(['anomaly'], `only an anomaly spawns as one (role is '${c.role}')`);
 }
 
 export const CreatureSchema = CreatureObject.superRefine(checkCreature);

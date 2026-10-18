@@ -16,16 +16,13 @@
 //   - a low-HP self-move with no "once" (the Cinderback's Rekindle, the Stalker's Wade) waits while its own effect still
 //     stands (`not selfHas`), as U45's self-Rewind and the Reach's Eddy do: otherwise it would repeat every turn and the
 //     creature would never strike;
-//   - the Cinderback's Stampede "misses entirely if you Guard" (WORLD §3.7): no atom nullifies a hit on Guard, so the Guard
-//     the engine gives (half damage) stands and the Burn is not applied to a Guarding player (`when: playerGuarding false`,
-//     the Stun-unless-Guarded form of the Glowlands);
+//   - the Cinderback's Stampede "misses entirely if you Guard" (WORLD §3.7): the move's `missesIfGuarded` (U34e, D-094);
 //   - Ashmaw's Phase 3 "armor is 0 for the rest of the fight": no field sets a creature's armor mid-fight (a phase's
 //     `onEnter` has no stat atom, and Armor Break would zero the ward too and add 15 %), so the phase takes `damageTakenMult`,
 //     the reference arithmetic of D-067.20 inverted: 38.4 expected physical damage a round against armor 6 is 32.4 a round
 //     through it, 38.4 / 32.4 = 1.185 without it (the Contained Tyrant's ×1.5 phase is the field's precedent, D-068.3);
-//   - Ashmaw's Grief (`ifHpBelow:15`, once, "no action") is a pattern step with `oncePerFight` after the Stampede's cadence,
-//     WORLD's listing order; the line is the move's telegraph, there is no hook for a boss line at an HP threshold outside a
-//     phase entry (the U34d gap).
+//   - Ashmaw's Grief (`ifHpBelow:15`, once, "no action") is the creature's `hpLines` with the move (U34e, D-094): the moment its
+//     HP falls under 15 % its next action is the Grief, whatever the Stampede's cadence.
 import type { CombatWhen, CreatureInput, Step } from '@schema/creature';
 
 const REVEALS = [{ kills: 1, reveal: 'resist' }, { kills: 3, reveal: 'all' }] as const;
@@ -113,13 +110,14 @@ const cinderback = {
   resistances: { storm: 'weak', fire: 'resist' },
   statusImmunities: ['status_burn'],
   moves: {
-    // "misses entirely if you Guard": see the header (the Burn is not applied to a Guarding player)
+    // "misses entirely if you Guard" (see the header)
     cinder_stampede: {
       name: 'Stampede',
       line: 'The ground shakes. It lowers a burning head at you.',
       type: 'fire',
       power: { coef: 2.0, stat: 'sp' },
-      statuses: [{ status: 'status_burn', chance: 0.6, duration: 3, when: { playerGuarding: false } }],
+      statuses: [{ status: 'status_burn', chance: 0.6, duration: 3 }],
+      missesIfGuarded: true,
     },
     cinder_hook: {
       name: 'Hook',
@@ -255,6 +253,8 @@ const ashmaw = {
   statusImmunities: ['status_burn', 'status_stun'],
   interruptible: true, // "Stagger allowed"
   fleeable: false,
+  // `ifHpBelow:15` · once · "no action": the Grief takes its next turn the moment its HP falls under 15 % (U34e, D-094)
+  hpLines: [{ below: 0.15, move: 'ashmaw_grief' }],
   moves: {
     ashmaw_breathe: {
       name: 'Breathe',
@@ -316,15 +316,8 @@ const ashmaw = {
       line: "The brand on its flank, a flame inside a ring, burns brighter than the rest. Dreyl's mark.",
       // "its armor is 0 for the rest of the fight": see the header
       damageTakenMult: 1.185,
-      pattern: [
-        firstOf(
-          [
-            [{ everyNth: 2 }, { move: 'ashmaw_stampede', target: 'player' }],
-            [{ all: [{ hpBelow: 0.15 }, { oncePerFight: true }] }, { move: 'ashmaw_grief', target: 'self' }],
-          ],
-          { move: 'ashmaw_brand_flare', target: 'all' },
-        ),
-      ],
+      // `ifHpBelow:15` · once → the Grief: the creature's `hpLines` (see the header)
+      pattern: [firstOf([[{ everyNth: 2 }, { move: 'ashmaw_stampede', target: 'player' }]], { move: 'ashmaw_brand_flare', target: 'all' })],
     },
   ],
   loot: [
@@ -349,4 +342,40 @@ const ashmaw = {
 } satisfies CreatureInput;
 
 /** WORLD §6 order: the Salt Jackal (§6.2), the Cinderback, Ashmaw; the Reed Stalker (§6.6). */
-export const creatures = [saltJackal, cinderback, ashmaw, reedStalker] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_one_herd — Wilds · L7 anomaly ×3, Loop 2+ · XP 176 each ("Three jackals act on one initiative") ------------
+// The `one_initiative` tag: all three keep the first one's roll, so they act back to back (combat/turnOrder.ts).
+const oneHerd = {
+  id: 'cr_anomaly_one_herd',
+  name: 'One-Herd Jackal',
+  description: 'Three jackals that move as one animal.',
+  family: 'fam_wilds',
+  materialKin: 'wildling',
+  role: 'anomaly',
+  level: 7,
+  stats: saltJackal.stats,
+  tags: ['pack', 'anomaly', 'one_initiative'],
+  resistances: saltJackal.resistances,
+  moves: saltJackal.moves,
+  pattern: saltJackal.pattern,
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: saltJackal.gold,
+  xp: 176,
+  anomaly: { region: 'region_ashen_steppe', loop: 2, count: 3 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2, the Pan. Three jackals and one heartbeat: they go on the same instant, one after another, with no gap in the pack to step into. Guard before the three of them move.',
+    tactics: 'Storm across the pack; clear the Mark before the three of them pull you down.',
+    codexId: 'codex_creatures_wilds',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'triangle', details: ['salt_white', 'pack', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [saltJackal, cinderback, ashmaw, reedStalker, oneHerd] satisfies CreatureInput[];

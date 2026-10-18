@@ -17,8 +17,7 @@
 //     Sentinel names Poison only; the tag decides, WORLD §5);
 //   - the Weaver's Mend ("ifHpBelow:50") waits while its Shield stands (`not selfHas status_shield`: a second cast refreshes
 //     the pool and spends the turn, status_shield "keeps the higher pool"), the reading U45 made for the self-Rewind;
-//   - the Glass Mote's Shatter ("onDeath") has no hook (DESIGN §4.2's CombatWhen has none): it is authored, telegraph and
-//     all, and no pattern reaches it, as U45's Spore Drift burst (a gap for U34d);
+//   - the Glass Mote's Shatter ("onDeath") is the creature's `deathMove` (U34e, D-094);
 //   - the Moth's "ifAllyPresent, everyNthTurn:3" Swarm is both conditions at once (`all`); "strips your haste" is the
 //     combat-scope `stripBuffs` (D-069.9);
 //   - the Harrier's Storm Glass (30 %) is DESIGN §8.2 / WORLD §8.1's drop table; the §6.2 block's Loot line omits it.
@@ -175,14 +174,14 @@ const glassMote = {
       statuses: [{ status: 'status_bleed', chance: 0.4, duration: 3 }],
     },
     mote_refract: { name: 'Refract', line: 'Light enters it and leaves it pointed at you.', type: 'ley', power: { coef: 1.1, stat: 'sp' } },
-    // WORLD `onDeath` ("resolves when it dies"): no pattern condition or creature hook fires a move at death (see the header),
-    // so the burst is authored, telegraph and all, and no pattern reaches it
+    // WORLD `onDeath` ("resolves when it dies"): the creature's `deathMove` (U34e, D-094)
     mote_shatter: { name: 'Shatter', line: 'Cracks race through it. It is going to burst.', type: 'physical', power: { coef: 1.2, stat: 'atk' } },
   },
   pattern: [
     { move: 'mote_spin', target: 'player' },
     { move: 'mote_refract', target: 'player' },
   ],
+  deathMove: { move: 'mote_shatter', target: 'all' }, // U34e (D-094): "1.2× all · onDeath"
   loot: [
     { itemId: 'item_aetherium_shard', chance: 0.3 },
     { itemId: 'mat_skyreach_crystal', chance: 0.15 },
@@ -212,7 +211,8 @@ const aetherialWeaver = {
   level: 8,
   // legacy: HP 38 · dmg 8 · def 3 · agi 5 · XP 55; WORLD: −25 % HP if the Heartstone was destroyed (the engine's breach rule)
   stats: { hp: 96, atk: 17, sp: 17, armor: 2, ward: 4, agi: 7 },
-  tags: ['construct', 'legacy'],
+  // U34e (D-105): `ley_made` — WORLD §2.4 "the Breach-born rule applies to Constructs of ley make too": the engine's −25 %
+  tags: ['construct', 'ley_made', 'legacy'],
   resistances: { void: 'weak', ley: 'resist' },
   statusImmunities: ['status_poison', 'status_bleed'],
   moves: {
@@ -393,4 +393,104 @@ const steppeHarrier = {
 } satisfies CreatureInput;
 
 /** East along the road: the Pass's wardens, the Spires' Spireborn, the Plateau's hawk. */
-export const creatures = [shimmeringPhantom, momentMoth, glassMote, aetherialWeaver, skyWhisperSentinel, steppeHarrier] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_doubled_phantom — Watch-wardens (Phantom) · L6 anomaly, Loop 2+ · XP 144 ("Fights beside its past self (a 50% HP copy)")
+// Its first action calls its past self: a Shimmering Phantom at half HP joins the fight (a summon).
+const doubledPhantom = {
+  id: 'cr_anomaly_doubled_phantom',
+  name: 'Doubled Phantom',
+  description: 'A Phantom that brought the moment before with it.',
+  family: 'fam_watch_wardens',
+  materialKin: 'phantom',
+  role: 'anomaly',
+  level: 6,
+  stats: shimmeringPhantom.stats,
+  tags: ['breach_born', 'anomaly'],
+  resistances: shimmeringPhantom.resistances,
+  statusImmunities: shimmeringPhantom.statusImmunities,
+  moves: {
+    ...shimmeringPhantom.moves,
+    doubled_past_self: {
+      name: 'Past Self',
+      line: 'Beside it, a breath ago, it is standing too.',
+      summon: { creatureId: 'cr_shimmering_phantom', count: 1, max: 1, hpPct: 0.5 },
+    },
+  },
+  pattern: [
+    firstOf(
+      [
+        [{ first: true }, { move: 'doubled_past_self', target: 'self' }],
+        [{ everyNth: 3 }, { move: 'phantom_mirage', target: 'self' }],
+        [{ selfHas: 'status_phase' }, { move: 'phantom_teeth', target: 'player' }],
+      ],
+      { move: 'phantom_flicker', target: 'player' },
+    ),
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: shimmeringPhantom.gold,
+  xp: 144,
+  anomaly: { region: 'region_aether_kissed_highlands', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. The Phantom steps out of the Pass, and a breath later the Phantom from a breath ago steps out beside it, thinner. The past one dies easily. The present one does not care.',
+    tactics: 'Kill the past self first (half its HP), then Chrono through the Phase.',
+    codexId: 'codex_creatures_watch_wardens',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'spiral', details: ['flicker', 'double_outline'] },
+} satisfies CreatureInput;
+
+// ---- cr_anomaly_flat_chord_weaver — Spireborn (Aetherial) · L8 anomaly, Loop 2+ · XP 209 ("Its Shock chains to you and your companion")
+// Its Web's Shock lands on the whole party (`all_enemies`), whichever one the strand hits.
+const flatChordWeaver = {
+  id: 'cr_anomaly_flat_chord_weaver',
+  name: 'Flat-Chord Weaver',
+  description: 'A Weaver whose note has gone flat; its shock runs down the strand into everyone it touches.',
+  family: 'fam_spireborn',
+  materialKin: 'aetherial',
+  role: 'anomaly',
+  level: 8,
+  stats: aetherialWeaver.stats,
+  tags: ['construct', 'ley_made', 'anomaly'],
+  resistances: aetherialWeaver.resistances,
+  statusImmunities: aetherialWeaver.statusImmunities,
+  moves: {
+    ...aetherialWeaver.moves,
+    weaver_web: {
+      ...aetherialWeaver.moves.weaver_web,
+      name: 'Flat Chord',
+      line: 'It plucks a strand a hair off-key; the note runs through you into whoever stands with you.',
+      statuses: [{ status: 'status_shock', chance: 0.3, duration: 2, target: 'all_enemies' }],
+    },
+  },
+  pattern: [
+    firstOf(
+      [
+        [{ everyNth: 3 }, { move: 'weaver_web', target: 'player' }],
+        [{ all: [{ hpBelow: 0.5 }, { not: { selfHas: 'status_shield' } }] }, { move: 'weaver_mend', target: 'self' }],
+      ],
+      alternate({ move: 'weaver_strand', target: 'player' }, { move: 'weaver_bind', target: 'player' }),
+    ),
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: aetherialWeaver.gold,
+  xp: 209,
+  anomaly: { region: 'region_aether_kissed_highlands', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. One of Aulde’s weavers singing a note a hair off. It does not matter who it plucks: the shock runs down the strand into whoever stands with me.',
+    tactics: 'Cleanse Shock on both of you; Void unspins it; keep your companion out of its reach if you can.',
+    codexId: 'codex_creatures_spireborn',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'rhombus', details: ['strands', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [shimmeringPhantom, momentMoth, glassMote, aetherialWeaver, skyWhisperSentinel, steppeHarrier, doubledPhantom, flatChordWeaver] satisfies CreatureInput[];

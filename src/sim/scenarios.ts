@@ -350,10 +350,15 @@ class Run {
     return null;
   }
 
-  /** Walks to `goal` by `move`s, fighting what meets it; the last hop's fight is left to the caller with `fightAtGoal` false. */
-  walkTo(goal: string, fightAtGoal = true): void {
+  /**
+   * Walks to `goal` by `move`s, fighting what meets it; the last hop's fight is left to the caller with `fightAtGoal` false.
+   * With `untilLoopEnds`, a walk that ends the loop on the way (the Horde fells the Wayfinder: a closer, DESIGN §10.2) stops
+   * there in ending mode; otherwise that is an error.
+   */
+  walkTo(goal: string, fightAtGoal = true, untilLoopEnds = false): void {
     for (let i = 0; i < 200; i++) {
       if (this.s.world.currentLocationId === goal) return;
+      if (untilLoopEnds && this.s.mode === 'ending') return;
       if (this.s.mode !== 'explore') throw this.fail(`cannot walk in ${this.s.mode} mode`);
       const path = this.route(goal);
       if (path === null) throw this.fail(`no route to ${goal}`);
@@ -861,15 +866,16 @@ function applyOptions(run: Run, opts: ScenarioOptions): void {
 /**
  * Loop 1 → Loop 2 Day 1 by the quickest legal closer: full rests at the start's camp until the thirtieth dawn, the expiry
  * Horde (three moves before it spreads), the walk to the Library's portal, `enterPortal`, the closer's screens (D-049: no
- * Threshold after Loop 1). Everything is played.
+ * Threshold after Loop 1). Everything is played. A Level 1 Wayfinder the Horde fells on the way (the real pack's Corridor)
+ * closes the loop by The Fall (reason `expiry`) instead, which is a Loop 1 closer too (horde.ts; U34e, D-101).
  */
 function playLoop1Out(run: Run): void {
   run.restUntil(run.s.clock.limitTicks);
   if (!run.s.world.hordeActive) throw run.fail('the clock expired without a Horde');
-  run.walkTo(PORTAL_LOCATION_ID);
-  run.act({ type: 'enterPortal' });
+  run.walkTo(PORTAL_LOCATION_ID, true, true);
+  if (run.s.mode === 'explore') run.act({ type: 'enterPortal' });
   run.ackEndings();
-  if (run.s.mode !== 'explore' || run.s.meta.loop !== 2) throw run.fail('the portal did not lead to Loop 2 Day 1');
+  if (run.s.mode !== 'explore' || run.s.meta.loop !== 2) throw run.fail('the closer did not lead to Loop 2 Day 1');
 }
 
 /** Loop 2+ → the Threshold: *Let go* at a camp (D-067.14), the closer's screens. */
@@ -1220,7 +1226,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioInfo & { build: Builder }> = 
     build: combatTyrantContainedP2,
   },
   loop2_day1: {
-    summary: 'Loop 2 Day 1 after a real Loop 1 closer: the thirtieth dawn, the Horde, the Library portal.',
+    summary: 'Loop 2 Day 1 after a real Loop 1 closer: the thirtieth dawn, the Horde, the Library portal (or a Fall on the way).',
     route: 'played',
     constructed: '',
     build: loop2Day1,

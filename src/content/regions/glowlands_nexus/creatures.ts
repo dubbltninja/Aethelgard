@@ -197,9 +197,7 @@ const sporeDrift = {
       statuses: [{ status: 'status_weaken', chance: 0.4, duration: 2 }],
     },
     spore_bloom: { name: 'Bloom', line: 'Light-dust blooms from it in a slow ring.', statuses: [{ status: 'status_blind', chance: 0.4, duration: 1 }] },
-    // WORLD `onDeath` ("resolves when it dies, before loot"): no pattern condition or creature hook fires a move at
-    // death (DESIGN §4.2's CombatWhen has none), so the burst is authored, telegraph and all, and no pattern reaches it
-    // (a gap for U34d, listed in the U45 reply; WORLD's Glass Mote has the same).
+    // WORLD `onDeath` ("resolves when it dies, before loot"): the creature's `deathMove` (U34e, D-092)
     spore_burst: {
       name: 'Burst',
       line: 'It bursts, sweetly.',
@@ -214,6 +212,7 @@ const sporeDrift = {
       alternate({ move: 'spore_sweet_air', target: 'all' }, { move: 'spore_settle', target: 'player' }),
     ),
   ],
+  deathMove: { move: 'spore_burst', target: 'all' }, // U34e (D-092): "0.8× all · poison 100% 4 · onDeath"
   loot: [
     { itemId: 'mat_glow_gland', chance: 0.7 },
     { itemId: 'item_antidote_root', chance: 0.2 },
@@ -432,14 +431,14 @@ const hourLeech = {
       power: { coef: 0.8, stat: 'sp' },
       statuses: [{ status: 'status_slow', chance: 0.5, duration: 2 }],
     },
-    // WORLD: also "Breach Clock −1 watch (once per fight)". A move's effects are combat-scope only (the engine applies
-    // stripBuffs, healOnDamage, multiHit, leaveCombat): no form for a clock change from a fight (listed in the reply).
+    // WORLD: also "Breach Clock −1 watch (once per fight)": the move's `clockCost` (U34e, D-092)
     leech_drink_hour: {
       name: 'Drink the Hour',
       line: 'It swells. Somewhere, a watch goes missing.',
       type: 'chrono',
       power: { coef: 1.0, stat: 'sp' },
       effects: [{ healOnDamage: { pct: 0.5 } }],
+      clockCost: { watches: 1, oncePerFight: true },
     },
     leech_coil: { name: 'Coil', line: 'It coils back into the moment it came from.', statuses: [...REWIND_SELF] },
   },
@@ -739,6 +738,8 @@ const unveiledTyrant = {
   tauntImmune: true,
   interruptible: true,
   fleeable: false,
+  // Phase 4: "at 10% HP, once" (WORLD §6.8; U34e, D-098)
+  hpLines: [{ below: 0.1, text: "'If you finish this, run,' says the voice under the chorus. 'I mean that kindly.'" }],
   moves: {
     tyr_speak: { name: 'Speak', line: "It speaks: 'You have crossed. So.'" },
     tyr_time_lash: tyrTimeLash,
@@ -801,8 +802,8 @@ const unveiledTyrant = {
       name: 'The Hold Fails',
       enterWhen: [{ hpBelow: 0.25 }, { round: 20 }],
       line: 'The hold fails. The chorus stops pretending to be one voice.',
-      // outgoing damage +10 % per round in this phase, uncapped (DESIGN). The voice under the chorus "at 10 % HP, once"
-      // ('If you finish this, run …') has no hook outside a phase entry: the dialogue/UI unit's (listed in the reply).
+      // outgoing damage +10 % per round in this phase, uncapped (DESIGN). The voice under the chorus "at 10 % HP, once" is
+      // the creature's `hpLines` (U34e, D-098)
       damageDealtRampPerRound: 0.1,
       pattern: [{ move: 'tyr_unraveling', target: 'all' }],
     },
@@ -976,6 +977,83 @@ const unveiledTyrant = {
 } satisfies CreatureInput;
 
 /** WORLD §6 order within the region: the Green, Watch-wardens, the Unravelled. */
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_aberration_pair — Watch-wardens (Aberration) · L12 anomaly ×2 (elite stats), Loop 3+, the Nexus only · XP 676
+// each ("Two Aberrations share one Rewind"). The `shared_once` tag makes the Rewind's `oncePerFight` one for both of them.
+const aberrationPair = {
+  id: 'cr_anomaly_aberration_pair',
+  name: 'Paired Aberration',
+  description: 'Two Aberrations keeping one hour between them, with one Rewind for the both of them.',
+  family: 'fam_watch_wardens',
+  materialKin: 'aberration',
+  role: 'anomaly',
+  level: 12,
+  stats: temporalAberration.stats,
+  tags: ['breach_born', 'anomaly', 'shared_once'],
+  resistances: temporalAberration.resistances,
+  statusImmunities: temporalAberration.statusImmunities,
+  moves: temporalAberration.moves,
+  pattern: temporalAberration.pattern,
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: temporalAberration.gold,
+  xp: 676,
+  anomaly: { region: 'region_glowlands_nexus', loop: 3, count: 2, when: { location: 'loc_chronos_nexus' } },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 3, the Nexus. Two wardens on one watch. They share everything, even the moment they run back to: when one rewinds, the other cannot. Make the first one spend it.',
+    tactics: 'Hurt both below half; Void on whichever holds the Rewind; Guard the "?" turns.',
+    codexId: 'codex_creatures_watch_wardens',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'spiral', details: ['slow_rotation', 'double_outline'] },
+} satisfies CreatureInput;
+
+// ---- cr_anomaly_late_mireling — Green (Mireling) · L9 anomaly, Loop 2+ · XP 246 ("Acts every other turn; each act hits twice")
+// Its turns cycle: late (no action), a Spit that hits twice, late, a Drag that hits twice.
+const lateMireling = {
+  id: 'cr_anomaly_late_mireling',
+  name: 'Late Mireling',
+  description: 'A Mireling that arrives a turn late, and twice.',
+  family: 'fam_green',
+  materialKin: 'mireling',
+  role: 'anomaly',
+  level: 9,
+  stats: glowfenMireling.stats,
+  tags: ['anomaly'],
+  resistances: glowfenMireling.resistances,
+  statusImmunities: glowfenMireling.statusImmunities,
+  moves: {
+    late_not_yet: { name: 'Late', line: 'It is not here yet. It will be, twice.' },
+    late_spit: { ...glowfenMireling.moves.mireling_spit, line: 'Its throat glows twice. It spits light at you, twice.', power: { coef: 0.9, stat: 'sp', hits: 2 } },
+    late_drag: { ...glowfenMireling.moves.mireling_drag, line: 'Two webbed hands, one moment apart, close on your ankle.', power: { coef: 1.1, stat: 'atk', hits: 2 } },
+  },
+  pattern: [
+    { move: 'late_not_yet', target: 'self' },
+    { move: 'late_spit', target: 'player' },
+    { move: 'late_not_yet', target: 'self' },
+    { move: 'late_drag', target: 'player' },
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: glowfenMireling.gold,
+  xp: 246,
+  anomaly: { region: 'region_glowlands_nexus', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. It is always a beat behind. One turn it is not quite there; the next it is there twice over, spitting and dragging double. Hit it on the turn it is late.',
+    tactics: 'Guard its double turn; spend its late turn on your heavy hit; Void, then fire.',
+    codexId: 'codex_creatures_green',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'circle_lit', details: ['throat_glow', 'double_outline'] },
+} satisfies CreatureInput;
+
 export const creatures = [
   glowfenMireling,
   lanternToad,
@@ -988,4 +1066,6 @@ export const creatures = [
   tyrantsReach,
   containedTyrant,
   unveiledTyrant,
+  aberrationPair,
+  lateMireling,
 ] satisfies CreatureInput[];

@@ -12,7 +12,9 @@ import type { Item } from '@schema/item';
 import { anchorOnTheRim, onTheRim } from '../before';
 import { dayOf, evaluate, explain, hasEcho } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
-import { EQUIP_SLOTS, STAT_NAMES, syncMaxima } from '../derived';
+import { EQUIP_SLOTS, GEAR_SCRIPT, STAT_NAMES, itemScript, syncMaxima } from '../derived';
+import { PREP_USE } from '../combat/gear';
+import { swapCompanion } from '../combat/companionAi';
 import { apply, applyAll, changeLimit, leaveOnGround } from '../effects';
 import type { Enumerator } from '../legalActions';
 import { RESPEC_GOLD_PER_LEVEL, masteredFor, respecPlan, unlockCostHalf, unlockProblem, type RespecPlan } from '../progression';
@@ -35,6 +37,8 @@ export const SEEN_TOO_MUCH = "I've already seen too much. Better to avoid any fu
 /** `player.uses` keys. */
 export const USES_RESPEC = 'respec';
 export const USES_SPELLBOOKS = 'spellbooksRead';
+/** U34e: the corrupting reads alone (the Margins' HP waiver is the first of them). */
+export const USES_DARK_SPELLBOOKS = 'darkSpellbooksRead';
 
 export type InventoryActionType = 'use' | 'equip' | 'unequip' | 'drop' | 'allocateStat' | 'unlockAbility' | 'readBook' | 'respec';
 
@@ -87,14 +91,108 @@ const raisesCorruption = (def: Item): boolean => def.onUse.some((e) => 'corrupti
 
 // ---- checks (one per action; the reducer and the enumerator both call it) ---------------------------------------------
 
-export function checkUse(s: GameState, content: ContentPack, action: ActionOf<'use'>): Held | string {
+export function checkUse(s: GameState, content: ContentPack, action: ActionOf<'use'>, profile?: Readonly<Profile>): Held | string {
   if (action.targetUid !== undefined) return 'There is nothing to target outside combat';
   const h = held(s, content, action.uid);
   if (typeof h === 'string') return h;
   if (h.def.type === 'tome') return `Read the ${h.def.name} instead`;
-  if (h.def.onUse.length === 0) return `${h.def.name} cannot be used`;
+  const scripted = USE_SCRIPTS.some((id) => itemScript(h.def, id) !== undefined);
+  if (h.def.onUse.length === 0 && !scripted) return `${h.def.name} cannot be used`;
   if (!h.def.usableOutOfCombat) return `${h.def.name} can only be used in combat`;
-  return h;
+  const why = useScriptProblem(s, content, profile, h.def);
+  return why ?? h;
+}
+
+// ---- U34e: item use scripts (D-099, D-101; combat/gear.ts reads what they prepare) ---------------------------------------------
+
+/** The `custom` scripts an out-of-combat `use` carries out (besides the item's `onUse` effects). */
+export const USE_SCRIPTS: readonly string[] = [
+  GEAR_SCRIPT.cleanse,
+  GEAR_SCRIPT.whetstoneStrip,
+  GEAR_SCRIPT.remnantInk,
+  GEAR_SCRIPT.lanternOilWard,
+  GEAR_SCRIPT.keepersCopy,
+  GEAR_SCRIPT.scoutsWhistle,
+];
+/** `player.uses` key prefix of a ward used out of combat (`ward:<itemId>`, day = the Breach-Clock day it holds through). */
+export const WARD_USE = 'ward:';
+/** The verse Echoes the Keeper's Copy re-reads (STORY §12's Litany, verses 1–9). */
+export const VERSE_ECHO_RE = /^echo_litany_verse_\d+$/;
+/** Rest kinds that count as a camp for the Scout's Whistle (WORLD §7: "at any camp"). */
+export const CAMP_REST_KINDS: readonly string[] = ['camp', 'wild'];
+
+/** The verse Echoes the player holds (this loop or the profile), in order. */
+function versesHeld(s: GameState, profile: Readonly<Profile> | undefined, content: ContentPack): string[] {
+  return Object.keys(content.echoes)
+    .filter((id) => VERSE_ECHO_RE.test(id) && (s.echoesThisLoop.includes(id) || (profile?.echoes.includes(id) ?? false)))
+    .sort();
+}
+
+/** Why a scripted use cannot happen now (the Keeper's Copy with no verse held; the Whistle away from a camp), or null. */
+function useScriptProblem(s: GameState, content: ContentPack, profile: Readonly<Profile> | undefined, def: Item): string | null {
+  if (itemScript(def, GEAR_SCRIPT.keepersCopy) !== undefined && versesHeld(s, profile, content).length === 0) return 'You hold no verse of the Litany to read again';
+  const whistle = itemScript(def, GEAR_SCRIPT.scoutsWhistle);
+  if (whistle !== undefined) {
+    const rest = content.locations[s.world.currentLocationId]?.rest;
+    if (!rest || !CAMP_REST_KINDS.includes(rest.kind) || (rest.when !== undefined && profile !== undefined && !evaluate(rest.when, s, profile, content))) return `${def.name} carries only at a camp`;
+    const id = typeof whistle.companion === 'string' ? whistle.companion : '';
+    const c = s.companions.recruited[id];
+    const name = content.companions[id]?.name ?? id;
+    if (!c || !c.recruited || c.dead) return `${name} is not one of your companions`;
+    if (s.companions.activeId === id) return `${name} is already with you`;
+    if (c.ko) return `${name} is down`;
+    const active = s.companions.activeId === null ? undefined : s.companions.recruited[s.companions.activeId];
+    if (active?.ko) return `${content.companions[active.id]?.name ?? active.id} is down; they cannot be sent away until revived`;
+  }
+  return null;
+}
+
+/** An out-of-combat `use`'s scripts (after its `onUse` effects): see USE_SCRIPTS. */
+function applyUseScripts(ctx: StepCtx, def: Item): void {
+  const { s, content } = ctx;
+  const player = s.player;
+  const cleanseIds = itemScript(def, GEAR_SCRIPT.cleanse)?.statuses;
+  if (Array.isArray(cleanseIds)) {
+    const gone = player.statuses.filter((st) => cleanseIds.includes(st.statusId));
+    player.statuses = player.statuses.filter((st) => !gone.includes(st));
+    for (const st of gone) ctx.emit({ t: 'statusExpired', targetUid: 'player', statusId: st.statusId });
+  }
+  const whetstone = itemScript(def, GEAR_SCRIPT.whetstoneStrip);
+  if (whetstone !== undefined && typeof whetstone.basicAttacks === 'number') {
+    player.uses[`${PREP_USE}${def.id}`] = { loop: s.meta.loop, count: whetstone.basicAttacks };
+    ctx.log(`You work the ${def.name} along the edge.`, 'event');
+  }
+  if (itemScript(def, GEAR_SCRIPT.remnantInk) !== undefined) {
+    player.uses[`${PREP_USE}${def.id}`] = { loop: s.meta.loop, count: 1 };
+    ctx.log('You write the ward on your skin. It will hold once.', 'event');
+  }
+  if (itemScript(def, GEAR_SCRIPT.lanternOilWard) !== undefined) {
+    player.uses[`${WARD_USE}${def.id}`] = { day: dayOf(s.clock.ticks) };
+    ctx.log(`You trim your lamp with the ${def.name}. Nothing in the dark will take your sight before dawn.`, 'event');
+  }
+  if (itemScript(def, GEAR_SCRIPT.keepersCopy) !== undefined) {
+    ctx.log(`You read the ${def.name} again.`, 'event');
+    for (const id of versesHeld(s, ctx.profile, content)) {
+      const echo = content.echoes[id];
+      if (echo) ctx.log(`${echo.name}: ${echo.codexLine}`, 'event');
+    }
+  }
+  const whistle = itemScript(def, GEAR_SCRIPT.scoutsWhistle);
+  if (whistle !== undefined && typeof whistle.companion === 'string') {
+    ctx.log('One note. Somewhere out past the fire, someone answers it.', 'event');
+    swapCompanion(ctx, whistle.companion);
+  }
+}
+
+/** Lantern Oil's ward (`lantern_oil_ward`): used out of combat today, it keeps `statusId` off the player at an ambush's onset. */
+export function wardHolds(s: GameState, content: ContentPack, statusId: string): boolean {
+  const today = dayOf(s.clock.ticks);
+  for (const [key, use] of Object.entries(s.player.uses)) {
+    if (!key.startsWith(WARD_USE) || use.day !== today) continue;
+    const def = content.items[key.slice(WARD_USE.length)];
+    if (def && itemScript(def, GEAR_SCRIPT.lanternOilWard)?.preventsStatusOnAmbush === statusId) return true;
+  }
+  return false;
 }
 
 export function checkEquip(s: GameState, content: ContentPack, profile: Readonly<Profile>, action: ActionOf<'equip'>): Held | string {
@@ -169,10 +267,11 @@ export function checkRespec(s: GameState, content: ContentPack, profile: Readonl
 
 /** Out-of-combat consumable use (DESIGN §7.9): free; consumed first, then its onUse effects (heals clamp at max). */
 function useItem(ctx: StepCtx, action: ActionOf<'use'>): void {
-  const h = checkUse(ctx.s, ctx.content, action);
+  const h = checkUse(ctx.s, ctx.content, action, ctx.profile);
   if (typeof h === 'string') return ctx.reject(h);
   if (h.def.consumeOnUse) removeOne(ctx, h.inst);
   applyAll(h.def.onUse, ctx, { source: `item:${h.def.id}` });
+  applyUseScripts(ctx, h.def); // U34e: cleanse, Whetstone, Ink, Lantern Oil, Keeper's Copy, Scout's Whistle
 }
 
 /** Equip into the given or implied slot; whatever was there goes back to the pack where the new piece was. */
@@ -247,21 +346,39 @@ function unlockAbility(ctx: StepCtx, action: ActionOf<'unlockAbility'>): void {
  * Reads a tome (DESIGN §6.7, §7.1): consumed, then its onUse effects (Dark Spellbook: −15 HP, +1 Corruption). A
  * corrupting book cannot be read at the maximum; with `echo_korr_marginalia` the first corrupting read of the loop
  * skips its HP cost. Reaching the maximum triggers the Weaver mark (post-step hook, whatever raised Corruption).
+ * U34e (D-101; WORLD §7.10 `item_dark_spellbook`, `item_korrs_marginalia`): every Dark Spellbook read — and Korr's
+ * Marginalia, which counts as one (`counts_as_spellbook`) — counts toward `spellbooksRead`; the third in a loop grants
+ * `echo_litany_verse_2` ("the margins assemble it"), and a Dark Spellbook read with the Amulet from Loop 2 grants
+ * `echo_korr_marginalia`. The HP waiver counts only corrupting reads (`darkSpellbooksRead`).
  */
 function readBook(ctx: StepCtx, action: ActionOf<'readBook'>): void {
   const h = checkReadBook(ctx.s, ctx.content, action);
   if (typeof h === 'string') return ctx.reject(h);
   const { s } = ctx;
   let effects: readonly Effect[] = h.def.onUse;
-  if (raisesCorruption(h.def)) {
-    const read = s.player.uses[USES_SPELLBOOKS]?.count ?? 0;
+  const dark = raisesCorruption(h.def);
+  if (dark) {
+    const read = s.player.uses[USES_DARK_SPELLBOOKS]?.count ?? 0;
     if (read === 0 && hasEcho(s, ctx.profile, KORR_MARGINALIA_ECHO)) effects = effects.filter((e) => !('damage' in e));
-    s.player.uses[USES_SPELLBOOKS] = { loop: s.meta.loop, count: read + 1 };
+    s.player.uses[USES_DARK_SPELLBOOKS] = { loop: s.meta.loop, count: read + 1 };
   }
+  const counted = dark || itemScript(h.def, GEAR_SCRIPT.countsAsSpellbook) !== undefined;
+  const total = (s.player.uses[USES_SPELLBOOKS]?.count ?? 0) + (counted ? 1 : 0);
+  if (counted) s.player.uses[USES_SPELLBOOKS] = { loop: s.meta.loop, count: total };
   if (h.def.consumeOnUse) removeOne(ctx, h.inst);
   ctx.log(`You read the ${h.def.name}.`, 'event');
   applyAll(effects, ctx, { source: `item:${h.def.id}` });
+  if (counted && total >= SPELLBOOKS_FOR_VERSE && ctx.content.echoes[SPELLBOOK_VERSE_ECHO] !== undefined) apply({ grantEcho: SPELLBOOK_VERSE_ECHO }, ctx, { source: `item:${h.def.id}` });
+  if (dark && s.meta.loop >= 2 && carriesAmulet(s) && ctx.content.echoes[KORR_MARGINALIA_ECHO] !== undefined) apply({ grantEcho: KORR_MARGINALIA_ECHO }, ctx, { source: `item:${h.def.id}` });
 }
+
+/** WORLD §7.10: three Dark Spellbooks read in one loop assemble the second verse. */
+export const SPELLBOOKS_FOR_VERSE = 3;
+export const SPELLBOOK_VERSE_ECHO = 'echo_litany_verse_2';
+/** D-047: the Amulet of Echoes (carried or worn) — "read with the Amulet" (STORY §12 `echo_korr_marginalia`; = loop.ts AMULET_ITEM_ID). */
+const AMULET = 'item_amulet_of_echoes';
+const carriesAmulet = (s: GameState): boolean =>
+  s.player.inventory.some((i) => i.itemId === AMULET) || Object.values(s.player.equipment).some((i) => i?.itemId === AMULET);
 
 /** DESIGN §6.3: at a camp fire, 50 × level gold, once per day: every bought ability's AP comes back. */
 function respec(ctx: StepCtx): void {
@@ -294,8 +411,8 @@ export const inventoryHandlers: { readonly [K in InventoryActionType]: Handler<K
 const ok = (r: unknown): boolean => typeof r !== 'string' && r !== null;
 
 export const inventoryEnumerators: { readonly [K in InventoryActionType]: Enumerator<K> } = {
-  use: (s, content) =>
-    s.player.inventory.map((i): ActionOf<'use'> => ({ type: 'use', uid: i.uid })).filter((a) => ok(checkUse(s, content, a))),
+  use: (s, content, profile) =>
+    s.player.inventory.map((i): ActionOf<'use'> => ({ type: 'use', uid: i.uid })).filter((a) => ok(checkUse(s, content, a, profile))),
   equip: (s, content, profile) => {
     const out: ActionOf<'equip'>[] = [];
     for (const inst of s.player.inventory) {

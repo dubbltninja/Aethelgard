@@ -5,8 +5,8 @@
 //           such an item in the Satchel (`tags: ['key']`, reducers/inventory.ts `inSatchel`).
 //   bound   The Heartstone pair: tier 0, no rarity (`fixed` Common), cannot be sold, dropped or salvaged, and not upgradeable.
 // Status and hazard rules the schema has no passive for (`status_duration_reduction`, `low_hp_status`, `foresight`,
-// `ability_mp_cost_reduction`, `hazard_immunity`) are `custom` passives whose params carry WORLD's numbers; the engine does not
-// read them yet (listed in the U49 reply), like `basic_stun_chance` in weapons.ts.
+// `ability_mp_cost_reduction`, `hazard_immunity`) are `custom` passives whose params carry WORLD's numbers; the engine reads
+// them since U34e (D-099: derived.ts GEAR_SCRIPT), like `basic_stun_chance` in weapons.ts.
 import type { ItemInput } from '@schema/item';
 
 export const trinkets = [
@@ -156,7 +156,7 @@ export const trinkets = [
     art: { icon: 'badge' },
   },
   // "Immune to the Unmaking hazard" (WORLD §2.9: 5% max HP per watch in the Null Orchard or the Eye without the ring). The hazard is a region rule,
-  // not a status; the `hazard_immunity` script names it, and U34d's region-hazards gap reads the ring by id.
+  // not a status; the `hazard_immunity` script names it, and the engine's hazards read it (U34e, D-099).
   {
     id: 'item_weavers_thread_ring',
     name: "Weaver's Thread Ring",
@@ -172,7 +172,7 @@ export const trinkets = [
     sources: ['loc:loc_sanctum_of_threads'],
     art: { icon: 'ring' },
   },
-  // "`status_poison` and `status_bleed` last 1 turn less": the `status_duration_reduction` script (see Diver's Coat), not yet read by the engine.
+  // "`status_poison` and `status_bleed` last 1 turn less": the `status_duration_reduction` script (see Diver's Coat; read since U34e, D-099).
   {
     id: 'item_salt_charm',
     name: 'Salt Charm',
@@ -262,7 +262,7 @@ export const trinkets = [
     sources: ['quest:q_unlidded_eye'],
     art: { icon: 'eye' },
   },
-  // "First time each fight HP drops below 30%: `status_regen` (3)": the `low_hp_status` script (not yet read by the engine).
+  // "First time each fight HP drops below 30%: `status_regen` (3)": the `low_hp_status` script (U34e, D-099: Regen 4 a turn, the Fenlight reading).
   {
     id: 'item_lantern_moth_brooch',
     name: 'Lantern-Moth Brooch',
@@ -294,7 +294,7 @@ export const trinkets = [
     sources: ['drop:cr_stormcrown', 'loc:loc_stormcrowns_perch'],
     art: { icon: 'talon' },
   },
-  // "Ley abilities mp_cost_reduction 10": `mpCostReduction` is for every ability, so the Ley-only discount is the `ability_mp_cost_reduction` script (not yet read by the engine).
+  // "Ley abilities mp_cost_reduction 10": `mpCostReduction` is for every ability, so the Ley-only discount is the `ability_mp_cost_reduction` script (U34e, D-099: added to a staff's reduction).
   {
     id: 'item_oriels_quill',
     name: "Oriel's Quill",

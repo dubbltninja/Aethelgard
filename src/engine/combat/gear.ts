@@ -38,16 +38,16 @@
 // Events name their source for U39's damage share: `statusApplied.source`, `healed.source`, `resourceGained.reason`,
 // and a gear hit's `damageDealt.refId` (kind 'item') — which is also its `counters.damageBySource` key.
 // Unknown `custom` script ids, or params of the wrong shape, are ignored here (the content validator owns them).
-import type { Passive } from '@schema/item';
+import type { Item, Passive } from '@schema/item';
 import type { StepCtx } from '../ctx';
-import { DAMAGE_TYPES, GEAR_SCRIPT, gearPassives, type SourcedPassive } from '../derived';
+import { DAMAGE_TYPES, GEAR_SCRIPT, GEAR_SOURCE, gearPassives, itemScript, scriptPassives, type SourcedPassive } from '../derived';
 import { ATT_SCRIPT, attunementScript } from '../runRules';
 import type { Combatant, CombatState, DamageType } from '../types/state';
 import { gainMp } from './buffHooks';
-import { COUNTER_PREFIX, bonusState } from './buffs';
+import { COUNTER_PREFIX, addTag, bonusState, hasTag } from './buffs';
 import { resolveTick, rollPct, roundHalfUp, statusMods, type HitResult, type HitSpec } from './damage';
 import { FORESIGHT_KEY, fixedHit, type CombatOps, type HitKind } from './specials';
-import { REGEN_POISONED_MULT, STATUS, applyStatus, findStatus } from './statuses';
+import { REGEN_POISONED_MULT, STATUS, applyStatus, cleanse, findStatus } from './statuses';
 import { combatLog, isActive } from './turnOrder';
 
 /** DESIGN §7.7 Shadow-Kissed Dagger: "Curse (3) on target". */
@@ -202,9 +202,13 @@ export function gearReflect(ops: CombatOps, ctx: StepCtx, combat: CombatState, a
 
 // ---- the turn's start -----------------------------------------------------------------------------------------------------------
 
-/** Foresight (att_foresight): Hunter's Eye's key, held for the whole fight while the Attunement is active. */
+/**
+ * Foresight (att_foresight; U34e: the Unlidded Eye's `foresight` script, D-099): Hunter's Eye's key, held for the whole
+ * fight while either is active. One key, so the two never stack.
+ */
 export function keepForesight(ctx: StepCtx, combat: CombatState): void {
-  if (attunementScript(ctx.s.player, ctx.content, ATT_SCRIPT.foresight) === undefined) return;
+  const attuned = attunementScript(ctx.s.player, ctx.content, ATT_SCRIPT.foresight) !== undefined;
+  if (!attuned && scriptPassives(ctx.s.player, ctx.content, GEAR_SCRIPT.foresight).length === 0) return;
   combat.cooldowns[FORESIGHT_KEY] = Math.max(combat.cooldowns[FORESIGHT_KEY] ?? 0, FORESIGHT_HOLD);
 }
 
@@ -228,4 +232,87 @@ export function gearTurnStart(ctx: StepCtx, combat: CombatState, actor: Combatan
     if (p.hp > 0) regenHp(ctx, combat, actor, p.hp, source);
     if (p.mp > 0) gainMp(ctx, combat, actor, p.mp, source);
   }
+}
+
+// ---- U34e: the item scripts a fight reads (D-099, D-101) -------------------------------------------------------------------------
+//
+//   low HP            `low_hp_status` (Lantern-Moth Brooch): the first time in a fight the wearer's HP is below `below` of its
+//                     max after a hit or a tick, the status for `duration` (Regen: `power` per turn, default 4 — Barkskin's base,
+//                     the Fenlight Salve's reading, D-101) — once a fight with `oncePerFight` (a `lowhp:<source>` tag).
+//   prepared          `whetstone_strip` and `remnant_ink` are used out of combat (reducers/inventory.ts): they leave
+//                     `player.uses['prep:<itemId>']`, which the next fight takes at its opening (`gearFightOpening`): the
+//                     Whetstone's charges in the player's own Combatant table (`whetstone:<itemId>`, which nothing counts down:
+//                     only `buff:` keys are timers there) and the Ink's Shield on the player.
+//   whetstone         the player's basic attack while a charge is left: + power × the attack's ATK coefficient (power adds to
+//                     ATK; a basic that scales on SP gains nothing), one charge spent per basic attack, hit or miss.
+//   cleanse           a consumable's `cleanse` script: using it removes its statuses from whom it was used on.
+
+/** `player.uses` key prefix of a consumable prepared out of combat for the next fight (`prep:<itemId>`; count = its charges). */
+export const PREP_USE = 'prep:';
+/** The player Combatant's own table key prefix of the Whetstone's charges this fight. */
+export const WHETSTONE_KEY = 'whetstone:';
+/** The tag prefix of a low-HP passive that has fired this fight. */
+export const LOW_HP_TAG = 'lowhp:';
+/** `low_hp_status` Regen per turn when the script names no `power` (D-101's Fenlight reading: Barkskin's 4). */
+export const LOW_HP_REGEN_DEFAULT = 4;
+
+/** `low_hp_status`: after a hit or a tick on the player, each such passive whose threshold the HP is now under fires (once a fight). */
+export function gearLowHp(ctx: StepCtx, combat: CombatState, c: Combatant): void {
+  if (c.kind !== 'player' || !isActive(c)) return;
+  for (const { source, params } of scriptPassives(ctx.s.player, ctx.content, GEAR_SCRIPT.lowHpStatus)) {
+    const { below, status, duration, oncePerFight } = params;
+    if (typeof below !== 'number' || typeof status !== 'string' || ctx.content.statuses[status] === undefined) continue;
+    if (!(c.hp < below * c.hpMax)) continue;
+    const tag = `${LOW_HP_TAG}${source}`;
+    if (oncePerFight !== false && hasTag(c, tag)) continue;
+    addTag(c, tag);
+    const power = typeof params.power === 'number' ? params.power : LOW_HP_REGEN_DEFAULT;
+    combatLog(combat, `${sourceName(ctx, source)} wakes.`, 'status');
+    applyStatus(ctx, combat, c, c, status, { ...(typeof duration === 'number' ? { duration } : {}), power: { base: power, coef: 0, stat: 'sp' }, source });
+  }
+}
+
+/** The fight's opening (reducers/combat.ts `runCombat`): what the player prepared out of combat comes into play. */
+export function gearFightOpening(ctx: StepCtx, combat: CombatState): void {
+  const { s, content } = ctx;
+  const player = combat.party.find((c) => c.kind === 'player');
+  if (!player) return;
+  for (const key of Object.keys(s.player.uses).filter((k) => k.startsWith(PREP_USE)).sort()) {
+    const itemId = key.slice(PREP_USE.length);
+    const charges = s.player.uses[key]?.count ?? 0;
+    delete s.player.uses[key];
+    const def = content.items[itemId];
+    if (!def || charges <= 0) continue;
+    const source = `${GEAR_SOURCE}${itemId}`;
+    if (itemScript(def, GEAR_SCRIPT.whetstoneStrip) !== undefined) {
+      player.cooldowns[`${WHETSTONE_KEY}${itemId}`] = charges;
+      combatLog(combat, `The ${def.name}'s edge is on your weapon.`, 'info');
+    }
+    const ink = itemScript(def, GEAR_SCRIPT.remnantInk);
+    if (ink !== undefined && typeof ink.status === 'string' && content.statuses[ink.status] !== undefined) {
+      const amount = typeof ink.amount === 'number' ? ink.amount : undefined;
+      combatLog(combat, `The ${def.name} on your skin holds.`, 'info');
+      applyStatus(ctx, combat, player, player, ink.status, { ...(amount === undefined ? {} : { amount }), source });
+    }
+  }
+}
+
+/** The Whetstone on a basic attack: the spec with + power × its ATK coefficient, and one charge spent (none left: unchanged). */
+export function whetstoneSpec(ctx: StepCtx, player: Combatant, spec: HitSpec): HitSpec {
+  const key = Object.keys(player.cooldowns).find((k) => k.startsWith(WHETSTONE_KEY) && (player.cooldowns[k] ?? 0) > 0);
+  if (key === undefined) return spec;
+  const left = (player.cooldowns[key] ?? 0) - 1;
+  if (left > 0) player.cooldowns[key] = left;
+  else delete player.cooldowns[key];
+  const def = ctx.content.items[key.slice(WHETSTONE_KEY.length)];
+  const power = def ? itemScript(def, GEAR_SCRIPT.whetstoneStrip)?.power : undefined;
+  if (typeof power !== 'number' || spec.stat !== 'atk') return spec;
+  return { ...spec, base: spec.base + power * spec.coef };
+}
+
+/** A consumable's `cleanse` script, used in a fight on `receiver`: its statuses are removed. */
+export function cleanseOnUse(ctx: StepCtx, combat: CombatState, receiver: Combatant, def: Pick<Item, 'passives'>): void {
+  const ids = itemScript(def, GEAR_SCRIPT.cleanse)?.statuses;
+  if (!Array.isArray(ids)) return;
+  cleanse(ctx, combat, receiver, ids.filter((id): id is string => typeof id === 'string'));
 }

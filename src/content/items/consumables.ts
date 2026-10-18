@@ -10,10 +10,10 @@
 //                    `{ counter: { name: 'used_<item>', delta: 1 } }`: a harmless use-count.
 //   cleanse          Stillwater Phial's "all negative statuses" is the `cleanse` special on an item ability. A cleanse of named
 //                    statuses (Antidote Root, Brine Draught, Hearth Broth) has no engine form — the `cleanse` special takes every
-//                    debuff — so it is a `custom` passive `cleanse` whose params name the statuses; the engine does not read it yet.
+//                    debuff — so it is a `custom` passive `cleanse` whose params name the statuses (read since U34e, D-101).
 //   "out of combat"  Whetstone Strip, Remnant Ink, and Lantern Oil's second clause are `custom` passives too (`whetstone_strip`,
-//                    `remnant_ink`, `lantern_oil_ward`), params = WORLD's numbers; unread by the engine until the items unit that
-//                    owns the use-time effects lands (listed in the U50 reply). `usableInCombat: false` is the row's wording.
+//                    `remnant_ink`, `lantern_oil_ward`), params = WORLD's numbers; the engine reads them at `use` and at the next
+//                    fight's opening or ambush (U34e, D-101). `usableInCombat: false` is the row's wording.
 // `art.major` follows the Python source (`"major": True`) for the legacy rows; `legacyName` is Appendix A's name.
 import type { ItemInput } from '@schema/item';
 

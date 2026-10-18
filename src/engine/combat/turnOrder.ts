@@ -14,8 +14,10 @@
 // No enemy acts here: `beginCombat` leaves the fight in phase 'start' and the combat reducer (reducers/combat.ts) runs
 // turns, so content effects (`startCombat`) can start a fight without importing the reducer.
 import type { Companion } from '@schema/companion';
+import type { Creature } from '@schema/creature';
 import type { Effect } from '@schema/effect';
 import type { Encounter } from '@schema/encounter';
+import { evaluate } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { DAMAGE_TYPES, derive } from '../derived';
 import { modifierDamageMult } from '../runRules';
@@ -230,6 +232,36 @@ function companionCombatant(ctx: StepCtx): Combatant | null {
   };
 }
 
+// ---- U34e: the Heartstone's world effects on creatures (D-017, D-098, D-105) -----------------------------------------------
+
+/** DESIGN §11.2 / D-017: with the Heartstone destroyed, every Breach-born creature has −25 % HP this loop. */
+export const DESTROYED_HEARTSTONE_HP_MULT = 0.75;
+/**
+ * The tags the destroyed Heartstone weakens: `breach_born` (WORLD §6 conventions) and `ley_made` — WORLD §2.4 "the Breach-born
+ * rule applies to Constructs of ley make too" (the Aetherial Weaver, WORLD §6.4's "−25 % HP if the Heartstone was destroyed").
+ */
+export const HEARTSTONE_BOUND_TAGS: readonly string[] = ['breach_born', 'ley_made'];
+
+/** The destroyed Heartstone weakens this creature (U34e). */
+export function heartstoneWeakened(s: GameState, def: Pick<Creature, 'tags'>): boolean {
+  return s.world.heartstone === 'destroyed' && def.tags.some((t) => HEARTSTONE_BOUND_TAGS.includes(t));
+}
+
+/** U34e: the levels a creature fights above its own at the current location (`Location.levelBonus`: the first that holds and names it). */
+export function levelBonusAt(ctx: Pick<StepCtx, 's' | 'profile' | 'content'>, creatureId: string): number {
+  const loc = ctx.content.locations[ctx.s.world.currentLocationId];
+  const row = loc?.levelBonus.find((b) => (b.creatures as readonly string[]).includes(creatureId) && evaluate(b.when, ctx.s, ctx.profile, ctx.content));
+  return row?.levels ?? 0;
+}
+
+/** DESIGN §6.5's fodder rules of thumb, which a level variant follows: HP ≈ 22 + 9·L, ATK ≈ 5 + 1.5·L. */
+const fodderHp = (level: number): number => 22 + 9 * level;
+const fodderAtk = (level: number): number => 5 + 1.5 * level;
+/** A level variant's HP multiplier: the fodder HP of its new level over its own (1 for no levels). */
+export const levelHpMult = (level: number, levels: number): number => (levels === 0 ? 1 : fodderHp(level + levels) / fodderHp(level));
+/** A level variant's ATK/SP multiplier, by the same rule. */
+export const levelStatMult = (level: number, levels: number): number => (levels === 0 ? 1 : fodderAtk(level + levels) / fodderAtk(level));
+
 /**
  * An enemy Combatant from its creature record (PLAN §5.4): stats × the loop nudge (HP rounded half-up), accuracy
  * `85 + ⌊AGI/2⌋`, evasion `⌊AGI/2⌋`, crit `5 + ⌊AGI/2⌋` (DESIGN §3.2: one rule for every combatant). `hp` overrides the
@@ -242,19 +274,23 @@ export function enemyCombatant(ctx: StepCtx, creatureId: string, name: string, h
   const nudge = loopNudge(ctx.s, content);
   const agi = def.stats.agi;
   const { config } = content;
-  const hpMax = Math.max(1, round(def.stats.hp * nudge));
+  // U34e: a level variant here (the exploited Heartstone's Hollow), then the destroyed Heartstone's −25 % (D-017, D-105)
+  const levels = levelBonusAt(ctx, creatureId);
+  const hpMult = levelHpMult(def.level, levels) * (heartstoneWeakened(ctx.s, def) ? DESTROYED_HEARTSTONE_HP_MULT : 1);
+  const statMult = levelStatMult(def.level, levels);
+  const hpMax = Math.max(1, round(def.stats.hp * nudge * hpMult));
   return {
     uid: ctx.uid('c'),
     kind: 'enemy',
     refId: creatureId,
     name,
-    level: def.level,
+    level: def.level + levels,
     hp: hp === undefined ? hpMax : Math.min(hpMax, Math.max(1, hp)),
     hpMax,
     mp: 0,
     mpMax: 0,
-    atk: def.stats.atk * nudge,
-    sp: def.stats.sp * nudge,
+    atk: def.stats.atk * nudge * statMult,
+    sp: def.stats.sp * nudge * statMult,
     armor: def.stats.armor,
     ward: def.stats.ward,
     agi,
@@ -265,7 +301,7 @@ export function enemyCombatant(ctx: StepCtx, creatureId: string, name: string, h
     statuses: [],
     guarding: false,
     initiative: agi + d4(ctx),
-    resistances: { ...def.resistances },
+    resistances: mirroredResistances(ctx.s, def),
     phase: 0,
     pattern: freshPattern(),
     cooldowns: {},
@@ -274,6 +310,29 @@ export function enemyCombatant(ctx: StepCtx, creatureId: string, name: string, h
     isAdd: false,
   };
 }
+
+/**
+ * WORLD §6.8 `cr_redundant_wayfinder`: "the player's class type (Ranger physical, Wizard fire, Elf physical, Warden physical,
+ * Weaver void)" — what a `class_mirror` move deals (intents.ts `moveDamageType`) and its creature resists (below).
+ */
+export const CLASS_MIRROR_TYPES: Readonly<Record<string, DamageType>> = {
+  ranger: 'physical',
+  wizard: 'fire',
+  elf: 'physical',
+  ironclad_warden: 'physical',
+  shadow_weaver: 'void',
+};
+
+/** U34e (D-091): a creature with a `class_mirror` move "resists the player's class type" on top of its own table. */
+function mirroredResistances(s: GameState, def: Creature): Combatant['resistances'] {
+  const out: Combatant['resistances'] = { ...def.resistances };
+  const type = CLASS_MIRROR_TYPES[s.player.classId];
+  if (type !== undefined && Object.values(def.moves).some((m) => m.special === 'class_mirror') && out[type] !== 'immune') out[type] = 'resist';
+  return out;
+}
+
+/** U34e: the player's tag in a fight that began as an ambush (a wandering roll, or an encounter flagged `ambush`). */
+export const AMBUSH_TAG = 'ambush';
 
 /** DESIGN §15.1 Horde Rising's elite variant (D-083, U34b): +40 % max HP, +20 % ATK, "Elite" before the name. */
 export const ELITE_VARIANT = { hpMult: 1.4, atkMult: 1.2, prefix: 'Elite' } as const;
@@ -378,6 +437,8 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
   const held = s.world.locationStates[locationId]?.encounterHp[spec.id];
   const names = enemyNames(content, creatureIds);
   const enemies = creatureIds.map((id, i) => enemyCombatant(ctx, id, names[i] ?? id, held?.[id]));
+  if (spec.ambush) addTag(party[0] as Combatant, AMBUSH_TAG); // U34e: the onset hazards read it (reducers/combat.ts)
+  shareInitiative(content, enemies); // U34e: the One Herd
   enemies.forEach((e, i) => void (spec.elites?.[i] && makeEliteVariant(e))); // Horde Rising (U34b)
   const canFlee = spec.fleeable && creatureIds.every((id) => content.creatures[id]?.fleeable ?? true);
 
@@ -418,6 +479,16 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
     ctx.log(spec.intro, 'combat');
   }
   return combat;
+}
+
+/** U34e (WORLD §10.2, the One Herd): "three jackals act on one initiative" — every one of them keeps the first one's roll. */
+export const ONE_INITIATIVE_TAG = 'one_initiative';
+function shareInitiative(content: ContentPack, enemies: Combatant[]): void {
+  for (const e of enemies) {
+    if (!(content.creatures[e.refId]?.tags.includes(ONE_INITIATIVE_TAG) ?? false)) continue;
+    const first = enemies.find((o) => o.refId === e.refId);
+    if (first !== undefined) e.initiative = first.initiative;
+  }
 }
 
 // ---- order ----------------------------------------------------------------------------------------------------------------

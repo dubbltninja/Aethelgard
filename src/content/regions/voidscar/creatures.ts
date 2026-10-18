@@ -14,9 +14,7 @@
 //   - the Sentry is a Mortal: WORLD §5 gives Mortals "no sigil; a portrait", but a creature record carries a sigil, so its
 //     base is `portrait`; its family id is `fam_mortal` (REGISTRY: `fam_<family>`, WORLD §6's "Mortal"); no family codex
 //     entry exists for it (STORY §14 lists the eight families), so it has no `codexId`;
-//   - "ifAllyDown" (an ally died this fight) has no atom: the Sentry uses `allyCountBelow: 1`, which holds once none of its
-//     allies is left (U43's Rootling uses `allyCountBelow: 2` for a group of three). A Sentry fought alone therefore calls
-//     the Choir from its second turn; WORLD only ever fields it beside another creature but for the pool shares.
+//   - "ifAllyDown" (an ally died this fight) is the `allyDown` atom (U34e, D-094; it was `allyCountBelow: 1`).
 import type { CombatWhen, CreatureInput, Step } from '@schema/creature';
 
 const REVEALS = [{ kills: 1, reveal: 'resist' }, { kills: 3, reveal: 'all' }] as const;
@@ -141,14 +139,14 @@ const veilSentry = {
     // "leaves combat": the move's `leaveCombat` flag (D-069.9), as U45's Tyrant's Reach
     sentry_withdraw: { name: 'Withdraw', line: 'She cuts her own thread and is gone.', leaveCombat: true },
   },
-  // WORLD's priority order, top to bottom: `first` → Count; `everyNthTurn:3` → Unsee; `ifAllyDown` → the Choir (see the
-  // header: no atom, `allyCountBelow: 1`); `ifHpBelow:25` → Withdraw; else the Thread Cut (the only cycled move)
+  // WORLD's priority order, top to bottom: `first` → Count; `everyNthTurn:3` → Unsee; `ifAllyDown` → the Choir (U34e,
+  // D-094: `allyDown`); `ifHpBelow:25` → Withdraw; else the Thread Cut (the only cycled move)
   pattern: [
     firstOf(
       [
         [{ first: true }, { move: 'sentry_count', target: 'player' }],
         [{ everyNth: 3 }, { move: 'sentry_unsee', target: 'self' }],
-        [{ allyCountBelow: 1 }, { move: 'sentry_call_the_choir', target: 'all' }],
+        [{ allyDown: true }, { move: 'sentry_call_the_choir', target: 'all' }],
         [{ hpBelow: 0.25 }, { move: 'sentry_withdraw', target: 'self' }],
       ],
       { move: 'sentry_thread_cut', target: 'player' },
@@ -170,4 +168,88 @@ const veilSentry = {
   sigil: { base: 'portrait', details: ['grey_thread'] },
 } satisfies CreatureInput;
 
-export const creatures = [voidTouchedStalker, veilSentry] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_phase_stalker — Hollowed (Void) · L6 anomaly, Loop 2+ · XP 144 ("Phased on even turns; Void damage still lands")
+// Its even-turn move Phases it as it bites; the `void_lands` tag lets Void through the Phase (combat/damage.ts `phaseEvades`).
+const phaseStalker = {
+  id: 'cr_anomaly_phase_stalker',
+  name: 'Phase Stalker',
+  description: 'A Stalker that is only half here on every other step.',
+  family: 'fam_hollowed',
+  materialKin: 'void_touched',
+  role: 'anomaly',
+  level: 6,
+  stats: voidTouchedStalker.stats,
+  tags: ['breach_born', 'anomaly', 'void_lands'],
+  resistances: voidTouchedStalker.resistances,
+  statusImmunities: voidTouchedStalker.statusImmunities,
+  moves: {
+    ...voidTouchedStalker.moves,
+    phase_half_here: {
+      ...voidTouchedStalker.moves.stalker_starbite,
+      name: 'Half Here',
+      line: 'It bites from a moment it is only half in.',
+      statuses: [...voidTouchedStalker.moves.stalker_starbite.statuses, { status: 'status_phase', duration: 1, target: 'self' }],
+    },
+  },
+  pattern: [
+    firstOf(
+      [
+        [{ first: true }, { move: 'stalker_circle', target: 'self' }],
+        [{ targetHas: 'status_curse' }, { move: 'stalker_pounce', target: 'player' }],
+      ],
+      alternate({ move: 'stalker_lunge', target: 'player' }, { move: 'phase_half_here', target: 'player' }),
+    ),
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: voidTouchedStalker.gold,
+  xp: 144,
+  anomaly: { region: 'region_voidscar', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. This one is only here every other moment. On its even turns it bites and is gone before the blow comes. Void still finds it there; nothing else does.',
+    tactics: 'Void through the Phase, or hold the heavy hit for its odd turns; Ley clears the Curse.',
+    codexId: 'codex_creatures_hollowed',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'teardrop', details: ['starlit_eyes', 'double_outline'] },
+} satisfies CreatureInput;
+
+// ---- cr_anomaly_tethered_stalkers — Hollowed (Void) · L6 anomaly ×2, Loop 3+ · XP 144 each ("Damage to one is split between both")
+// The `tethered` tag: half of each blow (rounded down) goes to the living twin (reducers/combat.ts `applyHit`).
+const tetheredStalkers = {
+  id: 'cr_anomaly_tethered_stalkers',
+  name: 'Tethered Stalker',
+  description: 'Two Stalkers on one line of cold; what wounds one, the other shares.',
+  family: 'fam_hollowed',
+  materialKin: 'void_touched',
+  role: 'anomaly',
+  level: 6,
+  stats: voidTouchedStalker.stats,
+  tags: ['breach_born', 'anomaly', 'tethered'],
+  resistances: voidTouchedStalker.resistances,
+  statusImmunities: voidTouchedStalker.statusImmunities,
+  moves: voidTouchedStalker.moves,
+  pattern: voidTouchedStalker.pattern,
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: voidTouchedStalker.gold,
+  xp: 144,
+  anomaly: { region: 'region_voidscar', loop: 3, count: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 3. Two Stalkers tied by a cord of cold I can see only from the side. Whatever I do to one, the other takes half. They die together or not at all.',
+    tactics: 'Half of every blow crosses the tether, so area attacks pay twice; Ley for the Curse.',
+    codexId: 'codex_creatures_hollowed',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'teardrop', details: ['starlit_eyes', 'tether'] },
+} satisfies CreatureInput;
+
+export const creatures = [voidTouchedStalker, veilSentry, phaseStalker, tetheredStalkers] satisfies CreatureInput[];

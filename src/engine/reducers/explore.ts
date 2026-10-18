@@ -19,6 +19,7 @@ import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { addItem, advanceTime, apply, applyAll, locationState } from '../effects';
 import { encounterArrivalHook } from './combat';
 import { companionArrivalHook, restCompanions } from '../combat/companionAi';
+import { leaveWatches } from '../hazards';
 import { HORDE_SOURCE_ID, hordeArrivalHook } from '../horde';
 import type { Enumerator } from '../legalActions';
 import { defaultRarity } from '../newRun';
@@ -196,8 +197,20 @@ export function fireEvent(ctx: StepCtx, locationId: string, ev: LocationEvent): 
   const ls = locationState(ctx, locationId);
   if (!ls.eventsFired.includes(ev.id)) ls.eventsFired.push(ev.id);
   ctx.emit({ t: 'eventFired', locationId, eventId: ev.id, text: ev.text });
-  ctx.log(ev.text, 'event');
+  if (!sceneSaysIt(ctx, ev)) ctx.log(ev.text, 'event');
   applyAll(ev.effects, ctx, { source: `event:${ev.id}` });
+}
+
+/**
+ * U34e (D-105): an event that opens a scene whose first node says the same words logs nothing itself — the scene says it
+ * (the Depths' `ev_depths_choice` and the Heartstone choice's prompt were the same line twice).
+ */
+function sceneSaysIt(ctx: StepCtx, ev: LocationEvent): boolean {
+  return ev.effects.some((e) => {
+    if (!('startDialogue' in e)) return false;
+    const scene = ctx.content.dialogues[e.startDialogue];
+    return typeof scene?.entry === 'string' && scene.nodes.find((n) => n.id === scene.entry)?.text === ev.text;
+  });
 }
 
 /**
@@ -428,13 +441,17 @@ function rememberedStep(ctx: StepCtx, from: string, to: string): boolean {
   return true;
 }
 
-/** Leave events → the edge's watches (0 while the clock is frozen, or on a Remembered Step) → regen → arrival. */
+/**
+ * Leave events → the edge's watches (0 while the clock is frozen, or on a Remembered Step) and a `leave` hazard's extra ones
+ * (a `move` only, U34e) → regen → arrival.
+ */
 function travel(ctx: StepCtx, exit: Exit, via: 'move' | 'retreat'): void {
   const { s } = ctx;
   const from = s.world.currentLocationId;
   fireEvents(ctx, from, 'leave');
   if (s.world.currentLocationId !== from || s.mode !== 'explore') return;
-  const watches = s.clock.frozen || rememberedStep(ctx, from, exit.to) ? 0 : exit.travelWatches;
+  const road = s.clock.frozen || rememberedStep(ctx, from, exit.to) ? 0 : exit.travelWatches;
+  const watches = road + (s.clock.frozen || via !== 'move' ? 0 : leaveWatches(ctx, from)); // U34e: the Pass's mirage paths
   advanceTime(ctx, watches);
   travelRegen(ctx, watches);
   s.counters.travels += 1;

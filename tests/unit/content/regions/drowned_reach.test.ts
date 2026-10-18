@@ -10,7 +10,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildContentPack, contentTables, parseContentPack } from '@content/index';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { REGION_FOLDERS } from '@content/regions';
-import { creatures } from '@content/regions/drowned_reach/creatures';
+import { creatures as folderCreatures } from '@content/regions/drowned_reach/creatures';
 import { items } from '@content/regions/drowned_reach/items';
 import { locations } from '@content/regions/drowned_reach/locations';
 import { npcs } from '@content/regions/drowned_reach/npcs';
@@ -24,6 +24,10 @@ import { D, scriptedCtx } from '@tests/fixtures/combatContent';
 import { freshProfile, makeState, type StateOverrides } from '@tests/fixtures/helpers';
 import { main as validateCli } from '../../../../tools/validate-content';
 import { PLAN, WORLD, ids, section, tableRows, unquote, worldCreature, worldCreatureTable, worldEdges, worldLocations, worldNodes } from './worldDoc';
+
+// U34e (D-087): WORLD §10.2's anomaly variants live in this folder too; WORLD §6's checks below are on the
+// others (tests/unit/engine/u34e/anomalies.test.ts checks the variants).
+const creatures = folderCreatures.filter((c) => !c.id.startsWith('cr_anomaly_'));
 
 const ROOT = path.resolve(import.meta.dirname, '../../../..');
 const DESIGN = fs.readFileSync(path.join(ROOT, 'docs/DESIGN.md'), 'utf8');
@@ -774,14 +778,17 @@ describe('patterns: WORLD’s cadence words hold turn by turn (first-match on ev
     expect(plan('cr_brine_lamprey', 7, { before: hurt })).toEqual(seq('latch drink drink eddy eddy latch eddy'));
   });
 
-  test('the Ledger Choir: Amend while a reader stands, Verse every third turn, Reinscribe once when one has fallen, Intone when it stands alone', () => {
+  test('the Ledger Choir: Amend while a reader is hurt, Reinscribe once when one has fallen, Verse every third turn, Intone otherwise', () => {
     const readers = [{ creatureId: 'cr_drowned_archivist', count: 2 }];
+    // U34e (D-094): Amend heals a wounded ally (`allyBelow: 1`), in WORLD's order (first); `allyDown` for the Reinscribe
     const fall = (t: number, _f: Combatant, c: CombatState): void => {
       ally(c, 1, t < 4);
       ally(c, 2, t < 7);
+      for (const r of c.enemies.slice(1)) if (r.alive && [1, 2, 5].includes(t)) r.hp = r.hpMax - 1;
     };
     expect(plan('cr_ledger_choir', 9, { allies: readers, before: fall })).toEqual(seq('amend amend verse reinscribe amend verse intone intone verse'));
-    expect(plan('cr_ledger_choir', 3, { allies: readers })).toEqual(seq('amend amend verse'));
+    // unhurt readers: nothing to amend
+    expect(plan('cr_ledger_choir', 3, { allies: readers })).toEqual(seq('intone intone verse'));
   });
 
   test('the Bell-Ringer: Low Note and Rope in turn; stands the archivist up once; Shell below half HP, and not again while it stands', () => {

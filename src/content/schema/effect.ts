@@ -54,7 +54,11 @@ export const EFFECT_ATOMS = {
     .object({ hp: z.union([int.min(0), z.literal('full')]).optional(), mp: z.union([int.min(0), z.literal('full')]).optional() })
     .strict()
     .refine((h) => h.hp !== undefined || h.mp !== undefined, '`heal` needs hp and/or mp'),
-  damage: z.object({ hp: int.min(1) }).strict(),
+  /** U34e (C1 change, D-097): `hp` flat, and/or `pctMax` a share of max HP ("fleeing on the Stair costs 10 % HP"); never kills. */
+  damage: z
+    .object({ hp: int.min(1).optional(), pctMax: Pct.optional() })
+    .strict()
+    .refine((d) => d.hp !== undefined || d.pctMax !== undefined, '`damage` needs hp and/or pctMax'),
   /**
    * U52 (C1 addition): a lasting bonus for the rest of the loop to a primary or a maximum (`player.passiveBonuses`, read by
    * derive()): the legacy quest rewards `q_lost_scroll` +1 MAG, `q_blighted_outpost` +15 max HP, the Heartstone's Destroy +20.
@@ -104,6 +108,11 @@ export const EFFECT_ATOMS = {
   resolve: int,
   /** U34d: `{ onlyIf: { when, effects } }` — see `OnlyIf`. */
   onlyIf: OnlyIfSchema,
+  /**
+   * U34e (C1 addition, D-105): the Heartstone choice sets `world.heartstone` for the loop (DESIGN §11.2, D-017) — Destroy's
+   * Ley +25 % MP and Breach-born −25 % HP, Exploit's +1-level Hollow variants read it. Once resolved it stays (loop scope).
+   */
+  heartstone: z.enum(['stabilized', 'exploited', 'destroyed']),
 } as const;
 
 export type EffectAtoms = { [K in keyof typeof EFFECT_ATOMS]: z.output<(typeof EFFECT_ATOMS)[K]> };

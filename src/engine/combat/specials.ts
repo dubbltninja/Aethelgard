@@ -1,5 +1,5 @@
 // Engine-coded hooks — "specials" (PLAN §5.4 Move.special, §5.7 Ability.special, §5.8 Status.special, §5.19 rule 3;
-// D-072: the registry has 15 ids). A special names a scripted mechanic the declarative fields cannot express. The
+// D-072: the registry had 15 ids; U34e adds class_mirror and last_spell). A special names a scripted mechanic the declarative fields cannot express. The
 // content schema keeps the list content may use (`src/content/schema/specials.ts`, which cannot import the engine);
 // `SPECIALS` here is the engine's copy, in the same order — the mirror test (tests/unit/engine/combat/specials.test.ts)
 // asserts the two lists and every id's scopes are equal. Adding a special = add it to both, in the same change.
@@ -31,7 +31,7 @@ import { buffReactions } from './buffHooks';
 import { resourceMultOf } from './buffs';
 import { GUARD_VALUE_KEY, hasStatus, resolveHit, resolveTick, roundHalfUp, statusMods, type HitResult, type HitSpec, type ScaleStat } from './damage';
 import { STATUS, applyStatus, applyStatusRows, cleanse, cooldownsOf, isBoss, isOwnTurn, removeStatus } from './statuses';
-import { combatLog, isActive } from './turnOrder';
+import { CLASS_MIRROR_TYPES, combatLog, isActive } from './turnOrder';
 
 /** What a hit is, for events and counters (`damageDealt.kind`). */
 export type HitKind = 'basic' | 'ability' | 'item' | 'intent';
@@ -91,6 +91,17 @@ export interface SpecialHooks {
   readonly replace?: (u: SpecialUse) => void;
   readonly after?: (u: SpecialUse) => void;
   readonly field?: (ctx: StepCtx, abilityId: string) => void;
+  /** U34e: the damage type a move deals now, given its own (intents.ts `moveDamageType`, for the projection and the hit). */
+  readonly damageType?: (r: Pick<StepCtx, 's' | 'content'>, combat: CombatState, own: DamageType | undefined) => DamageType | undefined;
+}
+
+/** `pattern.firedOnce` tag prefix on the player: the ability it used last this fight (`last_spell` reads it; abilities.ts writes it). */
+export const LAST_ABILITY_TAG = 'last_ability:';
+
+/** U34e: the player used `abilityId` — the one `last_spell` mirrors. */
+export function noteLastAbility(player: Combatant, abilityId: string): void {
+  player.pattern.firedOnce = player.pattern.firedOnce.filter((t) => !t.startsWith(LAST_ABILITY_TAG));
+  player.pattern.firedOnce.push(`${LAST_ABILITY_TAG}${abilityId}`);
 }
 
 // ---- constants ----------------------------------------------------------------------------------------------------------
@@ -386,6 +397,20 @@ export const SPECIAL_HOOKS = {
     scopes: ['move'],
     rule: "Tyrant's Reach dead spell: the bound mage (rolled at its first cast, no repeats in the fight) decides the spell (WORLD §6.8)",
     replace: boundMage,
+  },
+  // U34e (D-091): the damage type is read where the hit is built (intents.ts `moveDamageType`), the resistance at setup (turnOrder.ts)
+  class_mirror: {
+    scopes: ['move'],
+    rule: "the move deals the player's class type (turnOrder.ts CLASS_MIRROR_TYPES); a creature with such a move resists that type (turnOrder.ts)",
+    damageType: (r, _combat, own) => CLASS_MIRROR_TYPES[r.s.player.classId] ?? own,
+  },
+  last_spell: {
+    scopes: ['move'],
+    rule: "the move deals the damage type of the player's last ability this fight (the `last_ability:` tag), else its own type",
+    damageType: (r, combat, own) => {
+      const tag = combat.party.find((p) => p.kind === 'player')?.pattern.firedOnce.find((t) => t.startsWith(LAST_ABILITY_TAG));
+      return (tag === undefined ? undefined : r.content.abilities[tag.slice(LAST_ABILITY_TAG.length)]?.damageType) ?? own;
+    },
   },
 } satisfies Record<SpecialId, SpecialHooks>;
 

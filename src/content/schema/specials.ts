@@ -24,6 +24,9 @@ export const SPECIAL_INFO = {
   guard: { scopes: ['ability', 'move'], summary: 'the user also Guards this round' },
   hour_presses: { scopes: ['move'], summary: 'communion pressure: Chrono 8% of target max HP × (1 − Resolve/8); cannot kill while Resolve ≥ 3 (D-067.3)' },
   bound_mage: { scopes: ['move'], summary: 'Tyrant’s Reach dead spell: the variant is the bound mage rolled on spawn, no repeats at the Apex (WORLD §6.8)' },
+  // U34e (D-091): the two specials the Ruins' anomalies needed
+  class_mirror: { scopes: ['move'], summary: "the move deals the player's class type (Redundant Wayfinder, WORLD §6.8), and the creature resists that type" },
+  last_spell: { scopes: ['move'], summary: "the move deals the damage type of the player's last ability this fight, else its own (Paradox Wisp, WORLD §6.5)" },
 } as const satisfies Record<string, { scopes: readonly SpecialScope[]; summary: string }>;
 
 export type SpecialId = keyof typeof SPECIAL_INFO;

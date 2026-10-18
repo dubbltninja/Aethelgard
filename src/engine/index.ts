@@ -29,6 +29,7 @@ export * from './combat/buffHooks';
 export * from './combat/gear';
 export * from './communion';
 export * from './horde';
+export * from './hazards';
 export * from './runRules';
 export * from './reducers/threshold';
 export * from './before';

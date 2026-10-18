@@ -69,6 +69,26 @@ export function creatureXp(s: GameState, content: ContentPack, creatureId: strin
   return def ? round(def.xp * loopNudge(s, content)) : 0;
 }
 
+/**
+ * U34e: a level variant's kill XP (`Location.levelBonus`, turnOrder.ts `levelBonusAt`): the authored XP × DESIGN §6.2's fodder
+ * formula at the level it fought at over the formula at its own, rounded half-up (1 for its own level).
+ */
+export function levelXpMult(content: ContentPack, ownLevel: number, foughtAt: number): number {
+  if (foughtAt === ownLevel) return 1;
+  const { a, b, c } = content.config.fodderXp;
+  const f = (l: number): number => a + b * l + c * l * l;
+  return f(foughtAt) / f(ownLevel);
+}
+
+/** The kill XP of one fallen enemy: its creature's (`creatureXp`) at the level it fought at, and a Horde Rising elite's × 1.8 (U34b). */
+export function enemyKillXp(s: GameState, content: ContentPack, enemy: Pick<CombatState['enemies'][number], 'refId' | 'level' | 'pattern'>): number {
+  const def = content.creatures[enemy.refId];
+  if (!def) return 0;
+  const base = creatureXp(s, content, enemy.refId);
+  const leveled = enemy.level === def.level ? base : round(base * levelXpMult(content, def.level, enemy.level));
+  return isEliteVariant(enemy) ? round(leveled * content.config.fodderXp.eliteMult) : leveled;
+}
+
 /** DESIGN §7.3 `affix_of_echoes`: the `custom` passive script id of a kill-XP bonus (`params.pct`). */
 export const KILL_XP_SCRIPT = 'kill_xp';
 
@@ -181,7 +201,7 @@ export function rollSpoils(ctx: StepCtx, combat: CombatState): Spoils {
   for (const enemy of combat.enemies.filter((e) => !e.alive)) {
     const def = content.creatures[enemy.refId];
     if (!def) continue;
-    if (xpAllowed && pays) spoils.xp += isEliteVariant(enemy) ? round(creatureXp(s, content, enemy.refId) * content.config.fodderXp.eliteMult) : creatureXp(s, content, enemy.refId); // U34b: Horde Rising's elite ×1.8
+    if (xpAllowed && pays) spoils.xp += enemyKillXp(s, content, enemy); // U34b: Horde Rising's elite ×1.8; U34e: level variants
     if (pays) spoils.gold += def.gold.min === def.gold.max ? def.gold.min : ctx.rng.int(def.gold.min, def.gold.max);
     for (const row of pays ? def.loot : []) {
       if (row.when !== undefined && !evaluate(row.when, s, ctx.profile, content)) continue;

@@ -598,6 +598,8 @@ function creatureDrops(): Record<string, Set<string>> {
     const end = rest.indexOf('\n- **', 1);
     for (const id of [...ids(end < 0 ? rest : rest.slice(0, end), 'item'), ...ids(end < 0 ? rest : rest.slice(0, end), 'mat')]) (out[id] ??= new Set()).add(head[1] ?? '');
   }
+  // U34e (D-087): WORLD §10.2's anomaly variants have no Loot line; DESIGN §6.6 gives each a guaranteed material (the records')
+  for (const c of Object.values(pack.creatures)) if (c.id.startsWith('cr_anomaly_')) for (const l of c.loot) (out[l.itemId] ??= new Set()).add(c.id);
   return out;
 }
 

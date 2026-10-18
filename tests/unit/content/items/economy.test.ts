@@ -770,10 +770,10 @@ describe('the stalls in the real pack (restock, prices, refusal)', () => {
       refuses('npc_hollis_cade', { reputation: { weavers: neutralMin } }),
       refuses('npc_hollis_cade', { reputation: { weavers: pack.config.repTiers.wary }, corruption: 3 }),
     ]).toEqual([true, true, false, false, false]);
-    // A gap between the documents and the engine, reported by U50 (not tuned): WORLD §9.2 says Hollis "trades only if Weavers ≥ Neutral or
-    // Corruption ≥ 3", but `merchantRefusal` refuses a Hostile faction tier before it reads `refusesWhen`, so a Hostile Weavers standing
-    // with Corruption 3 is still turned away
-    expect(refuses('npc_hollis_cade', { reputation: { weavers: hostile }, corruption: 3 })).toBe(true);
+    // WORLD §9.2: Hollis "trades only if Weavers ≥ Neutral or Corruption ≥ 3" — a Hostile standing too, since U34e (D-101): a merchant's
+    // `refusesWhen` decides alone where it has one (U50 had reported the Hostile tier refusing first)
+    expect(refuses('npc_hollis_cade', { reputation: { weavers: hostile }, corruption: 3 })).toBe(false);
+    expect(refuses('npc_hollis_cade', { reputation: { weavers: hostile }, corruption: 0 })).toBe(true);
   });
 
   test('Kaelen\'s tier is the best of the three tracks, never below Wary', () => {

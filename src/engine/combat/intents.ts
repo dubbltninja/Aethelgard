@@ -56,14 +56,26 @@
 //
 // Events: `intentRevealed` carries a copy of the intent whenever one is generated (hidden ones too: the UI masks them
 // by the flag) and whenever a refresh changes what the chip shows (revealed, re-aimed, re-projected).
+//
+// U34e (D-091, D-092, D-094, D-096, D-098): `allyDown` (an ally fell this fight) and `allyBelow` (a living ally under that
+// share of its max HP) are CombatWhen atoms. A move with `repeatPrevious` becomes, at generation, the creature's previous
+// move again — the same aim, the same target if it still stands (`prev:` tag, written when a move is played; skipped while
+// there is none), shown with its own telegraph and the tag 'again'. Execution: a `missesIfGuarded` move misses a Guarding
+// target outright (no damage, no status); `consumesAlly` takes one living ally of that creature out of the fight before
+// the heal (not a kill); `clockCost` moves the Breach Clock's limit earlier (once a fight with `oncePerFight`, a `clock:`
+// tag). A `class_mirror` or `last_spell` special decides the move's damage type (`moveDamageType`: the player's class type,
+// WORLD §6.8 Redundant Wayfinder; the type of the player's last ability this fight, WORLD §6.5 Paradox Wisp), for the
+// projection and the hit alike. A creature's `deathMove` (WORLD `onDeath`) resolves the moment it falls (`playDeathMove`,
+// the reducer's knock-out), and an `hpLines` entry with a move replaces the committed intent (`forceIntent`, phases.ts).
 import type { Condition } from '@schema/condition';
 import type { CombatWhen, CombatWhenKey, Move, Step } from '@schema/creature';
 import { atomOf, evaluate } from '../conditions';
+import { changeLimit } from '../effects';
 import type { ContentPack, StepCtx } from '../ctx';
 import type { Rng } from '../rng';
-import type { Combatant, CombatState, Intent } from '../types/state';
+import type { Combatant, CombatState, DamageType, Intent } from '../types/state';
 import { damageRange, hasStatus, resolveHeal, resolveHit, roundHalfUp, type HitResult, type HitSpec, type RangeOptions } from './damage';
-import { REVEAL_KEY, beginMove, finishMove, moveHits, replaceMove, type CombatOps, type HitKind } from './specials';
+import { REVEAL_KEY, beginMove, finishMove, hooksOf, moveHits, replaceMove, type CombatOps, type HitKind } from './specials';
 import { STATUS, applyStatus, applyStatusRows, cleanse, isBoss, skipsTurn, tauntedBy, type WhenEval } from './statuses';
 import { MAX_ENEMIES, combatLog, combatantByUid, enemyCombatant, isActive, sortTurnOrder } from './turnOrder';
 
@@ -210,13 +222,17 @@ export function evalCombatWhen(r: IntentRead, combat: CombatState, when: CombatW
     case 'first':
       return scope.turn === 1;
     case 'oncePerFight':
-      return scope.onceKey === undefined || !self.pattern.firedOnce.includes(scope.onceKey);
+      return scope.onceKey === undefined || !onceFired(r, combat, self, scope.onceKey);
     case 'playerGuarding':
       return (combat.party.find((c) => c.kind === 'player')?.guarding ?? false) === v;
     case 'targetIsBoss':
       return (target !== null && isBoss(r.content, target)) === v;
     case 'targetHasActed':
       return (target !== null && target.pattern.turnsTaken > 0) === v;
+    case 'allyDown':
+      return sideOf(combat, self).some((o) => o !== self && !o.alive && !o.fledOrGone);
+    case 'allyBelow':
+      return alliesOf(combat, self).some((a) => a.hp < (v as number) * a.hpMax);
     default:
       return evaluate(when as Condition, r.s, r.profile, r.content);
   }
@@ -349,7 +365,7 @@ export function intentTags(content: ContentPack, move: Move): string[] {
 export function projectIntent(r: IntentRead, combat: CombatState, c: Combatant, intent: Pick<Intent, 'moveId' | 'targetUid' | 'tags'>, opts: RangeOptions = {}): [number, number] {
   const move = r.content.creatures[c.refId]?.moves[intent.moveId];
   const aim = aimOfIntent(combat, c, intent);
-  const spec = move ? intentHitSpec(intent.moveId, move, aim === 'all') : null;
+  const spec = move ? typed(r, combat, move, intentHitSpec(intent.moveId, move, aim === 'all')) : null;
   const target = aim === 'all' ? pickFoe(combat, c, 'player') : intentTarget(combat, c, intent);
   if (!move || !spec || !target || sideOf(combat, c).includes(target)) return [0, 0];
   const [lo, hi] = damageRange(r, c, target, spec, opts);
@@ -357,13 +373,27 @@ export function projectIntent(r: IntentRead, combat: CombatState, c: Combatant, 
   return [lo * hits, hi * hits];
 }
 
+/** U34e (WORLD §10.2, the Aberration Pair): a `shared_once` creature's `oncePerFight` steps are one between all of its kind. */
+export const SHARED_ONCE_TAG = 'shared_once';
+/** U34e (WORLD §10.2, the Unlit Lantern): "intent hidden until it takes damage". */
+export const UNLIT_TAG = 'unlit';
+const hasCreatureTag = (r: Pick<IntentRead, 'content'>, c: Combatant, tag: string): boolean => c.kind === 'enemy' && (r.content.creatures[c.refId]?.tags.includes(tag) ?? false);
+
+function onceFired(r: IntentRead, combat: CombatState, self: Combatant, key: string): boolean {
+  if (self.pattern.firedOnce.includes(key)) return true;
+  return hasCreatureTag(r, self, SHARED_ONCE_TAG) && combat.enemies.some((e) => e.refId === self.refId && e.pattern.firedOnce.includes(key));
+}
+
+/** An `unlit` creature's intents stay hidden until it has taken damage. */
+export const unlitNow = (r: Pick<IntentRead, 'content'>, c: Combatant): boolean => hasCreatureTag(r, c, UNLIT_TAG) && c.hp >= c.hpMax;
+
 function makeIntent(r: IntentRead, combat: CombatState, c: Combatant, moveId: string, move: Move, aim: IntentAim, target: Combatant | null): Intent {
   const tags = intentTags(r.content, move);
   const intent: Intent = {
     moveId,
     targetUid: aim === 'single' || (aim === 'ally' && target !== c) ? (target?.uid ?? null) : null,
     projected: [0, 0],
-    hidden: move.hidden && !intentsRevealed(combat),
+    hidden: (move.hidden || unlitNow(r, c)) && !intentsRevealed(combat),
     text: move.line,
     tags: aim === 'all' ? [TAG_ALL, ...tags] : tags,
   };
@@ -425,12 +455,14 @@ function patternIntent(ctx: StepCtx, combat: CombatState, c: Combatant): Intent 
         const aim = aimOf(ins.target);
         const provisional = aim === 'self' ? c : aim === 'ally' ? pickAlly(combat, c) : pickFoe(combat, c, aim === 'all' ? 'player' : ins.target);
         const move = moves[ins.move];
-        if (!move || (ins.when !== undefined && !evalCombatWhen(ctx, combat, ins.when, scope(provisional, ins.key)))) {
+        const again = move?.repeatPrevious ? previousOf(ctx, combat, c) : null;
+        if (!move || (move.repeatPrevious && again === null) || (ins.when !== undefined && !evalCombatWhen(ctx, combat, ins.when, scope(provisional, ins.key)))) {
           pc += 1;
           break;
         }
         if (ins.when !== undefined) fire(ins.when, ins.key);
         c.pattern.pointer = pc + 1;
+        if (again !== null) return againIntent(ctx, combat, c, move, again);
         const target = aim === 'single' ? pickFoe(combat, c, ins.target, ctx.rng) : provisional;
         return makeIntent(ctx, combat, c, ins.move, move, aim, target);
       }
@@ -454,6 +486,127 @@ function patternIntent(ctx: StepCtx, combat: CombatState, c: Combatant): Intent 
   return null;
 }
 
+// ---- U34e: the previous move, forced intents, the damage type a special decides -------------------------------------------------
+
+/** `pattern.firedOnce` tag prefix of the move a creature played last: `prev:<moveId>|<aim>|<targetUid>`. */
+export const PREV_MOVE_TAG = 'prev:';
+/** The tag a repeated intent carries (the chip's "again"). */
+export const TAG_AGAIN = 'again';
+
+/** The creature's previous move (its id, aim and target), or null before it has played one. */
+function previousOf(ctx: IntentRead, combat: CombatState, c: Combatant): { moveId: string; move: Move; aim: IntentAim; target: Combatant | null } | null {
+  const tag = c.pattern.firedOnce.find((t) => t.startsWith(PREV_MOVE_TAG));
+  if (tag === undefined) return null;
+  const [moveId = '', aim = 'single', uid = ''] = tag.slice(PREV_MOVE_TAG.length).split('|');
+  const move = ctx.content.creatures[c.refId]?.moves[moveId];
+  if (!move) return null;
+  const was = uid === '' ? undefined : combatantByUid(combat, uid);
+  const a = aim as IntentAim;
+  const target = a === 'self' ? c : a === 'all' ? null : was && isActive(was) ? was : a === 'ally' ? pickAlly(combat, c) : pickFoe(combat, c, 'player');
+  return { moveId, move, aim: a, target };
+}
+
+/** A `repeatPrevious` move's intent: the previous move again (its numbers), with the repeating move's telegraph and 'again'. */
+function againIntent(ctx: StepCtx, combat: CombatState, c: Combatant, echo: Move, again: NonNullable<ReturnType<typeof previousOf>>): Intent {
+  const intent = makeIntent(ctx, combat, c, again.moveId, again.move, again.aim, again.target);
+  intent.text = echo.line;
+  intent.tags = [...intent.tags, TAG_AGAIN];
+  return intent;
+}
+
+/** Records the move `c` just played (the `prev:` tag; a repeat records what it repeated). */
+function notePlayed(combat: CombatState, c: Combatant, intent: Intent): void {
+  c.pattern.firedOnce = c.pattern.firedOnce.filter((t) => !t.startsWith(PREV_MOVE_TAG));
+  c.pattern.firedOnce.push(`${PREV_MOVE_TAG}${intent.moveId}|${aimOfIntent(combat, c, intent)}|${intent.targetUid ?? ''}`);
+}
+
+/**
+ * U34e (`hpLines` with a move, phases.ts): `c`'s committed intent is replaced by `moveId` (as a phase entry resets it) — a
+ * non-damaging move aimed at itself, a damaging one at the player (the `player` rule); a wind-up is broken. Emits
+ * `intentRevealed`.
+ */
+export function forceIntent(ctx: StepCtx, combat: CombatState, c: Combatant, moveId: string): Intent | null {
+  const move = ctx.content.creatures[c.refId]?.moves[moveId];
+  if (!move || !isActive(c)) return null;
+  breakWindUp(c);
+  if (!c.pattern.firedOnce.includes(`${FORCED_TAG}${moveId}`)) c.pattern.firedOnce.push(`${FORCED_TAG}${moveId}`);
+  return store(ctx, combat, c, forcedOf(ctx, combat, c, moveId, move));
+}
+
+const forcedOf = (r: IntentRead, combat: CombatState, c: Combatant, moveId: string, move: Move): Intent =>
+  move.power ? makeIntent(r, combat, c, moveId, move, 'single', pickFoe(combat, c, 'player')) : makeIntent(r, combat, c, moveId, move, 'self', c);
+
+/** A forced move waits in `forced:<moveId>` until it is played, so a later generation (its own turn's end) keeps it. */
+export const FORCED_TAG = 'forced:';
+
+function forcedIntent(ctx: StepCtx, combat: CombatState, c: Combatant): Intent | null {
+  const tag = c.pattern.firedOnce.find((t) => t.startsWith(FORCED_TAG));
+  const moveId = tag?.slice(FORCED_TAG.length);
+  const move = moveId === undefined ? undefined : ctx.content.creatures[c.refId]?.moves[moveId];
+  return moveId !== undefined && move ? forcedOf(ctx, combat, c, moveId, move) : null;
+}
+
+/** The damage type a move deals now: its special's `damageType` hook decides (`class_mirror`, `last_spell`), else its own. */
+export function moveDamageType(r: IntentRead, combat: CombatState, move: Pick<Move, 'type' | 'special'>): DamageType | undefined {
+  const hook = hooksOf(move.special)?.damageType;
+  return hook ? hook(r, combat, move.type) : move.type;
+}
+
+/** A move's hit spec with the damage type its special decides (unchanged without one). */
+function typed(r: IntentRead, combat: CombatState, move: Move, spec: HitSpec | null): HitSpec | null {
+  const type = spec === null ? undefined : moveDamageType(r, combat, move);
+  return spec === null || type === undefined || type === spec.type ? spec : { ...spec, type };
+}
+
+/** The miss a `missesIfGuarded` move makes against a Guarding target. */
+const GUARDED_MISS: HitResult = { hit: false, phased: false, crit: false, immune: false, hitChance: 0, critChance: 0, variance: null, amount: 0, absorbed: 0, shieldBroken: false, mitigated: 0, steps: [] };
+
+/** `consumesAlly`: one living ally of that creature is gone from the fight (no XP, no loot, not a kill). */
+function consumeAlly(combat: CombatState, c: Combatant, creatureId: string): void {
+  const ally = combat.enemies.find((e) => e !== c && e.refId === creatureId && isActive(e));
+  if (!ally) return;
+  combatLog(combat, `${c.name} takes ${ally.name} into itself.`, 'info');
+  ally.fledOrGone = true;
+  ally.guarding = false;
+  ally.statuses = [];
+  breakWindUp(ally);
+  delete combat.intents[ally.uid];
+}
+
+/** `clockCost`: the Breach Clock's limit moves `watches` earlier (once a fight with `oncePerFight`). */
+function payClock(ctx: StepCtx, combat: CombatState, c: Combatant, moveId: string, cost: NonNullable<Move['clockCost']>): void {
+  const tag = `clock:${moveId}`;
+  if (cost.oncePerFight && c.pattern.firedOnce.includes(tag)) return;
+  if (cost.oncePerFight) c.pattern.firedOnce.push(tag);
+  combatLog(combat, `The Breach Clock loses ${cost.watches === 1 ? 'a watch' : `${cost.watches} watches`}.`, 'info');
+  changeLimit(ctx, -cost.watches, `creature:${c.refId}`);
+}
+
+/**
+ * U34e (WORLD `onDeath`): a creature's `deathMove` the moment it falls (the reducer's knock-out), before loot: its hits on
+ * the move's target(s) — every living opponent for `all` — and, where one connected, its `target` status rows.
+ */
+export function playDeathMove(ctx: StepCtx, combat: CombatState, c: Combatant, applyHit: HitApplier): void {
+  const dm = ctx.content.creatures[c.refId]?.deathMove;
+  const move = dm === undefined ? undefined : ctx.content.creatures[c.refId]?.moves[dm.move];
+  if (!dm || !move) return;
+  const aim = aimOf(dm.target);
+  combatLog(combat, `${c.name}: ${move.line}`, 'intent');
+  const spec = typed(ctx, combat, move, intentHitSpec(dm.move, move, aim === 'all'));
+  const struck = aim === 'all' ? foesOf(combat, c).filter(isActive) : aim === 'single' ? [pickFoe(combat, c, dm.target, ctx.rng)].filter((t): t is Combatant => t !== null) : [];
+  const rows = move.statuses.filter((row) => row.target === 'target');
+  const evalRow: WhenEval = (when, recipient) => evalCombatWhen(ctx, combat, when, { self: c, target: recipient, turn: c.pattern.turnsTaken + 1, round: combat.round });
+  for (const t of struck) {
+    let landed = spec === null;
+    for (let h = 0; spec && h < moveHits(move) && isActive(t); h++) {
+      const r = resolveHit(ctx, c, t, spec);
+      applyHit(ctx, combat, c, t, spec, r, 'intent');
+      landed ||= r.hit && !r.immune;
+    }
+    if (landed && isActive(t) && rows.length > 0) applyStatusRows(ctx, combat, c, t, rows, evalRow);
+  }
+}
+
 /**
  * Generates and stores `c`'s next intent (DESIGN §4.2), replacing any stored one; emits `intentRevealed`. None for a
  * creature that is down, Stunned (it holds until the Stun is gone), unknown, holding (`phaseHold`) or with nothing
@@ -462,7 +615,7 @@ function patternIntent(ctx: StepCtx, combat: CombatState, c: Combatant): Intent 
 export function generateIntent(ctx: StepCtx, combat: CombatState, c: Combatant, after: Intent | null = null): Intent | null {
   delete combat.intents[c.uid];
   if (!isActive(c) || skipsTurn(ctx.content, c) || !foesOf(combat, c).some(isActive) || !ctx.content.creatures[c.refId]) return null;
-  const intent = windUpIntent(ctx, combat, c, after) ?? patternIntent(ctx, combat, c);
+  const intent = forcedIntent(ctx, combat, c) ?? windUpIntent(ctx, combat, c, after) ?? patternIntent(ctx, combat, c);
   return intent ? store(ctx, combat, c, intent) : null;
 }
 
@@ -555,7 +708,10 @@ export function refreshIntents(ctx: StepCtx, combat: CombatState): void {
       intent.targetUid = t === null || t === c ? null : t.uid;
     }
     intent.projected = projectIntent(ctx, combat, c, intent);
-    if (intent.hidden && (intentsRevealed(combat) || actsBeforePlayerAgain(ctx, combat, c))) unhide(ctx, combat, c, intent);
+    // U34e: an unlit creature's chip stays hidden until it is struck; then it shows as any other (its own hidden moves aside)
+    const unlit = unlitNow(ctx, c);
+    const struck = !unlit && hasCreatureTag(ctx, c, UNLIT_TAG) && !(ctx.content.creatures[c.refId]?.moves[intent.moveId]?.hidden ?? false);
+    if (intent.hidden && (intentsRevealed(combat) || (actsBeforePlayerAgain(ctx, combat, c) && !unlit) || struck)) unhide(ctx, combat, c, intent);
     if (!sameChip(before, intent)) ctx.emit({ t: 'intentRevealed', uid: c.uid, intent: copyOf(intent) });
   }
 }
@@ -630,8 +786,10 @@ export function executeIntent(ctx: StepCtx, combat: CombatState, c: Combatant, a
   if (move.windUp && windUpKeyOf(c) === undefined) c.cooldowns[`${WIND_UP_KEY}${intent.moveId}`] = move.windUp.turns + 1; // its turn end takes one
 
   const aim = aimOfIntent(combat, c, intent);
-  const spec = intentHitSpec(intent.moveId, move, aim === 'all');
+  const spec = typed(ctx, combat, move, intentHitSpec(intent.moveId, move, aim === 'all'));
   const aimed = intentTarget(combat, c, intent);
+  notePlayed(combat, c, intent); // U34e: what a `repeatPrevious` move repeats
+  c.pattern.firedOnce = c.pattern.firedOnce.filter((t) => t !== `${FORCED_TAG}${intent.moveId}`); // a forced move, played
   const struck = aim === 'all' ? foesOf(combat, c).filter(isActive) : aimed ? [aimed] : [];
   const evalRow: WhenEval = (when, recipient) =>
     evalCombatWhen(ctx, combat, when, { self: c, target: recipient, turn: c.pattern.turnsTaken + 1, round: combat.round });
@@ -645,6 +803,12 @@ export function executeIntent(ctx: StepCtx, combat: CombatState, c: Combatant, a
   const hits = moveHits(move);
   for (const t of struck) {
     let landed = spec === null;
+    if (move.missesIfGuarded && t.guarding) {
+      // U34e (D-094): "misses entirely if you Guard" — no damage, no status
+      combatLog(combat, `${t.name} braces: ${move.name} misses entirely.`, 'damage');
+      if (spec) applyHit(ctx, combat, c, t, spec, GUARDED_MISS, 'intent');
+      continue;
+    }
     for (let h = 0; spec && h < hits && isActive(t) && isActive(c); h++) {
       const r = resolveHit(ctx, c, t, spec);
       applyHit(ctx, combat, c, t, spec, r, 'intent');
@@ -657,6 +821,7 @@ export function executeIntent(ctx: StepCtx, combat: CombatState, c: Combatant, a
     const debuffs = c.statuses.filter((st) => ctx.content.statuses[st.statusId]?.kind === 'debuff').map((st) => st.statusId);
     cleanse(ctx, combat, c, debuffs);
   }
+  if (move.consumesAlly !== undefined) consumeAlly(combat, c, move.consumesAlly); // U34e (D-096): "consumes the toad"
   if (move.heal) heal(ctx, combat, c, intent.moveId, move.heal, aimed);
   if (move.shield) applyStatus(ctx, combat, c, c, STATUS.shield, { power: scaleOf(move.shield.power) });
   if (move.shieldAlly) {
@@ -667,6 +832,7 @@ export function executeIntent(ctx: StepCtx, combat: CombatState, c: Combatant, a
   if (move.summon) summon(ctx, combat, c, move.summon);
   if (move.revive) revive(ctx, combat, c, intent.moveId, move.revive.hpPct);
   finishMove(use, move); // U26: special `after`, stripBuffs, healOnDamage, riposte
+  if (move.clockCost && isActive(c)) payClock(ctx, combat, c, intent.moveId, move.clockCost); // U34e (D-092): the Hour Leech
   if (isActive(c) && (move.leaveCombat || move.effects.some((e) => 'leaveCombat' in e))) withdrawFromCombat(combat, c);
   return intent;
 }

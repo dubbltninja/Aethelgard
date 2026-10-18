@@ -176,8 +176,9 @@ describe('pathBot: talk', () => {
   test('an NPC who is not here, and a talk where none can be had', () => {
     const away = run([{ talk: 'npc_nobody', pick: [] }]);
     expect(away.stopMessage).toContain('npc_nobody: they are not here (loc_whispering_ruins)');
+    // U34e (D-091 gap 7): the Threshold is a place to talk too; Ilyra is not on its shore
     const shut = chooseOn([{ talk: 'npc_ilyra', pick: [] }], 'loop2_end', thresholdPack());
-    expect(shut.bot.halt?.(shut.memory)?.message).toContain("cannot talk in mode 'threshold'");
+    expect(shut.bot.halt?.(shut.memory)?.message).toContain('npc_ilyra: they are not here (the Threshold)');
   });
 });
 

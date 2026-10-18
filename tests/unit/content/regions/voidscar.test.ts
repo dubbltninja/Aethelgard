@@ -9,7 +9,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildContentPack, contentTables, parseContentPack } from '@content/index';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { REGION_FOLDERS } from '@content/regions';
-import { creatures } from '@content/regions/voidscar/creatures';
+import { creatures as folderCreatures } from '@content/regions/voidscar/creatures';
 import { items } from '@content/regions/voidscar/items';
 import { locations } from '@content/regions/voidscar/locations';
 import { npcs } from '@content/regions/voidscar/npcs';
@@ -24,6 +24,10 @@ import { D, scriptedCtx } from '@tests/fixtures/combatContent';
 import { freshProfile, makeState } from '@tests/fixtures/helpers';
 import { main as validateCli } from '../../../../tools/validate-content';
 import { PLAN, WORLD, appendixLegacyLocations, section, tableRows, unquote, worldCreature, worldCreatureTable, worldEdges, worldLocations, worldNodes } from './worldDoc';
+
+// U34e (D-087): WORLD §10.2's anomaly variants live in this folder too; WORLD §6's checks below are on the
+// others (tests/unit/engine/u34e/anomalies.test.ts checks the variants).
+const creatures = folderCreatures.filter((c) => !c.id.startsWith('cr_anomaly_'));
 
 const ROOT = path.resolve(import.meta.dirname, '../../../..');
 const DESIGN = fs.readFileSync(path.join(ROOT, 'docs/DESIGN.md'), 'utf8');
@@ -558,7 +562,7 @@ describe('patterns: WORLD’s cadence words hold turn by turn (first-match on ev
     expect(plan(STALKER, 6, { before: (t, _f, c) => withStatus(player(c), 'status_curse', t === 3) })).toEqual(seq('circle starbite pounce starbite lunge starbite'));
   });
 
-  test('the Sentry: Count first; Unsee every third turn; the Choir once no ally is left; Withdraw below a quarter; otherwise the Thread Cut', () => {
+  test('the Sentry: Count first; Unsee every third turn; the Choir once an ally has fallen; Withdraw below a quarter; otherwise the Thread Cut', () => {
     const group = [{ creatureId: STALKER, count: 1 }, { creatureId: SENTRY, count: 1 }];
     const ally = (alive: (t: number) => boolean) => (t: number, f: Combatant, c: CombatState) => {
       for (const e of c.enemies) if (e !== f) e.alive = alive(t);
@@ -569,8 +573,8 @@ describe('patterns: WORLD’s cadence words hold turn by turn (first-match on ev
     expect(plan(SENTRY, 8, { groups: group, before: ally((t) => t < 4) })).toEqual(seq('count thread_cut unsee call_the_choir call_the_choir unsee call_the_choir call_the_choir'));
     // wounded below a quarter beside a living ally: it cuts its thread and goes
     expect(plan(SENTRY, 6, { groups: group, before: (t, f, c) => { ally(() => true)(t, f, c); hpAt(t >= 4 ? 0.2 : 1)(f); } })).toEqual(seq('count thread_cut unsee withdraw withdraw unsee'));
-    // alone (a pool or Chasm encounter): no ally at all, so the Choir from the second turn (the reading in creatures.ts)
-    expect(plan(SENTRY, 6)).toEqual(seq('count call_the_choir unsee call_the_choir call_the_choir unsee'));
+    // alone (a pool or Chasm encounter): no ally has died, so no Choir (U34e, D-094: `allyDown`, "an ally died this fight")
+    expect(plan(SENTRY, 6)).toEqual(seq('count thread_cut unsee thread_cut thread_cut unsee'));
   });
 });
 

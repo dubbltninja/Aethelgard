@@ -12,7 +12,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildContentPack, contentTables, parseContentPack } from '@content/index';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { REGION_FOLDERS } from '@content/regions';
-import { creatures } from '@content/regions/ashen_steppe/creatures';
+import { creatures as folderCreatures } from '@content/regions/ashen_steppe/creatures';
 import { items } from '@content/regions/ashen_steppe/items';
 import { locations } from '@content/regions/ashen_steppe/locations';
 import { npcs } from '@content/regions/ashen_steppe/npcs';
@@ -26,6 +26,10 @@ import { D, scriptedCtx } from '@tests/fixtures/combatContent';
 import { freshProfile, makeState, type StateOverrides } from '@tests/fixtures/helpers';
 import { main as validateCli } from '../../../../tools/validate-content';
 import { PLAN, WORLD, ids, section, tableRows, unquote, worldCreature, worldCreatureTable, worldEdges, worldLocations, worldNodes } from './worldDoc';
+
+// U34e (D-087): WORLD §10.2's anomaly variants live in this folder too; WORLD §6's checks below are on the
+// others (tests/unit/engine/u34e/anomalies.test.ts checks the variants).
+const creatures = folderCreatures.filter((c) => !c.id.startsWith('cr_anomaly_'));
 
 const ROOT = path.resolve(import.meta.dirname, '../../../..');
 const DESIGN = fs.readFileSync(path.join(ROOT, 'docs/DESIGN.md'), 'utf8');
@@ -735,6 +739,7 @@ describe('the creatures vs WORLD §6.2, §6.6', () => {
       walkSteps(c.pattern, [], visit);
       for (const ph of c.phases) walkSteps(ph.pattern, [], visit);
       for (const m of Object.values(c.moves)) if (m.windUp) used.add(m.windUp.then);
+      for (const l of c.hpLines) if (l.move !== undefined) used.add(l.move); // U34e: a move an HP line forces
       const unused = Object.keys(c.moves).filter((id) => !used.has(id));
       expect([c.id, unused]).toEqual([c.id, []]);
       for (const m of Object.values(c.moves)) expect([c.id, m.line, words(m.line) <= 12]).toEqual([c.id, m.line, true]);
@@ -751,7 +756,8 @@ describe('the creatures vs WORLD §6.2, §6.6', () => {
     expect(aims('cr_salt_jackal')).toEqual({ jackal_harry: ['player'], jackal_pull_down: ['player'], jackal_scatter: ['self'], jackal_snap: ['player'] });
     expect(aims('cr_cinderback')).toEqual({ cinder_stampede: ['player'], cinder_rekindle: ['self'], cinder_paw: ['player'], cinder_hook: ['player'], cinder_shake: ['all'] });
     expect(aims('cr_reed_stalker')).toEqual({ reed_still: ['self'], reed_twice: ['player'], reed_wade: ['self'], reed_spear: ['player'] });
-    expect(aims(ASHMAW)).toEqual({ ashmaw_low: ['all'], ashmaw_breathe: ['all'], ashmaw_shoulder: ['player'], ashmaw_paw: ['player'], ashmaw_gore: ['all'], ashmaw_stampede: ['player'], ashmaw_grief: ['self'], ashmaw_brand_flare: ['all'] });
+    // the Grief is aimed at itself by its HP line (U34e: `forceIntent`), not by a pattern step
+    expect(aims(ASHMAW)).toEqual({ ashmaw_low: ['all'], ashmaw_breathe: ['all'], ashmaw_shoulder: ['player'], ashmaw_paw: ['player'], ashmaw_gore: ['all'], ashmaw_stampede: ['player'], ashmaw_brand_flare: ['all'] });
     // the Stampede is WORLD's id with no telegraph of its own ("no wind-up" in Phase 3): written here, and visible
     expect(cr(ASHMAW).moves['ashmaw_stampede']?.line).toBe('The herd comes down on you as one.');
     expect(cr(ASHMAW).moves['ashmaw_stampede']?.hidden).toBe(false);
@@ -771,8 +777,9 @@ describe('the creatures vs WORLD §6.2, §6.6', () => {
     expect(m('cr_salt_jackal', 'jackal_scatter')?.power).toBeUndefined(); // "leaves combat (no loot)"
     expect(hit('cr_cinderback', 'cinder_stampede')).toEqual(['fire', 2, 'sp']);
     expect(rows('cr_cinderback', 'cinder_stampede')).toEqual([['burn', 0.6, 3, 'target']]);
-    // "misses entirely if you Guard": the Guard the engine gives (half damage) stands, and the Burn is not applied to a Guarding player
-    expect(m('cr_cinderback', 'cinder_stampede')?.statuses[0]?.when).toEqual({ playerGuarding: false });
+    // "misses entirely if you Guard": U34e (D-094) `missesIfGuarded` — no damage and no Burn against a Guarding target
+    expect(m('cr_cinderback', 'cinder_stampede')?.missesIfGuarded).toBe(true);
+    expect(m('cr_cinderback', 'cinder_stampede')?.statuses[0]?.when).toBeUndefined();
     expect(hit('cr_cinderback', 'cinder_hook')).toEqual(['physical', 1.1, 'atk']);
     expect(rows('cr_cinderback', 'cinder_hook')).toEqual([['armor_break', 0.3, 2, 'target']]);
     expect(hit('cr_cinderback', 'cinder_shake')).toEqual(['fire', 0.5, 'sp']);
@@ -929,9 +936,11 @@ describe('patterns: WORLD’s cadence words hold turn by turn (first-match on ev
 
   test('Ashmaw, Phase 3 — One Animal: the Stampede on every second turn (no wind-up), Brand Flare between, Grief once below 15 % HP', () => {
     expect(plan(ASHMAW, 6, { phase: 2 })).toEqual(seq('brand_flare stampede brand_flare stampede brand_flare stampede'));
+    // U34e (D-094): the Grief is an HP line, not a pattern step — the moment its HP falls under 15 % its next action is the Grief,
+    // once (phases.ts `hpLines`; tests/unit/engine/u34e/creatures.test.ts plays it)
+    expect(cr(ASHMAW).hpLines).toEqual([{ below: 0.15, move: 'ashmaw_grief' }]);
     const low = (t: number, f: Combatant): void => hpAt(t >= 5 ? 0.1 : 1)(f);
-    // Grief takes the first odd turn at that HP (the Stampede holds the even ones), and only once
-    expect(plan(ASHMAW, 8, { phase: 2, before: low })).toEqual(seq('brand_flare stampede brand_flare stampede grief stampede brand_flare stampede'));
+    expect(plan(ASHMAW, 8, { phase: 2, before: low })).toEqual(seq('brand_flare stampede brand_flare stampede brand_flare stampede brand_flare stampede'));
   });
 
   test('Ashmaw’s phases: ids, names, triggers (70 %, 35 %), WORLD’s transition lines; two jackals come with Phase 1; Phase 3 takes 1.185× (armor 0)', () => {

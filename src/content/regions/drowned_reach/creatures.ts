@@ -8,8 +8,8 @@
 // Conventions are U42's and U45's (silverwood_ruins/creatures.ts and glowlands_nexus/creatures.ts headers): stats
 // `HP · ATK · DEF armor/ward · AGI`, SP = ATK unless WORLD gives one (none here), non-physical moves scale on SP; a move's
 // type is the creature's primary type unless the line names one; `all` = area, `you` = player, `ally` = the lowest-HP
-// ally; the `breach_born` tag is Poison-immune (written out), `drowned` is WORLD §5's Soaked-each-turn (engine gap 5:
-// the tag is never read); loot rows in WORLD's order; bestiary and tactics WORLD's text verbatim (backticks and decision
+// ally; the `breach_born` tag is Poison-immune (written out), `drowned` is WORLD §5's Soaked-each-turn (the engine's
+// since U34e, D-094); loot rows in WORLD's order; bestiary and tactics WORLD's text verbatim (backticks and decision
 // references dropped); `description` a sentence from the bestiary or the location (no legacy line exists: the Archivist is
 // the Reach's only legacy Drowned).
 //
@@ -17,15 +17,14 @@
 // its condition holds, first match top to bottom) as one first-match `if` chain evaluated on every turn (`firstOf`), two
 // cycled moves alternating by the creature's own turn (`alternate`) — U45's form, which keeps every `everyNthTurn` cadence
 // (D-092). Readings (each repeated at its move; listed in the U46 reply):
-//   - "ifAllyDown" (an ally fell this fight) has no atom: `allyCountBelow` stands in (the Rootling's reading), with
-//     `oncePerFight` where WORLD says "once per fight";
-//   - "heal ally" fires on "ifAllyPresent" with no wounded-ally atom (U34d's gap), so the Choir's Amend is placed behind
-//     its rarer conditions (the Reinscribe, the Verse): WORLD lists it first, but ahead of them it would shadow both while
-//     any reader lives, and the bestiary has the Choir read a fallen reader back in;
+//   - "ifAllyDown" (an ally fell this fight) is the `allyDown` atom (U34e, D-094), with `oncePerFight` where WORLD says
+//     "once per fight";
+//   - "heal ally … ifAllyPresent" (the Choir's Amend) heals a wounded ally: `allyBelow: 1` (U34e, D-094), in WORLD's order
+//     (first), so an unhurt reader beside it no longer makes it heal nothing;
 //   - a low-HP self-move with no "once" (the Lamprey's Eddy, the Ringer's Shell) waits while its own effect still stands
 //     (`not selfHas`), as U45's self-Rewind does: otherwise it would repeat every turn and the creature would never strike.
-// Not expressible (the U46 reply): the Soaked-at-the-start-of-each-round rule of the Bell-Warden's Phase 2 (no round hook
-// on a phase; the `drowned` tag is the same gap).
+// The Bell-Warden's Phase 2 "every combatant is Soaked at the start of each round" is the phase's `roundStatuses`, and the
+// `drowned` tag's Soaked-each-turn is the engine's (U34e, D-094).
 import type { CombatWhen, CreatureInput, Step } from '@schema/creature';
 
 const REVEALS = [{ kills: 1, reveal: 'resist' }, { kills: 3, reveal: 'all' }] as const;
@@ -249,11 +248,11 @@ const ledgerChoir = {
   pattern: [
     firstOf(
       [
-        // "ifAllyDown, once per fight": fewer than two readers left of the two it fights beside
-        [{ all: [{ allyCountBelow: 2 }, { oncePerFight: true }] }, { move: 'choir_reinscribe', target: 'self' }],
+        // "ifAllyPresent": a wounded ally (see the header)
+        [{ allyBelow: 1 }, { move: 'choir_amend', target: 'ally' }],
+        // "ifAllyDown, once per fight"
+        [{ all: [{ allyDown: true }, { oncePerFight: true }] }, { move: 'choir_reinscribe', target: 'self' }],
         [{ everyNth: 3 }, { move: 'choir_verse', target: 'player' }],
-        // "ifAllyPresent" (see the header: behind the rarer conditions)
-        [{ allyPresent: true }, { move: 'choir_amend', target: 'ally' }],
       ],
       { move: 'choir_intone', target: 'all' },
     ),
@@ -310,8 +309,8 @@ const bellRinger = {
   pattern: [
     firstOf(
       [
-        // "ifAllyDown, once per fight": the one Archivist it fights beside has fallen
-        [{ all: [{ allyCountBelow: 1 }, { oncePerFight: true }] }, { move: 'ringer_stand_them_up', target: 'self' }],
+        // "ifAllyDown, once per fight" (U34e: `allyDown`)
+        [{ all: [{ allyDown: true }, { oncePerFight: true }] }, { move: 'ringer_stand_them_up', target: 'self' }],
         [hurtAndWithout(0.5, 'status_shield'), { move: 'ringer_shell', target: 'self' }],
       ],
       alternate({ move: 'ringer_low_note', target: 'all' }, { move: 'ringer_rope', target: 'player' }),
@@ -417,6 +416,8 @@ const bellWarden = {
       id: 'warden_the_water_rises',
       name: 'The Water Rises',
       enterWhen: [{ hpBelow: 0.65 }],
+      // "every combatant is Soaked at the start of each round" (U34e, D-094)
+      roundStatuses: ['status_soaked'],
       line: 'The Warden stands. The chain of office swings. The water in the well begins to rise.',
       pattern: [
         firstOf([[{ everyNth: 3 }, { move: 'warden_lift', target: 'all' }]], alternate({ move: 'warden_undertow', target: 'all' }, { move: 'warden_clapper', target: 'player' })),
@@ -452,4 +453,77 @@ const bellWarden = {
 } satisfies CreatureInput;
 
 /** WORLD §6 order within the Drowned: the Tide Clerk, the Pale Diver, the Brine Lamprey, the Ledger Choir, the Bell-Ringer, the Bell-Warden. */
-export const creatures = [tideClerk, paleDiver, brineLamprey, ledgerChoir, bellRinger, bellWarden] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_unfiled_archivist — Drowned · L4 anomaly, Loop 2+ · XP 92 ("Rewinds a wounded ally instead of attacking") ----
+// The Drowned Archivist's numbers and moves (silverwood_ruins/creatures.ts; its quest-only turn and drop left out), and a
+// Rewind on its most wounded ally while one is below 75 % (WORLD gives no line for "wounded"). Spawned alone it has no ally.
+const unfiledArchivist = {
+  id: 'cr_anomaly_unfiled_archivist',
+  name: 'Unfiled Archivist',
+  description: 'A Drowned Archivist that files wounds back where they came from.',
+  family: 'fam_drowned',
+  materialKin: 'drowned',
+  role: 'anomaly',
+  level: 4,
+  stats: { hp: 58, atk: 11, sp: 11, armor: 1, ward: 3, agi: 4 },
+  tags: ['breach_born', 'drowned', 'anomaly'],
+  resistances: { fire: 'resist' },
+  statusImmunities: ['status_poison'],
+  moves: {
+    unfiled_unfile: {
+      name: 'Unfile',
+      line: 'It reads a wounded page back into its binding.',
+      statuses: [{ status: 'status_rewind', duration: 2 }],
+    },
+    archivist_page_cut: {
+      name: 'Page Cut',
+      line: 'A sodden page lifts from its book, edge first.',
+      type: 'physical',
+      power: { coef: 1.0, stat: 'atk' },
+      statuses: [{ status: 'status_bleed', chance: 0.3, duration: 2 }],
+    },
+    archivist_recite: {
+      name: 'Recite',
+      line: 'It reads aloud. The water around you listens.',
+      type: 'ley',
+      power: { coef: 0.9, stat: 'sp' },
+      statuses: [{ status: 'status_soaked', chance: 1, duration: 3 }],
+    },
+    archivist_bind: {
+      name: 'Bind',
+      line: 'It closes its book on your shadow.',
+      type: 'ley',
+      power: { coef: 0.6, stat: 'sp' },
+      statuses: [{ status: 'status_slow', chance: 0.5, duration: 2 }],
+    },
+  },
+  pattern: [
+    firstOf(
+      [
+        [{ allyBelow: 0.75 }, { move: 'unfiled_unfile', target: 'ally' }],
+        [{ everyNth: 3 }, { move: 'archivist_bind', target: 'player' }],
+      ],
+      alternate({ move: 'archivist_page_cut', target: 'player' }, { move: 'archivist_recite', target: 'player' }),
+    ),
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: { min: 11, max: 18 },
+  xp: 92,
+  anomaly: { region: 'region_drowned_reach', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. An Archivist reading the wrong book: to it a wounded ally is a wounded page, and it reads them back to whole. It does that instead of fighting, as long as anyone near it is hurt.',
+    tactics: 'Kill it first, or its allies cleanly; Storm (always Soaked); Void consumes the Rewind it gives.',
+    codexId: 'codex_creatures_drowned',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'circle_waterline', details: ['drip', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [tideClerk, paleDiver, brineLamprey, ledgerChoir, bellRinger, bellWarden, unfiledArchivist] satisfies CreatureInput[];

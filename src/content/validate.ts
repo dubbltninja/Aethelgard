@@ -77,7 +77,7 @@ export const EXPECTED_COUNTS = {
   codexMin: 85,
   /** STORY §12: 103 after D-069.1 (PLAN's 101 predates it). */
   echoes: 103,
-  /** Non-anomaly creatures; the 16 anomaly variants are counted apart. */
+  /** WORLD §6's creatures, every role (its six anomalies included); WORLD §10.2's 16 `cr_anomaly_*` variants are counted apart. */
   creatures: 57,
   anomalies: 16,
   itemsMin: 120,
@@ -94,6 +94,9 @@ export const EXPECTED_COUNTS = {
   abilitiesPerClass: 15,
   statuses: 19,
 } as const;
+
+/** WORLD §10.2's anomaly variants (`cr_anomaly_*`, DESIGN §6.6). */
+export const ANOMALY_VARIANT_PREFIX = 'cr_anomaly_';
 
 /** DESIGN §10.7: the fifteen Attunements. */
 export const ATTUNEMENT_IDS = [
@@ -695,6 +698,13 @@ function rule01(v: Validation): void {
     loc.items.forEach((it, i) => need(t, loc.id, `items.${i}.itemId`, 'items', it.itemId, 'item'));
     (loc.gather ?? []).forEach((g, i) => need(t, loc.id, `gather.${i}.itemId`, 'items', g.itemId, 'gather item'));
     (loc.wanderingPools ?? []).forEach((p, i) => need(t, loc.id, `wanderingPools.${i}.regionId`, 'regions', p.regionId, 'wandering pool region'));
+    // U34e: level variants name creatures
+    loc.levelBonus.forEach((b, i) => b.creatures.forEach((c, j) => need(t, loc.id, `levelBonus.${i}.creatures.${j}`, 'creatures', c, 'level-variant creature')));
+    // U34e: hazards name statuses
+    loc.hazards.forEach((h, i) => {
+      const ids = [['status.id', h.status?.id], ['status.onlyIf', h.status?.onlyIf], ['strike.onlyIf', h.strike?.onlyIf]] as const;
+      for (const [path, id] of ids) if (id !== undefined) need(t, loc.id, `hazards.${i}.${path}`, 'statuses', id, 'hazard status');
+    });
     loc.encounters.forEach((enc, i) =>
       enc.groups.forEach((g, j) => need(t, loc.id, `encounters.${i}.groups.${j}.creatureId`, 'creatures', g.creatureId, `encounter ${enc.id} creature`)),
     );
@@ -709,11 +719,14 @@ function rule01(v: Validation): void {
     const t = 'creatures';
     c.loot.forEach((l, i) => need(t, c.id, `loot.${i}.itemId`, 'items', l.itemId, 'loot item'));
     c.statusImmunities.forEach((s, i) => need(t, c.id, `statusImmunities.${i}`, 'statuses', s, 'status immunity'));
+    c.innateStatuses.forEach((s, i) => need(t, c.id, `innateStatuses.${i}`, 'statuses', s, 'innate status')); // U34e
+    if (c.anomaly !== undefined) need(t, c.id, 'anomaly.region', 'regions', c.anomaly.region, 'anomaly region'); // U34e
     if (c.bestiary.codexId !== undefined) need(t, c.id, 'bestiary.codexId', 'codex', c.bestiary.codexId, 'bestiary codexId');
     const moves = new Set(Object.keys(c.moves));
     for (const [moveId, move] of Object.entries(c.moves)) {
       move.statuses.forEach((s, i) => need(t, c.id, `moves.${moveId}.statuses.${i}.status`, 'statuses', s.status, `move ${moveId} status`));
       if (move.summon) need(t, c.id, `moves.${moveId}.summon.creatureId`, 'creatures', move.summon.creatureId, `move ${moveId} summon`);
+      if (move.consumesAlly !== undefined) need(t, c.id, `moves.${moveId}.consumesAlly`, 'creatures', move.consumesAlly, `move ${moveId} consumesAlly`); // U34e
       if (move.windUp && !moves.has(move.windUp.then)) v.error(R, t, c.id, `moves.${moveId}.windUp.then`, `windUp.then move ${quote(move.windUp.then)} not found in moves`);
     }
     const checkPattern = (steps: Parameters<typeof walkSteps>[0], path: string): void =>
@@ -726,6 +739,9 @@ function rule01(v: Validation): void {
     c.phases.forEach((ph, i) => {
       checkPattern(ph.pattern, `phases.${i}.pattern`);
       ph.adds.forEach((a, j) => need(t, c.id, `phases.${i}.adds.${j}.creatureId`, 'creatures', a.creatureId, `phase ${ph.id} add`));
+      // U34e: a phase's own immunities and round statuses name statuses
+      ph.statusImmunities.forEach((st, j) => need(t, c.id, `phases.${i}.statusImmunities.${j}`, 'statuses', st, `phase ${ph.id} status immunity`));
+      ph.roundStatuses.forEach((st, j) => need(t, c.id, `phases.${i}.roundStatuses.${j}`, 'statuses', st, `phase ${ph.id} round status`));
     });
     if (c.communion) {
       if (!moves.has(c.communion.pressMove)) v.error(R, t, c.id, 'communion.pressMove', `pressMove ${quote(c.communion.pressMove)} not found in moves`);
@@ -1564,8 +1580,10 @@ function rule21(v: Validation): void {
   check('quests', 'class mini-quests', quests.filter((q) => q.category === 'class').length, EXPECTED_COUNTS.classQuests);
   check('codex', 'codex entries', n('codex'), EXPECTED_COUNTS.codexMin, true);
   check('echoes', 'echoes', n('echoes'), EXPECTED_COUNTS.echoes);
-  check('creatures', 'creatures (anomaly variants apart)', creatures.filter((c) => c.role !== 'anomaly').length, EXPECTED_COUNTS.creatures);
-  check('creatures', 'anomaly variants', creatures.filter((c) => c.role === 'anomaly').length, EXPECTED_COUNTS.anomalies);
+  // U34e: WORLD §6's 57 include its six anomalies (Paradox Wisp … the Unmade); the variants are the `cr_anomaly_*` ids
+  const variant = (c: { id: string }): boolean => c.id.startsWith(ANOMALY_VARIANT_PREFIX);
+  check('creatures', 'creatures (anomaly variants apart)', creatures.filter((c) => !variant(c)).length, EXPECTED_COUNTS.creatures);
+  check('creatures', 'anomaly variants', creatures.filter(variant).length, EXPECTED_COUNTS.anomalies);
   check('items', 'items', n('items'), EXPECTED_COUNTS.itemsMin, true);
   check('achievements', 'achievements', n('achievements'), EXPECTED_COUNTS.achievements);
   check('abilities', 'class abilities', abilities.filter((a) => abilityOwnerKind(a.id) === 'class').length, EXPECTED_COUNTS.classAbilities);

@@ -11,7 +11,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildContentPack, contentTables, parseContentPack } from '@content/index';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { REGION_FOLDERS } from '@content/regions';
-import { creatures } from '@content/regions/mistwood_ironclad_reach/creatures';
+import { creatures as folderCreatures } from '@content/regions/mistwood_ironclad_reach/creatures';
 import { items } from '@content/regions/mistwood_ironclad_reach/items';
 import { locations } from '@content/regions/mistwood_ironclad_reach/locations';
 import { npcs } from '@content/regions/mistwood_ironclad_reach/npcs';
@@ -25,6 +25,10 @@ import { LocationSchema, type Location } from '@schema/location';
 import { freshProfile, makeState, type StateOverrides } from '@tests/fixtures/helpers';
 import { main as validateCli } from '../../../../tools/validate-content';
 import { WORLD, appendixLegacyLocations, ids, section, tableRows, unquote, worldCreature, worldCreatureTable, worldEdges, worldLocations, worldNodes } from './worldDoc';
+
+// U34e (D-087): WORLD §10.2's anomaly variants live in this folder too; WORLD §6's checks below are on the
+// others (tests/unit/engine/u34e/anomalies.test.ts checks the variants).
+const creatures = folderCreatures.filter((c) => !c.id.startsWith('cr_anomaly_'));
 
 const ROOT = path.resolve(import.meta.dirname, '../../../..');
 const DESIGN = fs.readFileSync(path.join(ROOT, 'docs/DESIGN.md'), 'utf8');
@@ -646,10 +650,16 @@ describe('the creatures vs WORLD §6', () => {
     expect(b.resistances).toEqual({ fire: 'weak' });
   });
 
-  test('the Rootling: Burrow only once an ally is down (fewer than two of three left), then Trip, then Jab; the statuses are WORLD’s percentages', () => {
+  test('the Rootling: Burrow once an ally is down (U34e `allyDown`, while its own Shield is not up), tested every turn; else Trip, then Jab; the statuses are WORLD’s percentages', () => {
     const r = byId(parsedCreatures, 'cr_rootling');
-    expect(r.pattern.map((s) => ('move' in s ? s.move : '?'))).toEqual(['rootling_burrow', 'rootling_trip', 'rootling_jab']);
-    expect(r.pattern[0]).toMatchObject({ target: 'self', when: { allyCountBelow: 2 } });
+    // U34e's cadence re-check (D-092): one first-match step (the Burrow's condition read on every turn), Trip and Jab by its turn
+    expect(r.pattern).toEqual([
+      {
+        if: { all: [{ allyDown: true }, { not: { selfHas: 'status_shield' } }] },
+        then: [{ move: 'rootling_burrow', target: 'self' }],
+        else: [{ if: { everyNth: 2 }, then: [{ move: 'rootling_jab', target: 'player' }], else: [{ move: 'rootling_trip', target: 'player' }] }],
+      },
+    ]);
     expect(r.moves['rootling_burrow']?.shield?.power).toMatchObject({ coef: 1.0, stat: 'atk' });
     expect(r.moves['rootling_trip']?.statuses.map((s) => [s.status, s.chance, s.duration])).toEqual([['status_slow', 0.4, 2]]);
     expect(r.moves['rootling_jab']?.statuses.map((s) => [s.status, s.chance, s.duration])).toEqual([['status_bleed', 0.25, 2]]);
@@ -660,6 +670,7 @@ describe('the creatures vs WORLD §6', () => {
     const g = byId(parsedCreatures, 'cr_stone_hide_golem');
     expect(g.role).toBe('elite');
     expect(g.pattern[0]).toMatchObject({ move: 'golem_harden', target: 'self', when: { selfHas: 'status_armor_break' } });
+    // WORLD: "ifAllyPresent and the ally is below 50 %"; U34e holds `allyBelow` back (see creatures.ts: the Outpost proof)
     expect(g.pattern[1]).toMatchObject({ move: 'golem_cover', target: 'ally', when: { allyPresent: true } });
     expect(g.pattern.slice(2).map((s) => ('move' in s ? s.move : '?'))).toEqual(['golem_slam', 'golem_grind']);
     expect(g.moves['golem_harden']).toMatchObject({ cleanseSelf: true, shield: { power: { coef: 1.0, stat: 'atk' } } });
@@ -695,8 +706,9 @@ describe('the creatures vs WORLD §6', () => {
     expect(h.moves['stutter_bite']).toMatchObject({ type: 'chrono', power: { coef: 0.6, stat: 'sp', hits: 2 } });
     expect(h.moves['stutter_bite']?.statuses.map((s) => [s.status, s.chance, s.duration])).toEqual([['status_bleed', 0.3, 2]]);
     expect(h.moves['stutter_skip']?.statuses.map((s) => [s.status, s.target, s.duration])).toEqual([['status_phase', 'self', 1]]);
-    // "repeats its previous move" has no atom; the Echo is the Bite again (the move WORLD's own tactics say it repeats)
-    expect(h.moves['stutter_echo']).toMatchObject({ type: 'chrono', power: { coef: 0.6, stat: 'sp', hits: 2 } });
+    // "repeats its previous move": U34e (D-092) `repeatPrevious` — its last move again, exactly
+    expect(h.moves['stutter_echo']).toMatchObject({ repeatPrevious: true, line: 'It does the last thing again, exactly.' });
+    expect(h.moves['stutter_echo']?.power).toBeUndefined();
     expect(h.resistances).toEqual({ void: 'weak', chrono: 'resist' });
   });
 
@@ -897,8 +909,11 @@ describe('the region in the engine (real pack, seeded)', () => {
     const gated = arrive(BP, BO, { quests: { q_blighted_outpost: 'active' } });
     expect(gated.combat).toMatchObject({ encounterId: 'enc_outpost_golems_gate', canFlee: false, onFlee: 'hold' });
     expect(gated.combat?.enemies.map((e) => e.refId)).toEqual(['cr_stone_hide_golem', 'cr_stone_hide_golem']);
+    // the word stills both pairs (U34e, D-105: the plain pair used to fight when the Echo skipped the gate)
     const stilled = arrive(BP, BO, { loop: 2, quests: { q_blighted_outpost: 'active' }, echoes: ['echo_stone_hide_origin'] });
-    expect(stilled.combat).toMatchObject({ encounterId: 'enc_outpost_golems', canFlee: true, onFlee: 'scatter' });
+    expect(stilled.combat?.encounterId ?? '').not.toMatch(/^enc_outpost_golems/);
+    const stilledFree = arrive(BP, BO, { loop: 2, echoes: ['echo_stone_hide_origin'] });
+    expect(stilledFree.combat?.encounterId ?? '').not.toMatch(/^enc_outpost_golems/);
     const free = arrive(BP, BO, { seed: 'u43-free' });
     expect(free.combat).toMatchObject({ encounterId: 'enc_outpost_golems', canFlee: true, onFlee: 'scatter' });
   });

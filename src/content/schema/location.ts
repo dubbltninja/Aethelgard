@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { ConditionSchema } from './condition';
 import { Effects } from './effect';
 import { EncounterSchema } from './encounter';
-import { Base, Id, ItemId, LocationId, NpcId, Pct, PId, Rarity, RegionId, Text } from './primitives';
+import { Base, CreatureId, DamageType, Id, ItemId, LocationId, NpcId, Pct, PId, Rarity, RegionId, StatusId, Text } from './primitives';
 import { LevelBandSchema } from './region';
 
 export const Dir = z.enum(['north', 'south', 'east', 'west', 'up', 'down', 'in', 'out', 'portal', 'path']);
@@ -76,6 +76,15 @@ export const GatherNodeSchema = z.object({ itemId: ItemId, perDay: z.number().in
  */
 export const LocationPoolSchema = z.object({ regionId: RegionId, chance: Pct }).strict();
 
+/**
+ * U34e (C1 addition, D-098 "the exploited Heartstone's +1 level"): while `when` holds, the named creatures fight here as a
+ * variant `levels` above their own (WORLD §3.3 the Hollow, `ws_heartstone_exploited`: "Void-touched +1 level variants").
+ * The engine scales HP, ATK/SP and kill XP by DESIGN §6.5/§6.2's per-level rules (combat/turnOrder.ts `levelVariant`).
+ */
+export const LevelBonusSchema = z
+  .object({ when: ConditionSchema, creatures: z.array(CreatureId).min(1), levels: z.number().int().min(1).max(3) })
+  .strict();
+
 export const LocationEventSchema = Base.extend({
   id: PId('ev_'),
   text: Text,
@@ -124,6 +133,67 @@ export const LocationRestSchema = z
   })
   .strict();
 
+/** Who a hazard's status, strike or modifier reaches in a fight. */
+export const HazardTargets = z.enum(['player', 'party', 'enemies', 'all']);
+
+/**
+ * U34e (C1 addition, D-094, D-096, D-097): one row of a place's WORLD §2 "Weather / time" and "Hazards" (engine/hazards.ts).
+ * `on` says when it strikes: `fight` (every fight's opening here), `ambush` (an ambush's opening), `round` (each round's
+ * start, the first included), `watch` (each watch of a step that ends here, the road in included), `linger` (standing more than
+ * `watches` watches here without moving: the status waits for the next fight), `leave` (a `move` away: `watches` more on
+ * the road). It holds while `when` holds, on the `cycle`'s days (day d is cycle day ((d − 1) mod every) + 1), with
+ * `chance` (per target for a status or a strike), and with `firstVisit` only on this loop's first visit. Gear with the
+ * `hazard_immunity` script naming `id` shields the player from it.
+ */
+export const HazardSchema = z
+  .object({
+    id: Id,
+    on: z.enum(['fight', 'ambush', 'round', 'watch', 'linger', 'leave']),
+    when: ConditionSchema.optional(),
+    cycle: z.object({ every: z.number().int().min(2), days: z.array(z.number().int().min(1)).min(1) }).strict().optional(),
+    chance: Pct.default(1),
+    firstVisit: z.boolean().default(false),
+    /** The log line when it strikes. */
+    text: z.string().optional(),
+    /** A status on `to` (only those holding `onlyIf`, only creatures tagged `creatureTag`); `duration` defaults to the status's. */
+    status: z
+      .object({
+        id: StatusId,
+        duration: z.number().int().min(1).optional(),
+        to: HazardTargets.default('party'),
+        onlyIf: StatusId.optional(),
+        creatureTag: z.string().optional(),
+      })
+      .strict()
+      .optional(),
+    /** `round`: flat typed damage (resistance only, as a tick) on `to` holding `onlyIf` ("lightning strikes Soaked characters"). */
+    strike: z.object({ type: DamageType, amount: z.number().int().min(1), to: HazardTargets.default('all'), onlyIf: StatusId.optional() }).strict().optional(),
+    /** `fight`: accuracy points for `to`'s hits in this fight; `rangedOnly`: a wielded bow's only (glare, gale). */
+    accuracy: z.object({ amount: z.number().int(), to: HazardTargets.default('all'), rangedOnly: z.boolean().default(false) }).strict().optional(),
+    /** `fight`: everyone's damage of `type` × `mult` in this fight (the Skyreach storm). */
+    dealtMult: z.object({ type: DamageType, mult: z.number().positive() }).strict().optional(),
+    /** `watch`: the share of max HP each watch costs (never below 1 HP); `restoreOnLeave` gives it back on arriving where it is not. */
+    hpPctMax: z.number().gt(0).max(1).optional(),
+    restoreOnLeave: z.boolean().default(false),
+    /** `leave`: extra watches on the road; `linger`: the watches the player may stand here before it strikes. */
+    watches: z.number().int().min(0).optional(),
+  })
+  .strict()
+  .superRefine((h, ctx) => {
+    const issue = (message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+    const fightOnly = h.on === 'fight' || h.on === 'ambush';
+    if (h.status && !['fight', 'ambush', 'round', 'linger'].includes(h.on)) issue(`a hazard's status needs on: fight, ambush, round or linger (not '${h.on}')`);
+    if (h.strike && h.on !== 'round') issue('a hazard strike needs on: round');
+    if ((h.accuracy || h.dealtMult) && !fightOnly) issue('accuracy and dealtMult need on: fight or ambush');
+    if (h.hpPctMax !== undefined && h.on !== 'watch') issue('hpPctMax needs on: watch');
+    if (h.on === 'watch' && h.hpPctMax === undefined) issue("on: 'watch' needs hpPctMax");
+    if (h.on === 'leave' && !h.watches) issue("on: 'leave' needs watches ≥ 1");
+    if (h.on === 'linger' && (h.watches === undefined || !h.status)) issue("on: 'linger' needs watches and a status");
+    if (!h.status && !h.strike && !h.accuracy && !h.dealtMult && h.hpPctMax === undefined && !h.watches) issue('a hazard needs an effect');
+  });
+export type Hazard = z.infer<typeof HazardSchema>;
+export type HazardInput = z.input<typeof HazardSchema>;
+
 const findDuplicates = (ids: readonly string[]): number[] => {
   const seen = new Set<string>();
   const dup: number[] = [];
@@ -169,6 +239,12 @@ export const LocationSchema = Base.extend({
     .optional(),
   /** U34d: the location's return rolls draw from these pools instead of its region's (see `LocationPoolSchema`). */
   wanderingPools: z.array(LocationPoolSchema).min(1).optional(),
+  /** U34e: level variants of creatures fighting here (see `LevelBonusSchema`); the first entry that holds and names it wins. */
+  levelBonus: z.array(LevelBonusSchema).default([]),
+  /** U34e (C1 addition, D-097): applied after any fight fled here, fixed or wandering ("fleeing here costs 10 % HP"). */
+  fleeEffects: Effects,
+  /** U34e (C1 addition): the place's weather and hazards (see `HazardSchema`); a region-wide row is repeated on each place. */
+  hazards: z.array(HazardSchema).default([]),
   /** The `wait` action is allowed. */
   waitable: z.boolean().default(false),
   /** Original Python name, for Appendix A / BIBLE cross-check. */
@@ -185,6 +261,7 @@ export const LocationSchema = Base.extend({
     for (const i of findDuplicates(dirs)) issue(['exits', i, 'dir'], `direction '${loc.exits[i]?.dir}' is used by two exits; use 'path' for extra routes`);
     for (const i of findDuplicates(loc.encounters.map((e) => e.id))) issue(['encounters', i, 'id'], `duplicate encounter id '${loc.encounters[i]?.id}' in this location`);
     for (const i of findDuplicates(loc.events.map((e) => e.id))) issue(['events', i, 'id'], `duplicate event id '${loc.events[i]?.id}' in this location`);
+    for (const i of findDuplicates(loc.hazards.map((h) => h.id))) issue(['hazards', i, 'id'], `duplicate hazard id '${loc.hazards[i]?.id}' in this location`);
     const nodes = loc.gather ?? [];
     for (const i of findDuplicates(nodes.map((g) => g.itemId))) issue(['gather', i, 'itemId'], `'${nodes[i]?.itemId}' is gathered by two nodes here; raise its perDay instead`);
     const pools = loc.wanderingPools ?? [];
@@ -198,6 +275,7 @@ export type ExitInput = z.input<typeof ExitSchema>;
 export type LocationItem = z.output<typeof LocationItemSchema>;
 export type GatherNode = z.output<typeof GatherNodeSchema>;
 export type LocationPool = z.output<typeof LocationPoolSchema>;
+export type LevelBonus = z.output<typeof LevelBonusSchema>;
 export type LocationEvent = z.output<typeof LocationEventSchema>;
 export type LocationArt = z.output<typeof LocationArtSchema>;
 export type Location = z.output<typeof LocationSchema>;

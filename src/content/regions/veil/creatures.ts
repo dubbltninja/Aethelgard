@@ -16,17 +16,15 @@
 // Readings (each repeated at its move; listed in the U47 reply):
 //   - "ifAllyPresent" is the Lantern's only conditioned move (Shelter): by WORLD's rule it replaces the cycled move for as long
 //     as an ally lives, so a pair of Lanterns shields each other until one falls;
-//   - "heal self … (consumes one lantern)" (the Umbra's Cling): no effect removes an ally, so the heal waits on a living
-//     Hollow Lantern (`allyPresent: 'cr_hollow_lantern'`) and is capped at two uses a fight (`oncePerFight` on two copies of
-//     the step), the two lanterns the Umbra opens Phase 2 with; without the cap a living lantern would be a heal every turn;
+//   - "heal self … (consumes one lantern)" (the Umbra's Cling): the heal waits on a living Hollow Lantern (`allyPresent:
+//     'cr_hollow_lantern'`) and the move's `consumesAlly` takes it (U34e, D-096: no XP, not a kill);
 //   - "Haste self every turn" (Phase 3): a status row `target: 'self'` on each move the Umbra makes in Phase 3; the shared Her
 //     Hand carries it `when` the Umbra's own HP is below the Phase 3 threshold (a Cling heal above it drops Her Hand's Haste
 //     until the next Fall or Cling, which carry it unconditionally);
 //   - the Starved Shadow's Hunger "1.8× highest-MAG target" is the `highest_mag` target rule; Open (hidden) is a plain hidden
 //     move, no wind-up (WORLD gives none).
-// Not expressible (the U47 reply): Phase 1 skipped "if `{killed:"cr_vells_umbra"}` in any earlier loop". The `killed` atom
-// reads this loop's kill count, so `skipWhen` carries WORLD's condition as written and skips Phase 1 only after a kill in the
-// same loop (a later loop's Umbra starts in Her Shape again).
+// Phase 1 is skipped "if `{killed:"cr_vells_umbra"}` in any earlier loop": the `killed` atom's `anyLoop` (U34e, D-096) reads
+// the profile's kills of it in every loop.
 // "Plain steel now lands in full" (the tactics note) needs nothing: the stat block lists no physical resistance, so physical
 // damage is neutral.
 import type { CombatWhen, CreatureInput, Step } from '@schema/creature';
@@ -41,9 +39,6 @@ function firstOf(conditioned: readonly (readonly [CombatWhen, Step])[], otherwis
 /** Two cycled moves: the first on the creature's odd turns, the second on its even turns. */
 const alternate = (odd: Step, even: Step): Step => ({ if: { everyNth: 2 }, then: [even], else: [odd] });
 
-/** `copies` first-match rows of a move that "consumes" an ally: it waits on one living, once each (see the header). */
-const consuming = (ally: `cr_${string}`, copies: number, step: Step): (readonly [CombatWhen, Step])[] =>
-  Array.from({ length: copies }, () => [{ all: [{ allyPresent: ally }, { oncePerFight: true }] }, step] as const);
 
 // ---- cr_hollow_lantern — Hollowed (Void) · L10 fodder · XP 220 (WORLD §6.1) ------------------------------------------------
 const hollowLantern = {
@@ -299,14 +294,15 @@ const vellsUmbra = {
       line: 'It pulls a lantern into itself and darkens.',
       heal: { power: { coef: 2.0, stat: 'atk' }, target: 'self' },
       statuses: [{ status: 'status_haste', duration: 2, target: 'self' }],
+      consumesAlly: 'cr_hollow_lantern', // U34e (D-096)
     },
   },
   phases: [
     {
       id: 'umbra_her_shape',
       name: 'Her Shape',
-      // 100–60 %; skipped (the fight opens in Phase 2) if the Umbra was killed in an earlier loop (WORLD §2.9)
-      skipWhen: { killed: { id: 'cr_vells_umbra' } },
+      // 100–60 %; skipped (the fight opens in Phase 2) if the Umbra was killed in an earlier loop (WORLD §2.9; U34e: `anyLoop`)
+      skipWhen: { killed: { id: 'cr_vells_umbra', anyLoop: true } },
       pattern: [
         firstOf(
           [
@@ -337,7 +333,10 @@ const vellsUmbra = {
       line: "'Forty years,' says a voice that is almost Nyx's. 'I have been patient forty years.'",
       pattern: [
         firstOf(
-          [[{ everyNth: 3 }, { move: 'umbra_fall', target: 'all' }], ...consuming('cr_hollow_lantern', 2, { move: 'umbra_cling', target: 'self' })],
+          [
+            [{ everyNth: 3 }, { move: 'umbra_fall', target: 'all' }],
+            [{ allyPresent: 'cr_hollow_lantern' }, { move: 'umbra_cling', target: 'self' }],
+          ],
           { move: 'umbra_her_hand', target: 'player' },
         ),
       ],
@@ -364,4 +363,41 @@ const vellsUmbra = {
 } satisfies CreatureInput;
 
 /** WORLD §6.1's block order: the Starved Shadow, the Hollow Lantern, the Null Mouth, Vell's Umbra (the Stalker between is the Voidscar's). */
-export const creatures = [starvedShadow, hollowLantern, nullMouth, vellsUmbra] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_unlit_lantern — Hollowed · L10 anomaly, Loop 2+ · XP 286 ("Intent hidden until it takes damage") ------------
+// The `unlit` tag: its intents stay hidden while it is at full HP (combat/intents.ts).
+const unlitLantern = {
+  id: 'cr_anomaly_unlit_lantern',
+  name: 'Unlit Lantern',
+  description: 'A Hollow Lantern with its glass painted over: nothing in it shows until it is cracked.',
+  family: 'fam_hollowed',
+  materialKin: 'void_touched',
+  role: 'anomaly',
+  level: 10,
+  stats: hollowLantern.stats,
+  tags: ['breach_born', 'anomaly', 'unlit'],
+  resistances: hollowLantern.resistances,
+  statusImmunities: hollowLantern.statusImmunities,
+  moves: hollowLantern.moves,
+  pattern: hollowLantern.pattern,
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: hollowLantern.gold,
+  xp: 286,
+  anomaly: { region: 'region_veil', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2, the Mouth. A lantern whose glass shows nothing, not even the dark. I cannot tell what it means to do until I have hit it. After the first crack it is an ordinary lantern, which is bad enough.',
+    tactics: 'Open with any hit to crack it, then read it like any Lantern; plain steel.',
+    codexId: 'codex_creatures_hollowed',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'teardrop', details: ['lantern_glass', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [starvedShadow, hollowLantern, nullMouth, vellsUmbra, unlitLantern] satisfies CreatureInput[];

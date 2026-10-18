@@ -150,6 +150,15 @@ const CASES: { [K in ConditionKey]: Case[] } = {
       t: [(s) => void (s.counters.kills.cr_wildling_brute = 2)],
       f: [none, (s) => void (s.counters.kills.cr_wildling_brute = 1), (s) => void (s.counters.kills.cr_other = 5)],
     },
+    {
+      // U34e: `anyLoop` reads the profile's bestiary (every loop), this loop's kills too
+      cond: { killed: { id: 'cr_wildling_brute', anyLoop: true } },
+      t: [
+        (_s, p) => void (p.bestiary.cr_wildling_brute = { seen: 1, killed: 1, spared: 0, revealed: 'resist', intentsSeen: [] }),
+        (s) => void (s.counters.kills.cr_wildling_brute = 1),
+      ],
+      f: [none, (_s, p) => void (p.bestiary.cr_wildling_brute = { seen: 3, killed: 0, spared: 1, revealed: 'none', intentsSeen: [] })],
+    },
   ],
   counter: [
     {
@@ -172,6 +181,14 @@ const CASES: { [K in ConditionKey]: Case[] } = {
       cond: { infected: true },
       t: [(s) => void s.world.infected.push('loc_whispering_ruins')],
       f: [none, (s) => void s.world.infected.push('loc_temporal_breach_apex')],
+    },
+  ],
+  // U34e: the profile's last death place is where the player stands
+  diedHere: [
+    {
+      cond: { diedHere: true },
+      t: [(s, p) => void (p.lastDeathLocation = s.world.currentLocationId)],
+      f: [none, (_s, p) => void (p.lastDeathLocation = 'loc_temporal_breach_apex')],
     },
   ],
 };
@@ -332,6 +349,8 @@ describe('explain', () => {
     expect(text({ resolve: { min: 8 } })).toEqual(['Resolve ≥ 8 (communion only)']);
     expect(text({ modifier: 'mod_frayed_clock' })).toEqual(['Modifier: Frayed Clock']);
     expect(text({ infected: true })).toEqual(['Here, where the Horde has reached']);
+    expect(text({ diedHere: true })).toEqual(['Here, where you last fell']);
+    expect(text({ killed: { id: 'cr_x', anyLoop: true } })).toEqual(['Defeat 1 × cr_x (in any loop) (0/1)']);
     const loyal = { ...minimalState(), companions: { recruited: { mireya: comp('mireya', { loyalty: 30 }) }, activeId: null } };
     expect(explain({ loyalty: { companion: 'mireya', min: 25 } }, loyal, p, content).parts[0]!.text).toBe('Mireya loyalty ≥ 25 (now 30)');
     expect(explain({ resolve: { min: 8 } }, fullState(), p, content).parts[0]!.text).toBe('Resolve ≥ 8 (now 4)');

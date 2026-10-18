@@ -24,7 +24,7 @@
 // Not expressible yet (listed in the U46 reply): the Soaked-on-entry rule and the lamp-dark/Lanterns-only state (region.ts).
 // Exits to other regions name their WORLD ids and stay pending until those units land (D-090).
 import type { Condition } from '@schema/condition';
-import type { LocationInput } from '@schema/location';
+import type { HazardInput, LocationInput } from '@schema/location';
 
 /** WORLD §11.3 `gate_drowned_dark`: no Echo alternative. */
 const LANTERN: Condition = { item: { id: 'item_glyphbound_lantern' } };
@@ -34,6 +34,11 @@ const CRACK_OPEN: Condition = { any: [{ item: { id: 'item_cistern_key' } }, { fl
 /** WORLD §11.3 `gate_sluice_walkway`: at night the water rises over the walkway, both ways. */
 const WALKWAY_OPEN: Condition = { any: [{ item: { id: 'item_cistern_key' } }, { not: { watch: 'night' } }] };
 const WALKWAY_LOCKED = 'The water has risen over the walkway. It will fall again by morning.';
+
+
+// U34e (D-097): "Soaked on every entry (Storm +50 % both ways; Fire −50 %)" (WORLD §2.7) — every fight in the Reach opens
+// with the party Soaked (the status lives in fights only).
+const SOAKED_ON_ENTRY: Omit<HazardInput, 'id'> = { on: 'fight', status: { id: 'status_soaked', to: 'party' } };
 
 export const locations = [
   // ---- The Drowned Stair — the Archives' stair goes down under the water; the dark gate (WORLD §3.6, §11.3) ------------------
@@ -61,6 +66,7 @@ export const locations = [
     events: [{ id: 'ev_stair_lamps', text: 'The lamps under the water do not flicker. Someone tends them.' }],
     art: { template: 'undercity', horizon: 0.7, silhouettes: ['descending_stair', 'lamp_posts_under_waterline', 'vaulted_ceiling'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 4, max: 4 },
+    hazards: [{ id: 'reach_soaked', ...SOAKED_ON_ENTRY }], // U34e (D-097)
     map: { x: -8, y: 8 },
     tags: ['dark_gate'],
   },
@@ -103,6 +109,7 @@ export const locations = [
     ],
     art: { template: 'undercity', horizon: 0.62, silhouettes: ['table_rows_at_waterline', 'hanging_guild_banners', 'clerks_desk_on_dais'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 4, max: 5 },
+    hazards: [{ id: 'reach_soaked', ...SOAKED_ON_ENTRY }], // U34e (D-097)
     map: { x: -16, y: 8 },
     tags: ['ledger'],
   },
@@ -152,6 +159,7 @@ export const locations = [
     ],
     art: { template: 'undercity', horizon: 0.55, silhouettes: ['round_wall_of_names', 'rim_walkway', 'pouring_crack'], particles: 'rain', timeOfDay: 'timeless' },
     levelBand: { min: 5, max: 5 },
+    hazards: [{ id: 'reach_soaked', ...SOAKED_ON_ENTRY }], // U34e (D-097)
     map: { x: -8, y: 10 },
     tags: ['names', 'crack'],
   },
@@ -184,6 +192,7 @@ export const locations = [
     rest: { kind: 'camp' },
     merchantId: 'npc_sedge_marrow',
     levelBand: { min: 5, max: 5 },
+    hazards: [{ id: 'reach_soaked', ...SOAKED_ON_ENTRY }], // U34e (D-097)
     map: { x: -16, y: 10 },
     tags: ['camp', 'merchant', 'settlement', 'remnants'],
   },
@@ -241,6 +250,7 @@ export const locations = [
     ],
     art: { template: 'archive', horizon: 0.6, silhouettes: ['tiered_desks', 'lectern_pool_of_light', 'tall_shelves'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 6, max: 7 },
+    hazards: [{ id: 'reach_soaked', ...SOAKED_ON_ENTRY }], // U34e (D-097)
     map: { x: -24, y: 10 },
     tags: ['scriptorium', 'elite'],
   },
@@ -283,6 +293,7 @@ export const locations = [
     ],
     art: { template: 'undercity', horizon: 0.64, silhouettes: ['iron_grates', 'channel_walls', 'far_gate'], particles: 'rain', timeOfDay: 'timeless' },
     levelBand: { min: 6, max: 6 },
+    hazards: [{ id: 'reach_soaked', ...SOAKED_ON_ENTRY }], // U34e (D-097)
     map: { x: -8, y: 12 },
     tags: ['sluice', 'night_gate'],
   },
@@ -327,6 +338,7 @@ export const locations = [
     ],
     art: { template: 'undercity', horizon: 0.52, silhouettes: ['fallen_tower_ribs', 'great_bell_on_its_side', 'standing_drowned_figures'], particles: 'static', timeOfDay: 'timeless' },
     levelBand: { min: 7, max: 7 },
+    hazards: [{ id: 'reach_soaked', ...SOAKED_ON_ENTRY }], // U34e (D-097)
     map: { x: -16, y: 12 },
     tags: ['bell', 'elite'],
   },
@@ -366,6 +378,7 @@ export const locations = [
     events: [{ id: 'ev_deep_hour', text: "The Warden lifts its head. 'Is it the hour?' it asks, in the voice of a city." }],
     art: { template: 'cavern', horizon: 0.45, silhouettes: ['well', 'seated_giant_with_clapper', 'hanging_chains'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 8, max: 8 },
+    hazards: [{ id: 'reach_soaked', ...SOAKED_ON_ENTRY }], // U34e (D-097)
     map: { x: -24, y: 12 },
     tags: ['boss', 'regional_boss'],
   },

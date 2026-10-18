@@ -10,12 +10,11 @@
 //     WORLD gives the pool; Lanternreed ("none (settlement)"), the Pool ("none while Wen lives"), the Barrows and the Gullet
 //     (a return group and no pool) and the Hall ("forced boss") name none and are `safe`, and WORLD §10.3's sweep (1.7
 //     expected return fights: 0.2 + 0.44 + 0.36 + 0.3 + 0.4) counts exactly that;
-//   - the barrow light's share of the pool (WORLD §10.1: "barrow light at dusk/night only", 10 of the pool's 100): the pool
-//     cannot be conditioned, so it is a dusk-and-night location encounter at 2 % (10 % of the pool's 20 % return rolls) ahead
-//     of the pool roll at the Shallows and the Mangrove. The pool keeps rolling behind it, so those nodes roll 0.02 + 0.98 · 0.2
-//     = 21.6 % at dusk and night rather than WORLD's 20 % (the shares of a pool cannot be carved out of a rate: the Steppe's
-//     Reed Stalker form, U46). Not at the Causeway: WORLD's pool takes "only fodder whose level sits in the band" (§10.1), read
-//     per node, and a level-11 light at the band-8 Causeway is the three-level jump rule 11 warns about;
+//   - the barrow light's share of the pool (WORLD §10.1: "barrow light at dusk/night only", 10 of the pool's 100): D-098 (U34d)
+//     a pool entry carries a `when`, so it is the pool's own entry at dusk and night (region.ts; it was a 2 % location encounter
+//     ahead of the pool at the Shallows and the Mangrove, 21.6 % in all). Not at the Causeway: WORLD's pool takes "only fodder
+//     whose level sits in the band" (§10.1), read per node, and a level-11 light at the band-8 Causeway is the three-level jump
+//     rule 11 warns about, so the entry's `when` names the Shallows and the Mangrove;
 //   - the Barrows' first visit, "100 %, dusk/night; 40 % by day": two groups, a `chance: 1` one when it is dusk or night and a
 //     40 % one by day, each ahead of the 30 % return group. A group at 100 % stays until cleared (the engine's rule), so a
 //     daytime first visit that rolls nothing leaves the dusk/night group for a later visit by night at 100 % rather than the
@@ -23,8 +22,9 @@
 //   - "item_barrow_light_vial (100 % after cr_barrow_light)" is a hidden item that appears once a light has been killed (the
 //     Steppe's den form: `killed` is this loop's, so one vial a loop); the creature's own loot omits it (creatures.ts);
 //   - an event whose grant carries a condition ("grants X with Mireya active") is two events with complementary `when`s, the
-//     WORLD id on the one that grants and a coined `_plain` id on the one that does not (an event's effects carry no per-effect
-//     condition: U34d's gap), as the Reach's Names event and the Steppe's;
+//     WORLD id on the one that grants and a coined `_plain` id on the one that does not, as the Reach's Names event and the
+//     Steppe's. D-098 (U34d) added a per-effect condition (`onlyIf`), but the pair stays: a `once` event that fired without
+//     Mireya could not grant when she comes along later in the loop;
 //   - the Mangrove's `item_lanternwood_bow` ("Loop 2+, 100 % once, in a root-hollow, if Mireya is active") is hidden, as a
 //     root-hollow is, and appears when the location is examined in Loop 2+ with Mireya in the party;
 //   - the Hall: the Matron's own loot (creatures.ts) pays the brooch and the resin for the fight; the same two placed here are
@@ -86,7 +86,7 @@ export const locations = [
         chance: 0.5,
         intro: 'Two throat-sacs light up in the reeds ahead, like lanterns on poles that nobody hung.',
       },
-      // return: the pool at 20 % (no dusk-and-night barrow light here: see the header)
+      // return: the pool at 20 % (its dusk-and-night barrow light leaves this node out: see the header)
     ],
     events: [{ id: 'ev_causeway_light', text: 'You lift a lantern. It is empty. The light stays where the lantern was.' }],
     art: { template: 'swamp', horizon: 0.6, silhouettes: ['reed_road', 'lantern_poles_in_perspective', 'frog_shapes'], particles: 'motes', timeOfDay: 'dusk' },
@@ -147,7 +147,7 @@ export const locations = [
         chance: 0.7,
         intro: 'The light-dust above the water thickens and drifts toward you against the wind.',
       },
-      // return: Glowfen Mirelings ×2 (30 %), then the dusk-and-night barrow light, then the pool at 20 %
+      // return: Glowfen Mirelings ×2 (30 %), then the pool at 20 % (with its dusk-and-night barrow light, D-098: see the header)
       {
         id: 'enc_shallows_mirelings',
         groups: [{ creatureId: 'cr_glowfen_mireling', count: 2 }],
@@ -155,15 +155,6 @@ export const locations = [
         once: false,
         respawn: 'on_return',
         intro: 'Two shapes stand up out of the knee-deep water, glowing from the throat down.',
-      },
-      {
-        id: 'enc_shallows_pool_barrow_light',
-        groups: [{ creatureId: 'cr_barrow_light' }],
-        chance: 0.02,
-        when: DUSK_OR_NIGHT,
-        once: false,
-        respawn: 'on_return',
-        intro: 'A pale light drifts out of the fungal shelves, pacing as if over a mound.',
       },
     ],
     events: [{ id: 'ev_shallows_sweet', text: 'The air is sweet. You hold your breath too late and the shallows tilt.' }],
@@ -199,7 +190,7 @@ export const locations = [
         chance: 0.6,
         intro: 'The reeds go still. One of them is watching you, and something webbed rises beside it.',
       },
-      // return: a Barrow-Light (20 %), then the dusk-and-night barrow light, then the pool at 20 %
+      // return: a Barrow-Light (20 %), then the pool at 20 % (with its dusk-and-night barrow light, D-098: see the header)
       {
         id: 'enc_mangrove_barrow_light',
         groups: [{ creatureId: 'cr_barrow_light' }],
@@ -207,15 +198,6 @@ export const locations = [
         once: false,
         respawn: 'on_return',
         intro: 'A light comes down the roots, pacing. It has been waiting for someone to pass.',
-      },
-      {
-        id: 'enc_mangrove_pool_barrow_light',
-        groups: [{ creatureId: 'cr_barrow_light' }],
-        chance: 0.02,
-        when: DUSK_OR_NIGHT,
-        once: false,
-        respawn: 'on_return',
-        intro: 'Light pools in a root-hollow, then stands up and walks.',
       },
     ],
     events: [

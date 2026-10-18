@@ -4,6 +4,9 @@
 // stays until cleared or scattered; a group under 100 % rolls once, DESIGN §4.7); `return:` groups use
 // `respawn: 'on_return'`; the wandering pool is the region's (region.ts), rolled by the engine on return visits.
 //
+// Location items (D-098, U34d): an entry appears at most once a loop, at the first entry (or, `hidden`, the first examine)
+// at which its `when` holds, after its `chance`; WORLD's "N %" items carry that chance.
+//
 // Ids: legacy event ids take the `ev_` prefix the schema requires (`ruins_echo` → `ev_ruins_echo`, as PLAN §5.17);
 // encounter ids are `enc_<place>_<group>`. Exits to other regions name their WORLD ids; they are pending until those
 // units land (D-090). The Library's Threshold portal is not an exit: the engine's `enterPortal` action is the portal
@@ -83,9 +86,9 @@ export const locations = [
       { dir: 'south', to: 'loc_whispering_ruins' },
       { dir: 'north', to: 'loc_darkened_corridor' },
     ],
-    // WORLD: Loop 2+, 30 % on first visit, under the ninth face, with echo_nine_voices. A location item has no chance
-    // field, so it lies hidden (examine finds it) whenever the condition holds (the 30 % is listed in the U42 reply).
-    items: [{ itemId: 'item_remnant_wax_seal', hidden: true, when: { all: [{ loop: { min: 2 } }, { echo: 'echo_nine_voices' }] } }],
+    // WORLD: Loop 2+, 30 % on first visit, under the ninth face, with echo_nine_voices. D-098 (U34d): the item's own
+    // `chance`, rolled once a loop at the first entry where the condition holds (was hidden at 100 %, D-091 gap 1).
+    items: [{ itemId: 'item_remnant_wax_seal', chance: 0.3, when: { all: [{ loop: { min: 2 } }, { echo: 'echo_nine_voices' }] } }],
     encounters: [
       { id: 'enc_archway_prowler', groups: [{ creatureId: 'cr_mistwood_prowler' }], chance: 0.4, intro: 'The fog under the arch has eyes in it.' },
     ],
@@ -115,8 +118,8 @@ export const locations = [
       { dir: 'south', to: 'loc_crumbling_archway' },
       { dir: 'north', to: 'loc_shattered_library' },
     ],
-    // Horde state: a fleeing scribe's tonic (WORLD §3.1). Location items spawn at the loop's first entry, so it lies here
-    // only when that first entry happens during a Horde.
+    // Horde state: a fleeing scribe's tonic (WORLD §3.1). D-098 (U34d): an item appears on the first entry at which its
+    // condition holds, so it lies here on any entry during a Horde, once a loop (was: only if the first entry was one).
     items: [{ itemId: 'item_ley_touched_tonic', when: { flag: 'flag_horde_active' } }],
     encounters: [
       // Horde (WORLD §12.2 `tide: { at: loc_darkened_corridor, afterMoves: 14 }`): the Tide blocks the way after move 14.
@@ -171,9 +174,20 @@ export const locations = [
       { dir: 'east', to: 'loc_silverwood_plaza' },
     ],
     items: [
-      // the alcove: `hidden` is the search sub-step (examine); echo_crystal_location skips it (D-010)
+      // the alcove: `hidden` is the search sub-step (examine); echo_crystal_location skips it (D-010). D-098 (U34d): an
+      // entry now waits for its condition, so the skipped search would add a second Crystal once the Echo is earned in
+      // this very loop (by taking the first): it needs the Crystal not carried and its quest not done
       { itemId: 'item_echo_crystal', hidden: true, when: { not: { echo: 'echo_crystal_location' } } },
-      { itemId: 'item_echo_crystal', when: { echo: 'echo_crystal_location' } },
+      {
+        itemId: 'item_echo_crystal',
+        when: {
+          all: [
+            { echo: 'echo_crystal_location' },
+            { not: { item: { id: 'item_echo_crystal' } } },
+            { not: { quest: { id: 'q_echo_crystal', status: 'completed' } } },
+          ],
+        },
+      },
       { itemId: 'item_korrs_marginalia', when: { all: [{ loop: { min: 2 } }, { corruption: { min: 1 } }] } },
     ],
     encounters: [
@@ -229,9 +243,9 @@ export const locations = [
       { dir: 'south', to: 'loc_mistwood_path' },
       { dir: 'east', to: 'loc_chasm_of_whispers' },
     ],
-    // WORLD: Loop 2+, 10 % per first visit. No chance field on a location item: it lies hidden (examine) from Loop 2
-    // (the 10 % is listed in the U42 reply).
-    items: [{ itemId: 'item_bell_shard', hidden: true, when: { loop: { min: 2 } } }],
+    // WORLD: Loop 2+, 10 % per first visit. D-098 (U34d): the item's own `chance`, rolled at the loop's first entry (was
+    // hidden at 100 % from Loop 2, D-091 gap 1).
+    items: [{ itemId: 'item_bell_shard', chance: 0.1, when: { loop: { min: 2 } } }],
     encounters: [
       // legacy: the Arcane Wisp (100 %, first visit)
       { id: 'enc_plaza_wisp', groups: [{ creatureId: 'cr_arcane_wisp' }], intro: "A knot of light lifts off the fountain's rim." },

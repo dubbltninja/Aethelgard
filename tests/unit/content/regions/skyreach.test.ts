@@ -28,7 +28,6 @@ import {
   hasStatus,
   legalActions,
   step,
-  type Action,
   type CombatState,
   type Combatant,
   type EncounterSpec,
@@ -136,6 +135,8 @@ const STAND_INS: ItemInput[] = [
   { id: PRISM, name: 'Aetherium Prism', type: 'key', tier: 0, description: 'Stand-in (test only).', value: 1, art: { icon: 'prism' }, tags: ['key'] },
   { id: AXE, name: 'Hearth-Iron Greataxe', type: 'key', tier: 0, description: 'Stand-in (test only).', value: 1, art: { icon: 'axe' }, tags: [] },
   { id: STAFF, name: "Spire-Builder's Staff", type: 'key', tier: 0, description: 'Stand-in (test only).', value: 1, art: { icon: 'staff' }, tags: [] },
+  // D-098 (U34d): the ledge's own items appear on arrival now that the axe is one of them, so its feathers need a record too
+  { id: 'mat_gale_feather', name: 'Gale Feather', type: 'material', tier: 0, description: 'Stand-in (test only).', value: 1, stackable: true, art: { icon: 'feather' }, tags: [] },
 ];
 const epack = buildContentPack({ ...contentTables, items: [...contentTables.items, ...STAND_INS.filter((i) => pack.items[i.id] === undefined)] }, { validate: false });
 
@@ -332,35 +333,36 @@ describe('the five locations vs WORLD §3.10 blocks', () => {
     expect(BIBLE).toMatch(/\| Aulde's Eyrie \| `loc_auldes_eyrie` \|.*\| inn \| yes \|/);
   });
 
-  test('every item WORLD places is placed, with WORLD’s counts and conditions; gathering is `gather`; the Perch’s fight pays its own loot; the ledge’s axe is an `interact`', () => {
+  test('every item WORLD places is placed, with WORLD’s counts and conditions; gathering is `gather`; the Perch’s fight pays its own loot; the ledge’s axe carries its price (D-098)', () => {
     for (const l of parsedLocations) {
       const expected = new Set(WL[l.id]?.itemIds ?? []);
-      if (l.gather) expected.delete(l.gather.itemId); // "gathering: X" is the location's `gather` (DESIGN §8.2)
+      for (const g of l.gather ?? []) expected.delete(g.itemId); // "gathering: X" is the location's `gather` (DESIGN §8.2)
       if (l.id === AE) expected.delete(PRISM); // "opens with item_aetherium_prism": the key, not a placement (it lies at the Crown)
-      if (l.id === RS) expected.delete(AXE); // the ledge: the two `interact` events give it (below)
       if (l.id === PE) expected.delete('mat_gale_feather'); // "(100% after boss)": the Stormcrown's own loot
       expect([l.id, l.items.map((i) => i.itemId).sort()]).toEqual([l.id, [...expected].sort()]);
     }
-    expect([loc(WW).gather, loc(CR).gather]).toEqual([{ itemId: 'mat_skyreach_crystal', perDay: 1 }, { itemId: 'mat_skyreach_crystal', perDay: 1 }]);
+    expect([loc(WW).gather, loc(CR).gather]).toEqual([[{ itemId: 'mat_skyreach_crystal', perDay: 1 }], [{ itemId: 'mat_skyreach_crystal', perDay: 1 }]]);
     expect([WL[WW]?.block, WL[CR]?.block].every((b) => (b ?? '').includes('gathering: mat_skyreach_crystal ×1'))).toBe(true);
-    expect(loc(WW).items).toEqual([{ itemId: 'mat_gale_feather', count: 1, hidden: false, once: true }]);
-    expect(loc(CR).items).toEqual([
-      { itemId: 'item_aetherium_shard', count: 2, hidden: false, once: true },
-      { itemId: PRISM, count: 1, hidden: false, once: true, when: { loop: { min: 2 } } },
-    ]);
+    const item = (o: object) => ({ count: 1, hidden: false, once: true, chance: 1, onTake: [], ...o }); // U34d's defaults
+    expect(loc(WW).items).toEqual([item({ itemId: 'mat_gale_feather' })]);
+    expect(loc(CR).items).toEqual([item({ itemId: 'item_aetherium_shard', count: 2 }), item({ itemId: PRISM, when: { loop: { min: 2 } } })]);
     expect(WL[CR]?.block).toContain('item_aetherium_shard ×2, item_aetherium_prism (100%, Loop 2+)');
-    expect(loc(RS).items).toEqual([{ itemId: 'mat_gale_feather', count: 2, hidden: false, once: true }]);
+    expect(loc(RS).items).toEqual([
+      item({ itemId: 'mat_gale_feather', count: 2 }),
+      // D-098 (U34d): the ledge's axe is an item whose `onTake` is the Ironclad's −10 without the oath
+      item({ itemId: AXE, onTake: [{ onlyIf: { when: { not: { echo: 'echo_sky_oath' } }, effects: [{ rep: { faction: 'ironclad', delta: -10 } }] } }] }),
+    ]);
     expect(loc(AE).items).toEqual([
-      { itemId: 'item_auldes_spire_notes', count: 1, hidden: false, once: true },
-      { itemId: 'item_breach_anchor_schematic_a', count: 1, hidden: false, once: true },
+      item({ itemId: 'item_auldes_spire_notes' }),
+      item({ itemId: 'item_breach_anchor_schematic_a' }),
       // "locked case; opens with item_aetherium_prism": hidden, for examine, with the Prism in the pack
-      { itemId: STAFF, count: 1, hidden: true, once: true, when: worldCondition(`{item:"${PRISM}"}`) },
+      item({ itemId: STAFF, hidden: true, when: worldCondition(`{item:"${PRISM}"}`) }),
     ]);
     expect(WL[AE]?.block).toContain('item_spire_builders_staff (locked case; opens with `item_aetherium_prism`)');
     // the Perch: the Talon with the bargain only; the three storm-glass WORLD §8.1 lists at the Perch itself
     expect(loc(PE).items).toEqual([
-      { itemId: 'item_stormcrown_talon', count: 1, hidden: false, once: true, when: { all: [{ loop: { min: 2 } }, { echo: 'echo_sky_oath' }, { item: { id: TALISMAN } }] } },
-      { itemId: 'mat_storm_glass', count: 3, hidden: false, once: true },
+      item({ itemId: 'item_stormcrown_talon', when: { all: [{ loop: { min: 2 } }, { echo: 'echo_sky_oath' }, { item: { id: TALISMAN } }] } }),
+      item({ itemId: 'mat_storm_glass', count: 3 }),
     ]);
     expect(WL[PE]?.block).toContain('item_stormcrown_talon (100% after boss or bargain), mat_gale_feather (100% after boss), mat_storm_glass ×3');
     expect(tableRows(section(WORLD, '### 8.1 Materials', '### 8.2')).find((c) => unquote(c[0] ?? '').startsWith('mat_storm_glass'))?.[5]).toBe('`cr_steppe_harrier` 30%; `loc_stormgate_cairns` ×2, `loc_stormcrowns_perch` ×3');
@@ -463,25 +465,13 @@ describe('the five locations vs WORLD §3.10 blocks', () => {
     for (const id of ['echo_high_mark', 'echo_spire_note', 'echo_tyrant_never_struck', 'echo_sky_oath']) expect([id, STORY.includes(`| \`${id}\``)]).toEqual([id, true]);
   });
 
-  test('the ledge’s greataxe: two `interact` events with complementary `when`s — the Ironclad’s −10 without the oath, none with it — one axe a loop', () => {
+  test('the ledge’s greataxe (D-098, U34d): an item on the ledge whose `onTake` is the Ironclad’s −10 without the oath; no interact events, no coined flag', () => {
     expect(WL[RS]?.block).toContain('item_hearth_iron_greataxe (on a sky-burial ledge; taking it costs Ironclad −10 unless `echo_sky_oath`)');
-    const theft = byId(loc(RS).events, 'ev_roost_greataxe');
-    const heir = byId(loc(RS).events, 'ev_roost_greataxe_oath');
-    const TAKEN = { flag: 'flag_roost_greataxe_taken' };
-    expect([theft.trigger, theft.label, theft.when, theft.effects]).toEqual([
-      'interact', 'Take the greataxe from the ledge', { all: [{ not: { echo: 'echo_sky_oath' } }, { not: TAKEN }] },
-      [{ giveItem: { item: AXE } }, { rep: { faction: 'ironclad', delta: -10 } }, { setFlag: 'flag_roost_greataxe_taken' }],
+    const axe = loc(RS).items.find((i) => i.itemId === AXE);
+    expect([axe?.hidden, axe?.when, axe?.chance, axe?.onTake]).toEqual([
+      false, undefined, 1, [{ onlyIf: { when: { not: { echo: 'echo_sky_oath' } }, effects: [{ rep: { faction: 'ironclad', delta: -10 } }] } }],
     ]);
-    expect([heir.trigger, heir.label, heir.when, heir.effects]).toEqual([
-      'interact', 'Take the greataxe from the ledge', { all: [{ echo: 'echo_sky_oath' }, { not: TAKEN }] },
-      [{ giveItem: { item: AXE } }, { setFlag: 'flag_roost_greataxe_taken' }],
-    ]);
-    for (const o of [{}, { loop: 2, echoes: ['echo_sky_oath'] }, { flags: { flag_roost_greataxe_taken: true } }, { loop: 2, echoes: ['echo_sky_oath'], flags: { flag_roost_greataxe_taken: true } }] as At[]) {
-      const fires = [theft, heir].map((x) => holds(x.when as Condition, RS, o));
-      const taken = o.flags?.['flag_roost_greataxe_taken'] === true;
-      const oath = (o.echoes ?? []).includes('echo_sky_oath');
-      expect([o, fires]).toEqual([o, taken ? [false, false] : oath ? [false, true] : [true, false]]);
-    }
+    expect(loc(RS).events.map((e) => e.id)).toEqual(['ev_roost_bones']);
     expect(WORLD).toContain('| `item_hearth_iron_greataxe` | Hearth-Iron Greataxe | T4 |');
     expect(WORLD).toContain('Taking it is a theft, or an inheritance.');
   });
@@ -990,8 +980,8 @@ describe('the real pack with the region registered (D-090)', () => {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
       expect([w.message, INCOMPLETE_TABLES.includes(table as (typeof INCOMPLETE_TABLES)[number])]).toEqual([w.message, true]);
     }
-    // the regional boss sits at band top + 2 (no rule-11 boss warning), and the coined flag is both set and read (no rule 2)
-    expect(report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored') && (w.id === CROWN || w.message.includes('flag_roost_greataxe_taken')))).toEqual([]);
+    // the regional boss sits at band top + 2 (no rule-11 boss warning)
+    expect(report.warnings.filter((w) => !w.message.startsWith('pending — content not yet authored') && w.id === CROWN)).toEqual([]);
   });
 
   test('`npm run validate`: exit 0, 0 errors', () => {
@@ -1095,22 +1085,31 @@ describe('the region in the engine (real pack, seeded; four item stand-ins)', ()
     expect(rate(back, 'enc_roost_cloud_rays', N)).toBeLessThan(0.43);
   });
 
-  test('the ledge’s greataxe: offered once a loop; without the oath it costs the Ironclad 10, with it nothing', () => {
-    const offered = (s: GameState, o: At) => legalActions(s, epack, profileOf(o)).filter((a) => a.type === 'interact').map((a) => (a as { eventId: string }).eventId);
+  test('the ledge’s greataxe (D-098, U34d): it lies on the ledge; taking it without the oath costs the Ironclad 10, with it nothing; one a loop', () => {
     const take = (o: At) => {
-      const s = stateAt(RS, { ...o, visited: [RS] });
-      const ids = offered(s, o);
-      const out = step(s, { type: 'interact', eventId: ids[0] ?? '' } satisfies Action, epack, profileOf(o));
-      return { ids, s: out.state };
+      // a return to the Roost (its fight behind, the rays scattered) whose items have not had their try this loop
+      const s = stateAt(CR, { ...o, visited: [CR, RS], scattered: { [RS]: ['enc_roost_cloud_rays'] } });
+      s.world.locationStates[RS] = { ...(s.world.locationStates[RS] as GameState['world']['locationStates'][string]), itemsSpawned: false };
+      const there = step(s, { type: 'move', to: RS }, epack, profileOf(o)).state;
+      const axe = there.world.locationStates[RS]?.items.find((i) => i.itemId === AXE);
+      const out = step(there, { type: 'take', uid: axe?.uid ?? '' }, epack, profileOf(o));
+      return { there, out };
     };
     const theft = take({ ironclad: 0 });
-    expect(theft.ids).toEqual(['ev_roost_greataxe']);
-    expect([theft.s.player.inventory.some((i) => i.itemId === AXE), theft.s.reputation.ironclad, theft.s.flags['flag_roost_greataxe_taken']]).toEqual([true, -10, true]);
-    expect(offered(theft.s, {})).toEqual([]);
+    expect([theft.there.mode, theft.there.world.locationStates[RS]?.items.map((i) => i.itemId).sort()]).toEqual(['explore', [AXE, 'mat_gale_feather'].sort()]);
+    expect([theft.out.state.player.inventory.some((i) => i.itemId === AXE), theft.out.state.reputation.ironclad]).toEqual([true, -10]);
+    const repEvents = (events: readonly { t: string }[]) => events.filter((e) => e.t === 'reputationChanged') as unknown as { faction: string; delta: number }[];
+    expect(repEvents(theft.out.events).map((e) => [e.faction, e.delta])).toEqual([['ironclad', -10]]);
+    // dropped and taken again: the price was the ledge's, paid once
+    const dropped = step(theft.out.state, { type: 'drop', uid: theft.out.state.player.inventory.find((i) => i.itemId === AXE)?.uid ?? '' }, epack, profileOf({ ironclad: 0 })).state;
+    const again = step(dropped, { type: 'take', uid: dropped.world.locationStates[RS]?.items.find((i) => i.itemId === AXE)?.uid ?? '' }, epack, profileOf({ ironclad: 0 })).state;
+    expect([again.player.inventory.some((i) => i.itemId === AXE), again.reputation.ironclad]).toEqual([true, -10]);
+    // back later in the loop: the ledge is bare
+    const later = step(step(again, { type: 'move', to: CR }, epack, profileOf()).state, { type: 'move', to: RS }, epack, profileOf()).state;
+    if (later.mode === 'explore') expect(later.world.locationStates[RS]?.items.some((i) => i.itemId === AXE)).toBe(false);
     const heir = take({ loop: 2, echoes: ['echo_sky_oath'], ironclad: 0 });
-    expect(heir.ids).toEqual(['ev_roost_greataxe_oath']);
-    expect([heir.s.player.inventory.some((i) => i.itemId === AXE), heir.s.reputation.ironclad]).toEqual([true, 0]);
-    expect(offered(heir.s, { loop: 2 })).toEqual([]);
+    expect([heir.out.state.player.inventory.some((i) => i.itemId === AXE), heir.out.state.reputation.ironclad]).toEqual([true, 0]);
+    expect(repEvents(heir.out.events)).toEqual([]);
   });
 
   test('the Eyrie: the Spire Loom and a Weaver on the first visit, the Loom about 25 % of returns, never the pool; idle with the Heartstone destroyed; a free camp', () => {
@@ -1197,22 +1196,18 @@ describe('reachability of WORLD’s 73 locations (the brief’s report; order-ag
 // ---- Words this unit wrote (not in the documents): kept short, listed in the U48a reply -----------------------------------------
 
 describe('authored words outside the documents are few and short; coined ids are the listed ones', () => {
-  test('encounter intros (≤ 20 words), the rest text, the ledge’s two lines and label, the creature descriptions (≤ 30 words)', () => {
+  test('encounter intros (≤ 20 words), the rest text, the creature descriptions (≤ 30 words); the ledge’s two lines went with its events (D-098)', () => {
     const intros = parsedLocations.flatMap((l) => l.encounters.map((e) => e.intro));
     expect(intros).toHaveLength(9);
     for (const t of intros) expect([t, t !== undefined && words(t) <= 20]).toEqual([t, true]);
     expect(loc(AE).rest?.text).toBe("You rest in the workshop's inner room, where there is no wind.");
-    const ledge = loc(RS).events.filter((e) => e.trigger === 'interact').map((e) => [e.label, e.text]);
-    expect(ledge).toEqual([
-      ['Take the greataxe from the ledge', 'You take the greataxe from beside its owner. Without the oath, it is a theft.'],
-      ['Take the greataxe from the ledge', 'You take the greataxe from beside its owner. With the oath, it is an inheritance.'],
-    ]);
+    expect(parsedLocations.flatMap((l) => l.events.filter((e) => e.trigger === 'interact'))).toEqual([]);
     for (const c of parsedCreatures) expect([c.id, words(c.description) <= 30]).toEqual([c.id, true]);
     // every move line is WORLD's (no telegraph written here)
     for (const c of parsedCreatures) for (const [id, m] of Object.entries(c.moves)) expect([c.id, id, m.line]).toEqual([c.id, id, worldCreature(c.id).intents[id]]);
   });
 
-  test('ids this unit coined (WORLD/STORY have none for them): encounter ids, the ledge’s two events and its flag, the Stormcrown’s phase ids', () => {
+  test('ids this unit coined (WORLD/STORY have none for them): encounter ids and the Stormcrown’s phase ids (D-098 retired the ledge’s two events and its flag)', () => {
     expect(parsedLocations.flatMap((l) => l.encounters.map((e) => e.id))).toEqual([
       'enc_windward_kites',
       'enc_crown_weavers', 'enc_crown_motes',
@@ -1221,9 +1216,8 @@ describe('authored words outside the documents are few and short; coined ids are
       'enc_perch_stormcrown',
     ]);
     const wordedEvents = new Set(Object.values(WL).flatMap((w) => Object.keys(w.events)));
-    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_roost_greataxe', 'ev_roost_greataxe_oath']);
-    expect(JSON.stringify(locations).match(/flag_[a-z_]+/g)?.filter((f) => f !== 'flag_heartstone_destroyed').filter((f, i, a) => a.indexOf(f) === i)).toEqual(['flag_roost_greataxe_taken']);
-    expect(WORLD.includes('flag_roost_greataxe_taken')).toBe(false);
+    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual([]);
+    expect(JSON.stringify(locations).match(/flag_[a-z_]+/g)?.filter((f) => f !== 'flag_heartstone_destroyed').filter((f, i, a) => a.indexOf(f) === i) ?? []).toEqual([]);
     expect(cr(CROWN).phases.map((p) => p.id)).toEqual(['crown_the_watch', 'crown_the_storm_comes_down', 'crown_seven_struck']);
     for (const c of parsedCreatures) for (const id of Object.keys(c.moves)) expect([c.id, id, WORLD.includes(`\`${id}\``)]).toEqual([c.id, id, true]);
   });

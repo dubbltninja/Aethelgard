@@ -46,6 +46,7 @@ import type { Move } from '@schema/creature';
 import type { Effect } from '@schema/effect';
 import type { Item } from '@schema/item';
 import type { Location } from '@schema/location';
+import { beforeArrest } from '../before';
 import { dayOf, evaluate } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { derive } from '../derived';
@@ -530,6 +531,7 @@ function finishVictory(ctx: StepCtx, combat: CombatState, survived = false): voi
  * Second Wind (U31) stands the player up before it comes to this (`secondWind`).
  */
 function finishDefeat(ctx: StepCtx, combat: CombatState): void {
+  if (nonLethalFight(ctx.content, combat)) return finishArrest(ctx, combat);
   const { s } = ctx;
   combat.phase = 'defeat';
   syncBack(ctx, combat);
@@ -545,6 +547,35 @@ function finishDefeat(ctx: StepCtx, combat: CombatState): void {
   const reason: CloserReason = s.world.hordeActive && s.world.hordeCause === 'expiry' ? 'expiry' : 'death';
   if (s.combat === combat) s.combat = null;
   apply({ endLoop: { closer: 'closer_fall', reason } }, ctx);
+}
+
+/**
+ * U34d (D-098 item 6; WORLD §6.9 `cr_city_watch_halberdier`: "non-lethal: its damage cannot take you below 1 HP; at 1 HP
+ * you are arrested"): the creature tag that makes a fight non-lethal when every enemy in it carries it.
+ */
+export const NON_LETHAL_TAG = 'non_lethal';
+
+/** Every enemy in the fight is `non_lethal` (the Silverwood Watch): losing it is an arrest, not a death. */
+export function nonLethalFight(content: ContentPack, combat: CombatState): boolean {
+  return combat.enemies.length > 0 && combat.enemies.every((e) => content.creatures[e.refId]?.tags.includes(NON_LETHAL_TAG) === true);
+}
+
+/**
+ * The arrest (U34d): the Wayfinder goes down at 1 HP and is taken, not slain — no `playerDied`, no loop's end. The fight
+ * closes as a defeat (`combatEnded`, no spoils, the encounter not cleared), back to explore, the encounter's `onDefeat`,
+ * then before.ts `beforeArrest`: a day lost and waking at the Before's rest spot.
+ */
+function finishArrest(ctx: StepCtx, combat: CombatState): void {
+  const { s } = ctx;
+  combat.phase = 'defeat';
+  syncBack(ctx, combat);
+  s.player.hp = Math.max(1, s.player.hp);
+  recordSeen(ctx, combat);
+  s.combat = null;
+  enterMode(ctx, 'explore');
+  ctx.emit({ t: 'combatEnded', result: 'defeat', rounds: combat.round, xp: 0, gold: 0, loot: [] });
+  applyAll(combat.onDefeat as Effect[], ctx, { source: `encounter:${combat.encounterId}` });
+  beforeArrest(ctx);
 }
 
 /** Ends the fight if the player or every enemy is down (defeat first); returns whether it ended. */
@@ -795,12 +826,33 @@ const fledThisStep = (ctx: StepCtx): boolean => ctx.events.some((e) => e.t === '
 
 // ---- arrival encounters --------------------------------------------------------------------------------------------------
 
-/** A wandering-pool roll on a return visit (WORLD §10.0–10.1, DESIGN §4.8). */
+/** A region's wandering pool as it stands now: the entries whose `when` holds (U34d: the Barrow-light at dusk and night). */
+export function poolNow(ctx: StepCtx, regionId: string): { creatureId: string; weight: number }[] {
+  const { s, profile, content } = ctx;
+  return (content.regions[regionId]?.wanderingPool ?? []).filter((e) => e.weight > 0 && (e.when === undefined || evaluate(e.when, s, profile, content)));
+}
+
+/**
+ * A wandering-pool roll on a return visit (WORLD §10.0–10.1, DESIGN §4.8): the region's pool at its return chance, or —
+ * where the location lists `wanderingPools` (U34d: the Reedmarch's "pool(steppe) 10 % / pool(glowfen) 10 %") — one roll
+ * at the sum of their chances, then the pool by chance. A pool with nothing in it now (every entry's `when` failing)
+ * rolls nothing.
+ */
 function wanderingEncounter(ctx: StepCtx, loc: Location, arrival: Arrival): EncounterSpec | null {
   if (loc.safe || arrival.firstVisit) return null;
-  const region = ctx.content.regions[loc.regionId];
-  const pool = region?.wanderingPool ?? [];
-  if (!region || pool.length === 0 || !ctx.rng.chance(region.returnEncounterChance)) return null;
+  let pool: { creatureId: string; weight: number }[];
+  const pools = loc.wanderingPools;
+  if (pools === undefined) {
+    const region = ctx.content.regions[loc.regionId];
+    if (!region) return null;
+    pool = poolNow(ctx, region.id);
+    if (pool.length === 0 || !ctx.rng.chance(region.returnEncounterChance)) return null;
+  } else {
+    if (!ctx.rng.chance(Math.min(1, pools.reduce((n, p) => n + p.chance, 0)))) return null;
+    const regionId = pools.length === 1 ? (pools[0] as { regionId: string }).regionId : ctx.rng.weighted(pools.map((p) => ({ weight: p.chance, value: p.regionId })));
+    pool = poolNow(ctx, regionId);
+    if (pool.length === 0) return null;
+  }
   const size = ctx.rng.chance(WANDERING_PAIR_CHANCE) ? 2 : 1;
   const groups: { creatureId: string; count: number }[] = [];
   for (let i = 0; i < size; i++) {
@@ -865,7 +917,7 @@ export function hordeRising(ctx: StepCtx, loc: Location, spec: EncounterSpec): E
   if (spec.groups.some((g) => role(g.creatureId) === 'boss' || content.creatures[g.creatureId]?.fleeable === false)) return spec;
   const rng = hordeRisingRng(s, loc.id, spec.id);
   const slots = spec.groups.flatMap((g) => Array.from({ length: g.count }, () => ({ creatureId: g.creatureId, own: true })));
-  const pool = (content.regions[loc.regionId]?.wanderingPool ?? []).filter((e) => e.weight > 0 && content.creatures[e.creatureId] !== undefined && role(e.creatureId) !== 'boss');
+  const pool = poolNow(ctx, loc.regionId).filter((e) => content.creatures[e.creatureId] !== undefined && role(e.creatureId) !== 'boss');
   const groups = spec.groups.map((g) => ({ ...g }));
   if (slots.length < MAX_ENEMIES && pool.length > 0) {
     const creatureId = rng.weighted(pool.map((e) => ({ weight: e.weight, value: e.creatureId })));

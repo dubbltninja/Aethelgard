@@ -45,6 +45,7 @@ export interface ConditionAtoms {
   /** Breach Clock day (1-based). */
   day: Range;
   level: Range;
+  /** The watch of day; inside Silverwood Before (frozen clock) the echo's own hour (U34d, engine before.ts). */
   watch: z.infer<typeof Watch>;
   /** Dawns before the limit: ⌊(limitTicks − ticks) / 4⌋ (ending E: `{ max: 1 }`). */
   clock: { daysLeft: Range };
@@ -68,6 +69,8 @@ export interface ConditionAtoms {
   resolve: Range;
   /** Active challenge modifier. */
   modifier: `mod_${string}`;
+  /** U34d (C1 addition): the current location is in the Horde's infected set (WORLD §12.1 `ws_infected`). */
+  infected: true;
 }
 
 export type ConditionKey = keyof ConditionAtoms;
@@ -103,6 +106,7 @@ export const CONDITION_ATOMS: { readonly [K in ConditionKey]: z.ZodType<Conditio
   counter: z.object({ name: z.string().min(1), ...bounds }).strict().refine(ordered, 'min must be ≤ max'),
   resolve: RangeSchema,
   modifier: ModifierId,
+  infected: z.literal(true),
 };
 
 export const CONDITION_KEYS = Object.keys(CONDITION_ATOMS) as ConditionKey[];

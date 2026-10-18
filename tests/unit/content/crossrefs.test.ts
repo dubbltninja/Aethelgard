@@ -173,6 +173,10 @@ const EXAMPLES: Example[] = [
       ['item passive ability', (t: Tables) => { row(t.items, 'item_chronos_lens').passives = [{ kind: 'grantAbility', abilityId: 'itm_ghost' }]; }, "granted ability 'itm_ghost' not found in abilities"],
       ['item source', (t: Tables) => { row(t.items, 'item_glow_moss').sources = ['drop:cr_ghost']; }, "source 'drop:cr_ghost' → 'cr_ghost' not found in creatures"],
       ['start item', (t: Tables) => { t.config.startItems = [{ itemId: 'item_ghost' }]; }, "start item 'item_ghost' not found in items"],
+      // U34d: a second gathering node, a location's wandering pools, an NPC's schedule
+      ['gather node', (t: Tables) => { row(t.locations, 'loc_veridian_glowlands').gather = [{ itemId: 'item_glow_moss', perDay: 1 }, { itemId: 'item_ghost', perDay: 1 }]; }, "gather item 'item_ghost' not found in items"],
+      ['location wandering pool', (t: Tables) => { row(t.locations, library).wanderingPools = [{ regionId: 'region_ghost', chance: 0.1 }]; }, "wandering pool region 'region_ghost' not found in regions"],
+      ['npc schedule', (t: Tables) => { row(t.npcs, 'npc_ilyra').schedule = [{ when: { watch: 'night' }, at: ['loc_ghost'] }]; }, "schedule location 'loc_ghost' not found in locations"],
     ] as const
   ).map(([title, edit, says]): Example => ({ rule: 'rule-01', title, report: () => viaTables(edit), says: [says], ...(title === 'location region' ? { fires: ['rule-01', 'rule-22'] } : {}) })),
   {
@@ -199,6 +203,18 @@ const EXAMPLES: Example[] = [
   { rule: 'rule-02', title: 'a quest condition naming a stage the quest lacks', report: () => viaTables(withLibraryVariant({ quest: { id: quest, stage: 'nope' } })), says: ["condition quest 'q_echo_crystal' has no stage 'nope'"] },
   { rule: 'rule-02', title: 'an echo condition naming no Echo', report: () => viaTables(withLibraryVariant({ echo: 'echo_ghost' })), says: ["condition echo 'echo_ghost' not found in echoes"] },
   { rule: 'rule-02', title: 'a nested condition (not / any) is walked', report: () => viaTables(withLibraryVariant({ not: { any: [{ killed: { id: 'cr_ghost' } }] } })), says: ["condition killed 'cr_ghost' not found in creatures"] },
+  {
+    rule: 'rule-02',
+    title: "U34d: onlyIf's condition and effects, an item's onTake, a pool entry's and a schedule's `when` are walked",
+    report: () =>
+      viaTables((t) => {
+        withLibraryEvent([{ id: 'ev_only', text: 'x', effects: [{ onlyIf: { when: { echo: 'echo_ghost' }, effects: [{ grantEcho: 'echo_ghost_two' }] } }] }])(t);
+        row(t.locations, library).items = [{ itemId: 'item_echo_crystal', onTake: [{ questStart: 'q_ghost' }] }];
+        row(t.regions, 'region_glowlands_nexus').wanderingPool = [{ creatureId: 'cr_glowfen_mireling', weight: 1, when: { killed: { id: 'cr_ghost' } } }];
+        row(t.npcs, 'npc_ilyra').schedule = [{ when: { echo: 'echo_ghost_three' }, at: [] }];
+      }),
+    says: ["'echo_ghost' not found in echoes", "'echo_ghost_two' not found in echoes", "'q_ghost' not found in quests", "'cr_ghost' not found in creatures", "'echo_ghost_three' not found in echoes"],
+  },
   {
     rule: 'rule-02',
     title: 'questAdvance to a missing stage',
@@ -539,6 +555,12 @@ const EXAMPLES: Example[] = [
   },
   {
     rule: 'rule-11',
+    title: "U34d: 'onlyIf' inside creature data",
+    report: () => viaPack((p) => { const ph = get(p.creatures, tyrant).phases[1]; if (ph) ph.onEnter = [{ onlyIf: { when: { loop: { min: 2 } }, effects: [{ multiHit: { hits: 2 } }] } }]; }),
+    says: ["'onlyIf' is not for creature data"],
+  },
+  {
+    rule: 'rule-11',
     title: 'a non-boss placed far outside its band (warning)',
     report: () => viaTables((t) => { const c = row(t.creatures, 'cr_corrupted_shade'); c.level = 9; }),
     says: ['level 9 is outside the 2–3 band of loc_shattered_library by more than 2'],
@@ -751,6 +773,20 @@ describe('each rule has a failing example', () => {
       if (toApex) toApex.oneWay = true;
     });
     expect(report).toEqual({ errors: [], warnings: [] });
+  });
+
+  test("U34d (D-098 item 7): rule 11's band check leaves out the Horde's placements and anomalies", () => {
+    const farOut = (edit: (t: Tables) => void) =>
+      viaTables((t) => {
+        row(t.creatures, 'cr_corrupted_shade').level = 9; // the Library's Shades, far outside its 2–3 band
+        edit(t);
+      }).warnings.filter((w) => w.rule === 'rule-11');
+    expect(farOut(() => {})).toHaveLength(1);
+    const library0 = (t: Tables) => row(t.locations, library).encounters![0]!;
+    expect(farOut((t) => void (library0(t).when = { flag: 'flag_horde_active' }))).toEqual([]);
+    expect(farOut((t) => void (library0(t).when = { all: [{ flag: 'flag_horde_active' }, { loop: { min: 2 } }] }))).toEqual([]);
+    expect(farOut((t) => void (library0(t).when = { any: [{ flag: 'flag_horde_active' }, { loop: { min: 2 } }] }))).toHaveLength(1); // not the Horde's only
+    expect(farOut((t) => void (row(t.creatures, 'cr_corrupted_shade').role = 'anomaly'))).toEqual([]);
   });
 });
 

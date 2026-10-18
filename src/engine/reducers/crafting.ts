@@ -106,7 +106,7 @@ export function forgeProblem(s: GameState, content: ContentPack, profile: Pr): s
   if (loc?.craftingStation !== FORGE_STATION) return 'Only at the Emberforge';
   const smith = loc.merchantId === undefined ? undefined : content.merchants[loc.merchantId];
   if (smith === undefined) return null;
-  if (!merchantPresent(s, content, smith.id)) return `${content.npcs[smith.npcId]?.name ?? smith.name} is not at the forge`;
+  if (!merchantPresent(s, content, profile, smith.id)) return `${content.npcs[smith.npcId]?.name ?? smith.name} is not at the forge`;
   return merchantRefusal(s, content, profile, smith);
 }
 

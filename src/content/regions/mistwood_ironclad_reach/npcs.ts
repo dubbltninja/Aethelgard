@@ -3,8 +3,8 @@
 // aethelgard_data.py and `legacyName` is set (validator rule 22). Brak's `companionId` is the handshake with
 // shared/companions.ts (D-088: `npcId: 'npc_brak'` ↔ `companionId: 'brak'`). Runtime moves are engine `npcOverrides`, not
 // placement: Brak leaves the Camp in the Tyrant-kill Horde when both his quests are done, or waits at Hearthring when
-// kept away (horde.ts `brakStand`); Tessaly's caravan at the Camp is the caravan unit's. Barks are WORLD's sample lines;
-// scenes are the dialogue units' (U52–U59).
+// kept away (horde.ts `brakStand`); Tessaly's caravan at the Camp is her NPC schedule (../ashen_steppe/npcs.ts, D-098).
+// Barks are WORLD's sample lines; scenes are the dialogue units' (U52–U59).
 import type { NpcInput } from '@schema/npc';
 
 export const npcs = [

@@ -424,13 +424,13 @@ describe('the Threshold in the engine (reducers/threshold.ts on the real pack)',
   test('every place offers its legal actions: the walk to the other three; Dask stands on the Shore; the Far Light’s class change and the step into the light', () => {
     const shore = arrive();
     expect(offered(shore)).toEqual([go('far_light'), go('gallery'), go('loom')]);
-    expect(npcsAt(shore.s, pack, thresholdLocationId(shore.s))).toEqual([DASK]);
+    expect(npcsAt(shore.s, pack, shore.prof, thresholdLocationId(shore.s))).toEqual([DASK]);
     // his Threshold scene is the dialogue units' (U52–U59): until it lands he is there with nothing to say
     if (Object.values(pack.dialogues).every((d) => d.npcId !== DASK)) expect(talkProblem(shore.s, pack, shore.prof, DASK)).toBe('Dask has nothing more to say');
     for (const area of ['gallery', 'loom', 'far_light'] as const) {
       const there = act(shore, go(area));
       expect([thresholdLocationId(there.s), ofType(there.last, 'thresholdEntered')]).toEqual([THRESHOLD_LOCATIONS[area], [{ t: 'thresholdEntered', area }]]);
-      expect(npcsAt(there.s, pack, thresholdLocationId(there.s))).toEqual([]);
+      expect(npcsAt(there.s, pack, there.prof, thresholdLocationId(there.s))).toEqual([]);
       const walks = THRESHOLD_AREAS.filter((a) => a !== area).sort().map(go);
       const own = offered(there).filter((a) => a.type !== 'thresholdGo');
       expect(offered(there).filter((a) => a.type === 'thresholdGo')).toEqual(walks);
@@ -455,12 +455,22 @@ describe('the Threshold in the engine (reducers/threshold.ts on the real pack)',
     expect(r.s.clock.ticks).toBe(0);
   });
 
-  test('a gap pinned: walking between the places runs no arrival, so the places’ events are not fired by the engine (the Threshold UI unit’s)', () => {
+  test('D-098 (U34d, was a pinned gap): every arrival fires the place’s events — the Shore from the ending, then each walk; `once` holds for the visit', () => {
     const shore = arrive();
-    for (const area of ['loom', 'far_light'] as const) {
+    // the Shore from the ending: `ev_shore_first` (Loop 3, the first crossing), after the shore's own lines
+    expect(ofType(shore.last, 'eventFired').map((e) => e.eventId)).toEqual(['ev_shore_first']);
+    const logs = ofType(shore.last, 'log').map((e) => e.text);
+    expect(logs.indexOf(THRESHOLD_TEXT.shore)).toBeLessThan(logs.indexOf(ev(TS, 'ev_shore_first').text));
+    const fired = { loom: ['ev_loom_first_thread'], far_light: ['ev_far_light_step'], gallery: [] } as const;
+    for (const area of ['loom', 'far_light', 'gallery'] as const) {
       const there = act(shore, go(area));
-      expect(ofType(there.last, 'eventFired')).toEqual([]);
-      expect(there.s.world.locationStates[THRESHOLD_LOCATIONS[area]]?.eventsFired ?? []).toEqual([]);
+      expect([area, ofType(there.last, 'eventFired').map((e) => e.eventId)]).toEqual([area, [...fired[area]]]);
+      expect(there.s.world.locationStates[THRESHOLD_LOCATIONS[area]]?.eventsFired ?? []).toEqual([...fired[area]]);
     }
+    // back and forth: a `once` event fires once a visit (the Gallery's two need an ending or `q_seven_marks`)
+    const again = act(act(act(shore, go('loom')), go('still_shore')), go('loom'));
+    expect(ofType(again.last, 'eventFired')).toEqual([]);
+    const back = act(act(shore, go('loom')), go('still_shore'));
+    expect(ofType(back.last, 'eventFired')).toEqual([]);
   });
 });

@@ -79,7 +79,18 @@ const CASES: { [K in ConditionKey]: Case[] } = {
   loop: [{ cond: { loop: { min: 2 } }, t: [(s) => void (s.meta.loop = 2)], f: [none] }],
   day: [{ cond: { day: { min: 5 } }, t: [(s) => void (s.clock.ticks = 16)], f: [none, (s) => void (s.clock.ticks = 15)] }],
   level: [{ cond: { level: { max: 3 } }, t: [none, (s) => void (s.player.level = 3)], f: [(s) => void (s.player.level = 4)] }],
-  watch: [{ cond: { watch: 'night' }, t: [(s) => void (s.clock.ticks = 3), (s) => void (s.clock.ticks = 7)], f: [none, (s) => void (s.clock.ticks = 4)] }],
+  watch: [
+    { cond: { watch: 'night' }, t: [(s) => void (s.clock.ticks = 3), (s) => void (s.clock.ticks = 7)], f: [none, (s) => void (s.clock.ticks = 4)] },
+    // U34d: inside the Before (frozen clock) the echo's own hour, `counters.custom.before_watch`
+    {
+      cond: { watch: 'day' },
+      t: [(s) => void Object.assign(s, { before: { day: 3, resets: 0 } }, { counters: { ...s.counters, custom: { before_watch: 1 } } })],
+      f: [
+        (s) => void Object.assign(s, { before: { day: 3, resets: 0 } }, { clock: { ...s.clock, ticks: 1 } }),
+        (s) => void (s.counters.custom.before_watch = 1),
+      ],
+    },
+  ],
   clock: [
     {
       cond: { clock: { daysLeft: { max: 1 } } },
@@ -156,6 +167,13 @@ const CASES: { [K in ConditionKey]: Case[] } = {
     },
   ],
   modifier: [{ cond: { modifier: 'mod_glass' }, t: [(s) => void s.meta.modifiers.push('mod_glass')], f: [none, (s) => void s.meta.modifiers.push('mod_iron_loop')] }],
+  infected: [
+    {
+      cond: { infected: true },
+      t: [(s) => void s.world.infected.push('loc_whispering_ruins')],
+      f: [none, (s) => void s.world.infected.push('loc_temporal_breach_apex')],
+    },
+  ],
 };
 
 const prepared = (c: Case, setup: Setup) => {
@@ -313,6 +331,7 @@ describe('explain', () => {
     expect(text({ killed: { id: 'cr_x' } })).toEqual(['Defeat 1 × cr_x (0/1)']);
     expect(text({ resolve: { min: 8 } })).toEqual(['Resolve ≥ 8 (communion only)']);
     expect(text({ modifier: 'mod_frayed_clock' })).toEqual(['Modifier: Frayed Clock']);
+    expect(text({ infected: true })).toEqual(['Here, where the Horde has reached']);
     const loyal = { ...minimalState(), companions: { recruited: { mireya: comp('mireya', { loyalty: 30 }) }, activeId: null } };
     expect(explain({ loyalty: { companion: 'mireya', min: 25 } }, loyal, p, content).parts[0]!.text).toBe('Mireya loyalty ≥ 25 (now 30)');
     expect(explain({ resolve: { min: 8 } }, fullState(), p, content).parts[0]!.text).toBe('Resolve ≥ 8 (now 4)');

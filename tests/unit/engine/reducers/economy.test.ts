@@ -16,6 +16,7 @@ import {
   makeCtx,
   merchantHome,
   merchantTier,
+  merchantsHere,
   restock,
   sellPrice,
   step,
@@ -445,6 +446,27 @@ describe('where a merchant stands', () => {
     expect(merchantHome(loose, KAELEN)).toBe(RESPITE);
     const r = at(RESPITE, {}, loose);
     expect(stockOf(r, KAELEN).length).toBeGreaterThan(0);
+  });
+
+  test('U34d (D-098 item 1): an NPC schedule moves the stall — away from home while it holds, met (and stocked) where it comes', () => {
+    const GLOWLANDS = 'loc_veridian_glowlands';
+    const tables = economyTables();
+    // Tamsin's stall goes out to the Glowlands at night (a caravan's shape: no arrival, no npcMoved)
+    const caravan = buildContentPack(
+      { ...tables, npcs: tables.npcs.map((n) => (n.id === TAMSIN ? { ...clone(n), schedule: [{ when: { watch: 'night' }, at: [GLOWLANDS] }] } : n)) },
+      { version: FIXTURE_VERSION, validate: false }, // the fixture's Echoes without a content source (see 'the fixture')
+    );
+    const buys = (r: Run) => legalActions(r.s, caravan, r.prof).filter((a) => a.type === 'buy');
+    const dusk = start({ locationId: GLOWLANDS, watch: 2 }, caravan);
+    expect([merchantsHere(dusk.s, caravan, dusk.prof), dusk.s.merchants[TAMSIN]]).toEqual([[], undefined]);
+    const night = act(dusk, { type: 'wait' });
+    expect(merchantsHere(night.s, caravan, night.prof)).toEqual([TAMSIN]);
+    expect(ofType(night.last, 'merchantRestocked')).toEqual([{ t: 'merchantRestocked', merchantId: TAMSIN }]);
+    expect(buys(night).length).toBeGreaterThan(0);
+    // her own stall is empty at night and open by day
+    expect(merchantsHere(start({ locationId: PLAZA, watch: 3 }, caravan).s, caravan, freshProfile())).toEqual([]);
+    expect(merchantsHere(start({ locationId: PLAZA, watch: 1 }, caravan).s, caravan, freshProfile())).toEqual([TAMSIN]);
+    expect(refused({ ...night, s: { ...night.s, world: { ...night.s.world, currentLocationId: PLAZA } } }, { type: 'buy', merchantId: TAMSIN, uid: stockOf(night, TAMSIN)[0]!.uid })).toContain('is not here');
   });
 });
 

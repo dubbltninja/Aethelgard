@@ -37,6 +37,7 @@ import {
   currentLocation,
   fireEvent,
   isApexPromptOpen,
+  npcStandsAt,
   npcsAt,
   restHandler,
 } from './explore';
@@ -83,7 +84,7 @@ export const talkLocationId = (s: GameState): string => (s.mode === 'threshold' 
 /** Why the player cannot talk to `npcId` now (null: they can). */
 export function talkProblem(s: GameState, content: ContentPack, profile: Pr, npcId: string): string | null {
   const name = content.npcs[npcId]?.name ?? npcId;
-  if (!npcsAt(s, content, talkLocationId(s)).includes(npcId)) return `${name} is not here`;
+  if (!npcStandsAt(s, content, profile, npcId, talkLocationId(s))) return `${name} is not here`;
   return sceneForNpc(s, content, profile, npcId) === undefined ? `${name} has nothing more to say` : null;
 }
 
@@ -95,7 +96,7 @@ export function talkHandler(ctx: StepCtx, a: ActionOf<'talk'>): void {
 }
 
 export const talkEnumerator: Enumerator<'talk'> = (s, content, profile) =>
-  npcsAt(s, content, talkLocationId(s))
+  npcsAt(s, content, profile, talkLocationId(s))
     .filter((npcId) => talkProblem(s, content, profile, npcId) === null)
     .map((npcId) => ({ type: 'talk', npcId }));
 

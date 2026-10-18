@@ -313,6 +313,8 @@ interface Scan {
 
 /** Engine-written flag families (C-58): never set by content. The named ones are ENGINE_WRITTEN_FLAGS (schema/flags.ts). */
 const ENGINE_FLAG = /^flag_(?:choice|scene_done)_/;
+/** WORLD §12.1 `ws_horde` (engine horde.ts `FLAG_HORDE_ACTIVE`): rule 11 leaves the Horde's own placements out. */
+const FLAG_HORDE_ACTIVE = 'flag_horde_active';
 
 // ---- The tree walk: rules 2 and 11 (combat scope), and the facts rules 9, 15, 16, 17 read -------------------------------
 
@@ -322,7 +324,7 @@ const CONDITION_FIELDS = new Set([
   'refusesWhen', 'gate', 'requires', 'opensWith', 'if', 'apexGate',
 ]);
 /** Property names whose value is an Effect list. */
-const EFFECT_FIELDS = new Set(['effects', 'onEnter', 'onExit', 'onFail', 'onVictory', 'onDefeat', 'onFleeEffects', 'onUse', 'onGrant', 'onEnd', 'outOfCombat']);
+const EFFECT_FIELDS = new Set(['effects', 'onEnter', 'onExit', 'onFail', 'onVictory', 'onDefeat', 'onFleeEffects', 'onUse', 'onGrant', 'onEnd', 'outOfCombat', 'onTake']);
 /** Free-form payloads that are never walked. */
 const OPAQUE_FIELDS = new Set(['patch', 'params']);
 
@@ -524,6 +526,16 @@ function runScan(v: Validation): Scan {
         if (typeof value === 'string') scan.codexUnlocked.add(value);
         ref(at, 'codex', value, 'effect unlockCodex');
         break;
+      case 'onlyIf': // U34d: a condition on effects inside one list; both halves are walked
+        if (inCombatData(at)) {
+          const w = whereOf(at);
+          v.error('rule-11', w.table, w.id, w.path, "'onlyIf' is not for creature data: the combat engine reads a move's or a phase's atoms directly");
+        }
+        if (isObj(value)) {
+          visitCondition(value.when, [...at, 'when']);
+          asArray(value.effects).forEach((child, i) => visitEffect(child, [...at, 'effects', i]));
+        }
+        break;
       default:
         break;
     }
@@ -681,7 +693,8 @@ function rule01(v: Validation): void {
       need(t, loc.id, 'merchantId', 'merchants', loc.merchantId, 'merchantId');
     }
     loc.items.forEach((it, i) => need(t, loc.id, `items.${i}.itemId`, 'items', it.itemId, 'item'));
-    if (loc.gather) need(t, loc.id, 'gather.itemId', 'items', loc.gather.itemId, 'gather item');
+    (loc.gather ?? []).forEach((g, i) => need(t, loc.id, `gather.${i}.itemId`, 'items', g.itemId, 'gather item'));
+    (loc.wanderingPools ?? []).forEach((p, i) => need(t, loc.id, `wanderingPools.${i}.regionId`, 'regions', p.regionId, 'wandering pool region'));
     loc.encounters.forEach((enc, i) =>
       enc.groups.forEach((g, j) => need(t, loc.id, `encounters.${i}.groups.${j}.creatureId`, 'creatures', g.creatureId, `encounter ${enc.id} creature`)),
     );
@@ -829,6 +842,7 @@ function rule01(v: Validation): void {
   for (const npc of Object.values(pack.npcs)) {
     const t = 'npcs';
     need(t, npc.id, 'homeLocationId', 'locations', npc.homeLocationId, 'homeLocationId');
+    npc.schedule.forEach((entry, i) => entry.at.forEach((loc, j) => need(t, npc.id, `schedule.${i}.at.${j}`, 'locations', loc, 'schedule location')));
     if (npc.merchantId !== undefined) need(t, npc.id, 'merchantId', 'merchants', npc.merchantId, 'merchantId');
     if (npc.companionId !== undefined && need(t, npc.id, 'companionId', 'companions', npc.companionId, 'companionId')) {
       if (pack.companions[npc.companionId]?.npcId !== npc.id) v.error(R, t, npc.id, 'companionId', `companion ${npc.companionId} does not point back at ${npc.id} (companion.npcId)`);
@@ -1263,13 +1277,17 @@ function rule11(v: Validation): void {
       v.warn(R, 'creatures', c.id, 'level', `level ${c.level} is outside the ${band.min}–${band.max} band of ${where} by more than 2`);
     }
   };
+  // U34d (D-098 item 7): the Horde's placements (an encounter that needs `flag_horde_active`: the husks, the Tide) and
+  // anomalies (DESIGN §6.6: out of band on purpose) are left out of the band check.
+  const hordeOnly = (when: unknown): boolean => when !== undefined && evalCondition(when, (key, value) => (key === 'flag' && value === FLAG_HORDE_ACTIVE ? 'F' : 'U')) === 'F';
   for (const loc of Object.values(pack.locations)) {
     const band = bandOf(v, loc);
     if (!band) continue;
     for (const enc of loc.encounters) {
+      if (hordeOnly(enc.when)) continue;
       for (const g of enc.groups) {
         const c = pack.creatures[g.creatureId];
-        if (!c) continue;
+        if (!c || c.role === 'anomaly') continue;
         if (c.role === 'boss') {
           if (!loc.tags.includes('apex') && c.level !== band.max + 2) {
             v.warn(R, 'creatures', c.id, 'level', `regional boss at ${loc.id} is level ${c.level}; the band tops at ${band.max}, so expected ${band.max + 2} (D-066 #21)`);

@@ -468,7 +468,7 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     expect(pack.index.startLocationId).toBe('loc_whispering_ruins');
   });
 
-  test('validates with 0 errors; pending references name only tables still being authored; the real warnings about the Ruins are the known ones (eight until the Before lands, then seven)', () => {
+  test('validates with 0 errors; pending references name only tables still being authored; the real warnings about the Ruins are the known ones (five until the Before lands, then four)', () => {
     const report = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(report.errors).toEqual([]);
     const pending = report.warnings.filter((w) => w.message.startsWith('pending — content not yet authored (reference): '));
@@ -493,11 +493,8 @@ describe('the real pack with the Ruins registered (D-090)', () => {
         'rule-02 loc_heartstone_depths descriptionVariants.0.when.flag',
         'rule-02 loc_heartstone_depths descriptionVariants.1.when.flag',
         'rule-02 loc_heartstone_depths descriptionVariants.2.when.flag',
-        // WORLD's deliberate out-of-band placements (D-091 gap 6): the Loop 4+ anomaly at the start, the Horde boss and
-        // (since U45 authored them) the Horde Husks in the Corridor, the exploited Depths' Hourglass Crawlers
-        'rule-11 cr_redundant_wayfinder level',
-        'rule-11 cr_unraveling_tide level',
-        'rule-11 cr_horde_husk level',
+        // WORLD's deliberate out-of-band placements (D-091 gap 6): the exploited Depths' Hourglass Crawlers. D-098 (U34d) left
+        // out of rule 11 the Loop 4+ anomaly at the start, the Horde boss and the Horde Husks in the Corridor
         'rule-11 cr_hourglass_crawler level',
       ].sort(),
     );
@@ -528,6 +525,7 @@ describe('the real pack with the Ruins registered (D-090)', () => {
       'mat_shadow_ash', 'mat_wildling_hide', 'mat_ley_resin', 'mat_sodden_vellum', 'mat_ley_spark', 'mat_frayed_moment',
       'cr_horde_husk', 'cr_hourglass_crawler', 'cr_unmade',
       'q_echoing_heartbeat', 'q_lost_scroll',
+      'q_echo_crystal', // D-098: the alcove's skipped search waits while the Crystal's quest is not done
       'echo_heartstone_path', 'echo_nine_voices', 'echo_crystal_location', 'echo_archive_door', 'echo_oriel_drowned',
       'scene_heartstone_choice',
       'ilyra', // the companion record (D-088: registered by U56)

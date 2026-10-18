@@ -59,6 +59,7 @@ import { freshProfile, makeState, type StateOverrides } from '@tests/fixtures/he
 import { hordePack } from '@tests/fixtures/hordeContent';
 import { FIXTURE_VERSION, fixturePack } from '@tests/fixtures/miniContent';
 import type { AttunementInput } from '@schema/attunement';
+import type { LocationInput } from '@schema/location';
 import { DASK_NPC, DASK_SHORE_SCENE, INN_COST, SHORE, thresholdPack, thresholdTables } from '@tests/fixtures/thresholdContent';
 import { buildContentPack } from '@content/index';
 
@@ -585,6 +586,28 @@ describe('U31 · arriving at the Threshold, the four places (DESIGN §10.8, §14
     expect(thresholdArea(bare.s)).toBe('still_shore');
     expect(act(bare, go('loom')).s.threshold).toEqual({ visited: ['still_shore', 'loom'], spentThisVisit: 0, pendingClassId: null });
     expect(refused(start(makeState({ mode: 'title' }), freshProfile()), choose('wizard'))).toBe('a new game names its class');
+  });
+});
+
+describe("U34d · a Threshold place's `enter` events play on arrival (D-098 item 5)", () => {
+  test('arriving at the Still Shore (and coming back to it): its events whose `when` holds, a `once` one once a visit', () => {
+    const tables = thresholdTables();
+    const events: NonNullable<LocationInput['events']> = [
+      { id: 'ev_fixture_shore_first', text: 'Fixture: the water knows your step.' },
+      { id: 'ev_fixture_shore_tide', text: 'Fixture: the tide turns.', once: false },
+      { id: 'ev_fixture_shore_late', text: 'Fixture: never yet.', when: { loop: { min: 9 } } },
+    ];
+    const evPack = buildContentPack(
+      { ...tables, locations: tables.locations.map((l) => (l.id === SHORE ? { ...clone(l), events } : l)) },
+      { version: FIXTURE_VERSION, validate: false },
+    );
+    const r = acknowledgeAll(act(at(RUINS, { loop: 2 }, rich(), evPack), { type: 'letGo' }));
+    expect([r.s.mode, thresholdArea(r.s)]).toEqual(['threshold', 'still_shore']);
+    expect(ofType(r.last, 'eventFired').map((e) => e.eventId)).toEqual(['ev_fixture_shore_first', 'ev_fixture_shore_tide']);
+    expect(logs(r.last).slice(-2)).toEqual(['Fixture: the water knows your step.', 'Fixture: the tide turns.']);
+    const back = run(r, [go('loom'), go('still_shore')]);
+    expect(ofType(back.last, 'eventFired').map((e) => e.eventId)).toEqual(['ev_fixture_shore_tide']);
+    expect(back.s.mode).toBe('threshold');
   });
 });
 

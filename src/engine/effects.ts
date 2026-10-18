@@ -658,6 +658,10 @@ const APPLIERS: Appliers = {
     communion.resolve = clamp(before + n, 0, RESOLVE_MAX);
     ctx.emit({ t: 'resolveChanged', delta: communion.resolve - before, value: communion.resolve, movement: communion.movement, reason: source });
   },
+  // U34d (D-098 item 3): the nested effects apply only if `when` holds at this point of the list
+  onlyIf: ({ when, effects }, ctx, _key, source) => {
+    if (evaluate(when, ctx.s, ctx.profile, ctx.content)) applyAll(effects, ctx, { source });
+  },
 };
 
 /** Applies one effect to the step draft (PLAN §4.9). */

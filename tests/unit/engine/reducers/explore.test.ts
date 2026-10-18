@@ -2,20 +2,26 @@
 import { describe, expect, test } from 'bun:test';
 import { buildContentPack, type ContentTables } from '@content/index';
 import type { LocationInput } from '@schema/location';
+import type { NpcInput } from '@schema/npc';
 import {
   APEX_FACE_IT,
   APEX_LOCATION_ID,
   APEX_NOT_YET,
   APEX_PROMPT_SCENE,
   HANDLERS,
+  INFECTED_TEXT,
   INVENTORY_SLOTS,
   POST_STEP_HOOKS,
   apply,
   createStep,
+  describeLocation,
   enterStartLocation,
   isLegal,
   legalActions,
   makeCtx,
+  npcPlacement,
+  npcStandsAt,
+  npcsAt,
   step,
   type Action,
   type ContentPack,
@@ -242,6 +248,101 @@ describe('gather', () => {
   test('nothing to gather elsewhere', () => {
     expect(step(makeState(), { type: 'gather' }, content, freshProfile()).events[0]).toMatchObject({ reason: 'there is nothing to gather here' });
   });
+
+  test('U34d (D-098 item 2): several nodes at one place — each named by its item, each with its own perDay and record', () => {
+    const SPARK = 'mat_ley_spark';
+    const two = packWith({ [GLOWLANDS]: { gather: [{ itemId: 'item_glow_moss', perDay: 1 }, { itemId: SPARK, perDay: 2 }] } });
+    const s = makeState({ locationId: GLOWLANDS }, { content: two });
+    const legal = (st: GameState) => types(legalActions(st, two, freshProfile()), 'gather');
+    expect(legal(s)).toEqual([{ type: 'gather', itemId: 'item_glow_moss' }, { type: 'gather', itemId: SPARK }]);
+    expect(step(s, { type: 'gather' }, two, freshProfile()).events[0]).toMatchObject({ reason: 'name what to gather here' });
+    expect(step(s, { type: 'gather', itemId: 'mat_shadow_ash' }, two, freshProfile()).events[0]).toMatchObject({ reason: 'there is no mat_shadow_ash to gather here' });
+    const moss = play(s, [{ type: 'gather', itemId: 'item_glow_moss' }], { content: two });
+    expect(legal(moss.state)).toEqual([{ type: 'gather', itemId: SPARK }]);
+    expect(step(moss.state, { type: 'gather', itemId: 'item_glow_moss' }, two, freshProfile()).events[0]).toMatchObject({ reason: 'you have gathered all there is here today' });
+    const out = play(moss.state, [{ type: 'gather', itemId: SPARK }, { type: 'gather', itemId: SPARK }], { content: two });
+    // the first node keeps the location's own key (saves from before U34d read on); the others are `<location>:<item>`
+    expect(out.state.world.gather).toEqual({ [GLOWLANDS]: { day: 1, taken: 1 }, [`${GLOWLANDS}:${SPARK}`]: { day: 1, taken: 2 } });
+    expect(ofType(out.events, 'itemGiven').map((e) => [e.item.itemId, e.source])).toEqual([[SPARK, `gather:${GLOWLANDS}`], [SPARK, `gather:${GLOWLANDS}`]]);
+    expect(legal(out.state)).toEqual([]);
+    // one node: the action names nothing
+    expect(step(makeState({ locationId: GLOWLANDS }), { type: 'gather', itemId: 'item_glow_moss' }, content, freshProfile()).events[0]).toMatchObject({
+      reason: 'there is only one thing to gather here',
+    });
+  });
+});
+
+describe('content items: chance, a late `when`, onTake (U34d, D-098 item 2)', () => {
+  const SPARK = 'mat_ley_spark';
+  const look = { type: 'examine', target: { kind: 'location' } } as const;
+  const has = (s: GameState, itemId = SPARK): boolean => ground(s).some((i) => i.itemId === itemId);
+  const flagsAt = (s: GameState, at = LIBRARY) => s.world.locationStates[at]?.flags ?? {};
+
+  test('`chance` is rolled on the run Rng once a loop, at the first arrival where the entry is ready; a miss waits for the next loop', () => {
+    const chancy = packWith({ [LIBRARY]: { items: [{ itemId: 'item_echo_crystal' }, { itemId: SPARK, chance: 0.5 }] } });
+    const enter = (seed: string) => play(makeState({ seed }, { content: chancy }), [{ type: 'move', to: LIBRARY }], { content: chancy }).state;
+    const seeds = Array.from({ length: 16 }, (_, i) => `u34d-chance-${i}`);
+    const rolls = seeds.map((seed) => has(enter(seed)));
+    expect(rolls).toContain(true);
+    expect(rolls).toContain(false);
+    expect(seeds.map((seed) => has(enter(seed)))).toEqual(rolls); // the same seed, the same roll
+    const missSeed = seeds[rolls.indexOf(false)] as string;
+    const missed = enter(missSeed);
+    expect(flagsAt(missed)).toMatchObject({ 'item:0': 'placed', 'item:1': 'missed' });
+    expect(has(missed, 'item_echo_crystal')).toBe(true);
+    // the miss is the loop's try: coming back does not roll again
+    const back = play(missed, [{ type: 'move', to: RUINS }, { type: 'move', to: LIBRARY }], { content: chancy }).state;
+    expect([has(back), back.rng]).toEqual([false, missed.rng]);
+    expect(flagsAt(enter(seeds[rolls.indexOf(true)] as string))['item:1']).toBe('placed');
+    // a chance of 1 (the default) draws nothing; the 50 % entry draws once
+    const start = makeState({ seed: missSeed });
+    expect(play(start, [{ type: 'move', to: LIBRARY }]).state.rng).toEqual(start.rng);
+    expect(missed.rng).not.toEqual(start.rng);
+  });
+
+  test('an entry whose `when` turns true later appears on a later arrival — or, hidden, on a later examine', () => {
+    const night = packWith({
+      [LIBRARY]: { items: [{ itemId: 'item_echo_crystal' }, { itemId: SPARK, when: { watch: 'night' } }, { itemId: 'mat_shadow_ash', hidden: true, when: { watch: 'night' } }] },
+    });
+    const day = play(makeState({}, { content: night }), [{ type: 'move', to: LIBRARY }, look], { content: night });
+    expect(ground(day.state).map((i) => i.itemId)).toEqual(['item_echo_crystal']); // watch 1: day
+    expect(ofType(day.events, 'log').map((e) => e.text)).not.toContain('Looking closer, you find something.');
+    expect(flagsAt(day.state)['item:1']).toBeUndefined(); // not tried: its `when` did not hold
+    const later = play(day.state, [{ type: 'move', to: RUINS }, { type: 'move', to: LIBRARY }], { content: night });
+    expect(later.state.clock.ticks).toBe(3); // night
+    expect(ground(later.state).map((i) => i.itemId)).toEqual(['item_echo_crystal', SPARK]);
+    const found = play(later.state, [look, look], { content: night });
+    expect(ground(found.state).map((i) => i.itemId)).toEqual(['item_echo_crystal', SPARK, 'mat_shadow_ash']);
+    expect(ofType(found.events, 'log').filter((e) => e.text === 'Looking closer, you find something.')).toHaveLength(1);
+  });
+
+  test('`onTake` effects apply as a piece is picked up, once per piece (source take:<item>); dropping and retaking pays nothing', () => {
+    const ARMOR = 'item_wildling_hide_armor';
+    const paid = packWith({ [LIBRARY]: { items: [{ itemId: ARMOR, count: 2, onTake: [{ gold: 5 }] }] } });
+    const at = play(makeState({ gold: 0 }, { content: paid }), [{ type: 'move', to: LIBRARY }], { content: paid }).state;
+    const [a, b] = ground(at) as [ItemInstance, ItemInstance];
+    expect(flagsAt(at)).toMatchObject({ [`take:${a.uid}`]: 0, [`take:${b.uid}`]: 0 });
+    const one = play(at, [{ type: 'take', uid: a.uid }], { content: paid });
+    expect(one.state.player.gold).toBe(5);
+    expect(ofType(one.events, 'goldChanged')).toEqual([{ t: 'goldChanged', delta: 5, total: 5 }]);
+    expect(flagsAt(one.state)[`take:${a.uid}`]).toBeUndefined();
+    const again = play(one.state, [{ type: 'drop', uid: a.uid }, { type: 'take', uid: a.uid }, { type: 'takeAll' }], { content: paid });
+    expect(again.state.player.gold).toBe(10); // the second piece once; the first not again
+    expect(ground(again.state)).toEqual([]);
+  });
+
+  test('a location state from before U34d (itemsSpawned, no tries recorded) counts what it placed as tried', () => {
+    const pack = packWith({ [LIBRARY]: { items: [{ itemId: 'item_echo_crystal' }, { itemId: SPARK, hidden: true }] } });
+    const old = (hiddenRevealed: boolean) =>
+      makeState(
+        { patch: (s) => void (s.world.locationStates[LIBRARY] = { ...emptyLocationState(), visited: true, visitCount: 1, itemsSpawned: true, flags: hiddenRevealed ? { hiddenRevealed } : {} }) },
+        { content: pack },
+      );
+    const unrevealed = play(old(false), [{ type: 'move', to: LIBRARY }, look], { content: pack }).state;
+    expect(ground(unrevealed).map((i) => i.itemId)).toEqual([SPARK]); // the Crystal was placed (and taken) before; the spark was never found
+    expect(flagsAt(unrevealed)).toMatchObject({ 'items:v2': true, 'item:0': 'placed', 'item:1': 'placed' });
+    expect(ground(play(old(true), [{ type: 'move', to: LIBRARY }, look], { content: pack }).state)).toEqual([]);
+  });
 });
 
 describe('wait', () => {
@@ -292,6 +393,46 @@ describe('examine', () => {
     const look = { type: 'examine', target: { kind: 'location' } } as const;
     const out = play(at, [look, look], { content: pack });
     expect(ground(out.state).map((i) => i.itemId)).toEqual(['item_echo_crystal', 'mat_ley_spark']);
+  });
+
+  test("U34d (D-098 item 6): an infected node's text gains WORLD's line; the Apex keeps its own", () => {
+    const look = { type: 'examine', target: { kind: 'location' } } as const;
+    const sick = makeState({ locationId: GLOWLANDS, patch: (s) => void s.world.infected.push(GLOWLANDS, APEX_LOCATION_ID) });
+    expect(ofType(play(sick, [look]).events, 'log')[0]?.text).toBe(`${content.locations[GLOWLANDS]?.description} ${INFECTED_TEXT}`);
+    expect(ofType(play(makeState({ locationId: GLOWLANDS }), [look]).events, 'log')[0]?.text).toBe(content.locations[GLOWLANDS]?.description);
+    const apex = content.locations[APEX_LOCATION_ID]!;
+    expect(describeLocation(sick, content, freshProfile(), apex)).not.toContain(INFECTED_TEXT);
+  });
+});
+
+describe('where NPCs stand: schedules (U34d, D-098 item 1)', () => {
+  /** Ilyra: at the Library and the Plaza at night, nowhere at dusk; at the Ruins (her placement) otherwise. */
+  const schedule: NpcInput['schedule'] = [
+    { when: { watch: 'night' }, at: [LIBRARY, PLAZA] },
+    { when: { watch: 'dusk' }, at: [] },
+  ];
+  const pack = buildContentPack(
+    { ...miniContentTables, npcs: miniContentTables.npcs.map((n) => (n.id === 'npc_ilyra' ? { ...clone(n), schedule } : n)) },
+    { version: FIXTURE_VERSION },
+  );
+  const at = (watch: 0 | 1 | 2 | 3, patch?: (s: GameState) => void) => makeState({ watch, ...(patch ? { patch } : {}) }, { content: pack });
+  const here = (s: GameState, loc: string) => npcsAt(s, pack, freshProfile(), loc);
+
+  test('no entry holds: the placement; the first entry that holds wins; `at: []` is nowhere', () => {
+    expect([here(at(0), RUINS), here(at(0), LIBRARY), npcPlacement(at(0), pack, freshProfile(), 'npc_ilyra')]).toEqual([['npc_ilyra'], [], null]);
+    expect([here(at(2), RUINS), here(at(2), LIBRARY), npcPlacement(at(2), pack, freshProfile(), 'npc_ilyra')]).toEqual([[], [], []]);
+    expect([here(at(3), RUINS), here(at(3), LIBRARY), here(at(3), PLAZA)]).toEqual([[], ['npc_ilyra'], ['npc_tamsin_reed', 'npc_ilyra']]);
+    expect(npcStandsAt(at(3), pack, freshProfile(), 'npc_ilyra', PLAZA)).toBe(true);
+    // examine follows presence
+    const examinable = (s: GameState) => types(legalActions(s, pack, freshProfile(), { includeExamine: true }), 'examine').some((a) => a.type === 'examine' && a.target.kind === 'npc');
+    expect([examinable(at(0)), examinable(at(3))]).toEqual([true, false]);
+  });
+
+  test('an engine override wins over the schedule', () => {
+    const moved = at(3, (s) => void (s.world.npcOverrides.npc_ilyra = { location: NEXUS }));
+    expect([here(moved, LIBRARY), here(moved, NEXUS), here(moved, RUINS)]).toEqual([[], ['npc_ilyra'], []]);
+    const gone = at(0, (s) => void (s.world.npcOverrides.npc_ilyra = { location: null }));
+    expect(here(gone, RUINS)).toEqual([]);
   });
 });
 

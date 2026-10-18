@@ -1,9 +1,10 @@
 // The economy (DESIGN §7.5, §9, §10.7 Kaelen's Ledger, §11.4 tier effects; WORLD §9; PLAN §8.1 "economy"; D-057,
 // D-073, D-079, D-083). U34. Buying and selling, prices, stock and its restock; the Emberforge is reducers/crafting.ts.
 //
-// Where a merchant stands: a merchant is keyed by its NPC id and trades where that NPC stands (explore.ts `npcsAt`, so
-// `npcOverrides` move it — Tamsin to the Library — or take it away), or, when the NPC is not listed there, at the
-// location that names it in `merchantId` unless an override moved it. Its *home* (for its band and for the Silverwood
+// Where a merchant stands: a merchant is keyed by its NPC id and trades where that NPC stands (explore.ts `npcStandsAt`,
+// so `npcOverrides` move it — Tamsin to the Library — or take it away, and an NPC `schedule` places it by condition:
+// Tessaly's caravan at the Ironclad Camp, U34d), or, when the NPC is not listed there, at the location that names it in
+// `merchantId` unless an override or a schedule puts the NPC elsewhere. Its *home* (for its band and for the Silverwood
 // Before rule) is the location naming it in `merchantId`, else the NPC's home.
 //
 // Prices (DESIGN §9.2): buy = round(gold_value × region_markup × tier_mod × (1 − ledger) × the stock entry's priceMult)
@@ -26,9 +27,10 @@
 // run's Rng and the same day always shows the same stall (`rollStock` deterministic by seed, PLAN §8.1).
 // Restock (D-057): every dawn, for every merchant already met (DAWN_HOOKS `restockAtDawn`; several dawns in one step
 // restock once, at the last); a merchant is met — and stocked — on the step the player arrives where it stands, or it
-// arrives where the player stands (`economyPostStep`: `locationEntered` / `npcMoved`); selling to one not met yet
-// stocks it first. Silverwood Before merchants (Anso) skip the Breach-Clock dawns: their dawn is each Before day and
-// each Before reset — every `beforeDayAdvanced` (entering the echo too) restocks them, keyed by resets and Bell (D-083).
+// arrives where the player stands (`economyPostStep`: `locationEntered` / `npcMoved`, or since U34d any step on which an
+// NPC schedule has it standing here); selling to one not met yet stocks it first. Silverwood Before merchants (Anso)
+// skip the Breach-Clock dawns: their dawn is each Before day and each Before reset — every `beforeDayAdvanced`
+// (entering the echo too) restocks them, keyed by resets and Bell (D-083).
 //
 // Enumeration (PLAN §4.7): `buy` one per stock uid of each merchant here (qty 1); `sell` one per distinct item id (qty 1).
 import type { Item } from '@schema/item';
@@ -48,7 +50,7 @@ import type { Profile } from '../types/profile';
 import type { GameState, ItemInstance, MerchantState, Rarity } from '../types/state';
 import { round } from '../util/math';
 import { packRoom } from '../combat/rewards';
-import { npcsAt } from './explore';
+import { npcPlacement, npcStandsAt } from './explore';
 import type { DawnHook } from './loop';
 
 /** DESIGN §9.2: the ledger discount never exceeds 10 % (Attunement + Echo, additive). */
@@ -90,18 +92,19 @@ export const isBeforeMerchant = (content: ContentPack, merchantId: string): bool
 };
 
 /** True while the merchant trades at the player's location (see the file header). */
-export function merchantPresent(s: GameState, content: ContentPack, merchantId: string): boolean {
+export function merchantPresent(s: GameState, content: ContentPack, profile: Pr, merchantId: string): boolean {
   const m = content.merchants[merchantId];
   if (!m) return false;
   const here = s.world.currentLocationId;
-  if (npcsAt(s, content, here).includes(m.npcId)) return true;
-  return content.locations[here]?.merchantId === merchantId && s.world.npcOverrides[m.npcId] === undefined;
+  if (npcStandsAt(s, content, profile, m.npcId, here)) return true;
+  // the stall's own location, unless an override or a schedule (U34d: Tessaly's caravan) puts the NPC somewhere
+  return content.locations[here]?.merchantId === merchantId && npcPlacement(s, content, profile, m.npcId) === null;
 }
 
 /** The merchants trading where the player stands, by id. */
-export function merchantsHere(s: GameState, content: ContentPack): string[] {
+export function merchantsHere(s: GameState, content: ContentPack, profile: Pr): string[] {
   return Object.keys(content.merchants)
-    .filter((id) => merchantPresent(s, content, id))
+    .filter((id) => merchantPresent(s, content, profile, id))
     .sort();
 }
 
@@ -261,8 +264,13 @@ export const economyPostStep: PostStepHook = (ctx) => {
   }
   if (s.mode !== 'explore' && s.mode !== 'dialogue') return;
   const here = s.world.currentLocationId;
-  if (!ctx.events.some((e) => (e.t === 'locationEntered' && e.locationId === here) || (e.t === 'npcMoved' && e.to === here))) return;
-  for (const id of merchantsHere(s, content)) if (s.merchants[id] === undefined) restock(ctx, id);
+  const arrived = ctx.events.some((e) => (e.t === 'locationEntered' && e.locationId === here) || (e.t === 'npcMoved' && e.to === here));
+  // U34d: an NPC schedule (Tessaly's caravan) brings its merchant with no arrival and no `npcMoved`: it is met as it comes
+  const scheduledHere = (id: string): boolean => {
+    const npcId = content.merchants[id]?.npcId;
+    return npcId !== undefined && s.world.npcOverrides[npcId] === undefined && npcPlacement(s, content, ctx.profile, npcId) !== null;
+  };
+  for (const id of merchantsHere(s, content, ctx.profile)) if (s.merchants[id] === undefined && (arrived || scheduledHere(id))) restock(ctx, id);
 };
 
 // ---- checks (the reducer and the enumerator share them) -----------------------------------------------------------------
@@ -272,7 +280,7 @@ function tradingWith(s: GameState, content: ContentPack, profile: Pr, merchantId
   const m = content.merchants[merchantId];
   if (!m) return `There is no merchant '${merchantId}'`;
   if (!m.services.includes(service)) return `${merchantName(content, m)} does not ${service === 'buy' ? 'sell' : 'buy'} anything`;
-  if (!merchantPresent(s, content, merchantId)) return `${merchantName(content, m)} is not here`;
+  if (!merchantPresent(s, content, profile, merchantId)) return `${merchantName(content, m)} is not here`;
   return merchantRefusal(s, content, profile, m) ?? m;
 }
 
@@ -373,7 +381,7 @@ export function sellHandler(ctx: StepCtx, a: ActionOf<'sell'>): void {
 
 export const buyEnumerator: Enumerator<'buy'> = (s, content, profile) => {
   const out: ActionOf<'buy'>[] = [];
-  for (const merchantId of merchantsHere(s, content)) {
+  for (const merchantId of merchantsHere(s, content, profile)) {
     for (const inst of s.merchants[merchantId]?.stock ?? []) {
       const a: ActionOf<'buy'> = { type: 'buy', merchantId, uid: inst.uid };
       if (typeof checkBuy(s, content, profile, a) !== 'string') out.push(a);
@@ -384,7 +392,7 @@ export const buyEnumerator: Enumerator<'buy'> = (s, content, profile) => {
 
 export const sellEnumerator: Enumerator<'sell'> = (s, content, profile) => {
   const out: ActionOf<'sell'>[] = [];
-  for (const merchantId of merchantsHere(s, content)) {
+  for (const merchantId of merchantsHere(s, content, profile)) {
     const seen = new Set<string>();
     for (const inst of s.player.inventory) {
       if (seen.has(inst.itemId)) continue;

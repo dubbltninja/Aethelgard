@@ -6,15 +6,39 @@
 // verbatim.
 //
 // Each NPC's home is the first location of WORLD's Location cell, and the location lists it (locations.ts). Where WORLD moves
-// them by Bell or hour (Caelum to the Plaza on First Bell and the Archive stair at Last Bell's dusk, young Nyxaria to the Plaza
-// at night, Tobrin to the Conflux on Second Bell, the Nine to the plinths on Last Bell) a placement has no condition: those
-// are the dialogue units' scenes and the engine's (U52–U59), and listed in the U48b reply.
+// them by Bell or hour, D-098 (U34d) gives them a `schedule` (the living city; the first entry that holds wins, `at: []` is
+// "not about today"; the Bell is `beforeDay`, the hour the echo's own `watch`, which a short rest at the Garret moves, engine
+// before.ts). From WORLD §3.11/§4 and STORY §9.2:
+//   - Caelum: the Plaza at noon on First Bell ("buying bread"), the Archive stair (the Archives of Danthe) at Last Bell's dusk,
+//     else the Garret;
+//   - the Nine on Last Bell: at the Conflux's plinths (WORLD §3.11: "Day 3: all nine, non-interactive" — present, with no
+//     scene of their own that day), except Aulde, who is on the Plaza's east terrace (the Spire Yard) at noon for the errand's
+//     message; Hallow is at the Conflux all three Bells already. Young Nyxaria walks the Plaza at night on the first two Bells;
+//   - Tobrin in the Hall and the Conflux on Second Bell only, Ilsabet in the Gardens on Second Bell only, Hadrek in the Hall on
+//     First Bell only.
+// Readings: Oriel is "Days 1–3" at the Archives in §4 but among "all nine" at the plinths on Day 3 in §3.11, and her quill is
+// "left on the desk" that day: she is at the plinths. Masque is "on the glass roof, Days 1–3" in §4, but his Last Bell beat is
+// the Hall's dome (`ev_hall_masque_roof`, D-067.10) and §3.11 counts him among the nine: on Last Bell he stands at the plinths
+// (the dome's event is an event).
 //
 // Faction: WORLD's "—" for every one of them (the Circle, the Watch and the city are not reputation tracks): `neutral`. Their
 // portraits are `{ sigil }` alone, as Dask's: Caelum's is his companion record's (D-088's handshake, `companionId: 'caelum'`).
 // Roles: "flavor" with a beat (an Echo, a codex fragment, a quest attempt, an item they give) is `lore`, as U46 read Ferrin,
 // Oma and Ketch; the gate-captain is `keeper` ("gatekeeper"); Anso is the Before's merchant (his stock is WORLD §9's, U50's).
+import type { Condition } from '@schema/condition';
 import type { NpcInput } from '@schema/npc';
+
+/** The Bells (WORLD §2.6) and the echo's hours (engine before.ts): D-098 schedules (see the header). */
+const FIRST_BELL: Condition = { beforeDay: 1 };
+const SECOND_BELL: Condition = { beforeDay: 2 };
+const LAST_BELL: Condition = { beforeDay: 3 };
+const NOON: Condition = { watch: 'day' };
+const PLINTHS = 'loc_conflux_chamber' as const;
+const PLAZA = 'loc_plaza_of_bells' as const;
+/** WORLD §3.11 Conflux: "Day 3: all nine, non-interactive" (the Circle at the plinths). */
+const AT_THE_PLINTHS = { when: LAST_BELL, at: [PLINTHS] };
+/** Not about on this Bell (`at: []`). */
+const AWAY_UNLESS = (bell: Condition) => ({ when: { not: bell }, at: [] });
 
 export const npcs = [
   {
@@ -32,6 +56,11 @@ export const npcs = [
       { text: 'You were here yesterday. No one else remembers. Why do I?' },
     ],
     age: 16, // "~16" (WORLD §4, BIBLE §3.2)
+    // D-098: "loc_apprentices_garret (Day 1: loc_plaza_of_bells; Day 3 dusk: the Archive stair)" — buying bread at noon
+    schedule: [
+      { when: { all: [LAST_BELL, { watch: 'dusk' }] }, at: ['loc_archives_of_danthe'] },
+      { when: { all: [FIRST_BELL, NOON] }, at: [PLAZA] },
+    ],
     tags: ['companion_anchor', 'apprentice'],
   },
   {
@@ -78,6 +107,7 @@ export const npcs = [
       { text: 'You are not from the city. You are not from the year.' },
       { text: 'The Holding is a kindness to the hour. We keep it still and look at it. That is all.' },
     ],
+    schedule: [AT_THE_PLINTHS], // D-098: "loc_ninefold_hall (Days 1–2); loc_conflux_chamber (Day 3, non-interactive)"
     tags: ['ninefold_circle'],
   },
   {
@@ -94,6 +124,8 @@ export const npcs = [
       { text: 'There is a dark between one moment and the next. Nobody else wants to talk about it.' },
     ],
     age: 30, // "~30" (WORLD §4, BIBLE §3.1)
+    // D-098: "loc_ninefold_hall (Days 1–2); loc_plaza_of_bells (nights)"; Last Bell at the plinths
+    schedule: [AT_THE_PLINTHS, { when: { watch: 'night' }, at: [PLAZA] }],
     tags: ['ninefold_circle'],
   },
   {
@@ -109,6 +141,7 @@ export const npcs = [
       { text: 'You have my hands. No. Someone with my hands sent you.' },
       { text: 'Let it be written as it is done. Pass me the blotter.' },
     ],
+    schedule: [AT_THE_PLINTHS], // D-098: Last Bell at the plinths (see the header: §4's "Days 1–3" vs §3.11)
     tags: ['ninefold_circle'],
   },
   {
@@ -124,6 +157,7 @@ export const npcs = [
       { text: 'What is read is owed. Read it twice and you owe it twice.' },
       { text: 'Margins are where the honest work is. Mind the ink.' },
     ],
+    schedule: [AT_THE_PLINTHS], // D-098: the Corridor "Days 1–2"; Last Bell at the plinths
     tags: ['ninefold_circle'],
   },
   {
@@ -139,6 +173,7 @@ export const npcs = [
       { text: 'Stone does not tire of an order. That is the whole of its virtue.' },
       { text: 'Keep the line and hold the gate. I wrote that for them, not for us.' },
     ],
+    schedule: [AT_THE_PLINTHS], // D-098: the Hall "Days 1–2"; Last Bell at the plinths
     tags: ['ninefold_circle'],
   },
   {
@@ -169,6 +204,8 @@ export const npcs = [
       { text: 'Listen. East. That is the note. Everything else is tuning.' },
       { text: 'Rise, lines. Not yet. Tomorrow.' },
     ],
+    // D-098: the Walks "Days 1–2"; Last Bell noon on the Spire Yard (`ev_plaza_spire_yard`, STORY §9.1), else the plinths
+    schedule: [{ when: { all: [LAST_BELL, NOON] }, at: [PLAZA] }, AT_THE_PLINTHS],
     tags: ['ninefold_circle'],
   },
   {
@@ -184,6 +221,7 @@ export const npcs = [
       { text: 'Green takes what stone cannot. I made them promise.' },
       { text: 'Seedlings, not soldiers. Hold this one by the root.' },
     ],
+    schedule: [AT_THE_PLINTHS], // D-098: the Gardens "Days 1–2"; Last Bell at the plinths
     tags: ['ninefold_circle'],
   },
   {
@@ -199,6 +237,7 @@ export const npcs = [
       { text: 'It fails. I have read it twice. I will read it again because he asked.' },
       { text: 'You see it too now. From the far side.' },
     ],
+    schedule: [AT_THE_PLINTHS], // D-098: Last Bell at the plinths (see the header: the glass roof and the dome)
     tags: ['ninefold_circle'],
   },
   {
@@ -214,6 +253,9 @@ export const npcs = [
       { text: 'Master Vane says a ward is a promise stone makes for you. I check the promises.' },
       { text: 'Take the seal. If it goes wrong, someone should be able to open the door.' },
     ],
+    // D-098: "loc_ninefold_hall (Day 2); loc_conflux_chamber (Day 2 …)" — STORY §9.2 "in the Hall and the Conflux Chamber on
+    // Second Bell"
+    schedule: [{ when: SECOND_BELL, at: ['loc_ninefold_hall', PLINTHS] }, AWAY_UNLESS(SECOND_BELL)],
     tags: ['ward_engineer'],
   },
   {
@@ -244,6 +286,7 @@ export const npcs = [
       { text: 'If it fails, I will drown the fire. The city will forgive me or it will not be there to.' },
       { text: 'You will need this where you are going. I will not.' },
     ],
+    schedule: [AWAY_UNLESS(SECOND_BELL)], // D-098: "loc_cistern_gardens (Day 2)"
     tags: ['civic', 'warden_of_waters'],
   },
   {
@@ -259,6 +302,7 @@ export const npcs = [
       { text: 'Every gear in the Nexus orrery is mine. The sky is his. I only make it turn.' },
       { text: "His chair. He's on the roof again. Sit if you like. He won't." },
     ],
+    schedule: [AWAY_UNLESS(FIRST_BELL)], // D-098: "loc_ninefold_hall (Day 1, … from Masque's empty chair)"
     tags: ['clockwright'],
   },
 ] satisfies NpcInput[];

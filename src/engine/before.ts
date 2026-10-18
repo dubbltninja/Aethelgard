@@ -13,6 +13,10 @@
 // First → Second → Last Bell (`beforeDayAdvanced`). A full rest on Last Bell brings its dusk — the ninth verse — and
 // the echo resets to First Bell (`resets + 1`, `beforeReset`, a fresh echo), unless `q_stop_the_ritual` is resolved
 // (completed or failed): then Last Bell holds.
+// Hours (U34d, D-098 item 6: the Before's "noon" under the frozen clock): the echo keeps its own watch in
+// `counters.custom.before_watch` (conditions.ts `watchNow`, which the `watch` atom reads inside the Before). Every Bell
+// begins at dawn (entering, the next Bell, a reset); a short rest at the Garret passes one watch (dawn → noon → dusk →
+// night); nothing else moves it.
 //
 // A fresh echo (every entry and every reset): the Before-local flags clear (`flag_before_*`, WORLD's
 // `flag_wanted_in_silverwood`), what the Wayfinder left on the Before's ground (drops, overflow loot) is gone, and its
@@ -33,9 +37,9 @@
 // takes it; the loop's reset does). Any Anchor sets `flag_conflux_anchored`; Hallow's Cradle-Pin also
 // `flag_cradle_pin_anchored`. Finding an Anchor in the Depths grants `echo_anchor_mechanic` (STORY §12).
 import type { Item } from '@schema/item';
-import { dayOf } from './conditions';
+import { BEFORE_WATCH_COUNTER, dayOf, watchNow } from './conditions';
 import type { ContentPack, StepCtx } from './ctx';
-import { LEFT_ON_GROUND, advanceTime, locationState } from './effects';
+import { LEFT_ON_GROUND, advanceTime, apply, locationState } from './effects';
 import { grantKnownEcho } from './horde';
 import type { GameState, LocationState } from './types/state';
 
@@ -80,6 +84,15 @@ export const BEFORE_TEXT = {
   reset: "Last Bell's dusk. The Nine begin, and at the first line of the ninth verse the world folds. You wake to First Bell.",
   holds: 'Last Bell holds. The ritual has been spoken; the echo has nothing left to repeat.',
   leave: 'The door takes a dawn. You step back into the present a day later.',
+  /** U34d: the echo's hours (a short rest; words the engine's, as the lines above). */
+  hour: {
+    1: 'You doze under the eaves. The bells ring noon.',
+    2: 'You doze under the eaves. When you wake the light is long and gold; it is dusk.',
+    3: 'You doze under the eaves. Night has come down over the city.',
+  },
+  stillNight: 'You doze, and wake, and it is still night. Only a night in a cot brings the next Bell.',
+  /** U34d: the Watch's arrest (WORLD §6.9's bestiary: "carried to a cell … Losing costs a day in the Garret, not a loop"). */
+  arrest: 'The halberds close. They carry you to a cell, not a grave, and turn you out at the next bell. You wake in the Garret. A day is gone.',
   anchor: (name: string) => `You set the ${name} on the cradle's rim. It is set down in every instant at once.`,
   found: (name: string) => `On the ninth plinth lies the ${name} you left on the cradle's rim, five hundred years ago.`,
 } as const;
@@ -110,11 +123,13 @@ export function anchorsInDepths(s: GameState): string[] {
 
 // ---- the echo ------------------------------------------------------------------------------------------------------------
 
+/** A Bell begins: the day mirror, and the echo's hour back to dawn (U34d). */
 function setDay(ctx: StepCtx, day: BeforeDay): void {
   const { s } = ctx;
   for (const d of [1, 2, 3] as const) delete s.flags[beforeDayFlag(d)];
   s.flags[beforeDayFlag(day)] = true;
   if (s.before !== null) s.before.day = day;
+  s.counters.custom[BEFORE_WATCH_COUNTER] = 0;
 }
 
 function clearLocalFlags(s: GameState): void {
@@ -151,9 +166,10 @@ function freshEcho(ctx: StepCtx): void {
 /** The Before's gathering nodes keep this loop's count: their record moves to today (the frozen clock's day). */
 function carryGathering(ctx: StepCtx, today: number): void {
   const { s, content } = ctx;
-  for (const id of content.index.locationsByRegion[BEFORE_REGION_ID] ?? []) {
-    const used = s.world.gather[id];
-    if (used !== undefined) used.day = today;
+  const ids = content.index.locationsByRegion[BEFORE_REGION_ID] ?? [];
+  for (const [key, used] of Object.entries(s.world.gather)) {
+    // a node's key is its location id, or `<location>:<item>` for a location's second node on (explore.ts `gatherKey`)
+    if (ids.includes(key) || ids.includes(key.split(':')[0] as string)) used.day = today;
   }
 }
 
@@ -175,6 +191,7 @@ function enterBefore(ctx: StepCtx): void {
 function leaveBefore(ctx: StepCtx): void {
   const { s } = ctx;
   s.before = null;
+  delete s.counters.custom[BEFORE_WATCH_COUNTER];
   clearLocalFlags(s);
   delete s.flags[FLAG_ENTERED_VIA_NEXUS];
   delete s.flags[FLAG_ENTERED_VIA_APEX];
@@ -219,6 +236,7 @@ export function beforeRest(ctx: StepCtx): void {
     return;
   }
   if (ritualResolved(ctx.s)) {
+    ctx.s.counters.custom[BEFORE_WATCH_COUNTER] = 0; // U34d: the night passes; Last Bell's morning again
     ctx.log(BEFORE_TEXT.holds, 'narration');
     return;
   }
@@ -228,6 +246,44 @@ export function beforeRest(ctx: StepCtx): void {
   ctx.log(BEFORE_TEXT.reset, 'event');
   ctx.emit({ t: 'beforeReset', resets: b.resets });
   ctx.emit({ t: 'beforeDayAdvanced', day: 1, resets: b.resets });
+}
+
+/** The Before's rest spot (WORLD §3.11: the Apprentices' Garret is its only one): the first of its locations with a `rest`. */
+export const beforeRestLocation = (content: ContentPack): string | undefined =>
+  (content.index.locationsByRegion[BEFORE_REGION_ID] ?? []).find((id) => content.locations[id]?.rest !== undefined);
+
+/**
+ * U34d (D-098 item 6; WORLD §2.6 hazards, §6.9 `cr_city_watch_halberdier`, §12.1 `ws_wanted`): the Watch's non-lethal
+ * arrest — "you wake in the Garret and lose a day". The fight that took the Wayfinder is over (reducers/combat.ts
+ * `finishArrest`); here the day is lost as a night in a cell — the next Bell, or on Last Bell its dusk and the echo's
+ * reset, exactly as a full rest brings them (`beforeRest`) — and the Wayfinder wakes at the Before's rest spot. Outside the
+ * Before (no Watch there) the Wayfinder is simply let go where they stand.
+ */
+export function beforeArrest(ctx: StepCtx): void {
+  const { s, content } = ctx;
+  if (s.before === null) return;
+  ctx.log(BEFORE_TEXT.arrest, 'event');
+  beforeRest(ctx);
+  const garret = beforeRestLocation(content);
+  if (garret !== undefined && garret !== s.world.currentLocationId) apply({ teleport: garret as `loc_${string}` }, ctx, { source: 'arrest' });
+}
+
+/**
+ * U34d (D-098 item 6): a short rest inside the Before (the Garret's) passes one of the echo's own watches — dawn, noon,
+ * dusk, night — which the `watch` atom reads there (conditions.ts `watchNow`). Only a full rest brings the next Bell, and
+ * Last Bell's reset stays the full rest's (DESIGN §10.1), so dusk and night of Last Bell can be walked before the verse.
+ */
+export function beforeShortRest(ctx: StepCtx): void {
+  const { s } = ctx;
+  if (s.before === null) return;
+  const hour = watchNow(s);
+  if (hour >= 3) {
+    ctx.log(BEFORE_TEXT.stillNight, 'narration');
+    return;
+  }
+  const next = (hour + 1) as 1 | 2 | 3;
+  s.counters.custom[BEFORE_WATCH_COUNTER] = next;
+  ctx.log(BEFORE_TEXT.hour[next], 'narration');
 }
 
 // ---- once per loop -------------------------------------------------------------------------------------------------------

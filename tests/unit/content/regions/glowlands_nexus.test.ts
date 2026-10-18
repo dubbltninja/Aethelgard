@@ -31,6 +31,7 @@ import {
   type GameState,
   type Profile,
 } from '@engine/index';
+import { fireEvent } from '@engine/reducers/explore';
 import type { CodexEntryInput } from '@schema/codex';
 import type { Condition } from '@schema/condition';
 import { CreatureSchema, walkSteps, type Creature, type Step } from '@schema/creature';
@@ -222,14 +223,12 @@ describe('the three locations vs WORLD §3.5 blocks', () => {
       }
       expect([l.id, l.items.map((i) => i.itemId).sort()]).toEqual([l.id, [...expected].sort()]);
     }
-    expect(loc(NEXUS).items).toEqual([
-      { itemId: 'item_chronos_lens', count: 1, hidden: false, once: true },
-      { itemId: 'item_orrery_key', count: 1, hidden: false, once: true, when: { loop: { min: 2 } } },
-    ]);
-    // "After either Tyrant falls: mat_frayed_moment ×3"
-    expect(loc(APEX).items).toEqual([{ itemId: 'mat_frayed_moment', count: 3, hidden: false, once: true, when: { flag: 'flag_tyrant_dead' } }]);
-    // ×1 (50 %): no chance field on a location item (D-091 gap 1) — hidden, as U42's wax seal
-    expect(loc(GLOWLANDS).items.find((i) => i.itemId === 'mat_glow_gland')?.hidden).toBe(true);
+    const item = (o: object) => ({ count: 1, hidden: false, once: true, chance: 1, onTake: [], ...o }); // U34d's defaults
+    expect(loc(NEXUS).items).toEqual([item({ itemId: 'item_chronos_lens' }), item({ itemId: 'item_orrery_key', when: { loop: { min: 2 } } })]);
+    // "After either Tyrant falls: mat_frayed_moment ×3" — D-098: the entry waits for the fall, hidden for the examine after it
+    expect(loc(APEX).items).toEqual([item({ itemId: 'mat_frayed_moment', count: 3, hidden: true, when: { flag: 'flag_tyrant_dead' } })]);
+    // ×1 (50 %): the item's own `chance` (D-098; it lay hidden at 100 %, D-091 gap 1)
+    expect(loc(GLOWLANDS).items.find((i) => i.itemId === 'mat_glow_gland')).toEqual(item({ itemId: 'mat_glow_gland', chance: 0.5 }));
   });
 
   test('every creature WORLD names in a block’s Encounters line is in that location’s encounters, and vice versa', () => {
@@ -292,8 +291,16 @@ describe('the three locations vs WORLD §3.5 blocks', () => {
     const ev = (l: string, id: string) => byId(loc(l).events, id);
     expect(ev(GLOWLANDS, 'ev_glowlands_leak').when).toEqual({ loop: { min: 2 } });
     expect(ev(NEXUS, 'ev_nexus_door').when).toEqual({ item: { id: 'item_chronos_lens' } });
-    expect(ev(NEXUS, 'ev_nexus_orrery')).toMatchObject({ when: { any: [{ item: { id: 'item_chronos_lens' } }, { item: { id: 'item_orrery_key' } }] }, effects: [{ grantEcho: 'echo_eye_of_masque' }] });
+    // D-098 (U34d): "item_chronal_dust ×2 with the key" is the event's second effect, under its own condition (`onlyIf`)
+    expect(ev(NEXUS, 'ev_nexus_orrery')).toMatchObject({
+      when: { any: [{ item: { id: 'item_chronos_lens' } }, { item: { id: 'item_orrery_key' } }] },
+      effects: [
+        { grantEcho: 'echo_eye_of_masque' },
+        { onlyIf: { when: { item: { id: 'item_orrery_key' } }, effects: [{ giveItem: { item: 'item_chronal_dust', count: 2 } }] } },
+      ],
+    });
     expect(WL[NEXUS]?.block).toContain('requires `{any:[{item:"item_chronos_lens"},{item:"item_orrery_key"}]}`; grants `echo_eye_of_masque`');
+    expect(WL[NEXUS]?.block).toContain('and, with the key, `item_chronal_dust` ×2.');
     // PLAN A.5 `apex_first_entry` → the `echo_apex_resonance` grant; STORY §12 "Stand at the Apex once"
     expect(ev(APEX, 'ev_apex_rend').effects).toEqual([{ grantEcho: 'echo_apex_resonance' }]);
     expect(PLAN).toContain('`apex_first_entry` → location flag + `echo_apex_resonance` grant');
@@ -965,9 +972,10 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     expect(report.errors).toEqual([]);
     const about = report.warnings.filter((w) => mine.has(w.id) || locations.some((l) => w.message.includes(` ${l.id}`)));
     const real = about.filter((w) => !w.message.startsWith('pending — content not yet authored'));
-    // the only real warnings are placements of this region's creatures in other regions (the Ruins' Corridor husks and
-    // exploited-Depths crawlers, the Ironclad Camp's and the Scorched Gate's Horde husks), pinned in those regions' tests (D-091 gap 6)
-    expect([...new Set(real.map((w) => `${w.rule} ${w.id}`))].sort()).toEqual(['rule-11 cr_horde_husk', 'rule-11 cr_hourglass_crawler']);
+    // the only real warnings are placements of this region's creatures in other regions (the exploited-Depths crawlers), pinned
+    // in that region's test; D-098 (U34d) left the Horde's own placements (the husks at the Corridor, the Camp and the Gate) out
+    // of rule 11 (D-091 gap 6)
+    expect([...new Set(real.map((w) => `${w.rule} ${w.id}`))].sort()).toEqual(['rule-11 cr_hourglass_crawler']);
     for (const w of real) expect(w.message).toMatch(/loc_(darkened_corridor|heartstone_depths|ironclad_camp|scorched_gate)/);
     for (const w of about.filter((x) => x.message.startsWith('pending — content not yet authored (reference): '))) {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
@@ -1032,5 +1040,25 @@ describe('authored words outside the documents are few and short; coined ids are
     expect(ids(JSON.stringify(locations), 'ambient')).toEqual(['ambient_chronos_nexus', 'ambient_temporal_breach_apex']);
     // every move id but the Chrono-Strike's own (DESIGN names it) and the Reach's dead spell is WORLD's
     for (const c of parsedCreatures) for (const id of Object.keys(c.moves)) expect([c.id, id, WORLD.includes(`\`${id}\``)]).toEqual([c.id, id, true]);
+  });
+});
+
+// ---- D-098 (U34d): the orrery's dust "with the key" --------------------------------------------------------------------------
+
+describe('the orrery (D-098, U34d: a condition on one effect of an event)', () => {
+  test('`ev_nexus_orrery` grants the eyepiece’s Echo with the Lens or the key, and the two Chronal Dust only with the key', () => {
+    const stand = (id: `item_${string}`, name: string) => ({ id, name, type: 'key' as const, tier: 0, description: 'Stand-in (test only).', value: 1, art: { icon: 'key' }, tags: [] });
+    const extra = [stand('item_orrery_key', 'Orrery Key'), { ...stand('item_chronal_dust', 'Chronal Dust'), type: 'material' as const, stackable: true }];
+    const epack = buildContentPack({ ...contentTables, items: [...contentTables.items, ...extra.filter((i) => pack.items[i.id] === undefined)] }, { validate: false });
+    const orrery = byId(loc(NEXUS).events, 'ev_nexus_orrery');
+    const fire = (carry: string[]) => {
+      const ctx = scriptedCtx(makeState({ loop: 2, locationId: NEXUS, items: carry }, { content: epack }), [], epack, freshProfile({ loopCounter: 2 }));
+      fireEvent(ctx, NEXUS, orrery);
+      return { echoes: ctx.s.echoesThisLoop, dust: ctx.s.player.inventory.filter((i) => i.itemId === 'item_chronal_dust').reduce((n, i) => n + i.qty, 0) };
+    };
+    const echo = epack.echoes['echo_eye_of_masque'] === undefined ? [] : ['echo_eye_of_masque'];
+    expect(fire(['item_chronos_lens'])).toEqual({ echoes: echo, dust: 0 });
+    expect(fire(['item_orrery_key'])).toEqual({ echoes: echo, dust: 2 });
+    expect(fire(['item_chronos_lens', 'item_orrery_key'])).toEqual({ echoes: echo, dust: 2 });
   });
 });

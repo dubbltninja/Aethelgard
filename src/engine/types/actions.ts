@@ -30,8 +30,8 @@ export type Action =
   | { type: 'rest'; kind: 'short' | 'full' }
   /** Back along the arrival edge, 1 watch, no encounter roll (DESIGN §4.7). */
   | { type: 'retreat' }
-  /** Gathering node at this location, 1–2 per day (DESIGN §8.2). */
-  | { type: 'gather' }
+  /** Gathering node at this location, 1–2 per day (DESIGN §8.2). U34d: `itemId` names the node where there are several. */
+  | { type: 'gather'; itemId?: string }
   | { type: 'talk'; npcId: string }
   /** Library portal during a Horde → closer_escape. */
   | { type: 'enterPortal' }

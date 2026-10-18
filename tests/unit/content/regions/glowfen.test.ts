@@ -215,22 +215,20 @@ describe('region_glowfen vs WORLD §2.10, §10.1, DESIGN §6.5, §17.1, §18.2',
     expect(WORLD).toContain('*The Glowfen* is a cul-de-sac off the Glowlands (one exit), hence R10-3.');
   });
 
-  test('the pool is WORLD §10.1’s pool_glowfen, weight for weight, less the barrow light; return chance 20 %; every entry is in-band fodder', () => {
+  test('the pool is WORLD §10.1’s pool_glowfen, weight for weight, the barrow light at dusk and night only (D-098: a pool entry’s `when`); return chance 20 %; every entry is in-band fodder', () => {
     const row = tableRows(section(WORLD, '### 10.1 Wandering pools', '### 10.2')).find((c) => unquote(c[0] ?? '') === 'pool_glowfen');
     expect(row?.[2]).toBe('barrow light at dusk/night only');
     const entries = [...(row?.[1] ?? '').matchAll(/(cr_[a-z_]+) (\d+)/g)].map((m) => ({ creatureId: m[1] ?? '', weight: Number(m[2]) }));
     expect(entries.map((e) => e.creatureId)).toEqual([MIRELING, TOAD, SPORE, STALKER, BARROW]);
-    // the pool cannot be conditioned: its daytime entries are the region's pool, the barrow light a dusk-and-night encounter below
-    expect(region.wanderingPool).toEqual(entries.filter((e) => e.creatureId !== BARROW));
+    // the barrow light is in the pool at dusk and night, at the two pool nodes that can bear its level (not the band-8 Causeway)
+    const night = { any: [{ watch: 'dusk' }, { watch: 'night' }] };
+    const nodes = { any: [{ location: LS }, { location: EM }] };
+    expect(region.wanderingPool).toEqual([...entries.slice(0, 4), { ...entries[4], when: { all: [night, nodes] } }]);
     expect(region.returnEncounterChance).toBe(0.2);
     for (const e of entries) {
       const c = pack.creatures[e.creatureId];
       expect([e.creatureId, c?.role, c !== undefined && c.level >= region.levelBand.min - 2 && c.level <= region.levelBand.max + 2]).toEqual([e.creatureId, 'fodder', true]);
     }
-    // the barrow light's 10 of the pool's 100 at dusk and night: 10 % of the 20 % return rolls = 2 % a return visit
-    const total = entries.reduce((n, e) => n + e.weight, 0);
-    const share = (entries.find((e) => e.creatureId === BARROW)?.weight ?? 0) / total;
-    expect(share * region.returnEncounterChance).toBeCloseTo(0.02, 10);
     // the pool's wandering fodder are the other regions' (first region: the Glowlands, the Steppe); the Glowfen owns the light and the Matron
     expect(creatures.map((c) => c.id as string)).not.toContain(MIRELING);
     for (const id of [MIRELING, TOAD, SPORE, STALKER]) expect(pack.creatures[id]).toBeDefined();
@@ -295,7 +293,7 @@ describe('the eight locations vs WORLD §3.9 blocks', () => {
     for (const l of parsedLocations) {
       expect([l.id, [...new Set(l.items.map((i) => i.itemId))].sort()]).toEqual([l.id, [...new Set(WL[l.id]?.itemIds ?? [])].sort()]);
     }
-    const plain = (itemId: string, count = 1) => ({ itemId, count, hidden: false, once: true });
+    const plain = (itemId: string, count = 1) => ({ itemId, count, hidden: false, once: true, chance: 1, onTake: [] }); // U34d's defaults
     expect(loc(LC).items).toEqual([plain('item_glow_moss')]);
     expect(loc(LN).items).toEqual([plain('item_antidote_root', 2)]);
     expect(loc(LS).items).toEqual([plain('mat_glow_gland', 3)]);
@@ -318,11 +316,10 @@ describe('the eight locations vs WORLD §3.9 blocks', () => {
     expect(cr(MATRON).loot.map((r) => [r.itemId, r.count])).toEqual([['item_lantern_moth_brooch', 1], ['mat_ley_resin', 4], ['mat_glow_gland', 3]]);
   });
 
-  test('every creature WORLD names in a block’s Encounters line is in that location’s encounters, and vice versa (the pool’s dusk-and-night barrow light and the Matron’s own Calls aside)', () => {
+  test('every creature WORLD names in a block’s Encounters line is in that location’s encounters, and vice versa (the Matron’s own Calls aside)', () => {
     for (const l of parsedLocations) {
       const got = new Set(l.encounters.flatMap((e) => e.groups.map((g) => g.creatureId)));
       const expected = new Set(WL[l.id]?.creatureIds ?? []);
-      if (l.id === LS) got.delete(BARROW); // the pool's share (the header of locations.ts)
       if (l.id === MH) expected.delete(TOAD); // "adds cr_lantern_toad": the Matron's Call
       expect([l.id, [...got].sort()]).toEqual([l.id, [...expected].sort()]);
     }
@@ -362,23 +359,25 @@ describe('the eight locations vs WORLD §3.9 blocks', () => {
     expect(row?.[3]).toBe('PG, FB (dusk/night)');
     // every fight but the Matron's can be fled (a scatter node)
     const fleeable = parsedLocations.flatMap((l) => l.encounters.filter((x) => x.id !== 'enc_hall_matron').map((x) => [x.id, x.fleeable, x.onFlee]));
-    expect(fleeable).toHaveLength(12);
+    expect(fleeable).toHaveLength(10); // D-098 retired the two dusk-and-night pool-share groups
     for (const row of fleeable) expect(row.slice(1)).toEqual([true, 'scatter']);
   });
 
-  test('return rolls at WORLD’s chances, each ahead of the pool’s 20 %; the Pool’s dusk-and-night barrow light is on the Shallows and the Mangrove, not the Causeway (rule 11); the Pool, Lanternreed, the Barrows, the Gullet and the Hall name no pool, so they are `safe`', () => {
+  test('return rolls at WORLD’s chances, each ahead of the pool’s 20 %; the pool’s dusk-and-night barrow light holds at the Shallows and the Mangrove, not the Causeway (D-098; rule 11); the Pool, Lanternreed, the Barrows, the Gullet and the Hall name no pool, so they are `safe`', () => {
     const e = (l: string, id: string) => byId(loc(l).encounters, id);
     const back2 = (l: string, id: string) => [e(l, id).chance, e(l, id).respawn, e(l, id).once, e(l, id).groups.map((g) => `${g.creatureId}×${g.count}`)];
     expect(back2(LS, 'enc_shallows_mirelings')).toEqual([0.3, 'on_return', false, ['cr_glowfen_mireling×2']]);
     expect(back2(EM, 'enc_mangrove_barrow_light')).toEqual([0.2, 'on_return', false, ['cr_barrow_light×1']]);
     expect(back2(FB, 'enc_barrows_light_return')).toEqual([0.3, 'on_return', false, ['cr_barrow_light×1']]);
     expect(back2(PG, 'enc_gullet_stalkers')).toEqual([0.4, 'on_return', false, ['cr_reed_stalker×2']]);
-    for (const [l, id] of [[LS, 'enc_shallows_pool_barrow_light'], [EM, 'enc_mangrove_pool_barrow_light']] as const) {
-      const x = e(l, id);
-      expect([x.groups, x.chance, x.when, x.once, x.respawn]).toEqual([[{ creatureId: BARROW, count: 1 }], 0.02, DUSK_NIGHT, false, 'on_return']);
-      expect(loc(l).encounters.at(-1)?.id).toBe(id); // after the location's own fights, ahead of the pool the engine rolls last
+    // the pool entry's `when` (D-098): dusk or night, at the Shallows or the Mangrove — not the Causeway, nor by day
+    const light = region.wanderingPool.find((x) => x.creatureId === BARROW)?.when as Condition;
+    for (const [at, flags, isNight] of [[LS, true, true], [EM, true, true], [LC, false, true], [LS, false, false]] as const) {
+      expect([at, isNight, holds(light, at, { watch: isNight ? 3 : 1 })]).toEqual([at, isNight, flags]);
     }
-    expect(loc(LC).encounters.map((x) => x.id)).toEqual(['enc_causeway_toads']); // a level-11 light at the band-8 Causeway would draw rule 11
+    expect(loc(LS).encounters.map((x) => x.id)).toEqual(['enc_shallows_spore_drifts', 'enc_shallows_mirelings']);
+    expect(loc(EM).encounters.map((x) => x.id)).toEqual(['enc_mangrove_stalker_mireling', 'enc_mangrove_barrow_light']);
+    expect(loc(LC).encounters.map((x) => x.id)).toEqual(['enc_causeway_toads']);
     expect([LC, LN, LS, EM, BP, FB, PG, MH].map((id) => loc(id).safe)).toEqual([false, true, false, false, true, true, true, true]);
     expect(WL[LN]?.block).toContain('**Encounters:** none (settlement).');
     expect(WL[BP]?.block).toContain('**Encounters:** none while Wen lives.');
@@ -971,20 +970,29 @@ describe('the region in the engine (real pack, seeded)', () => {
     }
   });
 
-  test('the Shallows: about 70 % Spore Drifts ×2 on the first visit; a return visit adds the barrow light at dusk and night only (about 2 %), never by day', () => {
+  test('the Shallows: about 70 % Spore Drifts ×2 on the first visit; on a return the pool brings the barrow light at dusk and night only (D-098: about 2 %), never by day', () => {
     const N = 600;
     const first = tally(N, (i) => arrive(LC, LS, { seed: `u47g-${i}` }).state);
     expect([...first.keys()]).toEqual(['enc_shallows_spore_drifts']);
     expect((first.get('enc_shallows_spore_drifts') ?? 0) / N).toBeGreaterThan(0.62);
     expect((first.get('enc_shallows_spore_drifts') ?? 0) / N).toBeLessThan(0.78);
     const M = 1500;
-    const night = tally(M, (i) => back(LC, LS, i, { watch: 2 })); // the step takes the clock to night
-    expect((night.get('enc_shallows_pool_barrow_light') ?? 0) / M).toBeGreaterThan(0.005);
-    expect((night.get('enc_shallows_pool_barrow_light') ?? 0) / M).toBeLessThan(0.04);
-    expect((night.get('enc_shallows_mirelings') ?? 0) / M).toBeGreaterThan(0.24);
-    expect((night.get('enc_shallows_mirelings') ?? 0) / M).toBeLessThan(0.36);
-    const day = tally(M, (i) => back(LC, LS, i, { watch: 0 })); // the step takes the clock to day
-    expect(day.has('enc_shallows_pool_barrow_light')).toBe(false);
+    const lights = (watch: 0 | 2) => {
+      let fights = 0;
+      let mirelings = 0;
+      for (let i = 0; i < M; i++) {
+        const s = back(LC, LS, i, { watch }); // the step takes the clock one watch on: day, or night
+        if (s.combat?.encounterId === 'enc_shallows_mirelings') mirelings += 1;
+        if (s.combat?.encounterId === 'wandering' && s.combat.enemies.some((e) => e.refId === BARROW)) fights += 1;
+      }
+      return { light: fights / M, mirelings: mirelings / M };
+    };
+    const night = lights(2);
+    expect(night.light).toBeGreaterThan(0.005);
+    expect(night.light).toBeLessThan(0.04);
+    expect(night.mirelings).toBeGreaterThan(0.24);
+    expect(night.mirelings).toBeLessThan(0.36);
+    expect(lights(0).light).toBe(0);
   });
 
   test('the Mangrove: a Reed Stalker with a Mireling on the first visit (about 60 %); a Barrow-Light on a return (about a fifth) and the pool behind it', () => {
@@ -1126,7 +1134,7 @@ describe('the region in the engine (real pack, seeded)', () => {
 describe('authored words outside the documents are few and short; coined ids are the listed ones', () => {
   test('encounter intros are ≤ 30 words, every encounter has one; there is no locked-exit line (no gate)', () => {
     const intros = parsedLocations.flatMap((l) => l.encounters.map((e) => e.intro));
-    expect(intros).toHaveLength(13);
+    expect(intros).toHaveLength(11); // D-098 retired the two pool-share groups
     for (const t of intros) expect([t, t !== undefined && words(t) <= 30]).toEqual([t, true]);
     expect(parsedLocations.flatMap((l) => l.exits.map((e) => e.lockedText)).filter(Boolean)).toEqual([]);
   });
@@ -1134,8 +1142,8 @@ describe('authored words outside the documents are few and short; coined ids are
   test('ids this unit coined (WORLD/STORY have none for them): encounter ids, the two plain events, the Matron’s phase ids', () => {
     expect(parsedLocations.flatMap((l) => l.encounters.map((e) => e.id))).toEqual([
       'enc_causeway_toads',
-      'enc_shallows_spore_drifts', 'enc_shallows_mirelings', 'enc_shallows_pool_barrow_light',
-      'enc_mangrove_stalker_mireling', 'enc_mangrove_barrow_light', 'enc_mangrove_pool_barrow_light',
+      'enc_shallows_spore_drifts', 'enc_shallows_mirelings',
+      'enc_mangrove_stalker_mireling', 'enc_mangrove_barrow_light',
       'enc_barrows_light_night', 'enc_barrows_light_day', 'enc_barrows_light_return',
       'enc_gullet_mirelings', 'enc_gullet_stalkers',
       'enc_hall_matron',

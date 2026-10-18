@@ -148,6 +148,8 @@ interface At {
   kills?: Record<string, number>;
   /** The `horde_moves` counter (engine-written once a Horde runs). */
   hordeMoves?: number;
+  /** The Horde's infected set (D-098's `infected` atom reads it). */
+  infected?: string[];
 }
 
 /** A state on the engine pack, standing at `locationId`. */
@@ -163,6 +165,7 @@ function stateAt(locationId: string, o: At = {}): GameState {
       for (const itemId of o.carrying ?? []) s.player.inventory.push({ uid: `i${s.meta.nextUid++}`, itemId, qty: 1, rarity: 'common', affixes: [] });
       for (const [id, n] of Object.entries(o.kills ?? {})) s.counters.kills[id] = n;
       if (o.hordeMoves !== undefined) s.counters.custom['horde_moves'] = o.hordeMoves;
+      if (o.infected !== undefined) s.world.infected = [...o.infected];
     },
   };
   return makeState(overrides, { content: epack });
@@ -248,20 +251,19 @@ describe('region_ashen_steppe vs WORLD §2.8, §10.1, DESIGN §6.5, §17.1, §18
     }
   });
 
-  test('the pool is WORLD §10.1’s pool_ashen_steppe less the Reed Stalker, which is located (Watchfire Ridge, Reedmarch Descent); return chance 20 %; every entry is in-band fodder', () => {
+  test('the pool is WORLD §10.1’s pool_ashen_steppe, the Reed Stalker in it at Watchfire Ridge and the Reedmarch Descent only (D-098: a pool entry’s `when`); return chance 20 %; every entry is in-band fodder', () => {
     const row = tableRows(section(WORLD, '### 10.1 Wandering pools', '### 10.2')).find((c) => unquote(c[0] ?? '') === 'pool_ashen_steppe');
     expect(row?.[2]).toBe('reed stalker at loc_watchfire_ridge / loc_reedmarch_descent only');
     const entries = [...(row?.[1] ?? '').matchAll(/(cr_[a-z_]+) (\d+)/g)].map((m) => ({ creatureId: m[1] ?? '', weight: Number(m[2]) }));
     expect(entries.map((e) => e.creatureId)).toEqual(['cr_salt_jackal', HARRIER, 'cr_reed_stalker']);
-    // the pool has no per-location entries: the stalker's 25 % of it is a location group at its two nodes (5 % of a return visit)
-    expect(region.wanderingPool).toEqual(entries.slice(0, 2));
+    expect(region.wanderingPool).toEqual([
+      ...entries.slice(0, 2),
+      { ...entries[2], when: { any: [{ location: WF }, { location: RD }] } },
+    ]);
     expect(region.returnEncounterChance).toBe(0.2);
-    const share = (entries[2]?.weight ?? 0) / entries.reduce((sum, e) => sum + e.weight, 0);
-    for (const [at, id] of [[WF, 'enc_ridge_stalker'], [RD, 'enc_reedmarch_stalker_return']] as const) {
-      const g = byId(loc(at).encounters, id);
-      expect([at, g.groups.map((x) => x.creatureId), g.respawn, g.chance]).toEqual([at, ['cr_reed_stalker'], 'on_return', share * region.returnEncounterChance]);
-    }
-    for (const e of [...region.wanderingPool, { creatureId: 'cr_reed_stalker', weight: 25 }]) {
+    // the U46 reading (a 5 % location group ahead of the pool at the two nodes) is gone
+    for (const at of [WF, RD]) expect([at, loc(at).encounters.filter((e) => e.respawn === 'on_return').map((e) => e.id)]).toEqual([at, []]);
+    for (const e of region.wanderingPool) {
       const c = pack.creatures[e.creatureId];
       // the Harrier is the Highlands unit's: a pending reference until its record lands (D-090)
       if (c === undefined) expect([e.creatureId, e.creatureId === HARRIER]).toEqual([e.creatureId, true]);
@@ -324,39 +326,34 @@ describe('the nine locations vs WORLD §3.7 blocks', () => {
     expect(loc(HR).merchantId).toBe('npc_tessaly_varr');
   });
 
-  test('every item WORLD places is placed, with WORLD’s counts; gathering is `gather`; the Grave’s heart and horn are Ashmaw’s; a chance is a hidden item', () => {
+  test('every item WORLD places is placed, with WORLD’s counts; gathering is `gather`; the Grave’s heart and horn are Ashmaw’s; a chance is the item’s `chance` (D-098)', () => {
     for (const l of parsedLocations) {
       const expected = new Set(WL[l.id]?.itemIds ?? []);
       // "gathering: X" is the location's `gather` (DESIGN §8.2), not an item on the ground
-      if (l.gather) expected.delete(l.gather.itemId);
+      for (const g of l.gather ?? []) expected.delete(g.itemId);
       // the Grave: the fight pays the heart and the horn (Ashmaw's loot); only the bypass's Pyre Ledger is placed here
       if (l.id === HG) for (const id of ['item_cinder_heart', 'mat_cinder_horn']) expected.delete(id);
       expect([l.id, l.items.map((i) => i.itemId).sort()]).toEqual([l.id, [...expected].sort()]);
     }
-    expect(loc(SG).items).toEqual([{ itemId: 'item_nomad_hardtack', count: 2, hidden: false, once: true }]);
-    expect(loc(SG).gather).toEqual({ itemId: 'mat_ember_ore', perDay: 1 });
+    const item = (o: object) => ({ count: 1, hidden: false, once: true, chance: 1, onTake: [], ...o }); // U34d's defaults
+    expect(loc(SG).items).toEqual([item({ itemId: 'item_nomad_hardtack', count: 2 })]);
+    expect(loc(SG).gather).toEqual([{ itemId: 'mat_ember_ore', perDay: 1 }]);
     expect(WL[SG]?.block).toContain('gathering: mat_ember_ore ×1');
-    expect(loc(GP).gather).toEqual({ itemId: 'mat_steppe_salt', perDay: 2 });
+    expect(loc(GP).gather).toEqual([{ itemId: 'mat_steppe_salt', perDay: 2 }]);
     expect(WL[GP]?.block).toContain('gathering: mat_steppe_salt ×2');
-    expect(loc(HR).items).toEqual([{ itemId: 'item_hearth_broth', count: 2, hidden: false, once: true }]);
-    expect(loc(BN).items).toEqual([
-      { itemId: 'mat_cinder_horn', count: 2, hidden: false, once: true },
-      { itemId: 'mat_iron_rivet', count: 1, hidden: false, once: true },
-    ]);
-    expect(loc(SC).items).toEqual([
-      { itemId: 'mat_storm_glass', count: 2, hidden: false, once: true },
-      { itemId: 'item_storm_jar', count: 1, hidden: false, once: true },
-    ]);
-    expect(loc(WF).items).toEqual([{ itemId: 'item_whetstone_strip', count: 1, hidden: false, once: true }]);
-    expect(loc(RD).items).toEqual([{ itemId: 'item_glow_moss', count: 2, hidden: false, once: true }]);
-    // ×1 (50 %): no chance field on a location item (D-091 gap 1), so hidden
+    expect(loc(HR).items).toEqual([item({ itemId: 'item_hearth_broth', count: 2 })]);
+    expect(loc(BN).items).toEqual([item({ itemId: 'mat_cinder_horn', count: 2 }), item({ itemId: 'mat_iron_rivet' })]);
+    expect(loc(SC).items).toEqual([item({ itemId: 'mat_storm_glass', count: 2 }), item({ itemId: 'item_storm_jar' })]);
+    expect(loc(WF).items).toEqual([item({ itemId: 'item_whetstone_strip' })]);
+    expect(loc(RD).items).toEqual([item({ itemId: 'item_glow_moss', count: 2 })]);
+    // ×1 (50 %): the item's own `chance` (D-098, U34d; it lay hidden at 100 %, D-091 gap 1)
     expect(WL[AF]?.block).toContain('mat_cinder_horn ×1 (50%)');
-    expect(loc(AF).items).toEqual([{ itemId: 'mat_cinder_horn', count: 1, hidden: true, once: true }]);
+    expect(loc(AF).items).toEqual([item({ itemId: 'mat_cinder_horn', chance: 0.5 })]);
     // "first visit, in a jackal den, 100% after clearing": hidden until the pack has been killed
     expect(WL[GP]?.block).toContain('item_salt_charm ×1 (first visit, in a jackal den, 100% after clearing)');
     expect(loc(GP).items).toMatchObject([{ itemId: 'item_salt_charm', count: 1, hidden: true, once: true, when: { killed: { id: 'cr_salt_jackal' } } }]);
     // the Grave: the ledger only with the Echo (the bypass), the heart and the horn never placed
-    expect(loc(HG).items).toEqual([{ itemId: 'item_dreyls_pyre_ledger', count: 1, hidden: false, once: true, when: { echo: 'echo_dreyl_brand' } }]);
+    expect(loc(HG).items).toEqual([item({ itemId: 'item_dreyls_pyre_ledger', when: { echo: 'echo_dreyl_brand' } })]);
     expect(WL[HG]?.block).toContain('Pacifist bypass: with `echo_dreyl_brand` the player may break the brand-stone');
     expect(WL[HG]?.block).toContain('no fight, reduced loot');
     expect(cr(ASHMAW).loot.slice(0, 3).map((r) => [r.itemId, r.count, r.chance])).toEqual([['item_cinder_heart', 1, 1], ['mat_cinder_horn', 3, 1], ['mat_ember_ore', 3, 1]]);
@@ -369,12 +366,11 @@ describe('the nine locations vs WORLD §3.7 blocks', () => {
     expect(holds(when, GP, { kills: { cr_cinderback: 5 } })).toBe(false);
   });
 
-  test('every creature WORLD names in a block’s Encounters line is in that location’s encounters, and vice versa (Ashmaw’s add is its own; the pool’s stalker is located)', () => {
+  test('every creature WORLD names in a block’s Encounters line is in that location’s encounters, and vice versa (Ashmaw’s add is its own; the pool’s stalker is the pool’s, D-098)', () => {
     for (const l of parsedLocations) {
       const got = new Set(l.encounters.flatMap((e) => e.groups.map((g) => g.creatureId)));
       const expected = new Set(WL[l.id]?.creatureIds ?? []);
       if (l.id === HG) expected.delete('cr_salt_jackal'); // "adds cr_salt_jackal": Ashmaw's first phase
-      if (l.id === WF) expected.add('cr_reed_stalker'); // the pool's stalker share "at loc_watchfire_ridge / loc_reedmarch_descent only"
       expect([l.id, [...got].sort()]).toEqual([l.id, [...expected].sort()]);
     }
     expect(cr(ASHMAW).phases[0]?.adds).toMatchObject([{ creatureId: 'cr_salt_jackal', count: 2 }]);
@@ -423,16 +419,17 @@ describe('the nine locations vs WORLD §3.7 blocks', () => {
     expect(flat(WL[SC]?.block ?? '')).toContain('return: pool 20%.');
     expect(flat(WL[WF]?.block ?? '')).toContain('return: pool 20%.');
     expect(flat(WL[RD]?.block ?? '')).toContain('return: pool(steppe) 10% / pool(glowfen) 10%.');
-    expect(back(RD, 'enc_reedmarch_stalker_return')).toEqual([0.05, 'on_return', false, ['cr_reed_stalker×1']]);
+    expect(loc(RD).wanderingPools).toEqual([{ regionId: REGION, chance: 0.1 }, { regionId: 'region_glowfen', chance: 0.1 }]); // D-098
     expect([SG, AF, HR, BN, GP, SC, WF, RD, HG].map((id) => loc(id).safe)).toEqual([true, false, true, false, true, false, false, false, true]);
     expect(WL[SG]?.block).toContain('**Encounters:** none (watched).');
     expect(WL[HR]?.block).toContain('**Encounters:** none (settlement).');
   });
 
-  test('the Reedmarch’s “pool(steppe) 10 % / pool(glowfen) 10 %” is the one region pool plus the located stalker: a location names no second pool (listed in the reply)', () => {
+  test('the Reedmarch’s “pool(steppe) 10 % / pool(glowfen) 10 %” is its `wanderingPools` (D-098, U34d): one return roll at 20 %, then either pool by its share', () => {
     expect(flat(WL[RD]?.block ?? '')).toContain('pool(steppe) 10% / pool(glowfen) 10%');
     expect(WORLD).toContain('| `pool_glowfen` | cr_glowfen_mireling 30 · cr_lantern_toad 25 · cr_spore_drift 20 · cr_reed_stalker 15 · cr_barrow_light 10 |');
-    expect(loc(RD).encounters.filter((x) => x.respawn === 'on_return').map((x) => x.id)).toEqual(['enc_reedmarch_stalker_return']);
+    expect(loc(RD).wanderingPools).toEqual([{ regionId: REGION, chance: 0.1 }, { regionId: 'region_glowfen', chance: 0.1 }]);
+    expect(loc(RD).encounters.filter((x) => x.respawn === 'on_return').map((x) => x.id)).toEqual([]);
   });
 
   test('events: every WORLD event, its text verbatim, ids as WORLD spells them, once; WORLD’s grants and conditions', () => {
@@ -593,7 +590,7 @@ describe('WORLD §11 map data', () => {
     expect(section(WORLD, '### 10.10', '## 11. Map data')).toContain('3 with the road (BO→SG→RD→VG)');
   });
 
-  test('§10.3 row: 9 nodes, sweep 10 watches, fights 4.9 first / 1.9 return in WORLD (2.0 here: the located stalker rolls 24 % at two nodes, not 20 %), worst node 2 from a rest point', () => {
+  test('§10.3 row: 9 nodes, sweep 10 watches, fights 4.9 first / 1.9 return (D-098: WORLD’s own 1.92 now), worst node 2 from a rest point', () => {
     const row = tableRows(section(WORLD, '### 10.3 Traversal per region', '### 10.4')).find((c) => c[0] === 'ashen_steppe') ?? [];
     expect(row.slice(1, 3)).toEqual(['7–11', '9']);
     // the sweep: the shortest walk from the Gate that visits every node of the region (a breadth-first search over visited sets);
@@ -632,20 +629,18 @@ describe('WORLD §11 map data', () => {
     const returning = (list: readonly Location[]): number =>
       list.reduce((sum, l) => {
         const own = l.encounters.filter((e) => e.respawn === 'on_return' && e.when === undefined);
-        const pool = l.safe ? 0 : region.returnEncounterChance;
+        // a location's own pools (D-098: the Reedmarch's two) roll once at the sum of their chances
+        const pool = l.safe ? 0 : (l.wanderingPools?.reduce((n, p) => n + p.chance, 0) ?? region.returnEncounterChance);
         return sum + (1 - (1 - chanceOf(own)) * (1 - pool));
       }, 0);
     const some = (ids2: readonly string[]) => ids2.map((id) => loc(id));
     // (the Gate's Horde husks have a `when`: a Horde fight, not a Loop 1 expectation; the Grave's return is nothing: safe, boss cleared)
     expect(firstVisit(some(ALL)).toFixed(1)).toBe('4.9');
     expect(row[7]).toBe('4.9 / 1.9');
-    // WORLD counts the Reed Stalker's share of the pool as 20 % at the Ridge and the Descent; a group at 5 % ahead of the pool's 20 % is 24 %
-    expect(returning(some(ALL)).toFixed(2)).toBe('2.00');
-    const ridgeAndDescent = returning(some([WF, RD]));
-    expect(ridgeAndDescent.toFixed(2)).toBe('0.48'); // 2 × (1 − 0.95 × 0.8)
-    // WORLD's own reading, the stalker at 20 % like the pool at both nodes, is 1.92: the row's 1.9
-    expect((returning(some(ALL)) - ridgeAndDescent + 0.2 + 0.2).toFixed(2)).toBe('1.92');
-    expect(Number((returning(some([WF])) - 0.2).toFixed(2))).toBe(0.04); // the located share's excess, per node
+    // D-098 (U34d): the Reed Stalker is the pool's own entry at the Ridge and the Descent, so both roll WORLD's 20 % (U46's 5 %
+    // group ahead of the pool made it 24 %, 2.00 in all): WORLD's 1.92, the row's 1.9
+    expect(returning(some(ALL)).toFixed(2)).toBe('1.92');
+    expect(returning(some([WF, RD])).toFixed(2)).toBe('0.40');
     // the through-routes of the row: SG→AF→HR, and WF + RD (+ the Glowlands' VG, which the Glowlands unit counts)
     expect(row[5]).toBe('1.0 / 0.4 · 1.8 / 0.8');
     expect(firstVisit(some([SG, AF, HR])).toFixed(1)).toBe('1.0');
@@ -1031,15 +1026,14 @@ describe('the real pack with the region registered (D-090)', () => {
     expect(items).toEqual([]); // the items tables are U49/U50's; this region owns none
   });
 
-  test('validates with 0 errors; nothing real is reported about the region but the Husk at the Gate (rule 11); pending references name only tables still being authored', () => {
+  test('validates with 0 errors; nothing real is reported about the region (D-098: rule 11 leaves the Gate’s Horde husks out); pending references name only tables still being authored', () => {
     const report = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(report.errors).toEqual([]);
     const about = report.warnings.filter((w) => mine.has(w.id) || locations.some((l) => w.message.includes(` ${l.id}`)));
     const real = about.filter((w) => !w.message.startsWith('pending — content not yet authored'));
-    // the Horde Husk (L12, the Horde's) at the Scorched Gate (band 7): rule 11 reads it as a non-boss 5 levels over the band.
-    // WORLD §3.7/§10.5 places it there ("Horde: cr_horde_husk ×2"), so the record is WORLD's and the warning stays (as at the Camp).
-    expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual(['rule-11 cr_horde_husk level']);
-    expect(real[0]?.message).toContain(SG);
+    // the Horde Husk (L12, the Horde's) at the Scorched Gate (band 7) was rule 11's one warning here; D-098 (U34d) leaves the
+    // Horde's own placements (a `when` that needs `flag_horde_active`) out of the band check
+    expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual([]);
     for (const w of about.filter((x) => x.message.startsWith('pending — content not yet authored (reference): '))) {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
       expect([w.message, INCOMPLETE_TABLES.includes(table as (typeof INCOMPLETE_TABLES)[number])]).toEqual([w.message, true]);
@@ -1159,7 +1153,7 @@ describe('the region in the engine (real pack, seeded)', () => {
     for (let i = 0; i < 100; i++) expect(arrive(AF, HR, { seed: `u46-hr-${i}` }).mode).toBe('explore');
   });
 
-  test('return visits elsewhere: the Flats 30 % harriers then the pool (about 44 %), the Orchard 35 % jackals then the pool (about 48 %), the Cairns the pool alone (about 20 %), the Ridge and the Descent the stalker’s 5 % then the pool (about 24 %)', () => {
+  test('return visits elsewhere: the Flats 30 % harriers then the pool (about 44 %), the Orchard 35 % jackals then the pool (about 48 %), the Cairns, the Ridge and the Descent the pool alone (about 20 %; D-098)', () => {
     const N = 300;
     const near = (x: number, target: number) => [x > target - 0.1, x < target + 0.1];
     const run = (from: string, to: string) => tally(N, (i) => arriveAgain(from, to, i));
@@ -1173,20 +1167,31 @@ describe('the region in the engine (real pack, seeded)', () => {
     const sc = run(HR, SC);
     expect(near(total(sc) / N, 0.2)).toEqual([true, true]);
     expect([...sc.keys()].filter((k) => k !== '—')).toEqual(['wandering']);
-    for (const [from, to, own] of [[SG, WF, 'enc_ridge_stalker'], [WF, RD, 'enc_reedmarch_stalker_return']] as const) {
+    // D-098 (U34d): the stalker is the pool's own entry at these two nodes, and the Descent's roll is its two pools' 10 % + 10 %
+    for (const [from, to] of [[SG, WF], [WF, RD]] as const) {
       const t = run(from, to);
-      expect(near(total(t) / N, 0.24)).toEqual([true, true]);
-      expect([...t.keys()].filter((k) => k !== '—').sort()).toEqual([own, 'wandering'].sort());
+      expect(near(total(t) / N, 0.2)).toEqual([true, true]);
+      expect([...t.keys()].filter((k) => k !== '—')).toEqual(['wandering']);
     }
   });
 
-  test('the wandering pool of the Steppe is jackals and harriers, singly or in pairs; the stalker is never wandered into', () => {
-    const seen2 = new Set<string>();
-    for (let i = 0; i < 400; i++) {
-      const s = arriveAgain(HR, SC, i);
-      if (s.mode === 'combat' && s.combat?.encounterId === 'wandering') for (const e of s.combat.enemies) seen2.add(e.refId);
-    }
-    expect([...seen2].sort()).toEqual(['cr_salt_jackal', HARRIER].sort());
+  test('the wandering pool of the Steppe is jackals and harriers, singly or in pairs; the stalker joins it at the Ridge and the Descent only, and the Descent draws on the Glowfen’s pool too (D-098)', () => {
+    const met = (from: string, to: string, n: number) => {
+      const seen2 = new Set<string>();
+      for (let i = 0; i < n; i++) {
+        const s = arriveAgain(from, to, i);
+        if (s.mode === 'combat' && s.combat?.encounterId === 'wandering') for (const e of s.combat.enemies) seen2.add(e.refId);
+      }
+      return [...seen2].sort();
+    };
+    expect(met(HR, SC, 400)).toEqual(['cr_salt_jackal', HARRIER].sort());
+    expect(met(SG, WF, 600)).toEqual(['cr_reed_stalker', 'cr_salt_jackal', HARRIER].sort());
+    // the Descent: the Steppe's three and the Glowfen's daytime four (its barrow light is the Shallows' and the Mangrove's)
+    const glowfen = ['cr_glowfen_mireling', 'cr_lantern_toad', 'cr_spore_drift', 'cr_reed_stalker'];
+    const descent = met(WF, RD, 1200);
+    expect(descent.every((id) => [...glowfen, 'cr_salt_jackal', HARRIER].includes(id))).toBe(true);
+    expect(descent.some((id) => ['cr_glowfen_mireling', 'cr_lantern_toad', 'cr_spore_drift'].includes(id))).toBe(true);
+    expect(descent.some((id) => ['cr_salt_jackal', HARRIER].includes(id))).toBe(true);
   });
 
   test('the Herd-Grave: a held boss fight without the Echo (Ashmaw, with Phase 1’s two jackals); with `echo_dreyl_brand` the fight is skipped and the bowl lies quiet', () => {
@@ -1200,19 +1205,17 @@ describe('the region in the engine (real pack, seeded)', () => {
     expect(said.world.currentLocationId).toBe(HG);
   });
 
-  test('the Gate’s husks (R10-1): only in a Horde, only once the Gate is infected; the move counts are WORLD §10.4’s 6 (kill) and 8 (expiry) plus the one the arrival counts; no Brak clause', () => {
+  test('the Gate’s husks (R10-1): only in a Horde, only once the Gate is infected (D-098: the `infected` atom, not the move count); no Brak clause', () => {
     const husks = byId(loc(SG).encounters, 'enc_gate_husks');
     expect(husks.when).toBeDefined();
     if (husks.when === undefined) return;
     const horde = { flag_horde_active: true };
-    expect(holds(husks.when, SG, { hordeMoves: 20 })).toBe(false); // counted moves without a Horde
+    expect(holds(husks.when, SG, { infected: [SG] })).toBe(false); // infected without a Horde (not a real state)
     expect(holds(husks.when, SG, { flags: horde })).toBe(false);
-    expect(holds(husks.when, SG, { flags: horde, hordeMoves: 6 })).toBe(false); // infected at move 6: the visit that arrives infected is move 7
-    expect(holds(husks.when, SG, { flags: horde, hordeMoves: 7 })).toBe(true);
-    expect(holds(husks.when, SG, { flags: horde, hordeMoves: 30 })).toBe(true);
-    expect(holds(husks.when, SG, { flags: { ...horde, flag_brak_kept_away: true }, hordeMoves: 7 })).toBe(true); // the Camp's Brak clause is not the Gate's
-    expect(holds(husks.when, SG, { flags: { ...horde, flag_clock_expired: true }, hordeMoves: 8 })).toBe(false); // expiry: two more moves (R10-3)
-    expect(holds(husks.when, SG, { flags: { ...horde, flag_clock_expired: true }, hordeMoves: 9 })).toBe(true);
+    expect(holds(husks.when, SG, { flags: horde, hordeMoves: 30, infected: ['loc_temporal_breach_apex', BO] })).toBe(false); // not reached yet
+    expect(holds(husks.when, SG, { flags: horde, hordeMoves: 2, infected: [SG] })).toBe(true);
+    expect(holds(husks.when, SG, { flags: { ...horde, flag_brak_kept_away: true }, infected: [SG] })).toBe(true); // the Camp's Brak clause is not the Gate's
+    expect(holds(husks.when, SG, { flags: { ...horde, flag_clock_expired: true }, infected: [SG] })).toBe(true);
     expect([husks.groups, husks.fleeable, husks.onFlee]).toEqual([[{ creatureId: 'cr_horde_husk', count: 2 }], false, 'hold']);
     expect(WL[SG]?.block).toContain('Horde: cr_horde_husk ×2.');
     expect(section(WORLD, '### 10.4 Elites', '### 10.5')).toContain('RD 4 → WF 5 → SG 6 → AF, BN 7');
@@ -1225,7 +1228,7 @@ describe('the region in the engine (real pack, seeded)', () => {
 describe('authored words outside the documents are few and short; coined ids are the listed ones', () => {
   test('encounter intros are ≤ 30 words; the non-legacy descriptions are drawn from the documents; the Stampede’s telegraph is the one move line WORLD does not give', () => {
     const intros = parsedLocations.flatMap((l) => l.encounters.map((e) => e.intro)).filter((t): t is string => t !== undefined);
-    expect(intros).toHaveLength(14); // every encounter carries one
+    expect(intros).toHaveLength(12); // every encounter carries one (D-098 retired the two located-stalker groups)
     for (const t of intros) expect([t, words(t) <= 30]).toEqual([t, true]);
     expect(parsedLocations.flatMap((l) => l.encounters.map((e) => e.intro))).not.toContain(undefined);
     expect(loc(HR).exits.map((e) => e.lockedText).filter(Boolean)).toHaveLength(1);
@@ -1243,8 +1246,8 @@ describe('authored words outside the documents are few and short; coined ids are
       'enc_orchard_cinderback', 'enc_orchard_jackals',
       'enc_pan_jackals', 'enc_pan_jackals_return',
       'enc_cairns_harriers',
-      'enc_ridge_harriers', 'enc_ridge_stalker',
-      'enc_reedmarch_stalker', 'enc_reedmarch_stalker_return',
+      'enc_ridge_harriers',
+      'enc_reedmarch_stalker',
       'enc_grave_ashmaw',
     ]);
     const wordedEvents = new Set(Object.values(WL).flatMap((w) => Object.keys(w.events)));

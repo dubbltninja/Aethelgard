@@ -22,12 +22,13 @@
 //   - DESIGN §10.5's `echo_high_mark` ("Sky-Whisper Sentinels passive", U44's reading at the Plateau) reaches the Roost: with
 //     the Echo the Sentinel stays on its ledge and the Kite beside it fights alone. Both forms are groups with complementary
 //     `when`s (the Voidscar's group B form), and winning or fleeing either scatters the other;
-//   - the Roost's greataxe, "taking it costs Ironclad −10 unless echo_sky_oath": a location item has no pickup effect, so the
-//     ledge is an `interact` event that gives the axe, two events with complementary `when`s (the price without the oath, none
-//     with it; the Steppe's `_plain` form of a conditional grant), a coined loop flag keeping it to one axe a loop;
+//   - the Roost's greataxe, "taking it costs Ironclad −10 unless echo_sky_oath": D-098 (U34d) it lies on its ledge as a
+//     location item whose `onTake` carries the price, under an `onlyIf` (no oath). U48a's two `interact` events and their
+//     coined loop flag are gone: the item is one a loop by itself, and taking it is the theft (the U34d call: cleaner than an
+//     interact event, as WORLD's row is an item);
 //   - the Eyrie's staff in "a locked case; opens with item_aetherium_prism" lies `hidden` with the Prism as its condition, for
-//     `examine` to find (U48b's reading of an item that waits for something the visit earns: a location item appears only at
-//     the loop's first entry, U34d's gap 2);
+//     `examine` to find — opening the case. D-098 (U34d): any examine with the Prism in the pack opens it (an entry waits for
+//     its condition; it no longer needs the Prism at the loop's first visit);
 //   - the Eyrie is a free camp, not an inn: WORLD §11.1 and §10.3 (and BIBLE) still write "inn", but DESIGN §9 dropped the
 //     Skyreach inn (C-31; DESIGN §9.5 lists the inns, WORLD §4 and §9.3 confirm "none on site"), and nobody keeps one there;
 //   - the Perch's bargain: WORLD §3.10/§10.5 give `echo_sky_oath` + the Talisman; WORLD §2.11, STORY's `q_high_mark` and BIBLE
@@ -61,8 +62,6 @@ const SKY_OATH: Condition = { echo: 'echo_sky_oath' };
 const BARGAIN: Condition = { all: [{ loop: { min: 2 } }, SKY_OATH, { item: { id: 'item_sky_whisper_talisman' } }] };
 /** Aulde's locked case "opens with item_aetherium_prism". */
 const PRISM: Condition = { item: { id: 'item_aetherium_prism' } };
-/** One greataxe a loop, by either road (see the header). */
-const AXE_TAKEN: Condition = { flag: 'flag_roost_greataxe_taken' };
 const AXE = 'item_hearth_iron_greataxe';
 /** The Roost's one fixed fight: whichever form is won or fled, the other goes with it. */
 const SETTLE_ROOST: Effect[] = [{ scatter: { location: RS } }];
@@ -184,8 +183,12 @@ export const locations = [
       { dir: 'east', to: AE },
       { dir: 'west', to: PE },
     ],
-    // the greataxe on its sky-burial ledge is the two `interact` events below (see the header)
-    items: [{ itemId: 'mat_gale_feather', count: 2 }],
+    items: [
+      { itemId: 'mat_gale_feather', count: 2 },
+      // "item_hearth_iron_greataxe (on a sky-burial ledge; taking it costs Ironclad −10 unless echo_sky_oath)": D-098 (U34d)
+      // the price is the item's `onTake` (see the header)
+      { itemId: AXE, onTake: [{ onlyIf: { when: { not: SKY_OATH }, effects: [{ rep: { faction: 'ironclad', delta: -10 } }] } }] },
+    ],
     encounters: [
       // first: a Sentinel and a Gale Kite (100 %); with `echo_high_mark` the Sentinel is passive and the Kite comes alone
       {
@@ -220,23 +223,6 @@ export const locations = [
     safe: true,
     events: [
       { id: 'ev_roost_bones', text: 'The bones on the ledges wear Nomad steel. The Sentinels guard them as if they were eggs.' },
-      // "item_hearth_iron_greataxe (on a sky-burial ledge; taking it costs Ironclad −10 unless echo_sky_oath)"
-      {
-        id: 'ev_roost_greataxe',
-        trigger: 'interact',
-        label: 'Take the greataxe from the ledge',
-        text: 'You take the greataxe from beside its owner. Without the oath, it is a theft.',
-        when: { all: [{ not: SKY_OATH }, { not: AXE_TAKEN }] },
-        effects: [{ giveItem: { item: AXE } }, { rep: { faction: 'ironclad', delta: -10 } }, { setFlag: 'flag_roost_greataxe_taken' }],
-      },
-      {
-        id: 'ev_roost_greataxe_oath',
-        trigger: 'interact',
-        label: 'Take the greataxe from the ledge',
-        text: 'You take the greataxe from beside its owner. With the oath, it is an inheritance.',
-        when: { all: [SKY_OATH, { not: AXE_TAKEN }] },
-        effects: [{ giveItem: { item: AXE } }, { setFlag: 'flag_roost_greataxe_taken' }],
-      },
     ],
     // WORLD's particles are "feathers and grit"; ash is the nearest preset to grit
     art: { template: 'peaks', horizon: 0.4, silhouettes: ['honeycombed_cliff', 'perched_sentinel_shapes', 'laid_out_bones'], particles: 'ash', timeOfDay: 'day' },

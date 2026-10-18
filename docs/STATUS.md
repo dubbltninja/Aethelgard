@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete through **C2** + gear passives + companion signatures + world-state expressiveness (U34d); sim harness complete; **all world data except quests/dialogue/codex**: 12 regions, 73 locations, 56 creatures, 38 NPCs, 157 items, 30 recipes, 8 merchants, 103 Echoes, 40 achievements, 15 attunements, 6 modifiers, endings, factions — 3,153 tests. Next: U52 ∥ U63, then U34e ∥ U60 (✦). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-103), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-104), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -97,7 +97,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U50 | Items II: consumables, materials, quest/key/recipe/tome items, 30 recipes, 8 merchants; Tyrant scenarios get band gear — brief `briefs/u50.md` | Sonnet | ✅ 60cba5c, merged d6c88ce (spot-reviewed) — 157 items, 30 recipes, 8 merchants; first Tyrant numbers (D-101); 3120 tests |
 | U34d | World-state expressiveness: NPC schedules, location-item chance/late spawns, event/pool conditions, Threshold arrivals (D-098) — brief `briefs/u34d.md` | Opus | ✅ 42be256 — schedules, item chance, onlyIf, pools, arrest; 3153 tests; D-102 |
 | U52 | Legacy quests + their dialogues (first quest/dialogue file) — brief `briefs/u52.md` | Opus | ▶ in progress (worktree, backup `wip/u52`) |
-| U63 | UI foundation: store, App, Shell, hotkeys, tokens/themes, Title + Class Select — brief `briefs/u63.md` | Opus | ▶ in progress (worktree, backup `wip/u63`) |
+| U63 | UI foundation: store, App, Shell, hotkeys, tokens/themes, Title + Class Select — brief `briefs/u63.md` | Opus | ✅ 6501262 — store, Shell, hotkeys, themes, Title, Class Select; 3268 tests; e2e 11; D-104 |
 | U60 | Codex I (≈43 entries) — unblocks real-pack sims (D-102) | ✦ Fable | ⏳ ready |
 | U34e | Combat expressiveness: condition atoms, on-death/clock moves, caps, hazards, anomalies (D-098) | Opus | ⏳ queued |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |

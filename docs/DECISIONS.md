@@ -1647,3 +1647,34 @@ owning unit (PLAN §9.1).
 - The lead still merges into `unraveling` and deletes the `wip/` branch after the merge.
 - Parallelism is Tim's call per batch. Running four at once is fine when the units barely overlap. The 2-core box makes
   each check slower, so raise test timeouts that are sensitive to timing.
+
+### D-104 · U63 details — the UI foundation and its patterns, 2026-10-17
+- **U63 (9776a97, 6501262):** `src/ui/**` holds the App, Shell, store, hotkeys, tokens and themes, Title and Class Select,
+  and first cuts of the Settings and Saves panels (U69 owns the full ones).
+  - 115 UI unit tests, and `tests/e2e/title.spec.ts` on desktop and mobile.
+  - Bundles: production 330.6 kB gzip, e2e 467.4 kB, against a 600 kB budget.
+  - `main.tsx` renders `<App/>`, and the smoke test now plays New game → class → first location.
+- **Patterns every later screen copies:**
+  - A container with hooks renders a pure view that takes props only. Tests drive the view through
+    `tests/unit/ui/tree.ts` (`expand`, `byName`, `call`).
+  - Game state comes from `useGame(selector)`. A screen enables only actions that `useIsLegal` or `useLegal` allow.
+    Anything that isn't gameplay goes through `store.shell`.
+  - Keys are declared with `useHotkeys(map, { scope })`. One Shell listener applies the rules, and the legend and the `?`
+    panel read the same registry.
+  - A panel is added to `PANEL_COMPONENTS` and opens in the shared `Modal` (focus trap, Esc, focus back to the opener).
+    `useShell().confirm` asks yes or no.
+  - The control a view should focus first carries `data-autofocus`.
+  - Token names are `--text-*`, `--surface-*`, `--glyph-*`, `--fill-X` and `--on-fill-X`. `tokens.test.ts` enforces their
+    contrast, and `--target-min` sets the 44 px target size.
+- **Rulings:**
+  1. **`?scenario=` in e2e builds:** the **app layer** (`src/main.tsx`) may import `@sim/scenarios`, only behind
+     `if (__DEV__ || __E2E__)`, so production drops it as before (U36). `src/ui/**` still must not import `sim`. The first
+     unit that needs a scenario e2e test (U64) adds the lint allowance and the boot hook.
+  2. **The Title menu follows DESIGN §16.3:** Achievements and Lore are added when their panels exist (U66 and U69, after
+     the codex U60).
+  3. **Corruption colour:** DESIGN's `#7B3FE4` is kept for fills and art. For text and glyphs on lighter surfaces the token
+     uses a lighter tint of the same hue, enough for 3:1 (D-035 beats exact hex; D-062 stays the palette source).
+- **Extras on PLAN §6.1's store:** `notify`, `getNotices`, `isLegal`, and `shell.continueSlot` / `restoreSlot` /
+  `canPersist`. `listSlots` also returns empty and damaged slots (DESIGN §14.4).
+- **Housekeeping:** the git proxy refuses remote branch deletion, so merged `wip/<unit>` backups stay on GitHub. They are
+  harmless, and Tim can delete them.

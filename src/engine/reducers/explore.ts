@@ -197,8 +197,20 @@ export function fireEvent(ctx: StepCtx, locationId: string, ev: LocationEvent): 
   const ls = locationState(ctx, locationId);
   if (!ls.eventsFired.includes(ev.id)) ls.eventsFired.push(ev.id);
   ctx.emit({ t: 'eventFired', locationId, eventId: ev.id, text: ev.text });
-  ctx.log(ev.text, 'event');
+  if (!sceneSaysIt(ctx, ev)) ctx.log(ev.text, 'event');
   applyAll(ev.effects, ctx, { source: `event:${ev.id}` });
+}
+
+/**
+ * U34e (D-105): an event that opens a scene whose first node says the same words logs nothing itself — the scene says it
+ * (the Depths' `ev_depths_choice` and the Heartstone choice's prompt were the same line twice).
+ */
+function sceneSaysIt(ctx: StepCtx, ev: LocationEvent): boolean {
+  return ev.effects.some((e) => {
+    if (!('startDialogue' in e)) return false;
+    const scene = ctx.content.dialogues[e.startDialogue];
+    return typeof scene?.entry === 'string' && scene.nodes.find((n) => n.id === scene.entry)?.text === ev.text;
+  });
 }
 
 /**

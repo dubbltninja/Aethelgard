@@ -419,9 +419,12 @@ const unravelingTide = {
       name: 'The Undertow',
       enterWhen: [{ round: 4 }, { hpBelow: 0.66 }],
       line: 'The Tide pulls back to gather. The corridor walls go with it, then return.',
+      // U34e's cadence re-check (D-092): `everyNthTurn:3` is tested before each cycled move — the phase can begin on any turn,
+      // and a lap of two cycled moves tested it only every other turn
       pattern: [
         { move: 'tide_rise', target: 'all', when: { everyNth: 3 } },
         { move: 'tide_pull', target: 'player' },
+        { move: 'tide_rise', target: 'all', when: { everyNth: 3 } },
         { move: 'tide_wash', target: 'all' },
       ],
     },

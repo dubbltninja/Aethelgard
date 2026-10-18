@@ -103,11 +103,15 @@ const rootling = {
     },
     rootling_burrow: { name: 'Burrow', line: 'It sinks into the loam, leaving a twitching mound.', shield: { power: { coef: 1.0, stat: 'atk' } } },
   },
+  // ifAllyDown (U34e: `allyDown`), while its own Shield is not standing (see the header). U34e's cadence re-check (D-092):
+  // WORLD's first match on every turn, then the Trip and the Jab by its own turn — the pointer walk tested the Burrow
+  // only on the Trip's turns.
   pattern: [
-    // ifAllyDown (U34e: `allyDown`), while its own Shield is not standing (see the header)
-    { move: 'rootling_burrow', target: 'self', when: { all: [{ allyDown: true }, { not: { selfHas: 'status_shield' } }] } },
-    { move: 'rootling_trip', target: 'player' },
-    { move: 'rootling_jab', target: 'player' },
+    {
+      if: { all: [{ allyDown: true }, { not: { selfHas: 'status_shield' } }] },
+      then: [{ move: 'rootling_burrow', target: 'self' }],
+      else: [{ if: { everyNth: 2 }, then: [{ move: 'rootling_jab', target: 'player' }], else: [{ move: 'rootling_trip', target: 'player' }] }],
+    },
   ],
   loot: [
     { itemId: 'mat_rootbone', chance: 0.5 },

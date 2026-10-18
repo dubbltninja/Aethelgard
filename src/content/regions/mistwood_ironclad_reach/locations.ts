@@ -272,8 +272,14 @@ export const locations = [
         onVictory: [{ scatter: { location: 'loc_blighted_outpost' } }],
         intro: GOLEM_INTRO,
       },
-      // from the Plateau without the quest the pair is a scatter node (§10.4)
-      { id: 'enc_outpost_golems', groups: [{ creatureId: 'cr_stone_hide_golem', count: 2 }], intro: GOLEM_INTRO },
+      // from the Plateau without the quest the pair is a scatter node (§10.4). The word stills these too (U34e, D-105: DESIGN
+      // §13.3 #8 "stills the Blighted Outpost Golems"; without it the pair fought whenever the Echo skipped the gate)
+      {
+        id: 'enc_outpost_golems',
+        groups: [{ creatureId: 'cr_stone_hide_golem', count: 2 }],
+        optionalWhen: { echo: 'echo_stone_hide_origin' },
+        intro: GOLEM_INTRO,
+      },
       // return: a Warding Pillar (30 %, "it was always there, dormant"), ahead of the pool's 20 % roll
       {
         id: 'enc_outpost_pillar',

@@ -173,10 +173,12 @@ function talk(t: Turn, step: { talk: string; pick: string[] }): Answer {
   if (t.p.talking) {
     return t.p.k < step.pick.length ? { fail: `${label}: the dialogue ended with picks left: [${step.pick.slice(t.p.k).join(', ')}]` } : 'next';
   }
-  if (t.s.mode !== 'explore') return { fail: `${label}: cannot talk in mode '${t.s.mode}'` };
+  // U34e (D-091 gap 7): wherever `talk` is legal — explore, and the Threshold's places (Dask, D-084)
+  if (t.s.mode !== 'explore' && t.s.mode !== 'threshold') return { fail: `${label}: cannot talk in mode '${t.s.mode}'` };
+  const where = t.s.mode === 'threshold' ? 'the Threshold' : t.s.world.currentLocationId;
   return act(
     t.legal.find((a) => a.type === 'talk' && a.npcId === step.talk),
-    `${label}: they are not here (${t.s.world.currentLocationId})`,
+    `${label}: they are not here (${where})`,
   );
 }
 

@@ -122,10 +122,14 @@ export function merchantTier(s: GameState, content: ContentPack, m: Merchant): R
   return best;
 }
 
-/** Why the merchant will not trade (a Hostile faction tier, `refusesWhen`), or null. Kaelen never refuses. */
+/**
+ * Why the merchant will not trade, or null: its `refusesWhen` where it has one — which then decides on its own (U34e, D-101:
+ * Hollis "trades only if Weavers ≥ Neutral or Corruption ≥ 3", DESIGN §6.7/§9.4, so Corruption 3 opens him to a Hostile
+ * Wayfinder too) — else a Hostile faction tier. Kaelen never refuses.
+ */
 export function merchantRefusal(s: GameState, content: ContentPack, profile: Pr, m: Merchant): string | null {
   const hostile = m.repFaction !== undefined && m.repFaction !== 'best' && merchantTier(s, content, m) === 'hostile';
-  if (hostile || (m.refusesWhen !== undefined && evaluate(m.refusesWhen, s, profile, content))) {
+  if (m.refusesWhen !== undefined ? evaluate(m.refusesWhen, s, profile, content) : hostile) {
     return `${merchantName(content, m)} will not trade with you`;
   }
   return null;

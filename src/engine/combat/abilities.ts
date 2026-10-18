@@ -64,7 +64,7 @@ import { BONUS_KEY, BONUS_PENDING, FREE_CAST_TAG, NEXT_CRIT_TAG, USED_TAG, addTa
 import { GUARD_VALUE_KEY, TRUSTED_MULT, hasStatus, isTrusted, resolveHeal, resolveHit, resolveTick, roundHalfUp, statusMods, type HealSpec, type HitSpec } from './damage';
 import { grantFleeAuto } from './flee';
 import { cleanseOnUse } from './gear';
-import { compilePattern, evalCombatWhen, interruptIntent, patternOf, revealIntents, type IntentRead } from './intents';
+import { compilePattern, evalCombatWhen, interruptIntent, intentsRevealed, patternOf, revealIntents, unlitNow, type IntentRead } from './intents';
 import { firePhaseStrikes } from './phases';
 import { STATUS, applyStatus, applyStatusRows, blocksAction, cleanse, cooldownsOf, findStatus, isOwnTurn, removeStatus, skipsTurn, type WhenEval } from './statuses';
 import { FORESIGHT_KEY, REVEAL_KEY, TRAP_FLAG, fixedHit, healFlat, hooksOf, noteLastAbility, setTimer, struckSince, type CombatOps, type HitKind, type SpecialUse } from './specials';
@@ -727,6 +727,10 @@ export function springTraps(ops: CombatOps, ctx: StepCtx, combat: CombatState): 
 
 export const foresightActive = (combat: CombatState): boolean => (combat.cooldowns[FORESIGHT_KEY] ?? 0) > 0;
 
+/** A move Foresight cannot show (U34e): a hidden one, or an unlit creature's, unless Archive Light reveals every intent. */
+const foreseenHidden = (r: IntentRead, combat: CombatState, c: Combatant, moveId: string): boolean =>
+  !intentsRevealed(combat) && ((r.content.creatures[c.refId]?.moves[moveId]?.hidden ?? false) || unlitNow(r, c));
+
 /** U34e (WORLD §10.2, the Frayed Brute): a `telegraphs_two` creature shows its next-next move as Foresight would. */
 export const TELEGRAPHS_TWO_TAG = 'telegraphs_two';
 /** Does the party see `c`'s next-next move (`foreseenMove`): Foresight running, or a creature that telegraphs two? */
@@ -749,7 +753,8 @@ export function foreseenMove(r: IntentRead, combat: CombatState, c: Combatant): 
     const scope = (key: string) => ({ self: c, target: player, turn: c.pattern.turnsTaken + 2, round: combat.round + 1, onceKey: `${c.phase}:${key}` });
     switch (ins.op) {
       case 'move':
-        if (ins.when === undefined || evalCombatWhen(r, combat, ins.when, scope(ins.key))) return ins.move;
+        // U34e (D-091 gap 8): a hidden move stays a "?" in the second chip too, unless Archive Light reveals every intent
+        if (ins.when === undefined || evalCombatWhen(r, combat, ins.when, scope(ins.key))) return foreseenHidden(r, combat, c, ins.move) ? null : ins.move;
         pc += 1;
         break;
       case 'branch':

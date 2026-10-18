@@ -650,10 +650,16 @@ describe('the creatures vs WORLD §6', () => {
     expect(b.resistances).toEqual({ fire: 'weak' });
   });
 
-  test('the Rootling: Burrow once an ally is down (U34e `allyDown`, while its own Shield is not up), then Trip, then Jab; the statuses are WORLD’s percentages', () => {
+  test('the Rootling: Burrow once an ally is down (U34e `allyDown`, while its own Shield is not up), tested every turn; else Trip, then Jab; the statuses are WORLD’s percentages', () => {
     const r = byId(parsedCreatures, 'cr_rootling');
-    expect(r.pattern.map((s) => ('move' in s ? s.move : '?'))).toEqual(['rootling_burrow', 'rootling_trip', 'rootling_jab']);
-    expect(r.pattern[0]).toMatchObject({ target: 'self', when: { all: [{ allyDown: true }, { not: { selfHas: 'status_shield' } }] } });
+    // U34e's cadence re-check (D-092): one first-match step (the Burrow's condition read on every turn), Trip and Jab by its turn
+    expect(r.pattern).toEqual([
+      {
+        if: { all: [{ allyDown: true }, { not: { selfHas: 'status_shield' } }] },
+        then: [{ move: 'rootling_burrow', target: 'self' }],
+        else: [{ if: { everyNth: 2 }, then: [{ move: 'rootling_jab', target: 'player' }], else: [{ move: 'rootling_trip', target: 'player' }] }],
+      },
+    ]);
     expect(r.moves['rootling_burrow']?.shield?.power).toMatchObject({ coef: 1.0, stat: 'atk' });
     expect(r.moves['rootling_trip']?.statuses.map((s) => [s.status, s.chance, s.duration])).toEqual([['status_slow', 0.4, 2]]);
     expect(r.moves['rootling_jab']?.statuses.map((s) => [s.status, s.chance, s.duration])).toEqual([['status_bleed', 0.25, 2]]);
@@ -903,8 +909,11 @@ describe('the region in the engine (real pack, seeded)', () => {
     const gated = arrive(BP, BO, { quests: { q_blighted_outpost: 'active' } });
     expect(gated.combat).toMatchObject({ encounterId: 'enc_outpost_golems_gate', canFlee: false, onFlee: 'hold' });
     expect(gated.combat?.enemies.map((e) => e.refId)).toEqual(['cr_stone_hide_golem', 'cr_stone_hide_golem']);
+    // the word stills both pairs (U34e, D-105: the plain pair used to fight when the Echo skipped the gate)
     const stilled = arrive(BP, BO, { loop: 2, quests: { q_blighted_outpost: 'active' }, echoes: ['echo_stone_hide_origin'] });
-    expect(stilled.combat).toMatchObject({ encounterId: 'enc_outpost_golems', canFlee: true, onFlee: 'scatter' });
+    expect(stilled.combat?.encounterId ?? '').not.toMatch(/^enc_outpost_golems/);
+    const stilledFree = arrive(BP, BO, { loop: 2, echoes: ['echo_stone_hide_origin'] });
+    expect(stilledFree.combat?.encounterId ?? '').not.toMatch(/^enc_outpost_golems/);
     const free = arrive(BP, BO, { seed: 'u43-free' });
     expect(free.combat).toMatchObject({ encounterId: 'enc_outpost_golems', canFlee: true, onFlee: 'scatter' });
   });

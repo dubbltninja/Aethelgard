@@ -257,6 +257,8 @@ describe('the eight locations vs WORLD §3.6 blocks', () => {
       const expected = new Set(WL[l.id]?.itemIds ?? []);
       // the Warden pays the clapper (and the key and Hydromancy for the fight): only the bypass's share is placed here
       if (l.id === BW) expected.delete('item_bell_clapper');
+      // WORLD §9 places Pell Ashcombe's Day-Count in the Cistern "while q_keepers_ledger is active" (the §3.6 block omits it): U53's
+      if (l.id === CI) expected.add('item_pells_day_count');
       expect([l.id, l.items.map((i) => i.itemId).sort()]).toEqual([l.id, [...expected].sort()]);
     }
     const item = (o: object) => ({ count: 1, hidden: false, once: true, chance: 1, onTake: [], ...o }); // U34d's defaults
@@ -267,7 +269,10 @@ describe('the eight locations vs WORLD §3.6 blocks', () => {
     // ×1 (40 %) and ×1 (30 %, caught in a grate): the item's own `chance` (D-098, U34d; they lay hidden at 100 %, D-091 gap 1)
     expect(WL[CI]?.block).toContain('mat_drowned_pearl ×1 (40%)');
     expect(WL[BS]?.block).toContain('mat_bell_bronze ×1 (30%, caught in a grate)');
-    expect([loc(CI).items, loc(BS).items]).toEqual([[item({ itemId: 'mat_drowned_pearl', chance: 0.4 })], [item({ itemId: 'mat_bell_bronze', chance: 0.3 })]]);
+    expect([loc(CI).items, loc(BS).items]).toEqual([
+      [item({ itemId: 'mat_drowned_pearl', chance: 0.4 }), item({ itemId: 'item_pells_day_count', when: { quest: { id: 'q_keepers_ledger', status: 'active' } } })],
+      [item({ itemId: 'mat_bell_bronze', chance: 0.3 })],
+    ]);
     expect(loc(SY).items).toEqual([
       item({ itemId: 'item_litany_page_1' }),
       item({ itemId: 'item_oriels_ledger', when: { any: [{ loop: { min: 2 } }, { echo: 'echo_oriel_lineage' }] } }),

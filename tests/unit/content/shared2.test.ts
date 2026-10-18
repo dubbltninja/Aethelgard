@@ -658,6 +658,8 @@ function stubTables(drop?: string): ContentTables {
     // the recipes and merchants (U50) name quests, NPCs, factions, flags and Echoes this stub pack does not have
     recipes: [],
     merchants: [],
+    // the quests' own fights (U53: the Horde-echo's waves) name a creature this stub pack does not have
+    encounters: [],
     abilities: [...contentTables.abilities, ...companionAbilities],
     companions: [...companions],
     npcs: keep(stubNpcs),

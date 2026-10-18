@@ -121,8 +121,12 @@ export const locations = [
       { dir: 'south', to: 'loc_black_sluice' },
       { dir: 'west', to: 'loc_lamplighters_rest' },
     ],
-    // WORLD: ×1 (40 %): its `chance` (D-098; see the header)
-    items: [{ itemId: 'mat_drowned_pearl', chance: 0.4 }],
+    // WORLD: ×1 (40 %): its `chance` (D-098; see the header). WORLD §9: Pell Ashcombe's Day-Count lies here "while
+    // q_keepers_ledger is active" (U53; the §3.6 block omits it): a `when` placement, spawned on the arrival it holds on.
+    items: [
+      { itemId: 'mat_drowned_pearl', chance: 0.4 },
+      { itemId: 'item_pells_day_count', when: { quest: { id: 'q_keepers_ledger', status: 'active' } } },
+    ],
     encounters: [
       // first: Pale Divers ×2 (70 %); return: the pool at 20 %
       {

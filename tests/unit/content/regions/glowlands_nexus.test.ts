@@ -997,8 +997,10 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
   test('the pending references are exactly the ids WORLD/STORY/DESIGN spell: neighbouring locations, quests, codex entries, Mireya (items since U49/U50, Echoes and endings since U51 resolve)', () => {
     const { report } = parseContentPack(contentTables);
     const targets = new Set(report.warnings.filter((w) => w.message.includes('(reference)') && mine.has(w.id)).map((w) => /'([a-z_0-9]+)' not found/.exec(w.message)?.[1] ?? w.message));
-    // the neighbouring locations drop out as their regions land (the Steppe's Reedmarch Descent, U46; the Highlands' Plateau, U44)
-    const stillPending = (id: string): boolean => !(id.startsWith('loc_') && pack.locations[id] !== undefined);
+    // the neighbouring locations drop out as their regions land (the Steppe's Reedmarch Descent, U46; the Highlands' Plateau, U44), and
+    // the codex entries as the codex units land them (the Tyrant's three, U60; the region's and the creature families', U61)
+    const stillPending = (id: string): boolean =>
+      !((id.startsWith('loc_') && pack.locations[id] !== undefined) || (id.startsWith('codex_') && pack.codex[id] !== undefined));
     expect([...targets].sort()).toEqual(
       [
         'loc_sky_whisper_plateau', 'loc_reedmarch_descent', 'loc_lantern_causeway', 'loc_silver_gate', 'loc_conflux_chamber', 'loc_aetherium_spires',

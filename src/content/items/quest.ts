@@ -490,10 +490,10 @@ export const tomes = [
     id: 'item_tobrins_warding_primer',
     name: "Tobrin's Warding Primer",
     description: 'An apprentice\'s primer of ward-sigils. Someone corrected every page in red.',
-    notes: 'WORLD §7.13: codex (Tobrin Vask). STORY §14.1 defines no such entry, so reading it unlocks nothing yet.',
     type: 'tome',
     tier: 0,
     usableInCombat: false,
+    onUse: [{ unlockCodex: 'codex_tobrin_vask' }], // U60 wrote the entry STORY §14.1 lacked (D-108)
     value: 30,
     sources: ['loc:loc_emberforge'],
     art: { icon: 'primer' },
@@ -514,10 +514,10 @@ export const tomes = [
     id: 'item_rhunes_hydromancy',
     name: "Rhune's Hydromancy",
     description: "The Warden of Waters' sluice tables. One page is a drowning, worked out to the hour.",
-    notes: 'WORLD §7.13: codex (Ilsabet Rhune). STORY §14.1 defines no such entry, so reading it unlocks nothing yet.',
     type: 'tome',
     tier: 0,
     usableInCombat: false,
+    onUse: [{ unlockCodex: 'codex_ilsabet_rhune' }], // U60 wrote the entry STORY §14.1 lacked (D-108)
     value: 30,
     sources: ['loc:loc_bell_wardens_deep', 'drop:cr_bell_warden'],
     art: { icon: 'tables' },
@@ -526,10 +526,10 @@ export const tomes = [
     id: 'item_dreyls_pyre_ledger',
     name: "Dreyl's Pyre Ledger",
     description: 'The Watch-Captain\'s record of the pyre-ward. The last column is headed "outward".',
-    notes: 'WORLD §7.13: codex (Corvin Dreyl). STORY §14.1 defines no such entry, so reading it unlocks nothing yet.',
     type: 'tome',
     tier: 0,
     usableInCombat: false,
+    onUse: [{ unlockCodex: 'codex_corvin_dreyl' }], // U60 wrote the entry STORY §14.1 lacked (D-108)
     value: 30,
     // the Grave's first clear is the Ashmaw fight, and the Steppe unit pays the ledger from the boss too (its creature block omits it)
     sources: ['loc:loc_herd_grave', 'drop:cr_ashmaw'],

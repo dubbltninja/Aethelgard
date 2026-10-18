@@ -364,6 +364,8 @@ function codexIds(): Record<string, string> {
     const id = unquote(c[0] ?? '');
     if (id.startsWith('codex_')) out[c[1] ?? ''] = id;
   }
+  // the three people STORY §14.1 had no entry for, written by U60 (D-108)
+  Object.assign(out, { 'Tobrin Vask': 'codex_tobrin_vask', 'Ilsabet Rhune': 'codex_ilsabet_rhune', 'Corvin Dreyl': 'codex_corvin_dreyl' });
   return out;
 }
 
@@ -453,8 +455,8 @@ describe('quest items, recipe items and tomes (WORLD §7.10, §7.12, §7.13)', (
         expect([rec.id, rec.onUse, rec.notes?.includes('STORY §14.1')]).toEqual([rec.id, [], true]);
       }
     }
-    // Vask, Rhune and Dreyl have no entry in STORY's 87: reported, not invented
-    expect(named.map(idOf).filter((id) => !unlocked.includes(id))).toEqual(['item_tobrins_warding_primer', 'item_rhunes_hydromancy', 'item_dreyls_pyre_ledger']);
+    // every codex tome now unlocks its person (U60 wrote Vask, Rhune and Dreyl, D-108)
+    expect(named.map(idOf).filter((id) => !unlocked.includes(id))).toEqual([]);
   });
 
   test('Korr\'s Marginalia counts as a Dark Spellbook toward `echo_litany_verse_2` at no cost (a `custom` passive the engine does not read yet)', () => {

@@ -167,7 +167,7 @@ describe('execute', () => {
     expect(done).toBe(5);
     expect(hashes(await execute(js, 8))).toEqual(inThread); // more workers than jobs
     expect(inThread.every((h) => typeof h === 'string')).toBe(true);
-  });
+  }, 30_000); // worker threads on a shared 2-core box (D-106)
 
   test('a worker keeps its pack between jobs, and a job that cannot run comes back as a failure, not a crash', async () => {
     const js = [...jobs(2), { ...jobs(1)[0], id: 2, bot: 'nobody' } as Job];

@@ -282,7 +282,7 @@ describe('every unlock is §14.1\'s, as a Condition', () => {
     for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) expect(entry(`codex_litany_${n}`).unlockWhen).toEqual({ echo: `echo_litany_verse_${n}` });
     const tomes = contentTables.items.filter((i) => i.onUse?.some((e) => 'unlockCodex' in e));
     const tomeTargets = tomes.flatMap((i) => (i.onUse ?? []).map((e) => ('unlockCodex' in e ? e.unlockCodex : '')).filter(Boolean));
-    expect(tomeTargets.sort()).toEqual(['codex_maelis_korr', 'codex_oriel_danthe', 'codex_seraphine_aulde']);
+    expect(tomeTargets.sort()).toEqual(['codex_corvin_dreyl', 'codex_ilsabet_rhune', 'codex_maelis_korr', 'codex_oriel_danthe', 'codex_seraphine_aulde', 'codex_tobrin_vask']); // + the three D-108 tomes
     for (const t of tomeTargets) expect(pack.codex[t]).toBeDefined();
     const unveiled = pack.creatures['cr_chronos_tyrant_unveiled'];
     const listens = (unveiled?.communion?.movements ?? []).flatMap((m) => (m.listen?.effects ?? []).map((e) => ('unlockCodex' in e ? e.unlockCodex : '')));

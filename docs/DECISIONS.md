@@ -1711,3 +1711,14 @@ owning unit (PLAN §9.1).
 - **Open for the ✦ units:** `echo_borin_oath` has no line anywhere (STORY or legacy). Brak and Nyx recruitment, Ilyra's
   déjà-vu lines, and companions leaving after an Exploit belong to U54–U56.
 - **Balance note:** the Hollow's two Stalkers beat a level-7 melee ranger about one seed in five.
+
+### D-106 · Four units at once, 2026-10-18
+- Tim's batch runs U34e (Opus), U60 (✦ Fable), U53 (✦ Fable) and U64 (Opus) **in parallel**, each in its own worktree with a
+  `wip/<unit>` backup (D-103).
+- Their paths are disjoint: the engine, codex content, faction quests and the UI. The overlaps are barrel and registration
+  lines, plus the content tests' pins.
+- On the 2-core machine an agent re-runs a test that times out once before investigating it, and never loosens timeouts
+  outside its own tests.
+- **U53** follows U52's conventions (D-105). **U60** writes the people, Nine, Wayfinder, faction and history entries; U61
+  writes places, regions, creatures, items, magic and the loop.
+- U51's Echo `codexLine`s (D-100) are rewritten in **U61** (or the first fun review), not in U60.

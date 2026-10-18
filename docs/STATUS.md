@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b/c/d); sim harness complete; all world data except most quests/dialogue and the codex; legacy quests + dialogue pattern (U52); UI foundation (U63: store, Shell, Title, Class Select) — 3,318 tests. Next: U34e, U60 (✦), U53 (✦), U64 (see §4). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-105), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-106), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -98,8 +98,10 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U34d | World-state expressiveness: NPC schedules, location-item chance/late spawns, event/pool conditions, Threshold arrivals (D-098) — brief `briefs/u34d.md` | Opus | ✅ 42be256 — schedules, item chance, onlyIf, pools, arrest; 3153 tests; D-102 |
 | U52 | Legacy quests + their dialogues (first quest/dialogue file) — brief `briefs/u52.md` | Opus | ✅ ddc6c52 — 6 quests, 23 scenes, 13 quest proofs on the real pack; 3318 tests; D-105 |
 | U63 | UI foundation: store, App, Shell, hotkeys, tokens/themes, Title + Class Select — brief `briefs/u63.md` | Opus | ✅ 6501262 — store, Shell, hotkeys, themes, Title, Class Select; 3268 tests; e2e 11; D-104 |
-| U60 | Codex I (≈43 entries) — unblocks real-pack sims (D-102) | ✦ Fable | ⏳ ready |
-| U34e | Combat expressiveness: condition atoms, on-death/clock moves, caps, hazards, anomalies (D-098) | Opus | ⏳ queued |
+| U60 | Codex I: people, the Nine, Wayfinders, factions, history — brief `briefs/u60.md` | ✦ Fable | ▶ in progress (worktree, `wip/u60`) |
+| U53 | Faction chain quests + dialogue — brief `briefs/u53.md` | ✦ Fable | ▶ in progress (worktree, `wip/u53`) |
+| U64 | Explore screen + node map + bars + HUD + `?scenario=` hook — brief `briefs/u64.md` | Opus | ▶ in progress (worktree, `wip/u64`) |
+| U34e | Combat expressiveness: Heartstone effects, item custom passives, creature mechanics, scenario bug, hazards, anomalies — brief `briefs/u34e.md` | Opus | ▶ in progress (worktree, `wip/u34e`) |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
 

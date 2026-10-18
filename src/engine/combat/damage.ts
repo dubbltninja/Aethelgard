@@ -224,8 +224,17 @@ export function effectiveResistance(target: ResistHolder, type: DamageType): Res
 }
 
 /** DESIGN §4.2/§4.5: Phase makes the next single-target attack against its holder miss; AoE and Chrono ignore it (row 10). */
-export const phaseEvades = (target: Pick<Combatant, 'statuses'>, spec: Pick<HitSpec, 'aoe' | 'type'>): boolean =>
-  !spec.aoe && spec.type !== 'chrono' && hasStatus(target, STATUS_PHASE);
+/** U34e (WORLD §10.2, the Phase Stalker): "Void damage still lands" through its Phase. */
+export const VOID_LANDS_TAG = 'void_lands';
+export const phaseEvades = (
+  target: Pick<Combatant, 'statuses'> & Partial<Pick<Combatant, 'kind' | 'refId'>>,
+  spec: Pick<HitSpec, 'aoe' | 'type'>,
+  content?: Pick<ContentPack, 'creatures'>,
+): boolean =>
+  !spec.aoe &&
+  spec.type !== 'chrono' &&
+  hasStatus(target, STATUS_PHASE) &&
+  !(spec.type === 'void' && target.kind === 'enemy' && (content?.creatures[target.refId ?? '']?.tags.includes(VOID_LANDS_TAG) ?? false));
 
 /**
  * DESIGN §4.3 step 6 — the interplay table's multipliers (§4.6), in row order: Storm on Soaked ×1.5 (1), Fire on Soaked
@@ -326,7 +335,7 @@ export function scaledPower(attacker: Combatant, spec: Pick<HitSpec, 'base' | 'c
  */
 export function hitChanceOf(content: ContentPack, attacker: Combatant, target: Combatant, spec: HitSpec): number {
   const { config } = content;
-  if (phaseEvades(target, spec)) return 0;
+  if (phaseEvades(target, spec, content)) return 0;
   if (spec.cannotMiss || hasStatus(target, STATUS_MARK)) return 100;
   const accuracy = attacker.accuracy + statusMods(attacker, content).accuracy + (spec.spell ? config.spellAccuracyBonus : 0) + (spec.accuracy ?? 0) + hazardAccuracy(attacker); // U34e: weather
   const evasion = target.evasion + statusMods(target, content).evasion + evasionBonusOf(target); // + scripted buffs (U26b)
@@ -425,7 +434,7 @@ export function resolveHit(ctx: PipelineCtx, attacker: Combatant, target: Combat
   const critPct = critChanceOf(ctx.content, attacker, spec);
   const hitStep: PipelineStep = { name: 'hit%', value: hitPct };
   if (!rollPct(ctx.rng, hitPct)) {
-    const phased = phaseEvades(target, spec);
+    const phased = phaseEvades(target, spec, ctx.content);
     return { hit: false, phased, crit: false, immune: false, hitChance: hitPct, critChance: critPct, variance: null, amount: 0, absorbed: 0, shieldBroken: false, mitigated: 0, steps: [hitStep] };
   }
   const variance = drawVariance(ctx.rng);

@@ -455,4 +455,143 @@ const unravelingTide = {
 } satisfies CreatureInput;
 
 /** WORLD §6 order within the region: the Hollowed, the Wilds, the Drowned, Spireborn, the Unravelled. */
-export const creatures = [corruptedShade, mistwoodProwler, drownedArchivist, arcaneWisp, paradoxWisp, redundantWayfinder, unravelingTide] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_echoed_shade — Hollowed (Shade) · L2 anomaly, Loop 2+ · XP 53 ("Repeats its previous intent; both are shown")
+// The repeat is a `repeatPrevious` move after each of the Shade's own (its chip shows the move it repeats).
+const echoedShade = {
+  id: 'cr_anomaly_echoed_shade',
+  name: 'Echoed Shade',
+  description: 'A Shade a moment out of step with itself: whatever it does, it does again.',
+  family: 'fam_hollowed',
+  materialKin: 'shade',
+  role: 'anomaly',
+  level: 2,
+  stats: corruptedShade.stats,
+  tags: ['breach_born', 'anomaly'],
+  resistances: corruptedShade.resistances,
+  statusImmunities: corruptedShade.statusImmunities,
+  moves: {
+    ...corruptedShade.moves,
+    echoed_again: { name: 'Again', line: 'It does it again. The same moment, arriving late.', repeatPrevious: true },
+  },
+  pattern: [
+    { move: 'shade_rake', target: 'player' },
+    { move: 'echoed_again', target: 'player' },
+    { move: 'shade_wail', target: 'player' },
+    { move: 'echoed_again', target: 'player' },
+    { if: { hpBelow: 0.7 }, then: [{ move: 'shade_fade', target: 'self' }], else: [{ move: 'shade_rake', target: 'player' }] },
+    { move: 'echoed_again', target: 'player' },
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: corruptedShade.gold,
+  xp: 53,
+  anomaly: { region: 'region_silverwood_ruins', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. A Shade at the Plaza that does everything twice. The second time is not an echo; it is the same moment, arriving late. I see both coming. Guard the second Wail and the first one is only a noise.',
+    tactics: 'Guard the repeat of anything heavy; Ley or fire, as for any Shade.',
+    codexId: 'codex_creatures_hollowed',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'teardrop', details: ['smear', 'double_outline'] },
+} satisfies CreatureInput;
+
+// ---- cr_anomaly_split_wisp — Spireborn (Wisp) · L2 anomaly, Loop 2+ · XP 53 ("At half HP it splits into two wisps at 40%")
+// Below half its HP, its next action is the Split (an `hpLines` move): an Arcane Wisp at 40 % of its HP joins it.
+const splitWisp = {
+  id: 'cr_anomaly_split_wisp',
+  name: 'Split Wisp',
+  description: 'A wisp wound too tight; struck hard, it comes apart into two.',
+  family: 'fam_spireborn',
+  materialKin: 'wisp',
+  role: 'anomaly',
+  level: 2,
+  stats: arcaneWisp.stats,
+  tags: ['construct', 'anomaly'],
+  resistances: arcaneWisp.resistances,
+  statusImmunities: arcaneWisp.statusImmunities,
+  moves: {
+    ...arcaneWisp.moves,
+    split_wisp_split: {
+      name: 'Split',
+      line: 'It comes undone into two of itself, both thinner.',
+      summon: { creatureId: 'cr_arcane_wisp', count: 1, max: 1, hpPct: 0.4 },
+    },
+  },
+  pattern: arcaneWisp.pattern,
+  hpLines: [{ below: 0.5, move: 'split_wisp_split' }],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: arcaneWisp.gold,
+  xp: 53,
+  anomaly: { region: 'region_silverwood_ruins', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. A wisp that was wound twice. Cut it past half and it comes undone into two of itself, both thinner. Kill it from half to nothing in one turn, or keep both inside one area spell.',
+    tactics: 'Burst it from half in one turn, or hit both with an area attack; steel or Void.',
+    codexId: 'codex_creatures_spireborn',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'rhombus', details: ['spark', 'double_outline'] },
+} satisfies CreatureInput;
+
+// ---- cr_unmade — Unravelled · L13 anomaly, Loop 3+ · XP 425 (WORLD §6.8; placed at the Depths and the Scriptorium) ----------
+const unmade = {
+  id: 'cr_unmade',
+  name: 'The Unmade',
+  description: 'A shape cut out of the room: something the unraveling began to remove and did not finish.',
+  family: 'fam_unravelled',
+  role: 'anomaly',
+  level: 13,
+  stats: { hp: 160, atk: 24, sp: 24, armor: 0, ward: 6, agi: 7 },
+  tags: ['breach_born', 'anomaly'],
+  resistances: { ley: 'weak', chrono: 'resist', void: 'resist' },
+  statusImmunities: ['status_poison'],
+  moves: {
+    unmade_undo: { name: 'Undo', line: 'Your last wound on it was never made.', statuses: [{ status: 'status_rewind', duration: 2, target: 'self' }] },
+    unmade_erase: {
+      name: 'Erase',
+      line: 'It touches your shadow. Part of the outline is gone.',
+      type: 'void',
+      power: { coef: 1.0, stat: 'sp' },
+      statuses: [{ status: 'status_weaken', chance: 0.5, duration: 2 }],
+    },
+    unmade_absence: {
+      name: 'Absence',
+      line: 'Where it stands, the room is missing.',
+      type: 'chrono',
+      power: { coef: 0.8, stat: 'sp' },
+      statuses: [{ status: 'status_blind', chance: 0.3, duration: 1 }],
+    },
+  },
+  // `everyNthTurn:2, skipped while it is Marked` → the Undo on its even turns unless Marked; the Erase and the Absence cycle
+  pattern: [
+    { move: 'unmade_undo', target: 'self', when: { all: [{ everyNth: 2 }, { not: { selfHas: 'status_mark' } }] } },
+    { move: 'unmade_erase', target: 'player' },
+    { move: 'unmade_absence', target: 'all' },
+  ],
+  loot: [
+    { itemId: 'mat_frayed_moment' }, // anomaly guaranteed
+    { itemId: 'mat_breach_glass', chance: 0.5 },
+    { itemId: 'mat_shadow_ash', chance: 0.3 },
+  ],
+  gold: { min: 29, max: 45 },
+  xp: 425,
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      "Loop 3, the Scriptorium, in a carrel no one sat at: a shape cut out of the room. Not a shadow; there is no light down there to cast one. Something the unraveling began to remove and did not finish. It undoes the wounds I give it. Marked, it can't. The Remnants have no entry for it. This is the entry.",
+    tactics: 'Mark it first; Void consumes the Undo; Ley is weak.',
+    codexId: 'codex_creatures_unravelled',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'broken_circle', details: ['cut_out'] },
+} satisfies CreatureInput;
+
+export const creatures = [corruptedShade, mistwoodProwler, drownedArchivist, arcaneWisp, paradoxWisp, redundantWayfinder, unravelingTide, echoedShade, splitWisp, unmade] satisfies CreatureInput[];

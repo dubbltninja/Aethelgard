@@ -438,6 +438,7 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
   const names = enemyNames(content, creatureIds);
   const enemies = creatureIds.map((id, i) => enemyCombatant(ctx, id, names[i] ?? id, held?.[id]));
   if (spec.ambush) addTag(party[0] as Combatant, AMBUSH_TAG); // U34e: the onset hazards read it (reducers/combat.ts)
+  shareInitiative(content, enemies); // U34e: the One Herd
   enemies.forEach((e, i) => void (spec.elites?.[i] && makeEliteVariant(e))); // Horde Rising (U34b)
   const canFlee = spec.fleeable && creatureIds.every((id) => content.creatures[id]?.fleeable ?? true);
 
@@ -478,6 +479,16 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
     ctx.log(spec.intro, 'combat');
   }
   return combat;
+}
+
+/** U34e (WORLD §10.2, the One Herd): "three jackals act on one initiative" — every one of them keeps the first one's roll. */
+export const ONE_INITIATIVE_TAG = 'one_initiative';
+function shareInitiative(content: ContentPack, enemies: Combatant[]): void {
+  for (const e of enemies) {
+    if (!(content.creatures[e.refId]?.tags.includes(ONE_INITIATIVE_TAG) ?? false)) continue;
+    const first = enemies.find((o) => o.refId === e.refId);
+    if (first !== undefined) e.initiative = first.initiative;
+  }
 }
 
 // ---- order ----------------------------------------------------------------------------------------------------------------

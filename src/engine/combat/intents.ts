@@ -222,7 +222,7 @@ export function evalCombatWhen(r: IntentRead, combat: CombatState, when: CombatW
     case 'first':
       return scope.turn === 1;
     case 'oncePerFight':
-      return scope.onceKey === undefined || !self.pattern.firedOnce.includes(scope.onceKey);
+      return scope.onceKey === undefined || !onceFired(r, combat, self, scope.onceKey);
     case 'playerGuarding':
       return (combat.party.find((c) => c.kind === 'player')?.guarding ?? false) === v;
     case 'targetIsBoss':
@@ -373,13 +373,27 @@ export function projectIntent(r: IntentRead, combat: CombatState, c: Combatant, 
   return [lo * hits, hi * hits];
 }
 
+/** U34e (WORLD §10.2, the Aberration Pair): a `shared_once` creature's `oncePerFight` steps are one between all of its kind. */
+export const SHARED_ONCE_TAG = 'shared_once';
+/** U34e (WORLD §10.2, the Unlit Lantern): "intent hidden until it takes damage". */
+export const UNLIT_TAG = 'unlit';
+const hasCreatureTag = (r: Pick<IntentRead, 'content'>, c: Combatant, tag: string): boolean => c.kind === 'enemy' && (r.content.creatures[c.refId]?.tags.includes(tag) ?? false);
+
+function onceFired(r: IntentRead, combat: CombatState, self: Combatant, key: string): boolean {
+  if (self.pattern.firedOnce.includes(key)) return true;
+  return hasCreatureTag(r, self, SHARED_ONCE_TAG) && combat.enemies.some((e) => e.refId === self.refId && e.pattern.firedOnce.includes(key));
+}
+
+/** An `unlit` creature's intents stay hidden until it has taken damage. */
+export const unlitNow = (r: Pick<IntentRead, 'content'>, c: Combatant): boolean => hasCreatureTag(r, c, UNLIT_TAG) && c.hp >= c.hpMax;
+
 function makeIntent(r: IntentRead, combat: CombatState, c: Combatant, moveId: string, move: Move, aim: IntentAim, target: Combatant | null): Intent {
   const tags = intentTags(r.content, move);
   const intent: Intent = {
     moveId,
     targetUid: aim === 'single' || (aim === 'ally' && target !== c) ? (target?.uid ?? null) : null,
     projected: [0, 0],
-    hidden: move.hidden && !intentsRevealed(combat),
+    hidden: (move.hidden || unlitNow(r, c)) && !intentsRevealed(combat),
     text: move.line,
     tags: aim === 'all' ? [TAG_ALL, ...tags] : tags,
   };
@@ -694,7 +708,10 @@ export function refreshIntents(ctx: StepCtx, combat: CombatState): void {
       intent.targetUid = t === null || t === c ? null : t.uid;
     }
     intent.projected = projectIntent(ctx, combat, c, intent);
-    if (intent.hidden && (intentsRevealed(combat) || actsBeforePlayerAgain(ctx, combat, c))) unhide(ctx, combat, c, intent);
+    // U34e: an unlit creature's chip stays hidden until it is struck; then it shows as any other (its own hidden moves aside)
+    const unlit = unlitNow(ctx, c);
+    const struck = !unlit && hasCreatureTag(ctx, c, UNLIT_TAG) && !(ctx.content.creatures[c.refId]?.moves[intent.moveId]?.hidden ?? false);
+    if (intent.hidden && (intentsRevealed(combat) || (actsBeforePlayerAgain(ctx, combat, c) && !unlit) || struck)) unhide(ctx, combat, c, intent);
     if (!sameChip(before, intent)) ctx.emit({ t: 'intentRevealed', uid: c.uid, intent: copyOf(intent) });
   }
 }

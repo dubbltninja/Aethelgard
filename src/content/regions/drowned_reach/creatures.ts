@@ -453,4 +453,77 @@ const bellWarden = {
 } satisfies CreatureInput;
 
 /** WORLD §6 order within the Drowned: the Tide Clerk, the Pale Diver, the Brine Lamprey, the Ledger Choir, the Bell-Ringer, the Bell-Warden. */
-export const creatures = [tideClerk, paleDiver, brineLamprey, ledgerChoir, bellRinger, bellWarden] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_unfiled_archivist — Drowned · L4 anomaly, Loop 2+ · XP 92 ("Rewinds a wounded ally instead of attacking") ----
+// The Drowned Archivist's numbers and moves (silverwood_ruins/creatures.ts; its quest-only turn and drop left out), and a
+// Rewind on its most wounded ally while one is below 75 % (WORLD gives no line for "wounded"). Spawned alone it has no ally.
+const unfiledArchivist = {
+  id: 'cr_anomaly_unfiled_archivist',
+  name: 'Unfiled Archivist',
+  description: 'A Drowned Archivist that files wounds back where they came from.',
+  family: 'fam_drowned',
+  materialKin: 'drowned',
+  role: 'anomaly',
+  level: 4,
+  stats: { hp: 58, atk: 11, sp: 11, armor: 1, ward: 3, agi: 4 },
+  tags: ['breach_born', 'drowned', 'anomaly'],
+  resistances: { fire: 'resist' },
+  statusImmunities: ['status_poison'],
+  moves: {
+    unfiled_unfile: {
+      name: 'Unfile',
+      line: 'It reads a wounded page back into its binding.',
+      statuses: [{ status: 'status_rewind', duration: 2 }],
+    },
+    archivist_page_cut: {
+      name: 'Page Cut',
+      line: 'A sodden page lifts from its book, edge first.',
+      type: 'physical',
+      power: { coef: 1.0, stat: 'atk' },
+      statuses: [{ status: 'status_bleed', chance: 0.3, duration: 2 }],
+    },
+    archivist_recite: {
+      name: 'Recite',
+      line: 'It reads aloud. The water around you listens.',
+      type: 'ley',
+      power: { coef: 0.9, stat: 'sp' },
+      statuses: [{ status: 'status_soaked', chance: 1, duration: 3 }],
+    },
+    archivist_bind: {
+      name: 'Bind',
+      line: 'It closes its book on your shadow.',
+      type: 'ley',
+      power: { coef: 0.6, stat: 'sp' },
+      statuses: [{ status: 'status_slow', chance: 0.5, duration: 2 }],
+    },
+  },
+  pattern: [
+    firstOf(
+      [
+        [{ allyBelow: 0.75 }, { move: 'unfiled_unfile', target: 'ally' }],
+        [{ everyNth: 3 }, { move: 'archivist_bind', target: 'player' }],
+      ],
+      alternate({ move: 'archivist_page_cut', target: 'player' }, { move: 'archivist_recite', target: 'player' }),
+    ),
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: { min: 11, max: 18 },
+  xp: 92,
+  anomaly: { region: 'region_drowned_reach', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. An Archivist reading the wrong book: to it a wounded ally is a wounded page, and it reads them back to whole. It does that instead of fighting, as long as anyone near it is hurt.',
+    tactics: 'Kill it first, or its allies cleanly; Storm (always Soaked); Void consumes the Rewind it gives.',
+    codexId: 'codex_creatures_drowned',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'circle_waterline', details: ['drip', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [tideClerk, paleDiver, brineLamprey, ledgerChoir, bellRinger, bellWarden, unfiledArchivist] satisfies CreatureInput[];

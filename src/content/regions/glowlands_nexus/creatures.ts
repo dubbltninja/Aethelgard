@@ -977,6 +977,83 @@ const unveiledTyrant = {
 } satisfies CreatureInput;
 
 /** WORLD §6 order within the region: the Green, Watch-wardens, the Unravelled. */
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_aberration_pair — Watch-wardens (Aberration) · L12 anomaly ×2 (elite stats), Loop 3+, the Nexus only · XP 676
+// each ("Two Aberrations share one Rewind"). The `shared_once` tag makes the Rewind's `oncePerFight` one for both of them.
+const aberrationPair = {
+  id: 'cr_anomaly_aberration_pair',
+  name: 'Paired Aberration',
+  description: 'Two Aberrations keeping one hour between them, with one Rewind for the both of them.',
+  family: 'fam_watch_wardens',
+  materialKin: 'aberration',
+  role: 'anomaly',
+  level: 12,
+  stats: temporalAberration.stats,
+  tags: ['breach_born', 'anomaly', 'shared_once'],
+  resistances: temporalAberration.resistances,
+  statusImmunities: temporalAberration.statusImmunities,
+  moves: temporalAberration.moves,
+  pattern: temporalAberration.pattern,
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: temporalAberration.gold,
+  xp: 676,
+  anomaly: { region: 'region_glowlands_nexus', loop: 3, count: 2, when: { location: 'loc_chronos_nexus' } },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 3, the Nexus. Two wardens on one watch. They share everything, even the moment they run back to: when one rewinds, the other cannot. Make the first one spend it.',
+    tactics: 'Hurt both below half; Void on whichever holds the Rewind; Guard the "?" turns.',
+    codexId: 'codex_creatures_watch_wardens',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'spiral', details: ['slow_rotation', 'double_outline'] },
+} satisfies CreatureInput;
+
+// ---- cr_anomaly_late_mireling — Green (Mireling) · L9 anomaly, Loop 2+ · XP 246 ("Acts every other turn; each act hits twice")
+// Its turns cycle: late (no action), a Spit that hits twice, late, a Drag that hits twice.
+const lateMireling = {
+  id: 'cr_anomaly_late_mireling',
+  name: 'Late Mireling',
+  description: 'A Mireling that arrives a turn late, and twice.',
+  family: 'fam_green',
+  materialKin: 'mireling',
+  role: 'anomaly',
+  level: 9,
+  stats: glowfenMireling.stats,
+  tags: ['anomaly'],
+  resistances: glowfenMireling.resistances,
+  statusImmunities: glowfenMireling.statusImmunities,
+  moves: {
+    late_not_yet: { name: 'Late', line: 'It is not here yet. It will be, twice.' },
+    late_spit: { ...glowfenMireling.moves.mireling_spit, line: 'Its throat glows twice. It spits light at you, twice.', power: { coef: 0.9, stat: 'sp', hits: 2 } },
+    late_drag: { ...glowfenMireling.moves.mireling_drag, line: 'Two webbed hands, one moment apart, close on your ankle.', power: { coef: 1.1, stat: 'atk', hits: 2 } },
+  },
+  pattern: [
+    { move: 'late_not_yet', target: 'self' },
+    { move: 'late_spit', target: 'player' },
+    { move: 'late_not_yet', target: 'self' },
+    { move: 'late_drag', target: 'player' },
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: glowfenMireling.gold,
+  xp: 246,
+  anomaly: { region: 'region_glowlands_nexus', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. It is always a beat behind. One turn it is not quite there; the next it is there twice over, spitting and dragging double. Hit it on the turn it is late.',
+    tactics: 'Guard its double turn; spend its late turn on your heavy hit; Void, then fire.',
+    codexId: 'codex_creatures_green',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'circle_lit', details: ['throat_glow', 'double_outline'] },
+} satisfies CreatureInput;
+
 export const creatures = [
   glowfenMireling,
   lanternToad,
@@ -989,4 +1066,6 @@ export const creatures = [
   tyrantsReach,
   containedTyrant,
   unveiledTyrant,
+  aberrationPair,
+  lateMireling,
 ] satisfies CreatureInput[];

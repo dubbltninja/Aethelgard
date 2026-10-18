@@ -12,7 +12,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildContentPack, contentTables, parseContentPack } from '@content/index';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { REGION_FOLDERS } from '@content/regions';
-import { creatures } from '@content/regions/ashen_steppe/creatures';
+import { creatures as folderCreatures } from '@content/regions/ashen_steppe/creatures';
 import { items } from '@content/regions/ashen_steppe/items';
 import { locations } from '@content/regions/ashen_steppe/locations';
 import { npcs } from '@content/regions/ashen_steppe/npcs';
@@ -26,6 +26,10 @@ import { D, scriptedCtx } from '@tests/fixtures/combatContent';
 import { freshProfile, makeState, type StateOverrides } from '@tests/fixtures/helpers';
 import { main as validateCli } from '../../../../tools/validate-content';
 import { PLAN, WORLD, ids, section, tableRows, unquote, worldCreature, worldCreatureTable, worldEdges, worldLocations, worldNodes } from './worldDoc';
+
+// U34e (D-087): WORLD §10.2's anomaly variants live in this folder too; WORLD §6's checks below are on the
+// others (tests/unit/engine/u34e/anomalies.test.ts checks the variants).
+const creatures = folderCreatures.filter((c) => !c.id.startsWith('cr_anomaly_'));
 
 const ROOT = path.resolve(import.meta.dirname, '../../../..');
 const DESIGN = fs.readFileSync(path.join(ROOT, 'docs/DESIGN.md'), 'utf8');

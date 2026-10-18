@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildContentPack, contentTables, parseContentPack } from '@content/index';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { REGION_FOLDERS } from '@content/regions';
-import { creatures } from '@content/regions/silverwood_ruins/creatures';
+import { creatures as folderCreatures } from '@content/regions/silverwood_ruins/creatures';
 import { locations } from '@content/regions/silverwood_ruins/locations';
 import { npcs } from '@content/regions/silverwood_ruins/npcs';
 import { region } from '@content/regions/silverwood_ruins/region';
@@ -19,6 +19,10 @@ import { LocationSchema, type Location } from '@schema/location';
 import { freshProfile } from '@tests/fixtures/helpers';
 import { main as validateCli } from '../../../../tools/validate-content';
 import { WORLD, appendixLegacyLocations, ids, section, tableRows, unquote, worldCreature, worldCreatureTable, worldEdges, worldLocations, worldNodes } from './worldDoc';
+
+// U34e (D-087): WORLD §10.2's anomaly variants live in this folder too and the Unmade (its first region is the Depths' exploited state); WORLD §6's checks below are on the
+// others (tests/unit/engine/u34e/anomalies.test.ts checks the variants).
+const creatures = folderCreatures.filter((c) => !c.id.startsWith('cr_anomaly_') && c.id !== 'cr_unmade');
 
 const REGION = 'region_silverwood_ruins';
 const RUINS = section(WORLD, '### 3.1 Silverwood Ruins', '### 3.2');

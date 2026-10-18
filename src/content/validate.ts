@@ -77,7 +77,7 @@ export const EXPECTED_COUNTS = {
   codexMin: 85,
   /** STORY §12: 103 after D-069.1 (PLAN's 101 predates it). */
   echoes: 103,
-  /** Non-anomaly creatures; the 16 anomaly variants are counted apart. */
+  /** WORLD §6's creatures, every role (its six anomalies included); WORLD §10.2's 16 `cr_anomaly_*` variants are counted apart. */
   creatures: 57,
   anomalies: 16,
   itemsMin: 120,
@@ -94,6 +94,9 @@ export const EXPECTED_COUNTS = {
   abilitiesPerClass: 15,
   statuses: 19,
 } as const;
+
+/** WORLD §10.2's anomaly variants (`cr_anomaly_*`, DESIGN §6.6). */
+export const ANOMALY_VARIANT_PREFIX = 'cr_anomaly_';
 
 /** DESIGN §10.7: the fifteen Attunements. */
 export const ATTUNEMENT_IDS = [
@@ -716,6 +719,8 @@ function rule01(v: Validation): void {
     const t = 'creatures';
     c.loot.forEach((l, i) => need(t, c.id, `loot.${i}.itemId`, 'items', l.itemId, 'loot item'));
     c.statusImmunities.forEach((s, i) => need(t, c.id, `statusImmunities.${i}`, 'statuses', s, 'status immunity'));
+    c.innateStatuses.forEach((s, i) => need(t, c.id, `innateStatuses.${i}`, 'statuses', s, 'innate status')); // U34e
+    if (c.anomaly !== undefined) need(t, c.id, 'anomaly.region', 'regions', c.anomaly.region, 'anomaly region'); // U34e
     if (c.bestiary.codexId !== undefined) need(t, c.id, 'bestiary.codexId', 'codex', c.bestiary.codexId, 'bestiary codexId');
     const moves = new Set(Object.keys(c.moves));
     for (const [moveId, move] of Object.entries(c.moves)) {
@@ -1575,8 +1580,10 @@ function rule21(v: Validation): void {
   check('quests', 'class mini-quests', quests.filter((q) => q.category === 'class').length, EXPECTED_COUNTS.classQuests);
   check('codex', 'codex entries', n('codex'), EXPECTED_COUNTS.codexMin, true);
   check('echoes', 'echoes', n('echoes'), EXPECTED_COUNTS.echoes);
-  check('creatures', 'creatures (anomaly variants apart)', creatures.filter((c) => c.role !== 'anomaly').length, EXPECTED_COUNTS.creatures);
-  check('creatures', 'anomaly variants', creatures.filter((c) => c.role === 'anomaly').length, EXPECTED_COUNTS.anomalies);
+  // U34e: WORLD §6's 57 include its six anomalies (Paradox Wisp … the Unmade); the variants are the `cr_anomaly_*` ids
+  const variant = (c: { id: string }): boolean => c.id.startsWith(ANOMALY_VARIANT_PREFIX);
+  check('creatures', 'creatures (anomaly variants apart)', creatures.filter((c) => !variant(c)).length, EXPECTED_COUNTS.creatures);
+  check('creatures', 'anomaly variants', creatures.filter(variant).length, EXPECTED_COUNTS.anomalies);
   check('items', 'items', n('items'), EXPECTED_COUNTS.itemsMin, true);
   check('achievements', 'achievements', n('achievements'), EXPECTED_COUNTS.achievements);
   check('abilities', 'class abilities', abilities.filter((a) => abilityOwnerKind(a.id) === 'class').length, EXPECTED_COUNTS.classAbilities);

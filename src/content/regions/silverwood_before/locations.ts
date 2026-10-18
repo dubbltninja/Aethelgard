@@ -40,8 +40,8 @@
 //   - `ev_conflux_sundering` is not authored: D-083 supersedes it (the echo resets to First Bell in place, at the Garret's
 //     Last Bell rest; the engine writes that line).
 // NPC presence by Bell and hour is each NPC's `schedule` (D-098, npcs.ts): a location's `npcs` is where they stand when no
-// schedule entry holds. The Corridor's Last Bell ley-flare is its `hazards` (U34e, D-097; LEY_FLARE below). Not expressible
-// (the U48b reply): the anomaly `cr_anomaly_early_hound` (anomalies have no region link, D-091 gap 4).
+// schedule entry holds. The Corridor's Last Bell ley-flare is its `hazards` (U34e, D-097; LEY_FLARE below). The anomaly
+// `cr_anomaly_early_hound` spawns at the Outer Walks on First Bell from its record's `anomaly` spec (U34e, creatures.ts).
 import type { Condition } from '@schema/condition';
 import type { HazardInput, LocationInput } from '@schema/location';
 

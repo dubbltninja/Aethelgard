@@ -363,4 +363,41 @@ const vellsUmbra = {
 } satisfies CreatureInput;
 
 /** WORLD §6.1's block order: the Starved Shadow, the Hollow Lantern, the Null Mouth, Vell's Umbra (the Stalker between is the Voidscar's). */
-export const creatures = [starvedShadow, hollowLantern, nullMouth, vellsUmbra] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_unlit_lantern — Hollowed · L10 anomaly, Loop 2+ · XP 286 ("Intent hidden until it takes damage") ------------
+// The `unlit` tag: its intents stay hidden while it is at full HP (combat/intents.ts).
+const unlitLantern = {
+  id: 'cr_anomaly_unlit_lantern',
+  name: 'Unlit Lantern',
+  description: 'A Hollow Lantern with its glass painted over: nothing in it shows until it is cracked.',
+  family: 'fam_hollowed',
+  materialKin: 'void_touched',
+  role: 'anomaly',
+  level: 10,
+  stats: hollowLantern.stats,
+  tags: ['breach_born', 'anomaly', 'unlit'],
+  resistances: hollowLantern.resistances,
+  statusImmunities: hollowLantern.statusImmunities,
+  moves: hollowLantern.moves,
+  pattern: hollowLantern.pattern,
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: hollowLantern.gold,
+  xp: 286,
+  anomaly: { region: 'region_veil', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2, the Mouth. A lantern whose glass shows nothing, not even the dark. I cannot tell what it means to do until I have hit it. After the first crack it is an ordinary lantern, which is bad enough.',
+    tactics: 'Open with any hit to crack it, then read it like any Lantern; plain steel.',
+    codexId: 'codex_creatures_hollowed',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'teardrop', details: ['lantern_glass', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [starvedShadow, hollowLantern, nullMouth, vellsUmbra, unlitLantern] satisfies CreatureInput[];

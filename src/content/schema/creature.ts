@@ -458,6 +458,20 @@ const CreatureObject = Base.extend({
         .refine((l) => l.text !== undefined || l.move !== undefined, 'an hpLine needs text and/or a move'),
     )
     .default([]),
+  /**
+   * U34e (C1 addition, D-091 gap 4, D-097; WORLD §10.2 "Permanent Haste"): statuses it holds for the whole fight, put on at
+   * the opening and again at the start of each of its turns.
+   */
+  innateStatuses: z.array(StatusId).default([]),
+  /**
+   * U34e (C1 addition, D-087, D-091 gap 4; DESIGN §6.6, WORLD §10.2): a `cr_anomaly_*` variant's spawn — in `region` from
+   * Loop `loop`, `count` of it, while `when` holds — on an arrival that starts no fixed encounter (engine: reducers/combat.ts
+   * `anomalyEncounter`).
+   */
+  anomaly: z
+    .object({ region: PId('region_'), loop: int.min(2), count: int.min(1).max(3).default(1), when: ConditionSchema.optional() })
+    .strict()
+    .optional(),
 }).strict();
 
 type CreatureShape = z.output<typeof CreatureObject>;
@@ -550,6 +564,7 @@ function checkCreature(c: CreatureShape, ctx: z.RefinementCtx): void {
   for (const [id, m] of Object.entries(c.moves)) {
     if (m.repeatPrevious && (m.power !== undefined || m.windUp !== undefined)) issue(['moves', id, 'repeatPrevious'], 'a repeating move plays the previous one: it has no power or wind-up of its own');
   }
+  if (c.anomaly !== undefined && c.role !== 'anomaly') issue(['anomaly'], `only an anomaly spawns as one (role is '${c.role}')`);
 }
 
 export const CreatureSchema = CreatureObject.superRefine(checkCreature);

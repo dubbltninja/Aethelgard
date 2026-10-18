@@ -727,6 +727,12 @@ export function springTraps(ops: CombatOps, ctx: StepCtx, combat: CombatState): 
 
 export const foresightActive = (combat: CombatState): boolean => (combat.cooldowns[FORESIGHT_KEY] ?? 0) > 0;
 
+/** U34e (WORLD §10.2, the Frayed Brute): a `telegraphs_two` creature shows its next-next move as Foresight would. */
+export const TELEGRAPHS_TWO_TAG = 'telegraphs_two';
+/** Does the party see `c`'s next-next move (`foreseenMove`): Foresight running, or a creature that telegraphs two? */
+export const foreseesFor = (content: ContentPack, combat: CombatState, c: Combatant): boolean =>
+  foresightActive(combat) || (c.kind === 'enemy' && (content.creatures[c.refId]?.tags.includes(TELEGRAPHS_TWO_TAG) ?? false));
+
 /**
  * The move a creature's pattern commits to after its current intent — the dimmed second chip of `foresight` (DESIGN
  * §4.2): the program from the pointer, conditions read now for the turn after next. Null when a weighted pick or a

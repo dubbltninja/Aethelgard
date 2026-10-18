@@ -290,4 +290,78 @@ const stutterHound = {
 } satisfies CreatureInput;
 
 /** WORLD §6 order within the region: the Wilds (§6.2), Wards (§6.4), Watch-wardens (§6.7). */
-export const creatures = [wildlingBrute, rootling, stoneHideGolem, wardingPillar, stutterHound] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_frayed_brute — Wilds · L4 anomaly, Loop 2+ · XP 92 ("Permanent Haste; telegraphs two intents") ---------------
+// `innateStatuses` keeps its Haste on; the `telegraphs_two` tag shows its next-next move (combat/abilities.ts `foreseesFor`).
+const frayedBrute = {
+  id: 'cr_anomaly_frayed_brute',
+  name: 'Frayed Brute',
+  description: 'A Brute moving a little ahead of itself, so you see what it will do twice.',
+  family: 'fam_wilds',
+  materialKin: 'wildling',
+  role: 'anomaly',
+  level: 4,
+  stats: wildlingBrute.stats,
+  tags: ['growth', 'anomaly', 'telegraphs_two'],
+  resistances: wildlingBrute.resistances,
+  innateStatuses: ['status_haste'],
+  moves: wildlingBrute.moves,
+  pattern: wildlingBrute.pattern,
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: wildlingBrute.gold,
+  xp: 92,
+  anomaly: { region: 'region_mistwood_ironclad_reach', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. The Brute again, but quick, always quick, and its next two swings show on it like bruises before they land. It knits the same way. It just gets there first.',
+    tactics: 'Read both intents and Guard the Maul; a Slow only cancels its Haste until its next turn; fire.',
+    codexId: 'codex_creatures_wilds',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'triangle', details: ['root_knots', 'double_outline'] },
+} satisfies CreatureInput;
+
+// ---- cr_anomaly_rootbound_pack — Wilds · L2 anomaly, Loop 2+ · XP 160 ("Three rootlings share one HP pool") ------------------
+// One HP pool is one combatant: the three Rootlings' HP (3 × 30) and their three actions a turn (each move hits three
+// times); its XP and gold are the three's. (WORLD's base column: cr_rootling ×3.)
+const rootboundPack = {
+  id: 'cr_anomaly_rootbound_pack',
+  name: 'Rootbound Pack',
+  description: 'Three rootlings grown into one root: one wound, one life, three mouths.',
+  family: 'fam_wilds',
+  materialKin: 'wildling',
+  role: 'anomaly',
+  level: 2,
+  stats: { ...rootling.stats, hp: 3 * rootling.stats.hp },
+  tags: ['growth', 'anomaly'],
+  resistances: rootling.resistances,
+  moves: {
+    pack_trip: { ...rootling.moves.rootling_trip, line: 'Three sets of roots slide toward your ankles at once.', power: { coef: 0.7, stat: 'atk', hits: 3 } },
+    pack_jab: { ...rootling.moves.rootling_jab, line: 'Three sharpened roots whip at your shins.', power: { coef: 1.0, stat: 'atk', hits: 3 } },
+  },
+  pattern: [
+    { move: 'pack_trip', target: 'player' },
+    { move: 'pack_jab', target: 'player' },
+  ],
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: { min: 3 * rootling.gold.min, max: 3 * rootling.gold.max },
+  xp: 160,
+  anomaly: { region: 'region_mistwood_ironclad_reach', loop: 2 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. Three Rootlings, but the roots under them have joined. Cut one and the others bleed. There is one life in the three of them, and they spend it together: three trips, three jabs, every turn.',
+    tactics: 'It is one target: single heavy hits; fire; Guard against its three strikes.',
+    codexId: 'codex_creatures_wilds',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'triangle', details: ['root_tendrils', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [wildlingBrute, rootling, stoneHideGolem, wardingPillar, stutterHound, frayedBrute, rootboundPack] satisfies CreatureInput[];

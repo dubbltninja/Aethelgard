@@ -38,8 +38,8 @@
 //     `echo_tyrant_never_struck` on arrival, fight or bargain.
 // "Fleeing here costs 10 % HP" on the Stair is the location's `fleeEffects` with a `damage` share of max HP (U34e, D-097).
 // The gale and the dusk storm (with its lightning on Soaked) are every place's `hazards` (U34e, D-097; skyWeather below).
-// Not expressible (the U48a reply): `cr_anomaly_still_kite` (anomalies have no region link, D-091 gap 4); the Crown and the Eyrie "dark" have no description
-// text in WORLD to vary to; the schematic's "reading it grants `echo_anchor_half_a`" is the item's (U49/U50, `onUse`).
+// `cr_anomaly_still_kite` spawns from its record's `anomaly` spec (U34e, creatures.ts). Not expressible (the U48a reply): the
+// Crown and the Eyrie "dark" have no description text in WORLD to vary to; the schematic's "reading it grants `echo_anchor_half_a`" is the item's (U49/U50, `onUse`).
 // Exits to other regions name their WORLD ids (the Highlands' two, landed with U44).
 import type { Condition } from '@schema/condition';
 import type { Effect } from '@schema/effect';

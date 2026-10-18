@@ -342,4 +342,40 @@ const ashmaw = {
 } satisfies CreatureInput;
 
 /** WORLD §6 order: the Salt Jackal (§6.2), the Cinderback, Ashmaw; the Reed Stalker (§6.6). */
-export const creatures = [saltJackal, cinderback, ashmaw, reedStalker] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_one_herd — Wilds · L7 anomaly ×3, Loop 2+ · XP 176 each ("Three jackals act on one initiative") ------------
+// The `one_initiative` tag: all three keep the first one's roll, so they act back to back (combat/turnOrder.ts).
+const oneHerd = {
+  id: 'cr_anomaly_one_herd',
+  name: 'One-Herd Jackal',
+  description: 'Three jackals that move as one animal.',
+  family: 'fam_wilds',
+  materialKin: 'wildling',
+  role: 'anomaly',
+  level: 7,
+  stats: saltJackal.stats,
+  tags: ['pack', 'anomaly', 'one_initiative'],
+  resistances: saltJackal.resistances,
+  moves: saltJackal.moves,
+  pattern: saltJackal.pattern,
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: saltJackal.gold,
+  xp: 176,
+  anomaly: { region: 'region_ashen_steppe', loop: 2, count: 3 },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2, the Pan. Three jackals and one heartbeat: they go on the same instant, one after another, with no gap in the pack to step into. Guard before the three of them move.',
+    tactics: 'Storm across the pack; clear the Mark before the three of them pull you down.',
+    codexId: 'codex_creatures_wilds',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'triangle', details: ['salt_white', 'pack', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [saltJackal, cinderback, ashmaw, reedStalker, oneHerd] satisfies CreatureInput[];

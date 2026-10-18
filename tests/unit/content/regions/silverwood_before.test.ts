@@ -13,7 +13,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildContentPack, contentTables, parseContentPack } from '@content/index';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { REGION_FOLDERS } from '@content/regions';
-import { creatures } from '@content/regions/silverwood_before/creatures';
+import { creatures as folderCreatures } from '@content/regions/silverwood_before/creatures';
 import { items } from '@content/regions/silverwood_before/items';
 import { locations } from '@content/regions/silverwood_before/locations';
 import { npcs } from '@content/regions/silverwood_before/npcs';
@@ -54,6 +54,10 @@ import { D, scriptedCtx } from '@tests/fixtures/combatContent';
 import { freshProfile, makeState } from '@tests/fixtures/helpers';
 import { main as validateCli } from '../../../../tools/validate-content';
 import { PLAN, WORLD, ids, section, tableRows, unquote, worldCreature, worldCreatureTable, worldEdges, worldLocations, worldNodes } from './worldDoc';
+
+// U34e (D-087): WORLD §10.2's anomaly variants live in this folder too; WORLD §6's checks below are on the
+// others (tests/unit/engine/u34e/anomalies.test.ts checks the variants).
+const creatures = folderCreatures.filter((c) => !c.id.startsWith('cr_anomaly_'));
 
 const ROOT = path.resolve(import.meta.dirname, '../../../..');
 const DESIGN = fs.readFileSync(path.join(ROOT, 'docs/DESIGN.md'), 'utf8');
@@ -1267,7 +1271,10 @@ describe('Silverwood Before in the engine (before.ts on the real pack, seeded)',
   test('the Bells’ chances (300 seeds each): the Walks’ hounds 40 % on every arrival of Second and Last Bell, never on First; the Library’s adepts 60 % on Last Bell; the Corridor’s adept 50 % for the wanted; the Gate’s halberdiers for the wanted on Last Bell', () => {
     const N = 300;
     const near = (x: number, p: number) => [x > p - 0.1, x < p + 0.1];
-    expect(tally(GT, OW, 50, { day: 1, visited: [GT, OW] })).toEqual(new Map([['—', 50]]));
+    // First Bell: never the Circle's hounds; only the Early Hound (U34e: WORLD §10.2's anomaly, 15 % in Loop 2, DESIGN §6.6)
+    const first = tally(GT, OW, N, { day: 1, visited: [GT, OW] });
+    expect([...first.keys()].sort()).toEqual(['anomaly', '—']);
+    expect(near((first.get('anomaly') ?? 0) / N, 0.15)).toEqual([true, true]);
     for (const day of [2, 3] as const) {
       for (const visited of [[GT], [GT, OW]]) {
         const t = tally(GT, OW, N, { day, visited });
@@ -1314,7 +1321,8 @@ describe('Silverwood Before in the engine (before.ts on the real pack, seeded)',
   test('the hour (D-098): every Bell begins at dawn; a short rest at the Garret passes one of the echo’s watches, a full rest brings the next Bell at dawn; the `watch` atom reads it, not the frozen clock', () => {
     const hour = (r: Run) => r.s.counters.custom['before_watch'];
     const noon: Condition = { watch: 'day' };
-    let r = run(start(NEXUS, { items: [LENS], echoes: ['echo_litany_verse_1'], visited: [NEXUS], seed: 'u34d-hour' }), [move(GT), move(OW), move(AG)]);
+    // (a seed whose walk across the Walks meets no Early Hound, U34e's First Bell anomaly)
+    let r = run(start(NEXUS, { items: [LENS], echoes: ['echo_litany_verse_1'], visited: [NEXUS], seed: 'u34d-hour-2' }), [move(GT), move(OW), move(AG)]);
     expect([r.s.before?.day, hour(r)]).toEqual([1, 0]);
     const frozen = r.s.clock.ticks;
     const SHORT: Action = { type: 'rest', kind: 'short' };

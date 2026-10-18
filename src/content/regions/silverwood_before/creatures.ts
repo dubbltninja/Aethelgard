@@ -411,4 +411,41 @@ const circleAdept = {
 } satisfies CreatureInput;
 
 /** WORLD §6 order: the Ley Hound (§6.2), the Ninefold Knight and the Unbroken Warden (§6.4), the two Mortals (§6.9). */
-export const creatures = [leyHound, ninefoldKnight, unbrokenWarden, cityWatchHalberdier, circleAdept] satisfies CreatureInput[];
+// ==== Anomaly variants (U34e; WORLD §10.2, DESIGN §6.6; D-087, D-091 gap 4) ===============================================
+// Each twists a creature of this region: its numbers and gold (the base's, unless the twist changes them), WORLD §10.2's
+// twist, XP ×1.3 of the base's, the guaranteed material as its loot (`mat_frayed_moment`, the material WORLD §6.8 calls
+// "anomaly guaranteed"), and its `anomaly` spawn (region, Loop, count). The engine reads the twist tags named at each
+// record (reducers/combat.ts header). Bestiary entries are the Wayfinder's notes on the twist (WORLD §10.2 gives the twist
+// only).
+// ---- cr_anomaly_early_hound — Wilds · L13 anomaly, Loop 2+ · XP 425 ("Roams on First Bell, out of its day") ----------------
+// It roams where the Circle's hounds do (the Outer Walks, `enc_walks_hounds`), but on the First Bell, when they never do
+// (`beforeDay: 1`); otherwise it is a Ley Hound, alone.
+const earlyHound = {
+  id: 'cr_anomaly_early_hound',
+  name: 'Early Hound',
+  description: 'A Ley Hound loose on the First Bell, two days before its time.',
+  family: 'fam_wilds',
+  materialKin: 'wildling',
+  role: 'anomaly',
+  level: 13,
+  stats: leyHound.stats,
+  tags: ['beast', 'hound', 'anomaly'],
+  resistances: leyHound.resistances,
+  moves: leyHound.moves,
+  pattern: leyHound.pattern,
+  loot: [{ itemId: 'mat_frayed_moment' }], // DESIGN §6.6: the anomaly's guaranteed material drop (WORLD §10.2 lists no other)
+  gold: leyHound.gold,
+  xp: 425,
+  anomaly: { region: 'region_silverwood_before', loop: 2, when: { all: [{ beforeDay: 1 }, { location: 'loc_outer_walks' }] } },
+  bestiary: {
+    voice: 'wayfinder_notes',
+    summary:
+      'Loop 2. A hound on the Walks during the festival, two days before the Circle lets them out. Nobody else seems to see it. It hunts alone, which it was never bred to do.',
+    tactics: 'Chrono on its Haste; it has no partner to Track you for.',
+    codexId: 'codex_creatures_wilds',
+    reveals: [...REVEALS],
+  },
+  sigil: { base: 'triangle', details: ['blue_teeth', 'double_outline'] },
+} satisfies CreatureInput;
+
+export const creatures = [leyHound, ninefoldKnight, unbrokenWarden, cityWatchHalberdier, circleAdept, earlyHound] satisfies CreatureInput[];

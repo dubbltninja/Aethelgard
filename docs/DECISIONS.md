@@ -1783,3 +1783,46 @@ owning unit (PLAN §9.1).
   time. A first visit to the Nexus on the Telling stage runs that whole chain with no breath between fights.
 - **Left for U55/U56/U58/U62:** Nyx's side of `q_unlidded_eye`, Brak refusing the Choir, what `echo_day_of_teeth` and
   `echo_choir_knows` gate, and the Horde's "Go, Wayfinder!" lines.
+
+### D-110 · U34e details — combat expressiveness; creatures complete, 2026-10-18
+- **U34e (634731a … a8b7a3c, seven commits; resumed after the usage cutoff):** all seven brief items are done.
+- **C1 additions (all optional and defaulted):**
+  - effect `heartstone`; Location `levelBonus`, `fleeEffects` and `hazards` (fields: on, when, cycle, chance, firstVisit,
+    text, status, strike, accuracy, dealtMult, hpPctMax, restoreOnLeave, watches);
+  - CombatWhen `allyDown` / `allyBelow`;
+  - Move `repeatPrevious`, `missesIfGuarded`, `consumesAlly`, `clockCost`;
+  - Phase `statusImmunities`, `roundStatuses`;
+  - Creature `deathMove`, `hpLines`, `innateStatuses`, `anomaly{region,loop,count,when?}`;
+  - Condition `killed.anyLoop`, `diedHere`; effect `damage.pctMax`; specials `class_mirror` and `last_spell`;
+  - Profile `lastDeathLocation?`.
+  - A merchant's `refusesWhen` now overrides the Hostile rule.
+- **Behaviour:**
+  - The Heartstone choice sets `world.heartstone`. Destroyed: Ley abilities cost +25% MP, and breach-born and ley-made
+    enemies have −25% HP. Exploited: the Hollow's stalkers are +1 level.
+  - All 14 item custom passives are read.
+  - The creature files use the new mechanics.
+  - Per-place hazards and weather are in, and the Thread Ring blocks the Unmaking.
+  - `cr_unmade` and the 16 `cr_anomaly_*` exist. They spawn from Loop 2 at 10% + 5% per loop (cap 30%, +10% at night) on
+    their own Rng stream.
+  - The Loop 1 closer survives a Fall on the way to the portal, which fixes the scenario crash.
+  - **`creatures` is off `INCOMPLETE_TABLES`**, done by the lead: 57 + 16 records.
+- **Readings:**
+  - Anomaly loot is the guaranteed Frayed Moment only.
+  - The Rootbound Pack is one combatant with 3× HP that strikes three times.
+  - The Cairns' "5 Storm per watch" is per round.
+  - "Ranged" means a wielded bow.
+  - Kaelen's explicit list wins over his rule.
+  - Ability MP-cost reduction stacks additively with the staff's.
+- **Not modelled:** the Nexus temporal shear, Mistwood fog, wind and rockfall, and the Ruins' cosmetic hazards. Golem
+  Cover keeps `allyPresent`, because `allyBelow: 0.5` breaks the Outpost proof; the balance unit decides. No UI reads
+  `foreseenMove` yet (U65).
+- **After the merge:**
+  - The `q_keepers_ledger` "whole" proof died on the Drowned route in 4 of 5 seeds (a level-6 ranger in Loop 2, with the
+    new hazards and anomalies). It now pins a seed that wins.
+  - A real-pack sim (24 runs, 3,000 steps) has 0 errors and 2 soft-locks, both bot `guard` loops past round 60: a caster
+    ranger against the Stair lampreys, and an explorer Warden at the Barrows.
+- **For the balance and bot unit:**
+  - Bots must stop guarding forever.
+  - Drowned Reach lethality at L6 in Loop 2.
+  - The D-109 Nexus chain.
+  - The D-101 Tyrant numbers.

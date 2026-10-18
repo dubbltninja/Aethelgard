@@ -1,9 +1,9 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b/c/d); sim harness complete; all world data except most quests/dialogue and the codex; legacy quests + dialogue pattern (U52); UI foundation (U63: store, Shell, Title, Class Select) — 3,318 tests. Next: U34e, U60 (✦), U53 (✦), U64 (see §4). Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–e); sim harness complete; world data complete except quests/dialogue (10 of 44 quests), codex (42 of 87) and companions (authored, registered at U56); UI: foundation, Title, Class Select, Explore + map — 3,532 tests. Next: U65, U61 (✦), U54 (✦), U55 (✦). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-109), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-110), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -101,7 +101,11 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U60 | Codex I: people, the Nine, Wayfinders, factions, history — brief `briefs/u60.md` | ✦ Fable | ✅ dede08c — 42 entries (+3 new people); real-pack sims clean; D-108 |
 | U53 | Faction chain quests + dialogue — brief `briefs/u53.md` | ✦ Fable | ✅ c60c778 (resumed after the usage cutoff) — 4 quests, 19 scenes, 8 proofs; 3445 tests; D-109 |
 | U64 | Explore screen + node map + bars + HUD + `?scenario=` hook — brief `briefs/u64.md` | Opus | ✅ 937c84c — playable exploring in the browser; 3389 tests; e2e explore 8/8; D-107 |
-| U34e | Combat expressiveness: Heartstone effects, item custom passives, creature mechanics, scenario bug, hazards, anomalies — brief `briefs/u34e.md` | Opus | ▶ resumed after the usage cutoff (items 1–2 committed; `wip/u34e`) |
+| U34e | Combat expressiveness: Heartstone effects, item custom passives, creature mechanics, scenario bug, hazards, anomalies — brief `briefs/u34e.md` | Opus | ✅ a8b7a3c (resumed after the cutoff) — all 7 items; creatures complete (73); 3532 tests; D-110 |
+| U65 | Combat screen: enemy cards, intent chips, ability bar, companion card, log, communion bar | Opus | ⏳ ready |
+| U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
+| U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes | ✦ Fable | ⏳ ready |
+| U55 | Companion arcs: Nyx + Dask (6 quests) + camp scenes | ✦ Fable | ⏳ ready |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
 
@@ -211,12 +215,12 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. **U34e** (Opus; combat expressiveness + unread passives + `world.heartstone` + scenario bug + anomalies; D-098/D-099/
-   D-101/D-105) · **U60** (✦ Fable; Codex I; clears the real-pack sim blockers; rewrites U51's Echo codex lines, D-100) ·
-   **U53** (✦ Fable; faction chain quests, copying U52's conventions) · **U64** (Opus; Explore screen + node map; adds the
-   `?scenario=` boot hook, D-104). Independent — can run together (D-103 backups); Tim decides how many at once.
-2. Then U54–U59 (✦), U61–U62 (✦), U65+ (UI screens).
-3. Balance once companions register (U56): Tyrant sims (D-101).
+1. **U65** (Opus; Combat screen — reads U34e's `foreseenMove`) · **U61** (✦ Fable; Codex II + rewrite the 103 Echo
+   `codexLine`s, D-100/D-106; `codex` leaves INCOMPLETE_TABLES) · **U54** (✦ Fable; Ilyra + Brak arcs) · **U55** (✦ Fable;
+   Nyx + Dask arcs). Independent; worktrees + `wip/<unit>` backups (D-103). If the window is tight, run two.
+2. Then U56 (✦; Mireya + Caelum; **registers the companions**, D-088), U57–U59, U62 (✦), U66+ (UI).
+3. The balance + bot unit (Opus), once companions register: bots stop guarding forever; Drowned Reach at L6 in Loop 2
+   (D-110); the Nexus chain (D-109); Tyrant numbers (D-101); Warden vs bosses (D-089).
 
 ## 4b. Dev quickstart
 

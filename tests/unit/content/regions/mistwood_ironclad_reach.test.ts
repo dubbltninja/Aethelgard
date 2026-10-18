@@ -71,6 +71,8 @@ interface At {
   echoes?: string[];
   /** The `horde_moves` counter (engine-written once a Horde runs). */
   hordeMoves?: number;
+  /** The Horde's infected set (engine-written as it spreads; D-098's `infected` atom reads it). */
+  infected?: string[];
 }
 
 /** A state on the real pack, standing at `locationId`, with the given flags, quests, Echoes and Horde counter. */
@@ -84,6 +86,7 @@ function stateAt(locationId: string, o: At = {}): GameState {
       for (const [id, status] of Object.entries(o.quests ?? {})) s.quests[id] = questState(status);
       for (const id of o.echoes ?? []) s.echoesThisLoop.push(id);
       if (o.hordeMoves !== undefined) s.counters.custom['horde_moves'] = o.hordeMoves;
+      if (o.infected !== undefined) s.world.infected = [...o.infected];
     },
   };
   return makeState(overrides, { content: pack });
@@ -196,8 +199,11 @@ describe('the six locations vs WORLD §3.2 blocks', () => {
       const placed = new Set(l.items.map((i) => i.itemId));
       const expected = new Set(w?.itemIds ?? []);
       if (l.id === MP) {
-        // gathering is a node, not a placed item (schema: one item per node, 1–2 a day); the Ley Resin is not gatherable here
-        expect(l.gather).toEqual({ itemId: 'mat_rootbone', perDay: 1 });
+        // gathering is a node, not a placed item; D-098 (U34d): a location gathers from several nodes, so the bark gives both
+        expect(l.gather).toEqual([
+          { itemId: 'mat_rootbone', perDay: 1 },
+          { itemId: 'mat_ley_resin', perDay: 1 },
+        ]);
         expect(expected.has('mat_rootbone') && expected.has('mat_ley_resin')).toBe(true);
         expected.delete('mat_rootbone');
         expected.delete('mat_ley_resin');
@@ -215,6 +221,8 @@ describe('the six locations vs WORLD §3.2 blocks', () => {
     const hidden = (loc: string) => byId(parsedLocations, loc).items.filter((i) => i.hidden).map((i) => i.itemId);
     expect([hidden(BP), hidden(BO)]).toEqual([['mat_wildling_hide'], ['mat_slate_core', 'item_breach_anchor_schematic_b']]);
     expect(byId(parsedLocations, BP).items[0]?.when).toEqual({ killed: { id: 'cr_wildling_brute' } });
+    expect(byId(parsedLocations, BP).items[0]?.chance).toBe(0.6); // "60 % after the Brute is slain" (D-098; was 100 %)
+    expect(WL[BP]?.block).toContain('mat_wildling_hide ×1 (60% after the Brute is slain');
     expect(byId(parsedLocations, BO).items[0]?.when).toEqual({ killed: { id: 'cr_stone_hide_golem', count: 2 } }); // "after both Golems fall"
     expect(byId(parsedLocations, BO).items[1]?.when).toEqual({ all: [{ loop: { min: 2 } }, { echo: 'echo_vask_seal' }] });
     expect(byId(parsedLocations, EF).items[0]).toMatchObject({ itemId: 'item_tobrins_warding_primer', when: { all: [{ loop: { min: 2 } }, { echo: 'echo_vask_seal' }] } });
@@ -913,29 +921,33 @@ describe('the region in the engine (real pack, seeded)', () => {
     expect(holds(when, BP, { loop: 2 })).toBe(true);
   });
 
-  test('the Camp’s husks (R10-1): only in a Horde, only once the Camp is infected, only with Brak gone; the move counts are WORLD §10.4’s 7 (kill) and 9 (expiry)', () => {
+  test('the Camp’s husks (R10-1): only in a Horde, only once the Camp is infected, only with Brak gone; D-098 reads the infection itself (`infected`), not the move count', () => {
     const husks = byId(byId(parsedLocations, IC).encounters, 'enc_camp_husks').when;
     expect(husks).toBeDefined();
     if (husks === undefined) return;
     const both: Record<string, QuestSpec> = { q_clear_path: 'completed', q_blighted_outpost: 'completed' };
     const horde = { flag_horde_active: true };
+    const reached = [IC];
     // no Horde: never
-    expect(holds(husks, IC, { quests: both, hordeMoves: 20 })).toBe(false);
-    // a Tyrant-kill Horde, both quests done: Brak is at the Apex; infected from move 8 on (the Camp falls at move 7, then the arrival counts)
-    expect(holds(husks, IC, { flags: horde, quests: both, hordeMoves: 7 })).toBe(false);
-    expect(holds(husks, IC, { flags: horde, quests: both, hordeMoves: 8 })).toBe(true);
+    expect(holds(husks, IC, { quests: both, infected: reached })).toBe(false);
+    // a Tyrant-kill Horde, both quests done: Brak is at the Apex; the husks stand once the Camp is infected, whatever the move count
+    expect(holds(husks, IC, { flags: horde, quests: both, hordeMoves: 30, infected: ['loc_temporal_breach_apex'] })).toBe(false);
+    expect(holds(husks, IC, { flags: horde, quests: both, hordeMoves: 2, infected: reached })).toBe(true);
     // Brak still here (one quest open or none): the Camp is held, however late
-    expect(holds(husks, IC, { flags: horde, quests: { q_clear_path: 'completed' }, hordeMoves: 30 })).toBe(false);
-    expect(holds(husks, IC, { flags: horde, hordeMoves: 30 })).toBe(false);
+    expect(holds(husks, IC, { flags: horde, quests: { q_clear_path: 'completed' }, infected: reached })).toBe(false);
+    expect(holds(husks, IC, { flags: horde, infected: reached })).toBe(false);
     // kept away (he waits at Hearthring): absent whatever the quests say
-    expect(holds(husks, IC, { flags: { ...horde, flag_brak_kept_away: true }, hordeMoves: 7 })).toBe(false);
-    expect(holds(husks, IC, { flags: { ...horde, flag_brak_kept_away: true }, hordeMoves: 8 })).toBe(true);
-    // the expiry Horde (R10-3: two moves later) does not move him; kept away he is still gone
-    expect(holds(husks, IC, { flags: { ...horde, flag_clock_expired: true }, quests: both, hordeMoves: 30 })).toBe(false);
-    expect(holds(husks, IC, { flags: { ...horde, flag_clock_expired: true, flag_brak_kept_away: true }, hordeMoves: 9 })).toBe(false);
-    expect(holds(husks, IC, { flags: { ...horde, flag_clock_expired: true, flag_brak_kept_away: true }, hordeMoves: 10 })).toBe(true);
+    expect(holds(husks, IC, { flags: { ...horde, flag_brak_kept_away: true } })).toBe(false);
+    expect(holds(husks, IC, { flags: { ...horde, flag_brak_kept_away: true }, infected: reached })).toBe(true);
+    // the expiry Horde does not move him; kept away he is still gone
+    expect(holds(husks, IC, { flags: { ...horde, flag_clock_expired: true }, quests: both, infected: reached })).toBe(false);
+    expect(holds(husks, IC, { flags: { ...horde, flag_clock_expired: true, flag_brak_kept_away: true }, infected: reached })).toBe(true);
     expect(WORLD).toContain('cr_horde_husk ×2 if infected and Brak is absent');
-    expect(section(WORLD, '### 10.4 Elites', '### 10.5')).toContain('IC, EF 7');
+    // in the engine: walking in from the Path once the spread has reached the Camp (the lash is the entry's; the husks hold)
+    const s = stateAt(MP, { flags: { ...horde, flag_brak_kept_away: true }, infected: ['loc_temporal_breach_apex', MP, IC] });
+    s.world.hordeActive = true;
+    const into = step(s, { type: 'move', to: IC }, pack, profileOf()).state;
+    expect([into.world.currentLocationId, into.combat?.encounterId]).toEqual([IC, 'enc_camp_husks']);
   });
 });
 
@@ -957,6 +969,6 @@ describe('authored words outside the documents are few and short', () => {
     expect(coined).toEqual(['ev_forge_pulse_stabilized', 'ev_forge_pulse_exploited', 'ev_forge_pulse_destroyed']);
     // no move, phase or counter id is coined in this region: the creatures use WORLD's intent ids only (tested above); the
     // Horde-moves counter is the engine's
-    expect(ids(JSON.stringify(locations), 'horde')).toEqual(['horde_moves']);
+    expect(ids(JSON.stringify(locations), 'horde')).toEqual([]); // D-098: the Camp reads `infected`, not `horde_moves`
   });
 });

@@ -5,11 +5,15 @@
 import { describe, expect, test } from 'bun:test';
 import type { Ability } from '@schema/ability';
 import type { LocationInput } from '@schema/location';
+import type { RegionInput } from '@schema/region';
+import { buildContentPack } from '@content/index';
 import {
   APEX_FACE_IT,
   APEX_NOT_YET,
   BASIC_ATTACKS,
+  BEFORE_TEXT,
   FLAG_TYRANT_DEAD,
+  NON_LETHAL_TAG,
   WANDERING_ENCOUNTER_ID,
   applyHit,
   applyStatus,
@@ -30,6 +34,7 @@ import {
   guardEnumerator,
   legalActions,
   moveSpec,
+  nonLethalFight,
   playerOf,
   projectIntent,
   resolveHit,
@@ -51,7 +56,8 @@ import {
 import { clone } from '@engine/util/clone';
 import { round } from '@engine/util/math';
 import { freshProfile, makeState, play, type StateOverrides } from '@tests/fixtures/helpers';
-import { BRUTE, D, MISTWOOD, SHADE, combatPack, scriptedCtx, scriptedStep } from '@tests/fixtures/combatContent';
+import { BRUTE, D, MISTWOOD, SHADE, combatPack, combatTables, scriptedCtx, scriptedStep } from '@tests/fixtures/combatContent';
+import { FIXTURE_VERSION } from '@tests/fixtures/miniContent';
 
 const content = combatPack();
 const profile = freshProfile();
@@ -197,6 +203,42 @@ describe('arrival encounters (ARRIVAL_HOOKS)', () => {
     expect(single.combat?.enemies.map((e) => e.refId)).toEqual([SHADE]);
     expect(go(pack, state(), []).mode).toBe('explore');
     expect(go(withMistwood([]), visited(), []).mode).toBe('explore');
+  });
+
+  /** The combat pack with Mistwood's region pool (and its return chance) replaced, and its locations patched. */
+  const poolPack = (pool: RegionInput['wanderingPool'], returnEncounterChance = 1, patch?: (t: { locations: LocationInput[] }) => void) => {
+    const tables = combatTables(patch);
+    const regions = tables.regions.map((r) => (r.id === 'region_mistwood_ironclad_reach' ? { ...clone(r), wanderingPool: pool, returnEncounterChance } : r));
+    return buildContentPack({ ...tables, regions }, { version: FIXTURE_VERSION });
+  };
+  const MIRELING = 'cr_glowfen_mireling'; // the fixture Glowlands' pool
+
+  test('U34d (D-098 item 4): a pool entry is in the pool only while its `when` holds; a pool with nothing in it now draws nothing', () => {
+    const nightBrute = poolPack([{ creatureId: BRUTE, weight: 1, when: { watch: 'night' } }, { creatureId: SHADE, weight: 1 }]);
+    // by day (the move makes it watch 1) the 0.25 that picks the Brute from both picks the Shade, alone in the pool
+    expect(go(nightBrute, visited(), [D.no, 0.25, D.d4(4), D.d4(1)]).combat?.enemies.map((e) => e.refId)).toEqual([SHADE]);
+    expect(go(nightBrute, visited({ watch: 2 }), [D.no, 0.25, D.d4(4), D.d4(1)]).combat?.enemies.map((e) => e.refId)).toEqual([BRUTE]);
+    const onlyAtNight = poolPack([{ creatureId: BRUTE, weight: 1, when: { watch: 'night' } }], 0.2);
+    expect(go(onlyAtNight, visited(), []).mode).toBe('explore'); // not even the return roll
+    expect(go(onlyAtNight, visited({ watch: 2 }), [D.yes, D.no, 0.5, D.d4(4), D.d4(1)]).combat?.enemies.map((e) => e.refId)).toEqual([BRUTE]);
+  });
+
+  test("U34d (D-098 item 4): a location's `wanderingPools` — one roll at their summed chance, then the pool by chance, then its creatures", () => {
+    const pools = (list: NonNullable<LocationInput['wanderingPools']>) =>
+      poolPack([{ creatureId: BRUTE, weight: 1 }, { creatureId: SHADE, weight: 1 }], 1, ({ locations }) => void (locations.find((l) => l.id === MISTWOOD)!.wanderingPools = list));
+    const both = pools([
+      { regionId: 'region_mistwood_ironclad_reach', chance: 0.1 },
+      { regionId: 'region_glowlands_nexus', chance: 0.1 },
+    ]);
+    // 0.2 in all: a miss is one draw (the region's own 100 % return roll is not made)
+    expect(go(both, visited(), [0.5]).mode).toBe('explore');
+    // a hit, then the pool: 0.75 of 0.2 lands in the second pool (the Glowlands' mireling), 0.25 in the first
+    expect(go(both, visited(), [D.yes, 0.75, D.no, 0.5, D.d4(4), D.d4(1)]).combat?.enemies.map((e) => e.refId)).toEqual([MIRELING]);
+    expect(go(both, visited(), [D.yes, 0.25, D.no, 0.25, D.d4(4), D.d4(1)]).combat?.enemies.map((e) => e.refId)).toEqual([BRUTE]);
+    // one pool: no pick draw
+    const one = pools([{ regionId: 'region_glowlands_nexus', chance: 0.3 }]);
+    expect(go(one, visited(), [D.yes, D.no, 0.5, D.d4(4), D.d4(1)]).combat?.enemies.map((e) => e.refId)).toEqual([MIRELING]);
+    expect(go(one, state(), []).mode).toBe('explore'); // never on a first visit
   });
 
   test('a group a `spawn` effect placed here fights first, and is gone once beaten', () => {
@@ -476,6 +518,28 @@ describe('defeat (DESIGN §4.7, D-049, D-066 #7)', () => {
     expect(expiry.pendingEnding).toEqual({ outcome: 'closer_fall', reason: 'expiry', slideIndex: 0 });
     const tyrantHorde = die(dying({ patch: (st) => void ((st.world.hordeActive = true), (st.world.hordeCause = 'tyrant')) })).state;
     expect(tyrantHorde.pendingEnding).toEqual({ outcome: 'closer_fall', reason: 'death', slideIndex: 0 });
+  });
+
+  test(`U34d (D-098 item 6): against a foe tagged '${NON_LETHAL_TAG}' (the Before's Watch) losing is no death — outside the Before, let go where you stand`, () => {
+    const tables = combatTables();
+    const watch = buildContentPack(
+      { ...tables, creatures: tables.creatures.map((c) => (c.id === SHADE ? { ...clone(c), tags: [...(c.tags ?? []), NON_LETHAL_TAG] } : c)) },
+      { version: FIXTURE_VERSION },
+    );
+    const sp = spec([{ creatureId: SHADE, count: 1 }], { onDefeat: [{ setFlag: 'flag_fell' }] });
+    expect(nonLethalFight(watch, { enemies: [{ refId: SHADE }] } as unknown as CombatState)).toBe(true);
+    expect(nonLethalFight(content, { enemies: [{ refId: SHADE }] } as unknown as CombatState)).toBe(false);
+    const ctx = scriptedCtx(state(), playerFirst(1), watch, profile);
+    beginCombat(ctx, sp);
+    runCombat(ctx);
+    const s = patched(ctx.s, (c) => void (c.party[0]!.hp = 1));
+    const out = scriptedStep(s, { type: 'guard' }, HIT(), watch, profile);
+    expect(out.rejected).toBeNull();
+    expect([out.state.mode, out.state.combat, out.state.player.hp, out.state.flags.flag_fell, out.state.pendingEnding]).toEqual(['explore', null, 1, true, null]);
+    expect(out.state.counters.deathsThisLoop).toBe(0);
+    expect(ofType(out.events, 'playerDied')).toEqual([]);
+    expect(ofType(out.events, 'combatEnded')).toEqual([{ t: 'combatEnded', result: 'defeat', rounds: 1, xp: 0, gold: 0, loot: [] }]);
+    expect(ofType(out.events, 'log').map((e) => e.text)).not.toContain(BEFORE_TEXT.arrest); // the cell and the Garret are the Before's
   });
 });
 

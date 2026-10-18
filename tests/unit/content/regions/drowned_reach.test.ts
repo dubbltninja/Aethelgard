@@ -252,31 +252,32 @@ describe('the eight locations vs WORLD §3.6 blocks', () => {
     expect(loc(LR).merchantId).toBe('npc_sedge_marrow');
   });
 
-  test('every item WORLD places is placed, with WORLD’s conditions; the Deep’s loot is the Warden’s; a chance is a hidden item', () => {
+  test('every item WORLD places is placed, with WORLD’s conditions; the Deep’s loot is the Warden’s; a chance is the item’s `chance` (D-098)', () => {
     for (const l of parsedLocations) {
       const expected = new Set(WL[l.id]?.itemIds ?? []);
       // the Warden pays the clapper (and the key and Hydromancy for the fight): only the bypass's share is placed here
       if (l.id === BW) expected.delete('item_bell_clapper');
       expect([l.id, l.items.map((i) => i.itemId).sort()]).toEqual([l.id, [...expected].sort()]);
     }
-    expect(loc(DS).items).toEqual([{ itemId: 'item_brine_draught', count: 1, hidden: false, once: true }]);
-    expect(loc(TW).items).toEqual([{ itemId: 'mat_sodden_vellum', count: 2, hidden: false, once: true }]);
-    expect(loc(LR).items).toEqual([{ itemId: 'item_lantern_oil', count: 2, hidden: false, once: true }]);
-    expect(loc(BM).items).toEqual([{ itemId: 'mat_bell_bronze', count: 2, hidden: false, once: true }]);
-    // ×1 (40 %) and ×1 (30 %, caught in a grate): no chance field on a location item (D-091 gap 1), so hidden
+    const item = (o: object) => ({ count: 1, hidden: false, once: true, chance: 1, onTake: [], ...o }); // U34d's defaults
+    expect(loc(DS).items).toEqual([item({ itemId: 'item_brine_draught' })]);
+    expect(loc(TW).items).toEqual([item({ itemId: 'mat_sodden_vellum', count: 2 })]);
+    expect(loc(LR).items).toEqual([item({ itemId: 'item_lantern_oil', count: 2 })]);
+    expect(loc(BM).items).toEqual([item({ itemId: 'mat_bell_bronze', count: 2 })]);
+    // ×1 (40 %) and ×1 (30 %, caught in a grate): the item's own `chance` (D-098, U34d; they lay hidden at 100 %, D-091 gap 1)
     expect(WL[CI]?.block).toContain('mat_drowned_pearl ×1 (40%)');
     expect(WL[BS]?.block).toContain('mat_bell_bronze ×1 (30%, caught in a grate)');
-    expect([loc(CI).items[0]?.hidden, loc(BS).items[0]?.hidden]).toEqual([true, true]);
+    expect([loc(CI).items, loc(BS).items]).toEqual([[item({ itemId: 'mat_drowned_pearl', chance: 0.4 })], [item({ itemId: 'mat_bell_bronze', chance: 0.3 })]]);
     expect(loc(SY).items).toEqual([
-      { itemId: 'item_litany_page_1', count: 1, hidden: false, once: true },
-      { itemId: 'item_oriels_ledger', count: 1, hidden: false, once: true, when: { any: [{ loop: { min: 2 } }, { echo: 'echo_oriel_lineage' }] } },
-      { itemId: 'mat_sodden_vellum', count: 2, hidden: false, once: true },
+      item({ itemId: 'item_litany_page_1' }),
+      item({ itemId: 'item_oriels_ledger', when: { any: [{ loop: { min: 2 } }, { echo: 'echo_oriel_lineage' }] } }),
+      item({ itemId: 'mat_sodden_vellum', count: 2 }),
     ]);
     expect(WL[SY]?.block).toContain('item_oriels_ledger (100%, Loop 2+ or `echo_oriel_lineage`)');
     // the Deep: the key and the Hydromancy only with the Echo (the bypass), the clapper never
     expect(loc(BW).items).toEqual([
-      { itemId: KEY, count: 1, hidden: false, once: true, when: { echo: 'echo_rhune_choice' } },
-      { itemId: 'item_rhunes_hydromancy', count: 1, hidden: false, once: true, when: { echo: 'echo_rhune_choice' } },
+      item({ itemId: KEY, when: { echo: 'echo_rhune_choice' } }),
+      item({ itemId: 'item_rhunes_hydromancy', when: { echo: 'echo_rhune_choice' } }),
     ]);
     expect(cr(WARDEN).loot.map((r) => r.itemId)).toEqual([KEY, 'item_bell_clapper', 'item_rhunes_hydromancy', 'mat_drowned_pearl', 'mat_bell_bronze']);
   });

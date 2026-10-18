@@ -38,16 +38,11 @@ const BRAK_ABSENT: Condition = {
   ],
 };
 /**
- * No Condition atom reads "this node is infected". The Camp is infected by the spread at move 7 of a Tyrant-kill Horde (WORLD
- * §10.4: "IC, EF 7"; 9 after an expiry, R10-3), so a visit that arrives infected is move 8 or later (the engine counts the move
- * in `horde_moves` before the encounter roll). A player who is lashed on the way spreads later; the counter is then early.
+ * D-098 (U34d): the `infected` atom reads the Horde's infected set for the node the Wayfinder stands on (the spread runs before
+ * the encounter roll). It replaces U43's reading by move count (`horde_moves` ≥ 8, or ≥ 10 after an expiry), which ran early
+ * for a player lashed on the way.
  */
-const CAMP_INFECTED: Condition = {
-  any: [
-    { all: [{ not: { flag: 'flag_clock_expired' } }, { counter: { name: 'horde_moves', min: 8 } }] },
-    { all: [{ flag: 'flag_clock_expired' }, { counter: { name: 'horde_moves', min: 10 } }] },
-  ],
-};
+const CAMP_INFECTED: Condition = { infected: true };
 
 export const locations = [
   // ---- Mistwood Path — the fog, the herbs, the Nomads' cairns (WORLD §3.2; DESIGN §8.2 "Mistwood gathering") -----------------
@@ -64,10 +59,13 @@ export const locations = [
       { dir: 'north', to: 'loc_silverwood_plaza' },
       { dir: 'south', to: 'loc_wayfarers_respite' },
     ],
-    // WORLD: "mat_rootbone ×1, mat_ley_resin ×1" from the glowing bark. A node gathers one item (1–2 units a day, DESIGN
-    // §8.2), so the Rootbone is the node's and the Ley Resin is not gatherable here (listed in the U43 reply).
+    // WORLD: "mat_rootbone ×1, mat_ley_resin ×1" from the glowing bark. D-098 (U34d): a location gathers from several
+    // nodes, so the bark gives both (the Ley Resin was not gatherable here, U43's reading).
     items: [{ itemId: 'item_ley_touched_tonic' }],
-    gather: { itemId: 'mat_rootbone', perDay: 1 },
+    gather: [
+      { itemId: 'mat_rootbone', perDay: 1 },
+      { itemId: 'mat_ley_resin', perDay: 1 },
+    ],
     encounters: [
       // first: Prowlers ×2 (50 %) or Rootlings ×3 (30 %). The engine runs the first group whose roll succeeds, so the
       // second group's own roll is 0.3 / (1 − 0.5) = 0.6, which makes 30 % overall (WORLD §10.3: 0.8 fights on the first visit).
@@ -153,8 +151,8 @@ export const locations = [
         lockedText: 'I should talk to Brak before going this way.',
       },
     ],
-    // Tessaly's caravan (`flag_hearthring_caravan`, WORLD §9.1 / `ws_caravan`) is the caravan unit's: an NPC override and a
-    // conditional merchant the schema cannot place here (listed in the U43 reply).
+    // Tessaly's caravan (`flag_hearthring_caravan`, WORLD §9.1 / `ws_caravan`): D-098 (U34d) her NPC schedule
+    // (../ashen_steppe/npcs.ts) stands her here as well as at Hearthring, and her stall trades where she stands.
     encounters: [
       // Horde (WORLD §3.2, §10.5, §12.1): cr_horde_husk ×2 when the Camp is infected and Brak is absent. Horde fights hold (R10-1).
       {
@@ -193,8 +191,8 @@ export const locations = [
       { dir: 'east', to: 'loc_blighted_outpost' },
     ],
     // WORLD: "mat_wildling_hide ×1 (60 % after the Brute is slain, in its den)". Hidden (found by examine) once the Brute has
-    // fallen this loop; a location item has no chance field, so it lies there at 100 % (listed in the U43 reply).
-    items: [{ itemId: 'mat_wildling_hide', hidden: true, when: { killed: { id: 'cr_wildling_brute' } } }],
+    // fallen this loop; D-098 (U34d): at its own 60 %, rolled at that examine (was 100 %, D-091 gap 1).
+    items: [{ itemId: 'mat_wildling_hide', hidden: true, chance: 0.6, when: { killed: { id: 'cr_wildling_brute' } } }],
     encounters: [
       // legacy: the Wildling Brute (100 %, first visit); a story gate while `q_clear_path` is active (R10-1, §10.5)
       {

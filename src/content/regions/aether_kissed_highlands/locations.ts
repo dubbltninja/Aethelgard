@@ -14,11 +14,9 @@
 // encounter, as U43's Golem shortcut (DESIGN §13.3 #8): while the Echo is held the fight does not start.
 //
 // Not expressible (listed in the U44 reply): the Pass's mirage hazard ("first visit: 25 % chance the chosen exit costs an
-// extra watch", negated by `echo_flickering_man`: an exit's cost is fixed and no event rolls); an item with a chance (the
-// Pass's 50 % Frayed Moment, D-091 gap 1: it lies hidden at 100 %, as U43's Peaks hide) and items that appear after the
-// first entry (the Spires' second shard with `flag_heartstone_stabilized`, gap 2: the row is written and waits for U34d, as
-// U45's Frayed Moments at the Apex); Dask as "a flicker the player cannot speak to" in Loop 1 (a placement has no
-// condition: the dialogue and companion units'); the Spires' and the Plateau's region hazards (region.ts).
+// extra watch", negated by `echo_flickering_man`: an exit's cost is fixed and no event rolls); the Spires' and the Plateau's
+// region hazards (region.ts). D-098 (U34d) made expressible: the Pass's 50 % Frayed Moment (an item's `chance`), the Spires'
+// second shard after the first entry, and Dask's Loop 1 flicker (his NPC `schedule`, npcs.ts).
 // Exits to other regions name their WORLD ids and stay pending until those units land (D-090).
 import type { Condition } from '@schema/condition';
 import type { LocationInput } from '@schema/location';
@@ -42,8 +40,8 @@ export const locations = [
     items: [
       { itemId: 'item_chronal_dust' }, // legacy
       // WORLD: "mat_frayed_moment ×1 (50% after killing cr_shimmering_phantom)": hidden (found by examine) once the Phantom has
-      // fallen this loop; a location item has no chance field, so it lies there at 100 % (as U43's Peaks hide)
-      { itemId: 'mat_frayed_moment', hidden: true, when: { killed: { id: 'cr_shimmering_phantom' } } },
+      // fallen this loop; D-098 (U34d): at its own 50 % (was 100 %, D-091 gap 1; as U43's Peaks hide)
+      { itemId: 'mat_frayed_moment', hidden: true, chance: 0.5, when: { killed: { id: 'cr_shimmering_phantom' } } },
     ],
     encounters: [
       // first: the Phantom (100 %, legacy)
@@ -94,8 +92,8 @@ export const locations = [
     ],
     items: [
       { itemId: 'item_aetherium_shard' }, // legacy; the loop resets it
-      // "a second shard appears here with flag_heartstone_stabilized": a location item appears at the loop's first entry
-      // only (D-091 gap 2), so this row waits for U34d
+      // "a second shard appears here with flag_heartstone_stabilized": D-098 (U34d) an entry appears on the first arrival at
+      // which its condition holds, so it lies here on the next visit after the stabilizing (D-091 gap 2)
       { itemId: 'item_aetherium_shard', when: { flag: 'flag_heartstone_stabilized' } },
     ],
     encounters: [

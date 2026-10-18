@@ -28,10 +28,12 @@
 //
 // `thresholdPostStep` (after U30's `loopEndHook`) keeps the loop's Resonance tally (`counters.resonance`), pays the
 // challenge modifiers' multiplier on it when the loop ends (DESIGN §15.1: ×1.25 / ×1.5 each, multiplied, at most ×3;
-// D-082), writes the Still Shore's lines, and asks for an autosave on entering the Threshold (DESIGN §14.2).
+// D-082), writes the Still Shore's lines, fires the place's `enter` events on every arrival (U34d, `thresholdArrival`),
+// and asks for an autosave on entering the Threshold (DESIGN §14.2).
 import { evaluate, explain } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
-import { apply } from '../effects';
+import { apply, locationState } from '../effects';
+import { fireEvent } from './explore';
 import type { Enumerator } from '../legalActions';
 import { newRun } from '../newRun';
 import { resonanceMultiplier } from '../runRules';
@@ -386,12 +388,34 @@ function shoreLines(ctx: StepCtx): void {
   ctx.log(THRESHOLD_TEXT.figure, 'narration');
 }
 
-/** Post-step (after `loopEndHook`): the Resonance tally and multiplier, the Still Shore's lines, the Threshold autosave. */
+/**
+ * U34d (D-098 item 5): arriving at one of the four places — by `thresholdGo`, or on the Still Shore from an ending — fires
+ * its WORLD §3.12 location's `enter` events whose `when` holds (`ev_shore_first`, `ev_gallery_marks`, `ev_loom_first_thread`
+ * …), a `once` event once per visit (the Threshold's state is the next loop's, so its record starts afresh each time).
+ */
+export function thresholdArrival(ctx: StepCtx, area: ThresholdArea): void {
+  const locationId = THRESHOLD_LOCATIONS[area];
+  const loc = ctx.content.locations[locationId];
+  if (loc === undefined) return;
+  for (const ev of loc.events) {
+    if (ev.trigger !== 'enter') continue;
+    if (ev.once && locationState(ctx, locationId).eventsFired.includes(ev.id)) continue;
+    if (ev.when !== undefined && !evaluate(ev.when, ctx.s, ctx.profile, ctx.content)) continue;
+    fireEvent(ctx, locationId, ev);
+    if (ctx.s.mode !== 'threshold') return;
+  }
+}
+
+/** Post-step (after `loopEndHook`): the Resonance tally and multiplier, each arrival's lines and events, the Threshold autosave. */
 export const thresholdPostStep: PostStepHook = (ctx) => {
   const events = ctx.events.slice();
   tallyResonance(ctx, events);
   if (events.some((e) => e.t === 'loopEnded')) payModifierMultiplier(ctx);
-  for (const e of events) if (e.t === 'thresholdEntered' && e.area === 'still_shore') shoreLines(ctx);
+  for (const e of events) {
+    if (e.t !== 'thresholdEntered') continue;
+    if (e.area === 'still_shore') shoreLines(ctx);
+    if (ctx.s.mode === 'threshold') thresholdArrival(ctx, e.area);
+  }
   if (ctx.s.mode === 'threshold' && events.some((e) => e.t === 'modeChanged' && e.from === 'ending' && e.to === 'threshold')) {
     ctx.emit({ t: 'autosaveCheckpoint', reason: 'thresholdEntered' });
   }

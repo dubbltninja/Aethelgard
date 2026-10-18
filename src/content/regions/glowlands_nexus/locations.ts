@@ -11,11 +11,10 @@
 // it is the Unveiled Tyrant's communion outcome (creatures.ts). Exits to other regions name their WORLD ids and stay
 // pending until those units land (D-090).
 //
-// Not expressible yet (listed in the U45 reply): WORLD §12.1 `ws_infected`'s "The air here is coming apart at the
-// seams." on an infected node (no condition reads "this node is infected"; the Apex's own Horde text is the legacy one,
-// read off `flag_horde_active`, which the engine sets as it infects the Apex); location items with a chance (the 50 %
-// Glow Gland, D-091 gap 1) and items that appear after the first entry (the Frayed Moments after the fall, gap 2);
-// the orrery event's "with the key, item_chronal_dust ×2" (an event's effects carry no per-effect condition).
+// D-098 (U34d) made expressible what the U45 reply listed: WORLD §12.1 `ws_infected`'s "The air here is coming apart at the
+// seams." is the engine's, added to any infected node's text but the Apex's (whose own Horde text is the legacy one, read
+// off `flag_horde_active`); the 50 % Glow Gland is an item `chance`; the Frayed Moments after the fall appear on the
+// first entry after it; the orrery's "with the key, item_chronal_dust ×2" is an `onlyIf` effect.
 import type { LocationInput } from '@schema/location';
 
 /** The legacy text, legacy/aethelgard_data.py, and WORLD's appended sentence. */
@@ -43,8 +42,8 @@ export const locations = [
     ],
     items: [
       { itemId: 'item_glow_moss' }, // legacy
-      // WORLD: ×1 (50 %). A location item has no chance field (D-091 gap 1): it lies hidden, as U42's wax seal.
-      { itemId: 'mat_glow_gland', hidden: true },
+      // WORLD: ×1 (50 %). D-098 (U34d): its own `chance`, once a loop (was hidden at 100 %, D-091 gap 1).
+      { itemId: 'mat_glow_gland', chance: 0.5 },
     ],
     encounters: [
       // legacy: the Glowfen Mireling (100 %, first visit); `scatter` (WORLD §10.5: never a story gate)
@@ -161,12 +160,15 @@ export const locations = [
       },
       { id: 'ev_nexus_moor', text: 'A brass plate on the orrery reads: H. MOOR, CLOCKWRIGHT TO THE CIRCLE. It has been polished recently.' },
       // once per loop, with the Lens or the key; STORY §12 "discovery at the Nexus with Lens". WORLD's second grant,
-      // `item_chronal_dust` ×2 "with the key", has no form here (see the header).
+      // `item_chronal_dust` ×2 "with the key", is D-098's (U34d) per-effect condition (see the header).
       {
         id: 'ev_nexus_orrery',
         text: 'Through the Lens the housing goes clear: on a cradle of hair-springs lies an eyepiece of black glass, and through it the Apex is on the far side of something. The key turns.',
         when: { any: [{ item: { id: 'item_chronos_lens' } }, { item: { id: 'item_orrery_key' } }] },
-        effects: [{ grantEcho: 'echo_eye_of_masque' }],
+        effects: [
+          { grantEcho: 'echo_eye_of_masque' },
+          { onlyIf: { when: { item: { id: 'item_orrery_key' } }, effects: [{ giveItem: { item: 'item_chronal_dust', count: 2 } }] } },
+        ],
       },
     ],
     // WORLD's particles are "slow clock-tick flashes (afterimages of the scene offset in time)"; static is the nearest
@@ -204,9 +206,10 @@ export const locations = [
         label: 'through the tear',
       },
     ],
-    // WORLD: none fixed; after either Tyrant falls, three Frayed Moments lie here. Location items appear at the loop's
-    // first entry only (D-091 gap 2), so this row waits for U34d, like U42's Horde tonic in the Corridor.
-    items: [{ itemId: 'mat_frayed_moment', count: 3, when: { flag: 'flag_tyrant_dead' } }],
+    // WORLD: none fixed; after either Tyrant falls, three Frayed Moments lie here. D-098 (U34d): an entry waits for its
+    // condition, and the Wayfinder is standing here when it comes true (the fight is here, and the Horde makes a return
+    // costly), so they lie `hidden` for the examine after the fall (the Peaks' and the Pass's form; was D-091 gap 2).
+    items: [{ itemId: 'mat_frayed_moment', count: 3, hidden: true, when: { flag: 'flag_tyrant_dead' } }],
     encounters: [
       // Loop 1 (D-051): the Contained Tyrant, present until defeated this loop (legacy rule). The engine opens the
       // Face it / Not yet prompt after the enter events (D-067.1, reducers/explore.ts) and starts this fight on Face it.

@@ -19,6 +19,7 @@ import { region } from '@content/regions/aether_kissed_highlands/region';
 import { companions } from '@content/shared/companions';
 import { validateContent } from '@content/validate';
 import { beginCombat, evaluate, generateIntent, legalActions, step, type CombatState, type Combatant, type EncounterSpec, type GameState } from '@engine/index';
+import { npcsAt } from '@engine/reducers/explore';
 import type { Condition } from '@schema/condition';
 import { CreatureSchema, walkSteps, type Creature, type Step } from '@schema/creature';
 import { LocationSchema, type Location } from '@schema/location';
@@ -254,17 +255,19 @@ describe('the three locations vs WORLD §3.4 blocks', () => {
     for (const l of parsedLocations) {
       expect([l.id, [...new Set(l.items.map((i) => i.itemId))].sort()]).toEqual([l.id, [...new Set(WL[l.id]?.itemIds ?? [])].sort()]);
     }
+    const item = (o: object) => ({ count: 1, hidden: false, once: true, chance: 1, onTake: [], ...o }); // U34d's defaults
     expect(loc(PASS).items).toEqual([
-      { itemId: 'item_chronal_dust', count: 1, hidden: false, once: true },
-      // "mat_frayed_moment ×1 (50% after killing cr_shimmering_phantom)": no chance field on a location item (D-091 gap 1) — hidden, as U43's Peaks
-      { itemId: 'mat_frayed_moment', count: 1, hidden: true, once: true, when: { killed: { id: PHANTOM } } },
+      item({ itemId: 'item_chronal_dust' }),
+      // "mat_frayed_moment ×1 (50% after killing cr_shimmering_phantom)": hidden for the examine after the kill (as U43's Peaks),
+      // at its own 50 % (D-098, U34d; was 100 %, D-091 gap 1)
+      item({ itemId: 'mat_frayed_moment', hidden: true, chance: 0.5, when: { killed: { id: PHANTOM } } }),
     ]);
     expect(loc(SPIRES).items).toEqual([
-      { itemId: 'item_aetherium_shard', count: 1, hidden: false, once: true },
-      // "a second shard appears here with flag_heartstone_stabilized": a location item appears at the loop's first entry only (D-091 gap 2)
-      { itemId: 'item_aetherium_shard', count: 1, hidden: false, once: true, when: { flag: 'flag_heartstone_stabilized' } },
+      item({ itemId: 'item_aetherium_shard' }),
+      // "a second shard appears here with flag_heartstone_stabilized": D-098 an entry appears at the first arrival its condition holds
+      item({ itemId: 'item_aetherium_shard', when: { flag: 'flag_heartstone_stabilized' } }),
     ]);
-    expect(loc(PLATEAU).items).toEqual([{ itemId: TALISMAN, count: 1, hidden: false, once: true }]);
+    expect(loc(PLATEAU).items).toEqual([item({ itemId: TALISMAN })]);
   });
 
   test('every creature WORLD names in a block’s Encounters line is in that location’s encounters, and vice versa', () => {
@@ -655,6 +658,22 @@ describe('Dask vs WORLD §4', () => {
     // he may stay in any `temporallyUnstable` location (D-059): the engine's rule, not a second placement
     expect(row[3]).toContain('may remain in any `temporallyUnstable` location, D-059');
     expect(parsedLocations.filter((l) => l.npcs.includes('npc_dask')).map((l) => l.id)).toEqual([PASS]);
+  });
+
+  test('D-098 (U34d): in Loop 1 he is "a flicker the player cannot speak to" — his schedule stands him nowhere; from Loop 2 he is at the Pass', () => {
+    expect(WL[PASS]?.block).toContain('in Loop 1 he is a flicker the player cannot speak to — Loop 2+ only');
+    expect(dask.schedule).toEqual([{ when: { loop: { max: 1 } }, at: [] }]);
+    const here = (o: At) => {
+      const s = stateAt(PASS, { stood: { [PASS]: { cleared: ['enc_pass_phantom'] } }, ...o });
+      return {
+        npcs: npcsAt(s, pack, profileOf(o), PASS),
+        examinable: legalActions(s, pack, profileOf(o), { includeExamine: true }).some((a) => a.type === 'examine' && a.target.kind === 'npc'),
+      };
+    };
+    expect(here({})).toEqual({ npcs: [], examinable: false });
+    expect(here({ loop: 2 })).toEqual({ npcs: ['npc_dask'], examinable: true });
+    // the glimpse is the Pass's own event
+    expect(byId(loc(PASS).events, 'ev_pass_flicker').when).toBeUndefined();
   });
 });
 

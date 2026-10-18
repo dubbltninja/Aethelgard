@@ -139,7 +139,7 @@ describe('LocationSchema', () => {
     expect(loc.events[0]?.once).toBe(false);
     expect(loc.descriptionVariants).toHaveLength(2);
     expect(loc.art.variants).toHaveLength(1);
-    expect(loc.gather).toEqual({ itemId: 'mat_ember_ore', perDay: 1 });
+    expect(loc.gather).toEqual([{ itemId: 'mat_ember_ore', perDay: 1 }]); // U34d: one node or a list, read as a list
     expect(loc.levelBand).toEqual({ min: 7, max: 7 });
   });
 
@@ -209,6 +209,31 @@ describe('LocationSchema', () => {
     expect(LocationEventSchema.safeParse({ id: 'ev_touch', text: 'x', trigger: 'interact', label: 'Touch the Heartstone' }).success).toBe(true);
     expect(LocationEventSchema.safeParse({ id: 'ev_touch', text: 'x', trigger: 'sing' }).success).toBe(false);
     expect(LocationEventSchema.safeParse({ id: 'ev_touch', text: '' }).success).toBe(false);
+  });
+
+  test('U34d: an item’s chance and onTake (defaults 1 and none); gather as a list; a second region’s pool', () => {
+    const loc = LocationSchema.parse({
+      ...whisperingRuins,
+      safe: false,
+      items: [{ itemId: 'item_remnant_wax_seal', chance: 0.3, onTake: [{ rep: { faction: 'ironclad', delta: -10 } }] }, { itemId: 'item_bell_shard' }],
+      gather: [{ itemId: 'mat_rootbone', perDay: 1 }, { itemId: 'mat_ley_resin', perDay: 1 }],
+      wanderingPools: [{ regionId: 'region_ashen_steppe', chance: 0.1 }, { regionId: 'region_glowfen', chance: 0.1 }],
+    });
+    expect(loc.items.map((i) => [i.chance, i.onTake])).toEqual([[0.3, [{ rep: { faction: 'ironclad', delta: -10 } }]], [1, []]]);
+    expect(loc.gather?.map((g) => g.itemId)).toEqual(['mat_rootbone', 'mat_ley_resin']);
+    expect(loc.wanderingPools).toHaveLength(2);
+    expect(messages({ ...whisperingRuins, items: [{ itemId: 'item_x', chance: 1.5 }] })[0]).toContain('items.0.chance');
+    expect(messages({ ...whisperingRuins, gather: [] })).not.toEqual([]);
+    expect(messages({ ...whisperingRuins, gather: [{ itemId: 'mat_a', perDay: 1 }, { itemId: 'mat_a', perDay: 1 }] })).toEqual([
+      "gather.1.itemId: 'mat_a' is gathered by two nodes here; raise its perDay instead",
+    ]);
+    expect(messages({ ...whisperingRuins, safe: false, wanderingPools: [{ regionId: 'region_a', chance: 0.1 }, { regionId: 'region_a', chance: 0.1 }] })).toEqual([
+      "wanderingPools.1.regionId: pool 'region_a' is listed twice",
+    ]);
+    expect(messages({ ...whisperingRuins, safe: true, wanderingPools: [{ regionId: 'region_a', chance: 0.1 }] })).toEqual([
+      'wanderingPools: a safe location rolls no wandering pool',
+    ]);
+    expect(messages({ ...whisperingRuins, safe: false, wanderingPools: [] })).not.toEqual([]);
   });
 
   test('conditions and effects inside a location are the canonical atoms', () => {

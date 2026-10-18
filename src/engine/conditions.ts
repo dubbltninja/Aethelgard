@@ -41,6 +41,18 @@ export type RepTier = keyof typeof DEFAULT_REP_TIERS;
 export const dayOf = (ticks: number): number => Math.floor(ticks / TICKS_PER_DAY) + 1;
 /** 0 dawn, 1 day, 2 dusk, 3 night. */
 export const watchOf = (ticks: number): 0 | 1 | 2 | 3 => (ticks % TICKS_PER_DAY) as 0 | 1 | 2 | 3;
+/**
+ * U34d: `counters.custom` key of Silverwood Before's own hour (0 dawn … 3 night). The Breach Clock is frozen there, so the
+ * `watch` atom reads this instead: every Bell begins at dawn and a short rest at the Garret passes one watch (before.ts).
+ */
+export const BEFORE_WATCH_COUNTER = 'before_watch';
+/** The watch the `watch` atom reads: the Breach Clock's, or inside the Before the echo's own hour. */
+export function watchNow(s: GameState): 0 | 1 | 2 | 3 {
+  if (s.before === null) return watchOf(s.clock.ticks);
+  return Math.max(0, Math.min(3, s.counters.custom[BEFORE_WATCH_COUNTER] ?? 0)) as 0 | 1 | 2 | 3;
+}
+/** U34d: the Wayfinder stands on a node the Horde has infected (WORLD §12.1 `ws_infected`). */
+export const standingInfected = (s: GameState): boolean => s.world.infected.includes(s.world.currentLocationId);
 /** Dawns before the limit (PLAN §4.9). */
 export const daysLeft = (clock: { ticks: number; limitTicks: number }): number =>
   Math.floor((clock.limitTicks - clock.ticks) / TICKS_PER_DAY);
@@ -135,7 +147,7 @@ const EVALUATORS: Evaluators = {
   loop: (r, { s }) => inRange(s.meta.loop, r),
   day: (r, { s }) => inRange(dayOf(s.clock.ticks), r),
   level: (r, { s }) => inRange(s.player.level, r),
-  watch: (w, { s }) => WATCH_NAMES[watchOf(s.clock.ticks)] === w,
+  watch: (w, { s }) => WATCH_NAMES[watchNow(s)] === w,
   clock: (c, { s }) => inRange(daysLeft(s.clock), c.daysLeft),
   beforeDay: (d, { s }) => s.before?.day === d,
   beforeResets: (r, { s }) => s.before !== null && inRange(s.before.resets, r),
@@ -162,6 +174,7 @@ const EVALUATORS: Evaluators = {
     return communion != null && inRange(communion.resolve, r);
   },
   modifier: (id, { s }) => s.meta.modifiers.includes(id),
+  infected: (_v, { s }) => standingInfected(s),
 };
 
 function run(cond: Condition, env: Env): boolean {
@@ -210,7 +223,7 @@ const DESCRIBERS: Describers = {
   loop: (r, { s }) => `Loop ${rangeText(r)} (now ${s.meta.loop})`,
   day: (r, { s }) => `Day ${rangeText(r)} (now ${dayOf(s.clock.ticks)})`,
   level: (r, { s }) => `Level ${rangeText(r)} (now ${s.player.level})`,
-  watch: (w, { s }) => `At ${w} (now ${WATCH_NAMES[watchOf(s.clock.ticks)]})`,
+  watch: (w, { s }) => `At ${w} (now ${WATCH_NAMES[watchNow(s)]})`,
   clock: (k, { s }) => `Dawns left ${rangeText(k.daysLeft)} (now ${daysLeft(s.clock)})`,
   beforeDay: (d) => `Silverwood Before, day ${d}`,
   beforeResets: (r) => `Silverwood Before resets ${rangeText(r)}`,
@@ -232,6 +245,7 @@ const DESCRIBERS: Describers = {
   counter: (k, { s, c }) => `${humanize(k.name)} ${rangeText(k)} (now ${counterValue(s, c, k.name)})`,
   resolve: (r, { s }) => `Resolve ${rangeText(r)}${s.combat?.communion ? ` (now ${s.combat.communion.resolve})` : ' (communion only)'}`,
   modifier: (id, { c }) => `Modifier: ${nameIn(c.modifiers, id)}`,
+  infected: () => 'Here, where the Horde has reached',
 };
 
 function describe(cond: Condition, env: Env): string {

@@ -19,8 +19,9 @@
 //   - Dask (home: the Shimmering Pass, U44) is listed on the Shore as well, so `talk` finds him there (U34c's fixture form;
 //     his scenes carry the "from Loop 3");
 //   - the Loom's station is PLAN §5.3's `craftingStation: 'loom'` (the engine finds the Loom by its place, not this field).
-// Not expressible yet (the U48b reply): `thresholdGo` runs no arrival, so the engine fires none of these places' events (the
-// Threshold content/UI unit's; WORLD §2.12's Loop 5 and Loop 7 water and the Gallery's epilogue paintings are art variants).
+// D-098 (U34d): every arrival at a place — `thresholdGo`, or the Still Shore from an ending — fires its `enter` events (engine
+// reducers/threshold.ts `thresholdArrival`; U48b pinned that none fired). WORLD §2.12's Loop 5 and Loop 7 water and the
+// Gallery's epilogue paintings are art variants.
 import type { Condition } from '@schema/condition';
 import type { LocationInput } from '@schema/location';
 

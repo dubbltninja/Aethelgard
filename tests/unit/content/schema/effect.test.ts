@@ -47,6 +47,10 @@ const VALID: { [K in EffectKey]: Effect[] } = {
   unlockCodex: [{ unlockCodex: 'codex_breach' }],
   counter: [{ counter: { name: 'bells_rung', delta: 1 } }],
   resolve: [{ resolve: -2 }],
+  onlyIf: [
+    { onlyIf: { when: { item: { id: 'item_orrery_key' } }, effects: [{ giveItem: { item: 'item_chronal_dust', count: 2 } }] } },
+    { onlyIf: { when: { not: { echo: 'echo_sky_oath' } }, effects: [{ rep: { faction: 'ironclad', delta: -10 } }, { onlyIf: { when: { loop: { min: 2 } }, effects: [{ gold: 1 }] } }] } },
+  ],
 };
 
 const INVALID: { [K in EffectKey]: [unknown, string][] } = {
@@ -93,16 +97,23 @@ const INVALID: { [K in EffectKey]: [unknown, string][] } = {
   unlockCodex: [[{ unlockCodex: 'codex' }, 'unlockCodex']],
   counter: [[{ counter: { name: 'x' } }, 'counter.delta: Required']],
   resolve: [[{ resolve: { delta: 1 } }, 'resolve: Expected number']],
+  onlyIf: [
+    [{ onlyIf: { when: { flag: 'flag_a' }, effects: [] } }, 'onlyIf.effects'],
+    [{ onlyIf: { effects: [{ gold: 1 }] } }, 'onlyIf.when'],
+    [{ onlyIf: { when: { flags: 'flag_a' }, effects: [{ gold: 1 }] } }, "unknown condition atom 'flags'"],
+    [{ onlyIf: { when: { flag: 'flag_a' }, effects: [{ golds: 1 }] } }, "unknown effect atom 'golds'"],
+    [{ onlyIf: { when: { flag: 'flag_a' }, then: [{ gold: 1 }] } }, 'Unrecognized key'],
+  ],
 };
 
 describe('EffectSchema', () => {
-  test('the atom set is exactly DESIGN §13.3’s (incl. D-069.9’s six engine kinds, U26b’s areaMove and U34’s revive)', () => {
+  test('the atom set is exactly DESIGN §13.3’s (incl. D-069.9’s six engine kinds, U26b’s areaMove, U34’s revive and U34d’s onlyIf)', () => {
     expect([...EFFECT_KEYS].sort()).toEqual(
       [
         'setFlag', 'clearFlag', 'grantEcho', 'questStart', 'questAdvance', 'questFail', 'giveItem', 'takeItem', 'rep', 'loyalty',
         'gold', 'xp', 'resonance', 'heal', 'damage', 'corruption', 'clockWatches', 'passWatches', 'spawn', 'teleport',
         'unlockExit', 'scatter', 'multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat', 'areaMove', 'recruit', 'dismiss', 'revive',
-        'startCombat', 'startDialogue', 'endLoop', 'ending', 'unlockRecipe', 'unlockCodex', 'counter', 'resolve',
+        'startCombat', 'startDialogue', 'endLoop', 'ending', 'unlockRecipe', 'unlockCodex', 'counter', 'resolve', 'onlyIf',
       ].sort(),
     );
   });

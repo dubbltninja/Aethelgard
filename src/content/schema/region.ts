@@ -34,7 +34,13 @@ export const RegionSchema = Base.extend({
   palette: RegionPaletteSchema,
   /** Ambient preset id in src/audio/ambient (validated against a registry list). */
   ambient: Id,
-  wanderingPool: z.array(z.object({ creatureId: CreatureId, weight: z.number().positive().default(1) }).strict()).default([]),
+  /**
+   * `when` (U34d, C1 addition): the entry is in the pool only while it holds at the roll (WORLD §10.1 "barrow light at
+   * dusk/night only"); the weights of the entries that hold are relative to each other.
+   */
+  wanderingPool: z
+    .array(z.object({ creatureId: CreatureId, weight: z.number().positive().default(1), when: ConditionSchema.optional() }).strict())
+    .default([]),
   returnEncounterChance: Pct.default(0.2),
   codexId: CodexId.optional(),
   /** e.g. Silverwood Before: { loop: { min: 2 } }. */

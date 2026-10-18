@@ -160,7 +160,9 @@ describe('legacy locations (aethelgard_data.py LOCATION_DEFS; echoes_of_aethelga
         expect([id, name, loc.items.some((i) => i.itemId === itemId)]).toEqual([id, name, true]);
       }
     }
-    expect(pack.locations['loc_whispering_ruins']?.items).toEqual([{ itemId: 'item_amulet_of_echoes', count: 1, when: { loop: { max: 1 } }, hidden: false, once: true }]);
+    expect(pack.locations['loc_whispering_ruins']?.items).toEqual([
+      { itemId: 'item_amulet_of_echoes', count: 1, when: { loop: { max: 1 } }, hidden: false, once: true, chance: 1, onTake: [] }, // U34d's defaults
+    ]);
   });
 
   test('legacy enemies stand where they stood: a 100 % fixed encounter of that creature (WORLD may hold it off during a Horde; the legacy Tyrant is Loop 1’s, D-051)', () => {

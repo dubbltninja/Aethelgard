@@ -9,12 +9,14 @@ import {
   BEFORE_RESETS_COUNTER,
   BEFORE_RETURN_WATCHES,
   BEFORE_TEXT,
+  BEFORE_WATCH_COUNTER,
   ECHO_ANCHOR_MECHANIC,
   ECHO_BEFORE_ROUTE,
   FLAG_CONFLUX_ANCHORED,
   FLAG_CRADLE_PIN_ANCHORED,
   FLAG_ENTERED_VIA_APEX,
   FLAG_ENTERED_VIA_NEXUS,
+  NON_LETHAL_TAG,
   anchorsInDepths,
   beforeDayFlag,
   claimBeforeSpoils,
@@ -30,7 +32,9 @@ import {
   type Profile,
 } from '@engine/index';
 import { clone } from '@engine/util/clone';
-import { ARCHIVES, CONFLUX, CONFLUX_WARDEN, CRADLE_PIN, DEPTHS, GARRET, GATE, TALISMAN, WALKS, WALKS_HOUNDS, beforePack } from '@tests/fixtures/beforeContent';
+import { buildContentPack } from '@content/index';
+import { ARCHIVES, CONFLUX, CONFLUX_WARDEN, CRADLE_PIN, DEPTHS, GARRET, GATE, TALISMAN, WALKS, WALKS_HOUNDS, beforePack, beforeTables } from '@tests/fixtures/beforeContent';
+import { FIXTURE_VERSION } from '@tests/fixtures/miniContent';
 import { freshProfile, makeState, type StateOverrides } from '@tests/fixtures/helpers';
 
 const pack = beforePack();
@@ -196,6 +200,54 @@ describe('the days: a full rest at the Garret advances the Before day; Last Bell
     // an attempt still running does not stop it
     const running = run(toGarret(enter({ quests: { q_stop_the_ritual: 'attempt' } })), [FULL, FULL, FULL]);
     expect(running.s.before?.resets).toBe(1);
+  });
+});
+
+describe("the echo's own hours (U34d, D-098 item 6)", () => {
+  test('each Bell begins at dawn; a short rest at the Garret passes one of its watches up to night; the `watch` atom reads them, the Breach Clock stays frozen', () => {
+    const r0 = toGarret(enter());
+    expect([r0.s.counters.custom[BEFORE_WATCH_COUNTER], cond(r0, { watch: 'dawn' })]).toEqual([0, true]);
+    const noon = act(r0, SHORT);
+    expect([noon.s.counters.custom[BEFORE_WATCH_COUNTER], cond(noon, { watch: 'day' }), noon.s.clock.ticks]).toEqual([1, true, 16]);
+    expect(logs(noon.last)).toContain(BEFORE_TEXT.hour[1]);
+    const night = run(noon, [SHORT, SHORT]);
+    expect(cond(night, { watch: 'night' })).toBe(true);
+    const still = act(night, SHORT);
+    expect([still.s.counters.custom[BEFORE_WATCH_COUNTER], logs(still.last).includes(BEFORE_TEXT.stillNight)]).toEqual([3, true]);
+    const bell2 = act(still, FULL);
+    expect([bell2.s.before?.day, bell2.s.counters.custom[BEFORE_WATCH_COUNTER], cond(bell2, { watch: 'dawn' })]).toEqual([2, 0, true]);
+    // outside the Before the atom reads the Breach Clock, and the counter is gone
+    const home = run(win(act(bell2, move(WALKS))), [move(GATE), move(NEXUS)]); // Second Bell: the hounds
+    expect([home.s.before, home.s.counters.custom[BEFORE_WATCH_COUNTER]]).toEqual([null, undefined]);
+  });
+
+  test(`the arrest: losing to foes tagged '${NON_LETHAL_TAG}' is a night in a cell — no death, the next Bell, waking at the Garret`, () => {
+    const tables = beforeTables();
+    const watch = buildContentPack(
+      { ...tables, creatures: tables.creatures.map((c) => (c.id === 'cr_glowfen_mireling' ? { ...clone(c), tags: [...(c.tags ?? []), NON_LETHAL_TAG] } : c)) },
+      { version: FIXTURE_VERSION, validate: false },
+    );
+    const go = (s: GameState, prof: Profile, action: Action) => {
+      const out = step(s, action, watch, prof);
+      expect(ofType(out.events, 'actionRejected')).toEqual([]);
+      return out;
+    };
+    const inside = toGarret(enter());
+    let out = go(go(inside.s, inside.prof, FULL).state, inside.prof, move(WALKS)); // Second Bell: the hounds
+    expect(out.state.mode).toBe('combat');
+    const events: Ev[] = [];
+    let s = clone(out.state);
+    for (const c of s.combat?.party ?? []) if (c.kind === 'player') c.hp = 1;
+    for (let i = 0; i < 30 && s.mode === 'combat'; i++) {
+      out = go(s, inside.prof, { type: 'guard' });
+      events.push(...out.events);
+      s = out.state;
+    }
+    expect([s.mode, s.combat, s.world.currentLocationId, s.before, s.pendingEnding]).toEqual(['explore', null, GARRET, { day: 3, resets: 0 }, null]);
+    expect(s.player.hp).toBeGreaterThanOrEqual(1);
+    expect(ofType(events, 'playerDied')).toEqual([]);
+    expect(ofType(events, 'combatEnded').map((e) => e.result)).toEqual(['defeat']);
+    expect(logs(events)).toContain(BEFORE_TEXT.arrest);
   });
 });
 

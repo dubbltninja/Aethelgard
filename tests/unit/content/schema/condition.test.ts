@@ -39,6 +39,7 @@ const VALID: { [K in ConditionKey]: Condition[] } = {
   counter: [{ counter: { name: 'quests_completed', min: 6 } }],
   resolve: [{ resolve: { min: 8 } }],
   modifier: [{ modifier: 'mod_frayed_clock' }],
+  infected: [{ infected: true }, { all: [{ flag: 'flag_horde_active' }, { infected: true }] }],
 };
 
 /** Invalid samples per atom, with a fragment of the expected message. */
@@ -73,15 +74,16 @@ const INVALID: { [K in ConditionKey]: [unknown, string][] } = {
   counter: [[{ counter: { name: '', min: 1 } }, 'counter.name'], [{ counter: { name: 'x', min: 2, max: 1 } }, 'min must be ≤ max']],
   resolve: [[{ resolve: 8 }, 'resolve: Expected object']],
   modifier: [[{ modifier: 'frayed_clock' }, 'modifier: expected an id with prefix mod_']],
+  infected: [[{ infected: false }, 'infected: Invalid literal value'], [{ infected: 'loc_x' }, 'infected: Invalid literal value']],
 };
 
 describe('ConditionSchema', () => {
-  test('the atom set is exactly DESIGN §13.3’s 25 atoms', () => {
+  test('the atom set is exactly DESIGN §13.3’s 25 atoms and U34d’s `infected`', () => {
     expect([...CONDITION_KEYS].sort()).toEqual(
       [
         'all', 'any', 'not', 'flag', 'echo', 'quest', 'item', 'rep', 'loop', 'day', 'level', 'watch', 'clock', 'beforeDay',
         'beforeResets', 'class', 'stat', 'companion', 'loyalty', 'corruption', 'location', 'killed', 'counter', 'resolve',
-        'modifier',
+        'modifier', 'infected',
       ].sort(),
     );
   });

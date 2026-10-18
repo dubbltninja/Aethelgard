@@ -417,6 +417,21 @@ const OBSERVED: { [K in EffectKey]: () => void } = {
     expect(out.events).toEqual([]);
     expect(out.state.combat).toBeNull();
   },
+  onlyIf: () => {
+    // U34d: the nested effects apply only while `when` holds, read at that point of the list (an earlier effect counts)
+    const key: Effect = { onlyIf: { when: { flag: 'flag_key' }, effects: [{ gold: 2 }, { setFlag: 'flag_b' }] } };
+    const without = run([{ gold: 1 }, key]);
+    expect(without.state.player.gold).toBe(1);
+    expect(without.state.flags).toEqual({});
+    const withKey = run([{ setFlag: 'flag_key' }, key], minimalState(), minimalProfile(), { source: 'event:ev_x' });
+    expect(withKey.state.player.gold).toBe(2);
+    expect(withKey.state.flags).toEqual({ flag_key: true, flag_b: true });
+    expect(withKey.events).toEqual([{ t: 'goldChanged', delta: 2, total: 2 }]);
+    // nested, and rolled back with the step like any effect
+    const nested = run([{ onlyIf: { when: { loop: { min: 1 } }, effects: [{ onlyIf: { when: { not: { flag: 'flag_x' } }, effects: [{ xp: 5 }] } }] } }]);
+    expect(nested.state.player.xp).toBe(5);
+    rejectedWith(run([{ onlyIf: { when: { all: [] }, effects: [{ gold: 1 }, { multiHit: { hits: 2 } }] } }]), 'combat-scope');
+  },
 };
 
 function emptyLocation() {

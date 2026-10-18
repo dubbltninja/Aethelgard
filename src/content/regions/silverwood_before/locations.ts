@@ -23,11 +23,15 @@
 //     loop, so the engine's first-visit roll would come on First Bell, when the group is not there, and never again; the
 //     frozen clock keeps one "day" for the whole visit and each fresh echo forgets the clear;
 //   - an item that waits for its Bell or for something the visit itself earns (an Echo granted on arrival, a quest done, a
-//     fight won) lies `hidden` with its condition, for `examine` to find: a location item appears only at the loop's first
-//     entry (U34d's gap 2), when such a condition cannot yet hold. Items given by people are placed where WORLD puts them,
+//     fight won) lies with its condition: D-098 (U34d) an entry appears on the first arrival at which its condition holds
+//     (an Echo the arrival's own event grants counts), once a loop, so these lie in the open (U48b hid them for `examine`,
+//     when an item could only appear at the loop's first entry). Items given by people are placed where WORLD puts them,
 //     with the gift's condition (the Reach's reading at the Bell-Warden's Deep);
 //   - drawing a weapon in the Plaza is an `interact` event that starts the Watch's encounter, which never starts on an
-//     arrival; the arrest (non-lethal: wake in the Garret, lose a day) has no field, so losing that fight is a death (gap);
+//     arrival. D-098 (U34d): the Halberdiers are `non_lethal` (creatures.ts), so losing to the Watch is the arrest — you wake
+//     in the Garret and lose a day (the next Bell, or Last Bell's reset; engine before.ts `beforeArrest`), not a death;
+//   - the hour: the Before's clock is frozen, so the `watch` atom reads the echo's own hour there (D-098, engine before.ts):
+//     every Bell begins at dawn and a short rest at the Garret passes one watch. The Spire Yard's "noon" is `watch: 'day'`;
 //   - `ev_gate_whole` "once per entry" fires once per echo, guarded by a Before-local flag the fresh echo clears;
 //   - `flag_visited_before` (read by the Ruins' Plaza and the Apex, set by nothing in WORLD) is set on arriving through either
 //     door: by `ev_gate_whole` and `ev_conflux_well`;
@@ -35,11 +39,9 @@
 //     of Bells on Last Bell");
 //   - `ev_conflux_sundering` is not authored: D-083 supersedes it (the echo resets to First Bell in place, at the Garret's
 //     Last Bell rest; the engine writes that line).
-// Not expressible (the U48b reply): NPC presence by Bell (placements have no condition: each NPC stands at home all three
-// days; Caelum on the Plaza on First Bell, young Nyxaria on the Plaza at night and the Nine at the plinths on Last Bell are
-// the dialogue units' and the engine's); the Corridor's Last Bell ley-flare (Burn on entry: a region hazard); "noon" for the
-// Spire Yard (the Before's clock is frozen, so a watch atom reads the hour of arrival); the anomaly `cr_anomaly_early_hound`
-// (anomalies have no region link, D-091 gap 4).
+// NPC presence by Bell and hour is each NPC's `schedule` (D-098, npcs.ts): a location's `npcs` is where they stand when no
+// schedule entry holds. Not expressible (the U48b reply; U34e's): the Corridor's Last Bell ley-flare (Burn on entry: a region
+// hazard); the anomaly `cr_anomaly_early_hound` (anomalies have no region link, D-091 gap 4).
 import type { Condition } from '@schema/condition';
 import type { LocationInput } from '@schema/location';
 
@@ -200,8 +202,8 @@ export const locations = [
       { dir: 'east', to: 'loc_plaza_of_bells', travelWatches: 0 },
     ],
     items: [
-      // "Day 1–2, in the restricted stacks; requires `item_ward_seal` or `rep remnants ≥ 20` via Oriel's letter" (hidden: header)
-      { itemId: 'item_korrs_marginalia', hidden: true, when: { all: [bell(1, 2), { any: [SEAL, { rep: { faction: 'remnants', min: 20 } }] }] } },
+      // "Day 1–2, in the restricted stacks; requires `item_ward_seal` or `rep remnants ≥ 20` via Oriel's letter" (D-098: header)
+      { itemId: 'item_korrs_marginalia', when: { all: [bell(1, 2), { any: [SEAL, { rep: { faction: 'remnants', min: 20 } }] }] } },
       { itemId: 'item_remnant_ink', count: 2 },
     ],
     encounters: [
@@ -252,8 +254,8 @@ export const locations = [
       { dir: 'south', to: 'loc_apprentices_garret', travelWatches: 0 },
       { dir: 'east', to: 'loc_ninefold_hall', when: HALL_DOORS, travelWatches: 0, lockedText: 'The Hall admits apprentices and the sealed.' },
     ],
-    // "Day 3, after the first toll cracks a bell; 100%" (hidden: header)
-    items: [{ itemId: 'item_bell_shard', hidden: true, when: bell(3) }],
+    // "Day 3, after the first toll cracks a bell; 100%" (D-098: header)
+    items: [{ itemId: 'item_bell_shard', when: bell(3) }],
     encounters: [
       // "none; drawing a weapon here summons cr_city_watch_halberdier ×2 (non-lethal arrest)": `ev_plaza_blade` starts it
       {
@@ -263,17 +265,18 @@ export const locations = [
         intro: 'Whistles go up across the fountains. Two of the Watch come at a run.',
       },
     ],
-    // Caelum (First Bell) and young Nyxaria (nights) come here from their homes: not placements (see the header)
+    // Caelum (First Bell, noon), young Nyxaria (nights) and Aulde (Last Bell, noon) come here by their schedules (D-098, npcs.ts)
     npcs: ['npc_bellwright_anso', 'npc_corvin_dreyl'],
     events: [
       { id: 'ev_plaza_dance', text: 'They are dancing. Someone pulls you into it. For a moment you are a person in a city, and nothing else.', when: bell(1) },
       // STORY §12: `echo_bells_of_silverwood` — "The Plaza of Bells on Last Bell" (see the header)
       { id: 'ev_plaza_crack', text: 'The ninth bell cracks on the first toll of Last Bell. No one dances.', when: bell(3), effects: [{ grantEcho: 'echo_bells_of_silverwood' }] },
-      // "once, Day 3 noon, during `q_the_apprentices_errand` (STORY §9.1: the Spire Yard; grants `echo_litany_verse_5`)"
+      // "once, Day 3 noon, during `q_the_apprentices_errand` (STORY §9.1: the Spire Yard; grants `echo_litany_verse_5`)";
+      // D-098 (U34d): noon is the echo's own hour, `watch: 'day'` (see the header)
       {
         id: 'ev_plaza_spire_yard',
         text: "On the east terrace Aulde reads a boy's message, laughs once, and says to the bells: 'Begin at the ninth.' Verse 5 is in her laugh.",
-        when: { all: [bell(3), { quest: { id: 'q_the_apprentices_errand', status: 'active' } }] },
+        when: { all: [bell(3), { watch: 'day' }, { quest: { id: 'q_the_apprentices_errand', status: 'active' } }] },
         effects: [{ grantEcho: 'echo_litany_verse_5' }],
       },
       // the drawn blade (WORLD §2.6 hazards, §6.9; `ws_wanted`): every time, while the Watch stands at its post
@@ -310,9 +313,9 @@ export const locations = [
     description:
       "The Circle's chapterhouse: a round hall with nine chairs and a floor-map of the ley lines inlaid in silver. The chairs are occupied on First Bell. On Last Bell they are empty, and the Chasm of Whispers will open exactly here.",
     exits: [{ dir: 'west', to: 'loc_plaza_of_bells', travelWatches: 0 }],
-    // "item_orrery_key duplicate (Masque's chair, where Hadrek works, Day 1, 100% if `echo_hadrek_clockwright`)" (hidden: header);
+    // "item_orrery_key duplicate (Masque's chair, where Hadrek works, Day 1, 100% if `echo_hadrek_clockwright`)" (D-098: header);
     // item_litany_page_3 "is not here (see Archives)"
-    items: [{ itemId: 'item_orrery_key', hidden: true, when: { all: [bell(1), { echo: 'echo_hadrek_clockwright' }] } }],
+    items: [{ itemId: 'item_orrery_key', when: { all: [bell(1), { echo: 'echo_hadrek_clockwright' }] } }],
     encounters: [
       // "Day 3: cr_ninefold_knight ×1 (100%) guards the empty hall": a day-scripted guard (R10-1), so it holds
       {
@@ -367,10 +370,9 @@ export const locations = [
       { dir: 'south', to: 'loc_cistern_gardens', travelWatches: 0 },
     ],
     items: [
-      // "Caelum gives it; his quest" — WORLD §7.10: his errand, or `q_the_mending`'s Conflux stage (hidden: header)
+      // "Caelum gives it; his quest" — WORLD §7.10: his errand, or `q_the_mending`'s Conflux stage (D-098: header)
       {
         itemId: 'item_caelums_anchor_token',
-        hidden: true,
         when: { any: [{ quest: { id: 'q_the_apprentices_errand', status: 'completed' } }, { quest: { id: 'q_the_mending', status: 'active' } }] },
       },
       { itemId: 'item_silverwood_honeycake' },
@@ -403,8 +405,8 @@ export const locations = [
       "Terraced pools above the undercity's cisterns, green with lilies. Sluice-wheels at each pool. The Warden of Waters walks the terraces on Second Bell with a key on a chain, checking each wheel twice, and does not sleep.",
     exits: [{ dir: 'north', to: 'loc_apprentices_garret', travelWatches: 0 }],
     items: [
-      // "Day 2, if `echo_rhune_choice`: Ilsabet gives it" (hidden: header)
-      { itemId: 'item_cistern_key', hidden: true, when: { all: [bell(2), { echo: 'echo_rhune_choice' }] } },
+      // "Day 2, if `echo_rhune_choice`: Ilsabet gives it" (D-098: header)
+      { itemId: 'item_cistern_key', when: { all: [bell(2), { echo: 'echo_rhune_choice' }] } },
       { itemId: 'item_mana_bloom', count: 2 }, // the lilies
     ],
     // "the sluice-wheels' spokes; once per loop"
@@ -437,9 +439,9 @@ export const locations = [
     ],
     items: [
       // "Oriel gives it: {any:[{echo:"echo_oriel_lineage"},{rep:{faction:"remnants",min:20}}]}" — the Echo is this room's own
-      // arrival event's, after the items spawn (hidden: header)
-      { itemId: 'item_litany_page_3', hidden: true, when: { any: [{ echo: 'echo_oriel_lineage' }, { rep: { faction: 'remnants', min: 20 } }] } },
-      { itemId: 'item_oriels_quill', hidden: true, when: bell(3) }, // "Day 3, left on the desk"
+      // arrival event's, which the arrival's second look at its items counts (D-098: header)
+      { itemId: 'item_litany_page_3', when: { any: [{ echo: 'echo_oriel_lineage' }, { rep: { faction: 'remnants', min: 20 } }] } },
+      { itemId: 'item_oriels_quill', when: bell(3) }, // "Day 3, left on the desk"
     ],
     encounters: [
       // "Day 2: cr_warding_pillar ×1 (the Circle seals the Archives; 100% if entering without `item_ward_seal`)": a story gate
@@ -480,10 +482,12 @@ export const locations = [
       { dir: 'portal', to: 'loc_temporal_breach_apex', when: { flag: 'flag_entered_before_via_apex' }, travelWatches: 0, hidden: true, label: 'through the tear' },
     ],
     // The cradle's rim is the engine's Anchor slot (before.ts: an `anchorable` item dropped here); placing one sets
-    // `flag_conflux_anchored`, the Cradle-Pin also `flag_cradle_pin_anchored`. The rest (hidden: header):
+    // `flag_conflux_anchored`, the Cradle-Pin also `flag_cradle_pin_anchored`. The rest (D-098: header):
     items: [
-      { itemId: 'item_ward_seal', hidden: true, when: TOBRIN_GIVES },
-      // Second Bell from Tobrin; on Last Bell "on Tobrin's plinth after the Warden fight or the kneeling"
+      { itemId: 'item_ward_seal', when: TOBRIN_GIVES },
+      // Second Bell from Tobrin; on Last Bell "on Tobrin's plinth after the Warden fight or the kneeling … for anyone who missed
+      // him": one entry, so one half a loop. The Warden's fight comes on arrival, after the arrival's items, so the entry stays
+      // `hidden` for the examine after it (the Peaks' form; the one exception to the header's reading)
       {
         itemId: 'item_breach_anchor_schematic_b',
         hidden: true,

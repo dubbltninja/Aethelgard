@@ -15,19 +15,18 @@
 //     Hearthring are `safe` as WORLD says "none (watched)" / "none (settlement)", and the Herd-Grave ("forced boss" and no
 //     pool; §10.3's sweep counts no return fight there) as the Reach's Deep is;
 //   - the Reed Stalker's 25 % of the pool at Watchfire Ridge and the Reedmarch Descent ("reed stalker at … only", WORLD §10.1)
-//     is a location encounter there at 5 % (25 % of the pool's 20 %) ahead of the pool's 20 % of what is left, so the two nodes
-//     roll 0.05 + 0.95 · 0.2 = 24 % on a return visit, not WORLD's 20 % (the shares of the pool cannot be carved out of a
-//     rate; §10.3 prints 0.2 at both). The Descent's "pool(steppe) 10 % / pool(glowfen) 10 %" is one region pool here: the
-//     Glowfen half (mireling, toad, spore, stalker, barrow-light) has no field (listed in the reply);
+//     is a pool entry with a `location` condition (D-098, U34d: pool entries carry a `when`; it was a 5 % location encounter
+//     ahead of the pool, 24 % in all). The Descent's "pool(steppe) 10 % / pool(glowfen) 10 %" is its `wanderingPools` (D-098:
+//     one return roll at 20 %, then either pool by its share; the Glowfen half had no field);
 //   - an event whose grant carries a condition ("grants X with {item …}") is two events with complementary `when`s, the WORLD
-//     id on the one that grants and a coined `_plain` id on the one that does not (an event's effects carry no per-effect
-//     condition: U34d's gap), as the Reach's Names event;
-//   - an item WORLD gives a chance ("50 %") is placed `hidden` at 100 % (a location item has no chance field: U34d's gap 1),
-//     and "100 % after clearing" is a hidden item that appears once the pack has been killed;
-//   - the Scorched Gate's Horde husks: no Condition atom reads "this node is infected". The Gate is infected by the spread at
-//     move 6 of a Tyrant-kill Horde (WORLD §10.4: "RD 4 → WF 5 → SG 6"), 8 after an expiry (R10-3), so a visit that arrives
-//     infected is move 7 or later (the engine counts the move in `horde_moves` before the encounter roll), 9 after expiry
-//     (the Camp's reading, U43). Unlike the Camp the Gate has no Brak clause (WORLD §12.1: "SG: husk ×2");
+//     id on the one that grants and a coined `_plain` id on the one that does not, as the Reach's Names event. D-098 (U34d)
+//     added a per-effect condition (`onlyIf`), but the pair stays: a `once` event that fired without the condition could not
+//     grant on a later visit (Hallow's Cairn is `q_bone_road`'s stage with the forge-mark in the pack);
+//   - an item WORLD gives a chance ("50 %") carries it as its `chance` (D-098; it lay hidden at 100 %), and "100 % after
+//     clearing" is a hidden item that appears once the pack has been killed;
+//   - the Scorched Gate's Horde husks: D-098 (U34d) the `infected` atom reads the node's infection (it was read by move count,
+//     7 or later of a Tyrant-kill Horde, 9 after an expiry, as the Camp's, U43). Unlike the Camp the Gate has no Brak clause
+//     (WORLD §12.1: "SG: husk ×2");
 //   - the Herd-Grave: Ashmaw's own loot (creatures.ts) pays the heart, the horn and the ore for the fight; the Pyre Ledger
 //     placed here is the bypass's (the player breaks the brand-stone, `echo_dreyl_brand`, and the fight is then skipped: the
 //     Reach's Deep form), so the two never both pay.
@@ -48,13 +47,8 @@ const WAYSTONES: Condition = { echo: 'echo_steppe_waystones' };
 const GRAVE_OPEN: Condition = { any: [{ quest: { id: 'q_bone_road' } }, { echo: 'echo_nomad_signs' }] };
 const GRAVE_LOCKED = 'The clan does not let strangers wake the Herd.';
 
-/** The Scorched Gate is infected from move 6 of a Tyrant-kill Horde, move 8 after an expiry (see the header). */
-const GATE_INFECTED: Condition = {
-  any: [
-    { all: [{ not: { flag: 'flag_clock_expired' } }, { counter: { name: 'horde_moves', min: 7 } }] },
-    { all: [{ flag: 'flag_clock_expired' }, { counter: { name: 'horde_moves', min: 9 } }] },
-  ],
-};
+/** D-098 (U34d): the Gate stands in the Horde's infected set (the `infected` atom; it was read by move count, see the header). */
+const GATE_INFECTED: Condition = { infected: true };
 
 export const locations = [
   // ---- The Scorched Gate — a gate within a gate; Ferrin; the Horde's husks (WORLD §3.7, §12.1) -------------------------------
@@ -112,8 +106,8 @@ export const locations = [
       { dir: 'east', to: 'loc_hearthring' },
       { dir: 'north', to: 'loc_grey_salt_pan' },
     ],
-    // WORLD: ×1 (50 %). A location item has no chance field (U34d's gap 1): it lies hidden at 100 %.
-    items: [{ itemId: 'mat_cinder_horn', hidden: true }],
+    // WORLD: ×1 (50 %): its `chance` (D-098, U34d; it lay hidden at 100 % for want of the field)
+    items: [{ itemId: 'mat_cinder_horn', chance: 0.5 }],
     encounters: [
       // first: a Cinderback (60 %, telegraphed stampede: Guard on the first turn avoids the opening charge) or Salt Jackals ×3 (40 %)
       {
@@ -356,16 +350,8 @@ export const locations = [
         chance: 0.4,
         intro: 'The sentries look up all at once. Two harriers are already coming down.',
       },
-      // return: the pool at 20 %, whose Reed Stalker share ("at loc_watchfire_ridge / loc_reedmarch_descent only") is this
-      // group at 5 % ahead of it (see the header)
-      {
-        id: 'enc_ridge_stalker',
-        groups: [{ creatureId: 'cr_reed_stalker' }],
-        chance: 0.05,
-        once: false,
-        respawn: 'on_return',
-        intro: 'Below the ridge one of the reeds is taller than the rest, and has not moved.',
-      },
+      // return: the pool at 20 %, whose Reed Stalker share ("at loc_watchfire_ridge / loc_reedmarch_descent only") is the
+      // pool entry's own `when` (D-098, U34d; region.ts — it was a 5 % group here ahead of the pool, see the header)
     ],
     events: [
       {
@@ -403,15 +389,12 @@ export const locations = [
         chance: 0.4,
         intro: 'The reeds stop moving. One of them is watching you.',
       },
-      // return: the pool at 20 %, plus the Stalker's share of it (see the header)
-      {
-        id: 'enc_reedmarch_stalker_return',
-        groups: [{ creatureId: 'cr_reed_stalker' }],
-        chance: 0.05,
-        once: false,
-        respawn: 'on_return',
-        intro: 'A long grey neck rises out of the reeds beside the baskets.',
-      },
+      // return: "pool(steppe) 10 % / pool(glowfen) 10 %" (D-098, U34d: `wanderingPools` below; the Steppe pool's Reed Stalker
+      // entry holds here, region.ts — it was a 5 % group here ahead of the Steppe pool alone, see the header)
+    ],
+    wanderingPools: [
+      { regionId: 'region_ashen_steppe', chance: 0.1 },
+      { regionId: 'region_glowfen', chance: 0.1 },
     ],
     events: [
       {

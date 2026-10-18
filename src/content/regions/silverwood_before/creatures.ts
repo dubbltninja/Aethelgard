@@ -23,7 +23,8 @@
 //   - "ifAllyDown" (the Halberdier's Whistle) is `allyCountBelow: 1` with `oncePerFight` (U43's and U46's reading; the Watch
 //     comes in pairs);
 //   - the Halberdier is "non-lethal": its blows "cannot take you below 1 HP; at 1 HP you are arrested (wake in the Garret,
-//     lose a day)". No field says it, so losing to the Watch is a death (a gap for U34d); beating them sets
+//     lose a day)". D-098 (U34d): the `non_lethal` tag, which the engine reads — a fight whose every enemy carries it ends,
+//     when the Wayfinder falls, in the arrest (reducers/combat.ts `finishArrest`, before.ts `beforeArrest`); beating them sets
 //     `flag_wanted_in_silverwood` (WORLD §6.9) as the creature's `onDefeat`, which the engine applies even when the Before has
 //     already paid that fight's spoils this loop;
 //   - the Warden's Phase 3 "armor 0" is `damageTakenMult`, U46's reading for Ashmaw: 51.6 expected physical damage a round
@@ -304,7 +305,7 @@ const cityWatchHalberdier = {
   role: 'fodder',
   level: 13,
   stats: { hp: 150, atk: 24, sp: 24, armor: 6, ward: 2, agi: 6 },
-  tags: ['mortal', 'watch'],
+  tags: ['mortal', 'watch', 'non_lethal'], // D-098: "non-lethal" (see the header)
   // "neutral to all · statuses work normally"
   moves: {
     watch_halt: {

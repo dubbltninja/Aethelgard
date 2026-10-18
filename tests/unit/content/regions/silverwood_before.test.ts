@@ -21,6 +21,7 @@ import { region } from '@content/regions/silverwood_before/region';
 import { companions } from '@content/shared/companions';
 import { LEGACY_CREATURES, LEGACY_LOCATIONS, LEGACY_NPCS, validateContent } from '@content/validate';
 import { dayOf } from '@engine/conditions';
+import { npcsAt } from '@engine/reducers/explore';
 import {
   BEFORE_RETURN_WATCHES,
   BEFORE_TEXT,
@@ -204,6 +205,8 @@ interface At {
   scattered?: Record<string, string[]>;
   kills?: Record<string, number>;
   remnants?: number;
+  /** D-098: the echo's own hour inside the Before (0 dawn … 3 night; `counters.custom.before_watch`). */
+  hour?: 0 | 1 | 2 | 3;
 }
 
 /** A location state as if its items were already on the ground (no item record exists to spawn: U49/U50's). */
@@ -244,6 +247,7 @@ function stateAt(locationId: string, o: At = {}): GameState {
           s.clock.frozen = true;
           s.flags[`flag_before_day_${o.day}`] = true;
           s.flags[o.via === 'apex' ? FLAG_ENTERED_VIA_APEX : FLAG_ENTERED_VIA_NEXUS] = true;
+          s.counters.custom['before_watch'] = o.hour ?? 0;
         }
         for (const id of o.echoes ?? []) s.echoesThisLoop.push(id);
         for (const [id, status] of Object.entries(o.quests ?? {})) s.quests[id] = { status, stage: 'u48b', startedDay: 1, endedDay: status === 'active' ? null : 1, counters: {}, objectivesDone: [] };
@@ -414,10 +418,10 @@ describe('the ten locations vs WORLD §3.11 blocks', () => {
     expect(loc(PB).merchantId).toBe('npc_bellwright_anso');
   });
 
-  test('every item WORLD places is placed with its condition; gathering is `gather`; Bell-bound and visit-earned items lie hidden; the Library’s seal and the Hall’s page are not items there', () => {
+  test('every item WORLD places is placed with its condition; gathering is `gather`; Bell-bound and visit-earned items lie in the open (D-098), the plinth’s half hidden; the Library’s seal and the Hall’s page are not items there', () => {
     for (const l of parsedLocations) {
       const expected = new Set(WL[l.id]?.itemIds ?? []);
-      if (l.gather) expected.delete(l.gather.itemId);
+      for (const g of l.gather ?? []) expected.delete(g.itemId);
       if (l.id === GL) expected.delete(SEAL); // the marginalia's requirement ("requires `item_ward_seal` or …")
       if (l.id === NH) expected.delete('item_litany_page_3'); // "is **not** here (see Archives)"
       expect([l.id, l.items.map((i) => i.itemId).sort()]).toEqual([l.id, [...expected].sort()]);
@@ -425,28 +429,31 @@ describe('the ten locations vs WORLD §3.11 blocks', () => {
     expect(WL[GL]?.block).toContain('requires `item_ward_seal` or `rep remnants ≥ 20` via Oriel\'s letter');
     expect(WL[NH]?.block).toContain('item_litany_page_3 is **not** here (see Archives)');
     // gathering: heartwood ×1 at the Walks and the Gardens, ×2 at the Conflux (once per loop: the engine's count, before.ts)
-    expect([OW, CG, CX].map((id) => loc(id).gather)).toEqual([1, 1, 2].map((perDay) => ({ itemId: 'mat_silverwood_heartwood', perDay })));
+    expect([OW, CG, CX].map((id) => loc(id).gather)).toEqual([1, 1, 2].map((perDay) => [{ itemId: 'mat_silverwood_heartwood', perDay }]));
     // the plain ones
-    expect(loc(OW).items).toEqual([{ itemId: 'item_silverwood_honeycake', count: 2, hidden: false, once: true }]);
-    expect(itemAt(GL, 'item_remnant_ink')).toEqual({ itemId: 'item_remnant_ink', count: 2, hidden: false, once: true });
-    expect(itemAt(AG, 'item_silverwood_honeycake')).toEqual({ itemId: 'item_silverwood_honeycake', count: 1, hidden: false, once: true });
-    expect(itemAt(CG, 'item_mana_bloom')).toEqual({ itemId: 'item_mana_bloom', count: 2, hidden: false, once: true });
-    expect(itemAt(CX, 'item_chronal_dust')).toEqual({ itemId: 'item_chronal_dust', count: 3, hidden: false, once: true });
-    // the hidden ones, each with WORLD's condition
+    const item = (o: object) => ({ count: 1, hidden: false, once: true, chance: 1, onTake: [], ...o }); // U34d's defaults
+    expect(loc(OW).items).toEqual([item({ itemId: 'item_silverwood_honeycake', count: 2 })]);
+    expect(itemAt(GL, 'item_remnant_ink')).toEqual(item({ itemId: 'item_remnant_ink', count: 2 }));
+    expect(itemAt(AG, 'item_silverwood_honeycake')).toEqual(item({ itemId: 'item_silverwood_honeycake' }));
+    expect(itemAt(CG, 'item_mana_bloom')).toEqual(item({ itemId: 'item_mana_bloom', count: 2 }));
+    expect(itemAt(CX, 'item_chronal_dust')).toEqual(item({ itemId: 'item_chronal_dust', count: 3 }));
+    // the conditioned ones, each with WORLD's condition: D-098 (U34d) an entry appears on the first arrival at which its condition
+    // holds, so U48b's `hidden` (for an item that could only appear at the loop's first entry) is gone — but the plinth's half,
+    // which the Warden's fight on arrival earns, waits for the examine after it
     const hid = (l: string, itemId: string) => [itemAt(l, itemId).hidden, itemAt(l, itemId).when];
-    expect(hid(GL, 'item_korrs_marginalia')).toEqual([true, { all: [bell(1, 2), { any: [{ item: { id: SEAL } }, { rep: { faction: 'remnants', min: 20 } }] }] }]);
-    expect(hid(PB, 'item_bell_shard')).toEqual([true, bell(3)]);
+    expect(hid(GL, 'item_korrs_marginalia')).toEqual([false, { all: [bell(1, 2), { any: [{ item: { id: SEAL } }, { rep: { faction: 'remnants', min: 20 } }] }] }]);
+    expect(hid(PB, 'item_bell_shard')).toEqual([false, bell(3)]);
     expect(WL[PB]?.block).toContain('item_bell_shard (Day 3, after the first toll cracks a bell; 100%)');
-    expect(hid(NH, 'item_orrery_key')).toEqual([true, { all: [bell(1), { echo: 'echo_hadrek_clockwright' }] }]);
-    expect(hid(AG, CRADLE_PIN_ITEM_ID)).toEqual([true, { any: [{ quest: { id: 'q_the_apprentices_errand', status: 'completed' } }, { quest: { id: 'q_the_mending', status: 'active' } }] }]);
+    expect(hid(NH, 'item_orrery_key')).toEqual([false, { all: [bell(1), { echo: 'echo_hadrek_clockwright' }] }]);
+    expect(hid(AG, CRADLE_PIN_ITEM_ID)).toEqual([false, { any: [{ quest: { id: 'q_the_apprentices_errand', status: 'completed' } }, { quest: { id: 'q_the_mending', status: 'active' } }] }]);
     expect(WORLD).toContain('`npc_caelum` gives it (`loc_apprentices_garret`, his errand); `q_the_mending` stage 3');
-    expect(hid(CG, 'item_cistern_key')).toEqual([true, { all: [bell(2), { echo: 'echo_rhune_choice' }] }]);
+    expect(hid(CG, 'item_cistern_key')).toEqual([false, { all: [bell(2), { echo: 'echo_rhune_choice' }] }]);
     const page = itemAt(AD, 'item_litany_page_3');
-    expect([page.hidden, page.when]).toEqual([true, worldCondition('{any:[{echo:"echo_oriel_lineage"},{rep:{faction:"remnants",min:20}}]}')]);
+    expect([page.hidden, page.when]).toEqual([false, worldCondition('{any:[{echo:"echo_oriel_lineage"},{rep:{faction:"remnants",min:20}}]}')]);
     expect(WL[AD]?.block).toContain('item_litany_page_3 (Oriel gives it: `{any:[{echo:"echo_oriel_lineage"},{rep:{faction:"remnants",min:20}}]}`)');
-    expect(hid(AD, 'item_oriels_quill')).toEqual([true, bell(3)]);
+    expect(hid(AD, 'item_oriels_quill')).toEqual([false, bell(3)]);
     const tobrin = { all: [bell(2), { echo: 'echo_vask_seal' }] };
-    expect(hid(CX, SEAL)).toEqual([true, tobrin]);
+    expect(hid(CX, SEAL)).toEqual([false, tobrin]);
     expect(hid(CX, 'item_breach_anchor_schematic_b')).toEqual([
       true,
       { any: [tobrin, { all: [bell(3), { any: [{ killed: { id: WARDEN } }, { all: [{ item: { id: SEAL } }, { companion: { id: 'caelum', state: 'active' } }] }] }] }] },
@@ -540,7 +547,8 @@ describe('the ten locations vs WORLD §3.11 blocks', () => {
     expect(one(PB, 'ev_plaza_dance')).toEqual([true, bell(1), []]);
     expect(one(PB, 'ev_plaza_crack')).toEqual([true, bell(3), [{ grantEcho: 'echo_bells_of_silverwood' }]]);
     expect(STORY).toContain('| `echo_bells_of_silverwood` | The Bells | The Plaza of Bells on Last Bell |');
-    expect(one(PB, 'ev_plaza_spire_yard')).toEqual([true, { all: [bell(3), { quest: { id: 'q_the_apprentices_errand', status: 'active' } }] }, [{ grantEcho: 'echo_litany_verse_5' }]]);
+    // "Day 3 noon": D-098 (U34d) the echo's own hour, `watch: 'day'`
+    expect(one(PB, 'ev_plaza_spire_yard')).toEqual([true, { all: [bell(3), { watch: 'day' }, { quest: { id: 'q_the_apprentices_errand', status: 'active' } }] }, [{ grantEcho: 'echo_litany_verse_5' }]]);
     expect(one(NH, 'ev_hall_veyran')).toEqual([true, bell(1), [{ grantEcho: 'echo_tyrant_name' }]]);
     expect(one(NH, 'ev_hall_study_draft')).toEqual([true, bell(2, 3), [{ grantEcho: 'echo_litany_verse_9' }]]);
     expect(one(NH, 'ev_hall_masque_roof')).toEqual([true, bell(3), []]); // the quest grants `echo_ritual_inevitable` (STORY §12)
@@ -1299,6 +1307,106 @@ describe('Silverwood Before in the engine (before.ts on the real pack, seeded)',
   test('the Library’s option (Loop 3+): “Tell it what it will hear” is offered from the third loop', () => {
     const offered = (loop: number) => legalActions(stateAt(GL, { day: 1, loop, visited: [GL] }), epack, profileOf({ loop })).some((a) => a.type === 'interact' && a.eventId === 'ev_library_cradle_seed');
     expect([offered(2), offered(3), offered(5)]).toEqual([false, true, true]);
+  });
+
+  // ---- D-098 (U34d): the living city, the hour, the arrest, items on their Bell ---------------------------------------------------
+
+  test('the hour (D-098): every Bell begins at dawn; a short rest at the Garret passes one of the echo’s watches, a full rest brings the next Bell at dawn; the `watch` atom reads it, not the frozen clock', () => {
+    const hour = (r: Run) => r.s.counters.custom['before_watch'];
+    const noon: Condition = { watch: 'day' };
+    let r = run(start(NEXUS, { items: [LENS], echoes: ['echo_litany_verse_1'], visited: [NEXUS], seed: 'u34d-hour' }), [move(GT), move(OW), move(AG)]);
+    expect([r.s.before?.day, hour(r)]).toEqual([1, 0]);
+    const frozen = r.s.clock.ticks;
+    const SHORT: Action = { type: 'rest', kind: 'short' };
+    const hours: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      r = act(r, SHORT);
+      hours.push(hour(r) ?? -1);
+    }
+    expect(hours).toEqual([1, 2, 3, 3]); // noon, dusk, night — and night holds
+    expect(ofType(r.last, 'log').map((e) => e.text)).toContain(BEFORE_TEXT.stillNight);
+    expect(r.s.clock.ticks).toBe(frozen);
+    expect(evaluate({ watch: 'night' }, r.s, r.prof, epack)).toBe(true);
+    r = act(r, FULL);
+    expect([r.s.before?.day, hour(r), evaluate({ watch: 'dawn' }, r.s, r.prof, epack)]).toEqual([2, 0, true]);
+    r = act(r, { type: 'rest', kind: 'short' });
+    expect([evaluate(noon, r.s, r.prof, epack), ofType(r.last, 'log').map((e) => e.text).includes(BEFORE_TEXT.hour[1])]).toEqual([true, true]);
+    // outside the Before the atom reads the Breach Clock again, and the counter is gone
+    const home = run(r, [move(OW), move(GT), move(NEXUS)]);
+    expect([home.s.before, hour(home)]).toEqual([null, undefined]);
+  });
+
+  test('the Spire Yard at noon (D-098): `ev_plaza_spire_yard` needs Last Bell, the errand and noon — not Last Bell’s dawn', () => {
+    const errand = { quests: { q_the_apprentices_errand: 'active' as const } };
+    const fires = (o: At) => ofType(act(start(GL, { visited: [GL], ...errand, ...o }), move(PB)).last, 'eventFired').some((e) => e.eventId === 'ev_plaza_spire_yard');
+    expect([fires({ day: 3, hour: 1 }), fires({ day: 3, hour: 0 }), fires({ day: 3, hour: 2 }), fires({ day: 2, hour: 1 })]).toEqual([true, false, false, false]);
+  });
+
+  test('the living city (D-098): who stands where by Bell and hour — Caelum, the Nine, young Nyxaria, Tobrin, Ilsabet, Hadrek', () => {
+    const at = (l: string, o: At) => npcsAt(stateAt(l, o), epack, profileOf(o), l);
+    const nine = ['npc_veyran_thal', 'npc_nyxaria_vell_before', 'npc_oriel_danthe', 'npc_maelis_korr', 'npc_haldric_vane', 'npc_durn_hallow', 'npc_seraphine_aulde', 'npc_imre_sallow', 'npc_tovren_masque'];
+    // the Hall: the Circle and Hadrek on First Bell, Tobrin (not Hadrek) on Second, nobody on Last (the Nine are at the plinths)
+    expect(at(NH, { day: 1 })).toEqual(['npc_veyran_thal', 'npc_nyxaria_vell_before', 'npc_haldric_vane', 'npc_hadrek']);
+    expect(at(NH, { day: 2 })).toEqual(['npc_veyran_thal', 'npc_nyxaria_vell_before', 'npc_haldric_vane', 'npc_tobrin_vask']);
+    expect(at(NH, { day: 3 })).toEqual([]);
+    // the Conflux: Hallow at his forge on the first two Bells (Tobrin too on Second); all nine on Last Bell, Aulde but at noon
+    expect(at(CX, { day: 1 })).toEqual(['npc_durn_hallow']);
+    expect(at(CX, { day: 2 })).toEqual(['npc_durn_hallow', 'npc_tobrin_vask']);
+    expect([...at(CX, { day: 3 })].sort()).toEqual([...nine].sort());
+    expect(at(CX, { day: 3, hour: 1 })).not.toContain('npc_seraphine_aulde');
+    // the Plaza: Anso and Dreyl always; Caelum at noon on First Bell; young Nyxaria at night on the first two Bells; Aulde at noon on Last Bell
+    expect(at(PB, { day: 1 })).toEqual(['npc_bellwright_anso', 'npc_corvin_dreyl']);
+    expect(at(PB, { day: 1, hour: 1 })).toEqual(['npc_bellwright_anso', 'npc_corvin_dreyl', 'npc_caelum']);
+    expect(at(PB, { day: 2, hour: 3 })).toEqual(['npc_bellwright_anso', 'npc_corvin_dreyl', 'npc_nyxaria_vell_before']);
+    expect(at(PB, { day: 3, hour: 3 })).toEqual(['npc_bellwright_anso', 'npc_corvin_dreyl']);
+    expect(at(PB, { day: 3, hour: 1 })).toEqual(['npc_bellwright_anso', 'npc_corvin_dreyl', 'npc_seraphine_aulde']);
+    // Caelum: the Garret, but the Plaza at noon on First Bell and the Archive stair at Last Bell's dusk
+    expect([at(AG, { day: 1 }), at(AG, { day: 1, hour: 1 }), at(AG, { day: 3, hour: 2 }), at(AD, { day: 3, hour: 2 })]).toEqual([['npc_caelum'], [], [], ['npc_caelum']]);
+    expect(at(AD, { day: 3 })).toEqual([]); // Oriel at the plinths
+    // the Gardens: Sallow on the first two Bells, Ilsabet on Second Bell only
+    expect([at(CG, { day: 1 }), at(CG, { day: 2 }), at(CG, { day: 3 })]).toEqual([['npc_imre_sallow'], ['npc_ilsabet_rhune', 'npc_imre_sallow'], []]);
+    // talking and examining follow presence: Hadrek cannot be examined on Second Bell
+    const examined = (o: At) => legalActions(stateAt(NH, { ...o, visited: [NH] }), epack, profileOf(o), { includeExamine: true }).filter((a) => a.type === 'examine' && a.target.kind === 'npc').map((a) => (a as { target: { id: string } }).target.id);
+    expect([examined({ day: 1 }).includes('npc_hadrek'), examined({ day: 2 }).includes('npc_hadrek')]).toEqual([true, false]);
+  });
+
+  test('the arrest (D-098; WORLD §6.9 "non-lethal"): losing to the Watch is not a death — you wake in the Garret a Bell later at 1 HP or more; on Last Bell the day lost is the dusk, and the echo resets', () => {
+    expect(cr(HALBERDIER).tags).toContain('non_lethal');
+    const lose = (o: At): Run => {
+      let r = act(start(PB, { visited: [PB, AG], seed: 'u34d-arrest', ...o }), { type: 'interact', eventId: 'ev_plaza_blade' });
+      const s = JSON.parse(JSON.stringify(r.s)) as GameState;
+      for (const c of s.combat?.party ?? []) if (c.kind === 'player') c.hp = 1;
+      r = { ...r, s };
+      for (let i = 0; i < 30 && r.s.mode === 'combat'; i++) r = act(r, { type: 'guard' });
+      return r;
+    };
+    const taken = lose({ day: 1 });
+    expect([taken.s.mode, taken.s.world.currentLocationId, taken.s.before, taken.s.combat]).toEqual(['explore', AG, { day: 2, resets: 0 }, null]);
+    expect(taken.s.player.hp).toBeGreaterThanOrEqual(1);
+    expect(ofType(taken.last, 'playerDied')).toEqual([]);
+    expect(ofType(taken.last, 'combatEnded').map((e) => e.result)).toEqual(['defeat']);
+    expect(ofType(taken.last, 'log').map((e) => e.text)).toContain(BEFORE_TEXT.arrest);
+    expect(taken.s.pendingEnding).toBeNull();
+    const dusk = lose({ day: 3 });
+    expect([dusk.s.world.currentLocationId, dusk.s.before]).toEqual([AG, { day: 1, resets: 1 }]);
+    expect(ofType(dusk.last, 'beforeReset')).toEqual([{ t: 'beforeReset', resets: 1 }]);
+  });
+
+  test('items on their Bell (D-098): the cracked bell’s shard is not on the Plaza on First Bell, and lies there when the Wayfinder comes back on Last Bell', () => {
+    const fresh = (s: GameState): GameState => {
+      s.world.locationStates[PB] = { ...seeded(false), itemsSpawned: false };
+      return s;
+    };
+    let r: Run = { s: fresh(stateAt(GL, { day: 1, visited: [GL, AG] })), prof: profileOf(), last: [] };
+    r = act(r, move(PB));
+    expect(r.s.world.locationStates[PB]?.items.map((i) => i.itemId)).toEqual([]);
+    r = run(r, [move(AG), FULL, FULL, move(PB)]);
+    expect([r.s.before?.day, r.s.world.locationStates[PB]?.items.map((i) => i.itemId)]).toEqual([3, ['item_bell_shard']]);
+    // taken, it does not come back that loop (the Before's items are once a loop)
+    const shard = r.s.world.locationStates[PB]?.items[0];
+    r = act(r, { type: 'take', uid: shard?.uid ?? '' });
+    r = run(r, [move(AG), move(PB)]);
+    expect(r.s.world.locationStates[PB]?.items).toEqual([]);
   });
 });
 

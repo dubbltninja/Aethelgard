@@ -14,7 +14,7 @@
 // fresh echo on every entry and reset, the door flags, once-per-loop spoils, the Anchors).
 //
 // Hazards WORLD §2.6 names that the schema cannot carry (listed in the U48b reply): the Corridor's Day 3 ley-flare (Burn on
-// entry; a region-hazards gap, U34d) and the Watch's non-lethal arrest (wake in the Garret, lose a day; see locations.ts).
+// entry; a region-hazards gap, U34e). The Watch's non-lethal arrest (wake in the Garret, lose a day) is D-098's (see locations.ts).
 import type { RegionInput } from '@schema/region';
 
 export const region = {

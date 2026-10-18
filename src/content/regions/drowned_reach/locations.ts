@@ -13,10 +13,10 @@
 //     fixed `on_return` groups still roll), as the Apex is (U45). The Deep names no pool either (a forced boss and nothing
 //     else, and §10.3's sweep counts no return fight there), so it is `safe` too;
 //   - an event whose grant carries a condition ("grants X with {rep…}") is two events with complementary `when`s, the
-//     WORLD id on the one that grants and a coined `_plain` id on the one that does not (an event's effects carry no
-//     per-effect condition: U34d's gap);
-//   - an item WORLD gives a chance ("40 %", "30 %, caught in a grate") is placed `hidden` at 100 % (a location item has
-//     no chance field: U34d's gap 1, as the Ruins' wax seal);
+//     WORLD id on the one that grants and a coined `_plain` id on the one that does not. D-098 (U34d) added a per-effect
+//     condition (`onlyIf`), but the pair stays: a `once` event that fired below the standing could not grant on a later visit;
+//   - an item WORLD gives a chance ("40 %", "30 %, caught in a grate") carries it as its `chance` (D-098, U34d; it was
+//     placed `hidden` at 100 % for want of the field, as the Ruins' wax seal);
 //   - the Bell-Warden's Deep: the Warden's own loot (creatures.ts) pays the key, the clapper and the Hydromancy for the
 //     fight; the key and the Hydromancy placed here are the bypass's (the Warden surrenders them to one who says the Warden
 //     of Waters' name, `echo_rhune_choice`, and the fight is then skipped, so the two never both pay).
@@ -121,8 +121,8 @@ export const locations = [
       { dir: 'south', to: 'loc_black_sluice' },
       { dir: 'west', to: 'loc_lamplighters_rest' },
     ],
-    // WORLD: ×1 (40 %). A location item has no chance field (U34d's gap 1): it lies hidden, as the Ruins' wax seal.
-    items: [{ itemId: 'mat_drowned_pearl', hidden: true }],
+    // WORLD: ×1 (40 %): its `chance` (D-098; see the header)
+    items: [{ itemId: 'mat_drowned_pearl', chance: 0.4 }],
     encounters: [
       // first: Pale Divers ×2 (70 %); return: the pool at 20 %
       {
@@ -253,8 +253,8 @@ export const locations = [
       // WORLD §11.3 `gate_sluice_walkway`, both directions (W1)
       { dir: 'west', to: 'loc_bellmouth', when: WALKWAY_OPEN, lockedText: WALKWAY_LOCKED },
     ],
-    // WORLD: ×1 (30 %, caught in a grate): hidden, at 100 % (see the header)
-    items: [{ itemId: 'mat_bell_bronze', hidden: true }],
+    // WORLD: ×1 (30 %, caught in a grate): its `chance` (D-098; see the header)
+    items: [{ itemId: 'mat_bell_bronze', chance: 0.3 }],
     encounters: [
       // first: Brine Lampreys ×3 (100 %)
       {

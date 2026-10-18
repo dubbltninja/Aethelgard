@@ -255,7 +255,7 @@ describe('the two locations vs WORLD §3.3 blocks', () => {
   test('items: none at the lip; one Void Shard lies loose in the Hollow (first visit)', () => {
     for (const l of parsedLocations) expect([l.id, l.items.map((i) => i.itemId).sort()]).toEqual([l.id, [...(WL[l.id]?.itemIds ?? [])].sort()]);
     expect(loc(CHASM).items).toEqual([]);
-    expect(loc(HOLLOW).items).toEqual([{ itemId: 'item_void_shard', count: 1, hidden: false, once: true }]);
+    expect(loc(HOLLOW).items).toEqual([{ itemId: 'item_void_shard', count: 1, hidden: false, once: true, chance: 1, onTake: [] }]); // U34d's defaults
   });
 
   test('creatures: the Hollow’s are WORLD’s; the Chasm’s Encounters line names none, its Wary pool is the Sentry and the Stalker', () => {

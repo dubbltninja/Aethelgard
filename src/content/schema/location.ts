@@ -44,6 +44,13 @@ export const ExitSchema = z
     }
   });
 
+/**
+ * A content item at a location. U34d (C1 additions, D-098 item 2): each entry appears at most once per loop, on the first
+ * entry (or, if `hidden`, the first `examine` of the location) at which its `when` holds — so an item that waits for a
+ * kill, a flag or a Bell turns up on a later visit; `chance` is rolled on the run Rng then, once (a miss is that loop's
+ * one try); `onTake` effects apply when the player picks up what this entry placed (the Roost's greataxe: Ironclad −10
+ * unless `echo_sky_oath`).
+ */
 export const LocationItemSchema = z
   .object({
     itemId: ItemId,
@@ -53,8 +60,21 @@ export const LocationItemSchema = z
     hidden: z.boolean().default(false),
     /** `once: false` respawns on `rest`. */
     once: z.boolean().default(true),
+    /** U34d: the share of loops in which it appears at all (WORLD's "30 %", "50 % after …"). */
+    chance: Pct.default(1),
+    /** U34d: applied when the player takes a piece this entry placed, once per piece (source `take:<itemId>`). */
+    onTake: Effects,
   })
   .strict();
+
+/** DESIGN §8.2: a gathering node, 1–2 units per visit per day. */
+export const GatherNodeSchema = z.object({ itemId: ItemId, perDay: z.number().int().min(1).max(2) }).strict();
+
+/**
+ * U34d (C1 addition): a second region's pool share at a location (WORLD §3.7 Reedmarch "pool(steppe) 10 % / pool(glowfen)
+ * 10 %"). Replaces the region's own pool and rate: one return roll at the sum of the chances, then the pool by chance.
+ */
+export const LocationPoolSchema = z.object({ regionId: RegionId, chance: Pct }).strict();
 
 export const LocationEventSchema = Base.extend({
   id: PId('ev_'),
@@ -139,8 +159,16 @@ export const LocationSchema = Base.extend({
   safe: z.boolean().default(false),
   /** D-059 static flag (Dask); Horde infection adds it at runtime. */
   temporallyUnstable: z.boolean().default(false),
-  /** DESIGN §8.2: 1–2 units per visit per day. */
-  gather: z.object({ itemId: ItemId, perDay: z.number().int().min(1).max(2) }).strict().optional(),
+  /**
+   * DESIGN §8.2: 1–2 units per visit per day. U34d (C1 change): one node or a list of them, read as a list (the Rootbone's
+   * bark gives `mat_rootbone` and `mat_ley_resin`); with several, `gather` names the node by `itemId`.
+   */
+  gather: z
+    .union([GatherNodeSchema, z.array(GatherNodeSchema).min(1)])
+    .transform((g) => (Array.isArray(g) ? g : [g]))
+    .optional(),
+  /** U34d: the location's return rolls draw from these pools instead of its region's (see `LocationPoolSchema`). */
+  wanderingPools: z.array(LocationPoolSchema).min(1).optional(),
   /** The `wait` action is allowed. */
   waitable: z.boolean().default(false),
   /** Original Python name, for Appendix A / BIBLE cross-check. */
@@ -157,12 +185,19 @@ export const LocationSchema = Base.extend({
     for (const i of findDuplicates(dirs)) issue(['exits', i, 'dir'], `direction '${loc.exits[i]?.dir}' is used by two exits; use 'path' for extra routes`);
     for (const i of findDuplicates(loc.encounters.map((e) => e.id))) issue(['encounters', i, 'id'], `duplicate encounter id '${loc.encounters[i]?.id}' in this location`);
     for (const i of findDuplicates(loc.events.map((e) => e.id))) issue(['events', i, 'id'], `duplicate event id '${loc.events[i]?.id}' in this location`);
+    const nodes = loc.gather ?? [];
+    for (const i of findDuplicates(nodes.map((g) => g.itemId))) issue(['gather', i, 'itemId'], `'${nodes[i]?.itemId}' is gathered by two nodes here; raise its perDay instead`);
+    const pools = loc.wanderingPools ?? [];
+    for (const i of findDuplicates(pools.map((p) => p.regionId))) issue(['wanderingPools', i, 'regionId'], `pool '${pools[i]?.regionId}' is listed twice`);
+    if (loc.safe && pools.length > 0) issue(['wanderingPools'], 'a safe location rolls no wandering pool');
   });
 
 export type Dir = z.output<typeof Dir>;
 export type Exit = z.output<typeof ExitSchema>;
 export type ExitInput = z.input<typeof ExitSchema>;
 export type LocationItem = z.output<typeof LocationItemSchema>;
+export type GatherNode = z.output<typeof GatherNodeSchema>;
+export type LocationPool = z.output<typeof LocationPoolSchema>;
 export type LocationEvent = z.output<typeof LocationEventSchema>;
 export type LocationArt = z.output<typeof LocationArtSchema>;
 export type Location = z.output<typeof LocationSchema>;

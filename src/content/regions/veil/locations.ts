@@ -23,7 +23,8 @@
 //     falls to Wary inside; the door itself is WORLD §11.3 `gate_sanctum_door`;
 //   - an event whose text or effects change by loop or standing is two events with complementary `when`s, the WORLD id on the
 //     one that WORLD's row describes in effect (the spawn, the Loop 1 line) and a coined `_plain` or `_again` id on the other
-//     (an event has one text, and its effects carry no per-effect condition: U34d's gap), as the Reach's Names event;
+//     (an event has one text), as the Reach's Names event. D-098 (U34d) added a per-effect condition (`onlyIf`), but the pairs
+//     stay: their texts differ, and a `once` event that fired without the condition could not grant on a later visit;
 //   - the Eye: the Umbra's own loot (creatures.ts) pays the mirror and the thread for the fight; the same two placed here are
 //     the bypass's (Nyx calls the shadow back and the fight is skipped, the Reach's Deep form), so the two never both pay;
 //   - Where She Fell: the Litany page and the shardglass are gated as WORLD says ("opens with {any:[rep ≥ 20, the Echo]}";

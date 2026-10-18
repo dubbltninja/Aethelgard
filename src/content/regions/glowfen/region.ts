@@ -11,10 +11,11 @@
 // location overrides the ambient.
 //
 // Pool: WORLD §10.1 `pool_glowfen` is mireling 30 · toad 25 · spore 20 · reed stalker 15 · barrow light 10, "barrow light at
-// dusk/night only". The pool has no conditions in the schema, so the region pool is the daytime pool (the first four), and
-// the barrow light's 10 % of the pool's rolls at dusk and night is a location encounter at the nodes that roll the pool
-// and can bear a level-11 creature (the Shallows, the Mangrove; not the band-8 Causeway: locations.ts): 10 % of the pool's 20 %
-// return rolls is 2 % per return visit, ahead of the pool roll (the Steppe's Reed Stalker form, U46; the Nexus's crawler, U45).
+// dusk/night only". D-098 (U34d): a pool entry carries a `when`, so the barrow light is in the pool at dusk and night, at the
+// nodes that roll the pool and can bear a level-11 creature — the Shallows and the Mangrove, not the band-8 Causeway
+// (locations.ts) nor the band-8 Reedmarch Descent, which draws on this pool too (../ashen_steppe/locations.ts
+// `wanderingPools`) — and otherwise the first four share the rolls (it was a 2 % location encounter at the Shallows and the
+// Mangrove ahead of the pool roll).
 //
 // Not expressible yet (listed in the U47 reply): the weather and hazards of WORLD §2.10 — rain every second day (Soaked
 // region-wide for the day), the Shallows' spore-fog at dawn (Poison for 1 turn at ambush onset), sinking in the Shallows
@@ -33,13 +34,20 @@ export const region = {
   levelBand: { min: 8, max: 12 },
   palette: { bg: '#14261A', bgAlt: '#3E6E3A', fg: '#4F8A44', accent: '#D9FF66', glow: '#D9FF66' },
   ambient: 'ambient_glowfen',
-  // WORLD §10.1 `pool_glowfen`: mireling 30 · toad 25 · spore 20 · reed stalker 15 (· barrow light 10 at dusk and night only:
-  // locations.ts)
+  // WORLD §10.1 `pool_glowfen`: mireling 30 · toad 25 · spore 20 · reed stalker 15 · barrow light 10 at dusk and night only
+  // (D-098; not at the Causeway, see the header)
   wanderingPool: [
     { creatureId: 'cr_glowfen_mireling', weight: 30 },
     { creatureId: 'cr_lantern_toad', weight: 25 },
     { creatureId: 'cr_spore_drift', weight: 20 },
     { creatureId: 'cr_reed_stalker', weight: 15 },
+    {
+      creatureId: 'cr_barrow_light',
+      weight: 10,
+      when: {
+        all: [{ any: [{ watch: 'dusk' }, { watch: 'night' }] }, { any: [{ location: 'loc_sporelight_shallows' }, { location: 'loc_elder_mangrove' }] }],
+      },
+    },
   ],
   returnEncounterChance: 0.2,
   codexId: 'codex_region_glowfen',

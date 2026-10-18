@@ -13,6 +13,14 @@ export const NpcRole = z.enum(NPC_ROLES);
 
 export const PortraitSchema = z.object({ sigil: z.string().min(1), accent: z.string().optional() }).strict();
 
+/**
+ * U34d (C1 addition, D-098 item 1): where the NPC stands while `when` holds — the Before's Bells and hours, a caravan's
+ * flag, a Loop 1 flicker. The first entry that holds wins; `at: []` = nowhere (away, not to be spoken to). When none holds
+ * the NPC stands where the locations' `npcs` lists place it. The engine's `npcOverrides` (the Horde moving Ilyra and Brak)
+ * win over both.
+ */
+export const NpcScheduleEntrySchema = z.object({ when: ConditionSchema, at: z.array(LocationId) }).strict();
+
 export const NpcSchema = Base.extend({
   /** WORLD §4 ids (D-064); names and roles are STORY's. */
   id: NpcId,
@@ -32,6 +40,8 @@ export const NpcSchema = Base.extend({
   legacyName: z.string().optional(),
   /** BIBLE cross-check (D-025). */
   age: z.number().int().min(0).optional(),
+  /** U34d: presence by condition (see `NpcScheduleEntrySchema`); [] = always where the locations place it. */
+  schedule: z.array(NpcScheduleEntrySchema).default([]),
 })
   .strict()
   .superRefine((npc, ctx) => {
@@ -40,7 +50,9 @@ export const NpcSchema = Base.extend({
       issue(['merchantId'], `merchants are keyed by their NPC id: merchantId must be '${npc.id}' (WORLD §9)`);
     }
     dupes(npc.roles).forEach((i) => issue(['roles', i], `duplicate role '${npc.roles[i]}'`));
+    npc.schedule.forEach((entry, i) => dupes(entry.at).forEach((j) => issue(['schedule', i, 'at', j], `duplicate location '${entry.at[j]}'`)));
   });
 
+export type NpcScheduleEntry = z.output<typeof NpcScheduleEntrySchema>;
 export type Npc = z.output<typeof NpcSchema>;
 export type NpcInput = z.input<typeof NpcSchema>;

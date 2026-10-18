@@ -3,7 +3,7 @@
 // Hearthring. None is a legacy character, so there is no `legacyName`; the descriptions are WORLD's §4 cells made into
 // sentences (the Ruins' and the Reach's reading) and the barks are WORLD's sample lines. Tessaly's `merchantId` is the key of
 // her stock (WORLD §9; the merchant record is U50's, a pending reference until then); her caravan stall at the Ironclad Camp
-// after `flag_hearthring_caravan` is the caravan unit's (U43's note). Roles: Ferrin teaches the trail-signs and Oma and Ketch
+// after `flag_hearthring_caravan` is her `schedule` (D-098, U34d). Roles: Ferrin teaches the trail-signs and Oma and Ketch
 // tell (WORLD: "flavor; teller", "flavor (skald …)"), so all three are `lore`. Hadda's age is BIBLE's (~50); WORLD and BIBLE
 // give no other. Scenes are the dialogue units' (U52–U59).
 import type { NpcInput } from '@schema/npc';
@@ -69,6 +69,9 @@ export const npcs = [
       { text: 'Rivets by the fist, salt by the sack. Coin first.' },
       { text: "The wagons roll at the salt-wind. You're on them or you're not." },
     ],
+    // D-098 (U34d): WORLD §4/§9.1/§12.1 `ws_caravan` "stall: loc_hearthring; caravan stall at loc_ironclad_camp after
+    // `flag_hearthring_caravan`" — the stall stays and the caravan sells at the Camp too (one stock, her own)
+    schedule: [{ when: { flag: 'flag_hearthring_caravan' }, at: ['loc_hearthring', 'loc_ironclad_camp'] }],
     tags: ['merchant', 'ironclad', 'caravan'],
   },
   {

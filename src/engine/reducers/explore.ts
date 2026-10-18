@@ -11,15 +11,15 @@
 // `locationEntered`), then: first-entry item spawn → `enter` events → the Loop 1 Apex prompt, or the ARRIVAL_HOOKS
 // (encounters U23, Horde spread U30) → an autosave checkpoint. A `teleport` applied by content gets the same pipeline
 // from `arrivalHook` (post-step), for the arrival the player is still standing in.
-import type { Exit, Location, LocationEvent } from '@schema/location';
+import type { Exit, GatherNode, Location, LocationEvent } from '@schema/location';
 import type { Item } from '@schema/item';
-import { beforeArrival, beforeRest } from '../before';
+import { beforeArrival, beforeRest, beforeShortRest } from '../before';
 import { WATCH_NAMES, dayOf, evaluate, explain, watchOf } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { addItem, advanceTime, apply, applyAll, locationState } from '../effects';
 import { encounterArrivalHook } from './combat';
 import { companionArrivalHook, restCompanions } from '../combat/companionAi';
-import { hordeArrivalHook } from '../horde';
+import { HORDE_SOURCE_ID, hordeArrivalHook } from '../horde';
 import type { Enumerator } from '../legalActions';
 import { defaultRarity } from '../newRun';
 import { ATT_SCRIPT, attunementScript, scriptNumber } from '../runRules';
@@ -126,12 +126,32 @@ export function canCarry(s: GameState, content: ContentPack, itemId: string, qty
 /** Items lying at the current location. */
 const groundItems = (s: GameState): readonly ItemInstance[] => s.world.locationStates[s.world.currentLocationId]?.items ?? [];
 
-/** NPCs standing at `locationId`: home NPCs not moved elsewhere, plus NPCs an override moved here. */
-export function npcsAt(s: GameState, content: ContentPack, locationId: string): string[] {
-  const overrides = s.world.npcOverrides;
-  const home: string[] = (content.locations[locationId]?.npcs ?? []).filter((id) => overrides[id] === undefined);
-  const moved = Object.keys(overrides).filter((id) => overrides[id]?.location === locationId);
-  return [...home, ...moved.filter((id) => !home.includes(id))];
+/**
+ * Where an NPC stands now when something other than the locations' `npcs` lists decides (U34d, D-098 item 1): an engine
+ * override (`npcOverrides`: the Horde taking Ilyra to the portal, Brak's stand) wins, then the first entry of the NPC's
+ * `schedule` whose `when` holds (the Before's Bells and hours, Tessaly's caravan, Dask's Loop 1 flicker); `[]` = nowhere.
+ * `null` = neither: the NPC stands where the locations place it.
+ */
+export function npcPlacement(s: GameState, content: ContentPack, profile: Pr, npcId: string): readonly string[] | null {
+  const override = s.world.npcOverrides[npcId];
+  if (override !== undefined) return override.location === null ? [] : [override.location];
+  for (const entry of content.npcs[npcId]?.schedule ?? []) if (evaluate(entry.when, s, profile, content)) return entry.at;
+  return null;
+}
+
+/** True while `npcId` stands at `locationId` (see `npcPlacement`). */
+export function npcStandsAt(s: GameState, content: ContentPack, profile: Pr, npcId: string, locationId: string): boolean {
+  const placed = npcPlacement(s, content, profile, npcId);
+  return placed === null ? (content.locations[locationId]?.npcs ?? []).some((id) => id === npcId) : placed.includes(locationId);
+}
+
+/** NPCs standing at `locationId`: the ones placed there and not moved elsewhere, then those an override or a schedule puts here. */
+export function npcsAt(s: GameState, content: ContentPack, profile: Pr, locationId: string): string[] {
+  const out: string[] = [];
+  for (const id of content.locations[locationId]?.npcs ?? []) if (!out.includes(id) && npcPlacement(s, content, profile, id) === null) out.push(id);
+  const moved = [...Object.keys(s.world.npcOverrides), ...Object.values(content.npcs).flatMap((n) => (n !== undefined && n.schedule.length > 0 ? [n.id] : []))];
+  for (const id of moved) if (!out.includes(id) && (npcPlacement(s, content, profile, id) ?? []).includes(locationId)) out.push(id);
+  return out;
 }
 
 /** `wait` is allowed where the location says so (schema `waitable`, a rest spot, or the `waitable` tag). */
@@ -144,13 +164,21 @@ function restSpot(s: GameState, content: ContentPack, profile: Pr): NonNullable<
   return rest;
 }
 
-/** Units of the gathering node here still available today (0 when there is none). */
-export function gatherLeft(s: GameState, content: ContentPack): number {
-  const node = currentLocation(s, content)?.gather;
-  if (node === undefined) return 0;
-  const used = s.world.gather[s.world.currentLocationId];
-  const taken = used !== undefined && used.day === dayOf(s.clock.ticks) ? used.taken : 0;
-  return Math.max(0, node.perDay - taken);
+/**
+ * The `world.gather` key of a location's gathering node: the location id for its first node (as before U34d), and
+ * `<location>:<item>` for the others.
+ */
+export const gatherKey = (locationId: string, index: number, itemId: string): string => (index === 0 ? locationId : `${locationId}:${itemId}`);
+
+/** The gathering nodes here with the units each still has today (U34d: a location may have several). */
+export function gatherNodes(s: GameState, content: ContentPack): { node: GatherNode; key: string; left: number }[] {
+  const here = s.world.currentLocationId;
+  const today = dayOf(s.clock.ticks);
+  return (currentLocation(s, content)?.gather ?? []).map((node, i) => {
+    const key = gatherKey(here, i, node.itemId);
+    const used = s.world.gather[key];
+    return { node, key, left: Math.max(0, node.perDay - (used !== undefined && used.day === today ? used.taken : 0)) };
+  });
 }
 
 /** The exit back to where the player came from, if it exists and is open (DESIGN §4.7 Retreat). */
@@ -189,32 +217,87 @@ export function fireEvents(ctx: StepCtx, locationId: string, trigger: LocationEv
   }
 }
 
-/** Instantiates content items into `ls.items`: one instance per count for gear, one stack for stackables. */
-function placeItems(ctx: StepCtx, ls: LocationState, specs: Location['items']): void {
-  for (const spec of specs) {
-    if (spec.when !== undefined && !evaluate(spec.when, ctx.s, ctx.profile, ctx.content)) continue;
-    const def = ctx.content.items[spec.itemId];
-    if (def === undefined) throw new Error(`explore: unknown item '${spec.itemId}'`);
-    const rarity = spec.rarity ?? defaultRarity(def);
-    const make = (qty: number): ItemInstance => ({ uid: ctx.uid('i'), itemId: spec.itemId, qty, rarity, affixes: [...def.fixedAffixes] });
-    if (def.stackable) ls.items.push(make(spec.count));
-    else for (let i = 0; i < spec.count; i++) ls.items.push(make(1));
-  }
+// Content items (U34d, D-098 item 2; schema LocationItemSchema). Each entry of `location.items` has one try per loop: at
+// the first arrival (before and after the `enter` events, so an Echo the arrival grants counts) — or, if `hidden`, the
+// first `examine` of the location — at which its `when` holds; `chance` < 1 is rolled then on the run Rng. The try is
+// recorded in `LocationState.flags` (`item:<index>` = 'placed' | 'missed'), so a failed roll waits for the next loop and an
+// entry whose `when` turns true later (a kill, a flag, a Bell) appears on a later arrival or examine. Pieces whose entry
+// has `onTake` effects carry `take:<uid>` = the entry's index until they are picked up.
+
+/** `LocationState.flags` keys (engine-only). */
+const ITEM_TRY = 'item:';
+const ITEM_TAKE = 'take:';
+const ITEM_TRIES_V2 = 'items:v2';
+
+/**
+ * A location state written before U34d recorded only `itemsSpawned` (the visible entries were placed at the first
+ * entry) and `hiddenRevealed` (the hidden ones at the first examine): those entries count as tried.
+ */
+function adoptOldTries(ls: LocationState, loc: Location): void {
+  if (ls.flags[ITEM_TRIES_V2] === true) return;
+  ls.flags[ITEM_TRIES_V2] = true;
+  if (!ls.itemsSpawned) return;
+  loc.items.forEach((spec, i) => {
+    if (!spec.hidden || ls.flags.hiddenRevealed === true) ls.flags[`${ITEM_TRY}${i}`] = 'placed';
+  });
 }
 
-/** First entry this loop: the location's visible content items appear on the ground (hidden ones wait for examine). */
-function spawnItems(ctx: StepCtx, loc: Location): void {
+/** Instantiates one content entry into `ls.items`: one instance per count for gear, one stack for stackables. */
+function placeItem(ctx: StepCtx, ls: LocationState, spec: Location['items'][number], index: number): void {
+  const def = ctx.content.items[spec.itemId];
+  if (def === undefined) throw new Error(`explore: unknown item '${spec.itemId}'`);
+  const rarity = spec.rarity ?? defaultRarity(def);
+  const make = (qty: number): void => {
+    const item: ItemInstance = { uid: ctx.uid('i'), itemId: spec.itemId, qty, rarity, affixes: [...def.fixedAffixes] };
+    ls.items.push(item);
+    if (spec.onTake.length > 0) ls.flags[`${ITEM_TAKE}${item.uid}`] = index;
+  };
+  if (def.stackable) make(spec.count);
+  else for (let i = 0; i < spec.count; i++) make(1);
+}
+
+/** The entries (`hidden` ones, or the others) that have not had their try this loop and whose `when` holds now: try them. */
+function tryItems(ctx: StepCtx, loc: Location, hidden: boolean): number {
   const ls = locationState(ctx, loc.id);
-  if (ls.itemsSpawned) return;
-  ls.itemsSpawned = true;
-  placeItems(ctx, ls, loc.items.filter((spec) => !spec.hidden));
+  adoptOldTries(ls, loc);
+  let placed = 0;
+  loc.items.forEach((spec, i) => {
+    const key = `${ITEM_TRY}${i}`;
+    if (spec.hidden !== hidden || ls.flags[key] !== undefined) return;
+    if (spec.when !== undefined && !evaluate(spec.when, ctx.s, ctx.profile, ctx.content)) return;
+    const hit = ctx.rng.chance(spec.chance); // a chance of 1 draws nothing
+    ls.flags[key] = hit ? 'placed' : 'missed';
+    if (!hit) return;
+    placeItem(ctx, ls, spec, i);
+    placed += 1;
+  });
+  return placed;
+}
+
+/** An arrival: the visible entries ready now appear on the ground (hidden ones wait for examine). */
+function spawnItems(ctx: StepCtx, loc: Location): void {
+  tryItems(ctx, loc, false);
+  locationState(ctx, loc.id).itemsSpawned = true;
 }
 
 /** PLAN §5.3: `once: false` items respawn when the player rests at their location (if none is lying there). */
 function respawnItems(ctx: StepCtx, loc: Location): void {
   const ls = locationState(ctx, loc.id);
   if (!ls.itemsSpawned) return;
-  placeItems(ctx, ls, loc.items.filter((spec) => !spec.once && !spec.hidden && !ls.items.some((i) => i.itemId === spec.itemId)));
+  adoptOldTries(ls, loc);
+  loc.items.forEach((spec, i) => {
+    if (spec.once || spec.hidden || ls.flags[`${ITEM_TRY}${i}`] !== 'placed' || ls.items.some((it) => it.itemId === spec.itemId)) return;
+    if (spec.when === undefined || evaluate(spec.when, ctx.s, ctx.profile, ctx.content)) placeItem(ctx, ls, spec, i);
+  });
+}
+
+/** A piece the player picks up: its entry's `onTake` effects, once (U34d; the Roost's greataxe). */
+function takeEffects(ctx: StepCtx, locationId: string, item: ItemInstance): void {
+  const ls = locationState(ctx, locationId);
+  const index = ls.flags[`${ITEM_TAKE}${item.uid}`];
+  if (typeof index !== 'number') return;
+  delete ls.flags[`${ITEM_TAKE}${item.uid}`];
+  applyAll(ctx.content.locations[locationId]?.items[index]?.onTake ?? [], ctx, { source: `take:${item.itemId}` });
 }
 
 /** How the player arrived; arrival hooks decide what applies (no encounter roll on `retreat` / `notYet`, DESIGN §4.7). */
@@ -258,6 +341,7 @@ function runArrival(ctx: StepCtx, arrival: Arrival): void {
     spawnItems(ctx, loc);
     fireEvents(ctx, loc.id, 'enter');
     if (!stillHere()) return;
+    spawnItems(ctx, loc); // U34d: what the arrival's own events made ready (an Echo granted here)
     if (apexPromptDue(s)) {
       openApexPrompt(ctx);
       return;
@@ -466,10 +550,12 @@ function pickUp(ctx: StepCtx, item: ItemInstance): void {
 }
 
 function takeFromGround(ctx: StepCtx, index: number): void {
-  const ls = locationState(ctx, ctx.s.world.currentLocationId);
+  const here = ctx.s.world.currentLocationId;
+  const ls = locationState(ctx, here);
   const [item] = ls.items.splice(index, 1) as [ItemInstance];
   ctx.emit({ t: 'itemTaken', item: clone(item) });
   pickUp(ctx, item);
+  takeEffects(ctx, here, item);
 }
 
 const fits = (s: GameState, content: ContentPack, item: ItemInstance): boolean => canCarry(s, content, item.itemId, item.qty, item.rarity);
@@ -497,17 +583,25 @@ export function takeAllHandler(ctx: StepCtx): void {
   if (skipped > 0) ctx.log(`Your pack is full; ${skipped} item${skipped === 1 ? '' : 's'} left on the ground.`, 'system');
 }
 
-/** `gather`: one unit from the node here, up to `perDay` a day (DESIGN §8.2; the day resets at dawn). No time cost. */
-export function gatherHandler(ctx: StepCtx): void {
+/**
+ * `gather`: one unit from a node here, up to its `perDay` a day (DESIGN §8.2; the day resets at dawn). No time cost. A
+ * location with one node takes no `itemId`; with several (U34d) the action names the node by `itemId`.
+ */
+export function gatherHandler(ctx: StepCtx, a: ActionOf<'gather'>): void {
   const loc = requireHere(ctx);
-  const node = loc.gather;
-  if (node === undefined) ctx.reject('there is nothing to gather here');
-  if (gatherLeft(ctx.s, ctx.content) === 0) ctx.reject('you have gathered all there is here today');
+  const nodes = gatherNodes(ctx.s, ctx.content);
+  if (nodes.length === 0) ctx.reject('there is nothing to gather here');
+  if (nodes.length > 1 && a.itemId === undefined) ctx.reject('name what to gather here');
+  if (nodes.length === 1 && a.itemId !== undefined) ctx.reject('there is only one thing to gather here');
+  const found = a.itemId === undefined ? nodes[0] : nodes.find((n) => n.node.itemId === a.itemId);
+  if (found === undefined) ctx.reject(`there is no ${String(a.itemId)} to gather here`);
+  const { node, key, left } = found;
+  if (left === 0) ctx.reject('you have gathered all there is here today');
   const rarity = defaultRarity(ctx.content.items[node.itemId]);
   if (!canCarry(ctx.s, ctx.content, node.itemId, 1, rarity)) ctx.reject(`your pack is full (${INVENTORY_SLOTS} slots)`);
   const today = dayOf(ctx.s.clock.ticks);
-  const used = ctx.s.world.gather[loc.id];
-  ctx.s.world.gather[loc.id] = { day: today, taken: (used?.day === today ? used.taken : 0) + 1 };
+  const used = ctx.s.world.gather[key];
+  ctx.s.world.gather[key] = { day: today, taken: (used?.day === today ? used.taken : 0) + 1 };
   const [stack] = addItem(ctx, node.itemId, 1) as [ItemInstance];
   ctx.emit({ t: 'itemGiven', item: { ...stack, qty: 1, affixes: [...stack.affixes] }, source: `gather:${loc.id}` });
   ctx.log(`You gather ${ctx.content.items[node.itemId]?.name ?? node.itemId}.`, 'narration');
@@ -577,6 +671,7 @@ export function restHandler(ctx: StepCtx, a: ActionOf<'rest'>): void {
   player.mp = Math.min(player.mpMax, player.mp + round(player.mpMax * pct));
   restCompanions(ctx, full, pct); // U28: a knocked-out companion comes round only at a full rest, at 50 % (DESIGN §12.6)
   if (full) beforeRest(ctx); // U32: the next Bell, or Last Bell's dusk and the echo's reset (before.ts)
+  else beforeShortRest(ctx); // U34d: in the Before a short rest passes one of the echo's own watches (before.ts)
   if (full && spot.kind === 'inn' && ctx.content.statuses[RESTED_STATUS] !== undefined) {
     const rested: StatusInstance = { statusId: RESTED_STATUS, stacks: 1, duration: 1, sourceUid: null, appliedOnOwnTurn: false };
     player.statuses = [...player.statuses.filter((st) => st.statusId !== RESTED_STATUS), rested];
@@ -599,13 +694,18 @@ function findItem(s: GameState, uid: string): ItemInstance | undefined {
   );
 }
 
-function describeLocation(s: GameState, content: ContentPack, profile: Pr, loc: Location): string {
-  return loc.descriptionVariants.find((v) => evaluate(v.when, s, profile, content))?.text ?? loc.description;
+/** WORLD §12.1 `ws_infected`: the sentence added to an infected node's text (the Apex keeps its own legacy Horde text). */
+export const INFECTED_TEXT = 'The air here is coming apart at the seams.';
+
+/** The location's text now: its first variant that holds, else its description; `+` WORLD's line where the Horde has reached. */
+export function describeLocation(s: GameState, content: ContentPack, profile: Pr, loc: Location): string {
+  const text = loc.descriptionVariants.find((v) => evaluate(v.when, s, profile, content))?.text ?? loc.description;
+  return s.world.infected.includes(loc.id) && loc.id !== HORDE_SOURCE_ID ? `${text} ${INFECTED_TEXT}` : text;
 }
 
 /**
  * `examine` (enumerated only on request, PLAN §4.7): narration about the location, an exit, an item or an NPC; no time
- * passes. Examining the location also reveals its hidden items (once per loop).
+ * passes. Examining the location also reveals its hidden items whose `when` holds, each once per loop (U34d).
  */
 export function examineHandler(ctx: StepCtx, a: ActionOf<'examine'>): void {
   const loc = requireHere(ctx);
@@ -614,13 +714,7 @@ export function examineHandler(ctx: StepCtx, a: ActionOf<'examine'>): void {
   if (!examinable(s, content, profile, t)) ctx.reject('there is nothing like that to examine here');
   if (t.kind === 'location') {
     ctx.log(describeLocation(s, content, profile, loc), 'narration');
-    const ls = locationState(ctx, loc.id);
-    if (ls.flags.hiddenRevealed !== true) {
-      ls.flags.hiddenRevealed = true;
-      const before = ls.items.length;
-      placeItems(ctx, ls, loc.items.filter((spec) => spec.hidden));
-      if (ls.items.length > before) ctx.log('Looking closer, you find something.', 'event');
-    }
+    if (tryItems(ctx, loc, true) > 0) ctx.log('Looking closer, you find something.', 'event');
   } else if (t.kind === 'exit') {
     const found = findExit(s, content, profile, t.to) as { exit: Exit; state: 'open' | 'locked' };
     const watches = found.exit.travelWatches;
@@ -650,7 +744,7 @@ function examinable(s: GameState, content: ContentPack, profile: Pr, t: ExamineT
     case 'item':
       return findItem(s, t.uid) !== undefined;
     case 'npc':
-      return npcsAt(s, content, s.world.currentLocationId).includes(t.id);
+      return npcsAt(s, content, profile, s.world.currentLocationId).includes(t.id);
   }
 }
 
@@ -680,9 +774,9 @@ export const takeAllEnumerator: Enumerator<'takeAll'> = (s, content) =>
   groundItems(s).some((i) => fits(s, content, i)) ? [{ type: 'takeAll' }] : [];
 
 export const gatherEnumerator: Enumerator<'gather'> = (s, content) => {
-  const node = currentLocation(s, content)?.gather;
-  if (node === undefined || gatherLeft(s, content) === 0) return [];
-  return canCarry(s, content, node.itemId, 1, defaultRarity(content.items[node.itemId])) ? [{ type: 'gather' }] : [];
+  const nodes = gatherNodes(s, content);
+  const ready = nodes.filter(({ node, left }) => left > 0 && canCarry(s, content, node.itemId, 1, defaultRarity(content.items[node.itemId])));
+  return ready.map(({ node }) => (nodes.length === 1 ? { type: 'gather' } : { type: 'gather', itemId: node.itemId }));
 };
 
 export const waitEnumerator: Enumerator<'wait'> = (s, content) => {
@@ -704,6 +798,6 @@ export const examineEnumerator: Enumerator<'examine'> = (s, content, profile) =>
   for (const to of new Set(visibleExits(s, content, profile).map((v) => v.exit.to))) out.push({ type: 'examine', target: { kind: 'exit', to } });
   const items = [...groundItems(s), ...s.player.inventory, ...Object.values(s.player.equipment).filter((i): i is ItemInstance => i !== null)];
   for (const item of items) out.push({ type: 'examine', target: { kind: 'item', uid: item.uid } });
-  for (const id of npcsAt(s, content, s.world.currentLocationId)) out.push({ type: 'examine', target: { kind: 'npc', id } });
+  for (const id of npcsAt(s, content, profile, s.world.currentLocationId)) out.push({ type: 'examine', target: { kind: 'npc', id } });
   return out;
 };

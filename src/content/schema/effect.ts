@@ -3,6 +3,7 @@
 // Clock effects are always in watches (D-066 #15). Combat-scope atoms (COMBAT_SCOPE_EFFECTS) are legal only in creature
 // data — a Move's `effects`, a phase's `onEnter` — which `validateContent()` (U19) enforces.
 import { z } from 'zod';
+import { ConditionSchema, type Condition } from './condition';
 import {
   CodexId,
   CompanionId,
@@ -23,6 +24,16 @@ import {
 } from './primitives';
 
 const int = z.number().int();
+
+/**
+ * U34d (C1 addition, D-098 item 3): a `when` on individual effects inside one list — the orrery's dust "with the key".
+ * The nested effects apply, in order, only if `when` holds at that point of the list (an earlier effect may change it).
+ */
+export interface OnlyIf {
+  when: Condition;
+  effects: Effect[];
+}
+const OnlyIfSchema: z.ZodType<OnlyIf> = z.lazy(() => z.object({ when: ConditionSchema, effects: z.array(EffectSchema).min(1) }).strict());
 
 export const EFFECT_ATOMS = {
   setFlag: FlagId,
@@ -86,6 +97,8 @@ export const EFFECT_ATOMS = {
   counter: z.object({ name: z.string().min(1), delta: int }).strict(),
   /** Communion only; clamped 0–8. */
   resolve: int,
+  /** U34d: `{ onlyIf: { when, effects } }` — see `OnlyIf`. */
+  onlyIf: OnlyIfSchema,
 } as const;
 
 export type EffectAtoms = { [K in keyof typeof EFFECT_ATOMS]: z.output<(typeof EFFECT_ATOMS)[K]> };

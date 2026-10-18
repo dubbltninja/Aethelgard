@@ -293,7 +293,7 @@ describe('the eight locations vs WORLD §3.8 blocks', () => {
     for (const l of parsedLocations) {
       expect([l.id, l.items.map((i) => i.itemId).sort()]).toEqual([l.id, [...new Set(WL[l.id]?.itemIds ?? [])].sort()]);
     }
-    const plain = (itemId: string, count = 1) => ({ itemId, count, hidden: false, once: true });
+    const plain = (itemId: string, count = 1) => ({ itemId, count, hidden: false, once: true, chance: 1, onTake: [] }); // U34d's defaults
     expect(loc(VM).items).toEqual([]);
     expect(loc(SU).items).toEqual([plain('mat_umbral_thread', 2)]);
     expect(loc(SH).items).toEqual([plain('item_void_shard'), plain('mat_breach_glass')]);

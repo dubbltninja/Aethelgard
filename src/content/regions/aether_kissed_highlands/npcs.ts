@@ -3,8 +3,9 @@
 // handshake with shared/companions.ts (D-088: `npcId: 'npc_dask'` ↔ `companionId: 'dask'`). He "may remain in any
 // `temporallyUnstable` location" (D-059) and drops out on the Glowlands (D-068.2): the engine's rule, not a second placement.
 // In Loop 1 he is a flicker the player cannot speak to; Loop 2+ only, and his first scene gives only the warning (STORY §4.4,
-// D-066.12, D-067.16): a placement has no condition, so that is the dialogue and companion units' (U52–U59). The barks are
-// WORLD's sample lines, verbatim. No age: BIBLE gives none ("Died Year 430; seventh Wayfinder").
+// D-066.12, D-067.16): D-098 (U34d) his `schedule` stands him nowhere in Loop 1 (the Pass's `ev_pass_flicker` is the
+// glimpse); his first scene is the dialogue units' (U52–U59). The barks are WORLD's sample lines, verbatim. No age: BIBLE
+// gives none ("Died Year 430; seventh Wayfinder").
 import type { NpcInput } from '@schema/npc';
 
 export const npcs = [
@@ -22,6 +23,8 @@ export const npcs = [
       { text: 'Hells of a road, this. I walked it seventy years ago. Or — tomorrow.' },
       { text: "Don't strike it first. It won't strike what keeps its distance." },
     ],
+    // D-098 (U34d): WORLD §3.4 "in Loop 1 he is a flicker the player cannot speak to — Loop 2+ only"
+    schedule: [{ when: { loop: { max: 1 } }, at: [] }],
     tags: ['companion_anchor'],
   },
 ] satisfies NpcInput[];

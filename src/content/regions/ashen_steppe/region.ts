@@ -11,10 +11,9 @@
 // unit's, not replacement presets (unlike the Nexus), so no location overrides the ambient.
 //
 // Pool: WORLD §10.1 `pool_ashen_steppe` is jackal 40 · harrier 35 · stalker 25, "reed stalker at loc_watchfire_ridge /
-// loc_reedmarch_descent only". The pool has no per-location entries, so the region pool is the pool everywhere without the
-// stalker (jackal 40 · harrier 35), and the stalker's 25 % of the pool rolls at those two nodes is a location encounter
-// there (locations.ts; the Glowlands' Nexus pattern). The harrier's first region is the Highlands (U44): it is a pending
-// reference here until that unit lands (D-090).
+// loc_reedmarch_descent only". D-098 (U34d): a pool entry carries a `when`, so the stalker is in the pool at those two nodes
+// (`location`) and out of it elsewhere, where jackal and harrier share the rolls 40 : 35 (it was a 5 % location encounter at
+// the two nodes, the Glowlands' Nexus pattern). The Reedmarch also draws on the Glowfen's pool (locations.ts).
 //
 // Not expressible yet (listed in the U46 reply): the weather and hazards of WORLD §2.8 (ashfall's one-turn Blind at an
 // ambush on Days 1-2 of each three-day cycle, the Pan's midday glare, the Cairns' lightning on Soaked characters, the Flats'
@@ -32,10 +31,11 @@ export const region = {
   factionId: 'ironclad',
   palette: { bg: '#3A2E2A', bgAlt: '#B08A6A', fg: '#9C7A5F', accent: '#E05A3A', glow: '#E05A3A' },
   ambient: 'ambient_ashen_steppe',
-  // WORLD §10.1 `pool_ashen_steppe`: jackal 40 · harrier 35 (· stalker 25 at the Ridge and the Descent only: locations.ts)
+  // WORLD §10.1 `pool_ashen_steppe`: jackal 40 · harrier 35 · stalker 25 at the Ridge and the Descent only (D-098)
   wanderingPool: [
     { creatureId: 'cr_salt_jackal', weight: 40 },
     { creatureId: 'cr_steppe_harrier', weight: 35 },
+    { creatureId: 'cr_reed_stalker', weight: 25, when: { any: [{ location: 'loc_watchfire_ridge' }, { location: 'loc_reedmarch_descent' }] } },
   ],
   returnEncounterChance: 0.2,
   codexId: 'codex_region_ashen_steppe',

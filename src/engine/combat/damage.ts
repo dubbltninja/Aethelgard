@@ -157,6 +157,18 @@ export function statusMods(c: Pick<Combatant, 'statuses'>, content: ContentPack)
 
 export const hasStatus = (c: Pick<Combatant, 'statuses'>, statusId: string): boolean => c.statuses.some((st) => st.statusId === statusId);
 
+// U34e (D-094): a fight's weather, as tags its opening puts on the combatants (engine/hazards.ts):
+// `hz:acc:<hazard>:<points>` (the Pan's glare, the gale on a bow) and `hz:dealt:<hazard>:<type>:<mult>` (the Skyreach storm).
+export const HAZARD_ACC_TAG = 'hz:acc:';
+export const HAZARD_DEALT_TAG = 'hz:dealt:';
+const hazardTags = (c: Partial<Pick<Combatant, 'pattern'>>, prefix: string): string[][] =>
+  (c.pattern?.firedOnce ?? []).filter((t) => t.startsWith(prefix)).map((t) => t.slice(prefix.length).split(':'));
+/** Accuracy points the fight's hazards give `c`'s hits. */
+export const hazardAccuracy = (c: Partial<Pick<Combatant, 'pattern'>>): number => hazardTags(c, HAZARD_ACC_TAG).reduce((n, [, pts]) => n + Number(pts), 0);
+/** The fight's hazard multiplier on `c`'s damage of `type`. */
+export const hazardDealtMult = (c: Partial<Pick<Combatant, 'pattern'>>, type: DamageType): number =>
+  hazardTags(c, HAZARD_DEALT_TAG).reduce((m, [, t, mult]) => (t === type ? m * Number(mult) : m), 1);
+
 const isParty = (c: Pick<Combatant, 'kind'>): boolean => c.kind !== 'enemy';
 
 /** Challenge modifiers' `damage_multiplier` rules (Glass ×2 both ways, DESIGN §15.1): party outgoing / party incoming. */
@@ -290,6 +302,8 @@ function statusStepMults(r: PipelineRead, attacker: Combatant, target: Combatant
   if (spec.type === 'physical' && hasStatus(target, STATUS_ARMOR_BREAK)) out.push({ name: 'armor break', value: ARMOR_BREAK_PHYSICAL_MULT });
   if (spec.type === 'storm' && hasStatus(target, STATUS_SHOCK)) out.push({ name: 'shock', value: SHOCK_STORM_MULT });
   for (const m of spec.mults ?? []) out.push({ name: m.name, value: m.mult });
+  const weather = hazardDealtMult(attacker, spec.type); // U34e: the Skyreach storm
+  if (weather !== 1) out.push({ name: 'weather', value: weather });
   out.push(...phaseMults(r, attacker, target));
   out.push(...runMultipliers(r, attacker, target));
   return out;
@@ -314,7 +328,7 @@ export function hitChanceOf(content: ContentPack, attacker: Combatant, target: C
   const { config } = content;
   if (phaseEvades(target, spec)) return 0;
   if (spec.cannotMiss || hasStatus(target, STATUS_MARK)) return 100;
-  const accuracy = attacker.accuracy + statusMods(attacker, content).accuracy + (spec.spell ? config.spellAccuracyBonus : 0) + (spec.accuracy ?? 0);
+  const accuracy = attacker.accuracy + statusMods(attacker, content).accuracy + (spec.spell ? config.spellAccuracyBonus : 0) + (spec.accuracy ?? 0) + hazardAccuracy(attacker); // U34e: weather
   const evasion = target.evasion + statusMods(target, content).evasion + evasionBonusOf(target); // + scripted buffs (U26b)
   return hitChance(accuracy, evasion, config);
 }

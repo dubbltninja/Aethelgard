@@ -13,16 +13,30 @@
 // passive on first visit") and `echo_high_mark` ("Sky-Whisper Sentinels passive"). They are `optionalWhen` on the legacy
 // encounter, as U43's Golem shortcut (DESIGN §13.3 #8): while the Echo is held the fight does not start.
 //
-// Not expressible (listed in the U44 reply): the Pass's mirage hazard ("first visit: 25 % chance the chosen exit costs an
-// extra watch", negated by `echo_flickering_man`: an exit's cost is fixed and no event rolls); the Spires' and the Plateau's
-// region hazards (region.ts). D-098 (U34d) made expressible: the Pass's 50 % Frayed Moment (an item's `chance`), the Spires'
+// The Pass's mirage paths, the Spires' static and the Plateau's dusk gales are the places' `hazards` (U34e, D-094; see
+// MIRAGE below). D-098 (U34d) made expressible: the Pass's 50 % Frayed Moment (an item's `chance`), the Spires'
 // second shard after the first entry, and Dask's Loop 1 flicker (his NPC `schedule`, npcs.ts).
 // Exits to other regions name their WORLD ids and stay pending until those units land (D-090).
 import type { Condition } from '@schema/condition';
-import type { LocationInput } from '@schema/location';
+import type { HazardInput, LocationInput } from '@schema/location';
 
 /** WORLD §11.3 `gate_thin_air`: the climb; without the Talisman the air at the top would tear the breath from you. */
 const THIN_AIR: Condition = { any: [{ item: { id: 'item_sky_whisper_talisman' } }, { echo: 'echo_high_mark' }] };
+
+
+// U34e (D-094): WORLD §2.4's hazards and weather. The Pass's mirage paths: on the first visit, a 25 % chance the chosen
+// exit costs an extra watch, unless `echo_flickering_man`. The Spires' static discharge: Shock for 1 turn on entering
+// combat ("cosmetic in Loop 1": from Loop 2). The Plateau's dusk gales: Haste to Skyborn creatures at a fight's opening.
+const MIRAGE: Omit<HazardInput, 'id'> = {
+  on: 'leave',
+  firstVisit: true,
+  chance: 0.25,
+  watches: 1,
+  when: { not: { echo: 'echo_flickering_man' } },
+  text: 'You walked a path that was not there.',
+};
+const STATIC: Omit<HazardInput, 'id'> = { on: 'fight', when: { loop: { min: 2 } }, status: { id: 'status_shock', duration: 1, to: 'party' } };
+const DUSK_GALE: Omit<HazardInput, 'id'> = { on: 'fight', when: { watch: 'dusk' }, status: { id: 'status_haste', to: 'enemies', creatureTag: 'skyborn' } };
 
 export const locations = [
   // ---- Shimmering Pass — the bent path, Dask's cleft, the Phantom (WORLD §3.4; D-013, D-066.12) ---------------------------------
@@ -71,6 +85,7 @@ export const locations = [
     // "Dask's hollow, a cleft that is always the same temperature"
     rest: { kind: 'camp', text: "You rest in Dask's hollow, a cleft that is always the same temperature." },
     levelBand: { min: 6, max: 7 },
+    hazards: [{ id: 'mirage_paths', ...MIRAGE }], // U34e (D-094)
     map: { x: 8, y: 10 },
     temporallyUnstable: true,
     tags: ['legacy', 'camp', 'companion_anchor', 'mirage'],
@@ -142,6 +157,7 @@ export const locations = [
       variants: [{ when: { flag: 'flag_heartstone_destroyed' }, patch: { particles: 'none' } }],
     },
     levelBand: { min: 7, max: 8 },
+    hazards: [{ id: 'spires_static', ...STATIC }], // U34e (D-094)
     map: { x: 16, y: 10 },
     temporallyUnstable: true,
     tags: ['legacy', 'aether_road'],
@@ -191,6 +207,7 @@ export const locations = [
     // "a wind-shelter among the markers"
     rest: { kind: 'camp', text: 'You rest in a wind-shelter among the markers.' },
     levelBand: { min: 8, max: 10 },
+    hazards: [{ id: 'plateau_gale', ...DUSK_GALE }], // U34e (D-094)
     map: { x: 24, y: 10 },
     temporallyUnstable: true,
     tags: ['legacy', 'camp', 'aether_road', 'thin_air'],

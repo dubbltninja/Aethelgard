@@ -21,7 +21,7 @@
 // "begins here, at the curtain" (a quest giver is the quest unit's; the gate below already reads it); the Void-chill (region.ts).
 // Exits to other regions name their WORLD ids and stay pending until those units land (D-090).
 import type { Condition } from '@schema/condition';
-import type { LocationInput } from '@schema/location';
+import type { HazardInput, LocationInput } from '@schema/location';
 
 /** WORLD §12.1 `ws_weavers_wary`: `{rep:{faction:"weavers",max:-10}}`: Wary is −39..−10, Hostile ≤ −40. */
 const WEAVERS_WARY: Condition = { rep: { faction: 'weavers', max: -10 } };
@@ -29,6 +29,16 @@ const WEAVERS_WARY: Condition = { rep: { faction: 'weavers', max: -10 } };
 const SENTRY_JOINS_B: Condition = { all: [{ loop: { min: 2 } }, WEAVERS_WARY] };
 /** WORLD §11.3 `gate_veil_curtain`: the Trusted, those who know the hand-sign, or `q_lightless_stair` once in the journal (W12). */
 const VEIL_CURTAIN: Condition = { any: [{ rep: { faction: 'weavers', min: 20 } }, { echo: 'echo_weaver_sign' }, { quest: { id: 'q_lightless_stair' } }] };
+
+
+// U34e (D-094): the Void-chill (WORLD §2.3): standing in the Hollow more than two watches without moving applies Weaken
+// for 1 turn at the next combat.
+const VOID_CHILL: Omit<HazardInput, 'id'> = {
+  on: 'linger',
+  watches: 2,
+  status: { id: 'status_weaken', duration: 1, to: 'player' },
+  text: 'The cold of the Hollow has found its way under your skin.',
+};
 
 export const locations = [
   // ---- Chasm of Whispers — the rift, Nyx at the lip, the rope bridge (WORLD §3.3, §11.3 `gate_chasm_bridge`) ------------------
@@ -170,6 +180,7 @@ export const locations = [
       variants: [{ when: { flag: 'flag_heartstone_exploited' }, patch: { particles: 'shards' } }],
     },
     levelBand: { min: 5, max: 7 },
+    hazards: [{ id: 'void_chill', ...VOID_CHILL }], // U34e (D-094)
     map: { x: 24, y: 0 },
     tags: ['legacy', 'shards'],
   },

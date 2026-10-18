@@ -697,6 +697,11 @@ function rule01(v: Validation): void {
     (loc.wanderingPools ?? []).forEach((p, i) => need(t, loc.id, `wanderingPools.${i}.regionId`, 'regions', p.regionId, 'wandering pool region'));
     // U34e: level variants name creatures
     loc.levelBonus.forEach((b, i) => b.creatures.forEach((c, j) => need(t, loc.id, `levelBonus.${i}.creatures.${j}`, 'creatures', c, 'level-variant creature')));
+    // U34e: hazards name statuses
+    loc.hazards.forEach((h, i) => {
+      const ids = [['status.id', h.status?.id], ['status.onlyIf', h.status?.onlyIf], ['strike.onlyIf', h.strike?.onlyIf]] as const;
+      for (const [path, id] of ids) if (id !== undefined) need(t, loc.id, `hazards.${i}.${path}`, 'statuses', id, 'hazard status');
+    });
     loc.encounters.forEach((enc, i) =>
       enc.groups.forEach((g, j) => need(t, loc.id, `encounters.${i}.groups.${j}.creatureId`, 'creatures', g.creatureId, `encounter ${enc.id} creature`)),
     );

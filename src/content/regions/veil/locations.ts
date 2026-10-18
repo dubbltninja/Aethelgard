@@ -31,14 +31,15 @@
 //     "Weavers Sworn only" is rep ≥ 60). `ev_fell_names` is `q_the_dark_between` stage 2 in STORY: the event carries WORLD's
 //     text and its Loop 2+ gate, and the quest advance is the quest unit's (a `questAdvance` needs the stage id that unit mints).
 //
-// Not expressible yet (listed in the U47 reply): the Unmaking hazard and the Gallery's Blind at an ambush (region.ts), Nyx's
+// The Unmaking and the Gallery's Blind at an ambush are the places' `hazards` (U34e, D-096; UNMAKING below).
+// Not expressible yet (listed in the U47 reply): Nyx's
 // permanent stance bonus when she calls the shadow back (the companion unit's), "Weavers Trusted: Veil Sentries are neutral" (a
 // Trusted player meets no sentry at the Mouth, which the Wary-gated sentries already say; the pool's sentry at 25 % has no
 // standing condition), the Sworn void-forged thread at the Sanctum (the merchant record, U50).
 // Exits to other regions name their WORLD ids and stay pending until those units land (D-090); the Voidscar's Hollow already
 // names the Mouth and the Shelf.
 import type { Condition } from '@schema/condition';
-import type { LocationInput } from '@schema/location';
+import type { HazardInput, LocationInput } from '@schema/location';
 
 /** WORLD §12.1 `ws_weavers_wary`: `{rep:{faction:"weavers",max:-10}}`: Wary is −39..−10, Hostile ≤ −40. */
 const WEAVERS_WARY: Condition = { rep: { faction: 'weavers', max: -10 } };
@@ -56,6 +57,14 @@ const NYX_CALLS_IT_BACK: Condition = { all: [{ companion: { id: 'nyx' } }, { ech
 const CASE_OPENS: Condition = { any: [WEAVERS_TRUSTED, { echo: 'echo_nyx_is_of_the_nine' }] };
 /** WORLD §3.8 `ev_gallery_reflection`: "Loop 4+ this spawns cr_redundant_wayfinder ×1". */
 const LOOP_4: Condition = { loop: { min: 4 } };
+
+
+// U34e (D-096): WORLD §2.9's hazards. The Unmaking: each watch spent in the Null Orchard or the Eye costs 5 % of max HP
+// (never the last point), given back on arriving anywhere it is not; the Weaver's Thread Ring is immune
+// (`hazard_immunity`, items/trinkets.ts). The Gallery: Blind on the first turn of any ambush there (the Hollow Lantern
+// Focus's Blind immunity keeps it off).
+const UNMAKING: Omit<HazardInput, 'id'> = { on: 'watch', hpPctMax: 0.05, restoreOnLeave: true };
+const GALLERY_BLIND: Omit<HazardInput, 'id'> = { on: 'ambush', status: { id: 'status_blind', duration: 1, to: 'player' } };
 
 export const locations = [
   // ---- The Veil Mouth — the curtain of dark; the two sentries who count you in (WORLD §3.8, §12.1) ---------------------------
@@ -276,6 +285,7 @@ export const locations = [
     // "particles: none (deliberate)"
     art: { template: 'void', horizon: 0.6, silhouettes: ['long_hall', 'no_reflections', 'far_door'], particles: 'none', timeOfDay: 'timeless' },
     levelBand: { min: 11, max: 12 },
+    hazards: [{ id: 'gallery_blind', ...GALLERY_BLIND }], // U34e (D-096)
     map: { x: 32, y: -2 },
     tags: ['gallery', 'elite'],
   },
@@ -319,6 +329,7 @@ export const locations = [
     ],
     art: { template: 'void', horizon: 0.55, silhouettes: ['tree_shaped_cut_outs', 'wrong_stars_through_them'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 12, max: 12 },
+    hazards: [{ id: 'unmaking', ...UNMAKING }], // U34e (D-096)
     map: { x: 40, y: -2 },
     tags: ['orchard', 'unmaking'],
   },
@@ -356,6 +367,7 @@ export const locations = [
     events: [{ id: 'ev_eye_shape', text: "The shadow stands up. It is a woman's. You know the woman." }],
     art: { template: 'void', horizon: 0.5, silhouettes: ['circular_glass_floor', 'single_tall_shadow_with_no_caster'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 13, max: 13 },
+    hazards: [{ id: 'unmaking', ...UNMAKING }], // U34e (D-096)
     map: { x: 32, y: -4 },
     tags: ['boss', 'regional_boss', 'unmaking'],
   },

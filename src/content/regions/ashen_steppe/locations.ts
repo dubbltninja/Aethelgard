@@ -39,7 +39,7 @@
 // the Flats' stampede lanes and ashfall's Blind at an ambush (region.ts), the ambush flag (an encounter's `ambush` is only
 // passed on to the `combatStarted` event, so Watchfire's and the Cairns' harriers are plain groups).
 import type { Condition } from '@schema/condition';
-import type { LocationInput } from '@schema/location';
+import type { HazardInput, LocationInput } from '@schema/location';
 
 /** WORLD §11.3 `gate_steppe_road`: the Waystone Order. */
 const WAYSTONES: Condition = { echo: 'echo_steppe_waystones' };
@@ -49,6 +49,27 @@ const GRAVE_LOCKED = 'The clan does not let strangers wake the Herd.';
 
 /** D-098 (U34d): the Gate stands in the Horde's infected set (the `infected` atom; it was read by move count, see the header). */
 const GATE_INFECTED: Condition = { infected: true };
+
+
+// U34e (D-094): WORLD §2.8's weather and hazards. Ashfall: Blind for 1 turn at an ambush's onset on Days 1–2 of each
+// three-day cycle, everywhere, until a destroyed Heartstone lets the ash settle. The Pan's salt glare by day: −10
+// accuracy for everyone. The Cairns: lightning, 5 Storm to a Soaked combatant each round ("per watch": a watch never
+// passes in a fight, and Soaked lives only in one), and the dry lightning at night: Shock on a Soaked combatant, at
+// random (half the time). The Flats' stampede lanes are the Cinderback's guarded miss (creatures.ts).
+const ASHFALL: Omit<HazardInput, 'id'> = {
+  on: 'ambush',
+  cycle: { every: 3, days: [1, 2] },
+  when: { not: { flag: 'flag_heartstone_destroyed' } },
+  status: { id: 'status_blind', duration: 1, to: 'party' },
+};
+const SALT_GLARE: Omit<HazardInput, 'id'> = { on: 'fight', when: { watch: 'day' }, accuracy: { amount: -10 } };
+const CAIRNS_LIGHTNING: Omit<HazardInput, 'id'> = { on: 'round', strike: { type: 'storm', amount: 5, onlyIf: 'status_soaked' } };
+const DRY_LIGHTNING: Omit<HazardInput, 'id'> = {
+  on: 'round',
+  when: { watch: 'night' },
+  chance: 0.5,
+  status: { id: 'status_shock', to: 'all', onlyIf: 'status_soaked' },
+};
 
 export const locations = [
   // ---- The Scorched Gate — a gate within a gate; Ferrin; the Horde's husks (WORLD §3.7, §12.1) -------------------------------
@@ -90,6 +111,7 @@ export const locations = [
     ],
     art: { template: 'steppe', horizon: 0.58, silhouettes: ['gate_within_a_gate', 'brazier', 'two_leaning_scouts'], particles: 'ash', timeOfDay: 'day' },
     levelBand: { min: 7, max: 7 },
+    hazards: [{ id: 'ashfall', ...ASHFALL }], // U34e (D-094)
     map: { x: 32, y: 4 },
     tags: ['gate', 'ironclad', 'watched'],
   },
@@ -141,6 +163,7 @@ export const locations = [
     ],
     art: { template: 'steppe', horizon: 0.5, silhouettes: ['flat_horizon_line', 'lone_dead_tree', 'distant_burning_shape'], particles: 'ash', timeOfDay: 'day' },
     levelBand: { min: 7, max: 8 },
+    hazards: [{ id: 'ashfall', ...ASHFALL }], // U34e (D-094)
     map: { x: 40, y: 4 },
     tags: ['herd_paths', 'elite'],
   },
@@ -178,6 +201,7 @@ export const locations = [
     rest: { kind: 'camp' },
     merchantId: 'npc_tessaly_varr',
     levelBand: { min: 8, max: 8 },
+    hazards: [{ id: 'ashfall', ...ASHFALL }], // U34e (D-094)
     map: { x: 48, y: 4 },
     tags: ['camp', 'merchant', 'settlement', 'ironclad'],
   },
@@ -224,6 +248,7 @@ export const locations = [
     ],
     art: { template: 'steppe', horizon: 0.52, silhouettes: ['rows_of_petrified_bison', 'grey_grass_tufts', 'single_warm_red_glow'], particles: 'ash', timeOfDay: 'day' },
     levelBand: { min: 8, max: 9 },
+    hazards: [{ id: 'ashfall', ...ASHFALL }], // U34e (D-094)
     map: { x: 32, y: 2 },
     tags: ['brand', 'elite'],
   },
@@ -270,6 +295,7 @@ export const locations = [
     ],
     art: { template: 'steppe', horizon: 0.5, silhouettes: ['salt_cracks', 'lone_cairn', 'jackal_shapes'], particles: 'motes', timeOfDay: 'day' },
     levelBand: { min: 9, max: 9 },
+    hazards: [{ id: 'ashfall', ...ASHFALL }, { id: 'salt_glare', ...SALT_GLARE }], // U34e (D-094)
     map: { x: 40, y: 2 },
     tags: ['salt', 'gathering', 'glare'],
   },
@@ -326,6 +352,8 @@ export const locations = [
     ],
     art: { template: 'steppe', horizon: 0.48, silhouettes: ['cairns_with_spikes', 'lightning_fork', 'low_cloud'], particles: 'shards', timeOfDay: 'dusk' },
     levelBand: { min: 9, max: 10 },
+    // U34e (D-094)
+    hazards: [{ id: 'ashfall', ...ASHFALL }, { id: 'cairns_lightning', ...CAIRNS_LIGHTNING }, { id: 'cairns_dry_lightning', ...DRY_LIGHTNING }],
     map: { x: 48, y: 2 },
     tags: ['cairns', 'lightning', 'hallows_cairn'],
   },
@@ -364,6 +392,7 @@ export const locations = [
     // the watchfire: a free rest (WORLD §11.1 rest `camp`)
     rest: { kind: 'camp' },
     levelBand: { min: 7, max: 8 },
+    hazards: [{ id: 'ashfall', ...ASHFALL }], // U34e (D-094)
     map: { x: 32, y: 6 },
     tags: ['camp', 'signal'],
   },
@@ -404,6 +433,7 @@ export const locations = [
     ],
     art: { template: 'steppe', horizon: 0.55, silhouettes: ['terraced_steps', 'reed_line', 'two_baskets'], particles: 'ash', timeOfDay: 'day' },
     levelBand: { min: 8, max: 8 },
+    hazards: [{ id: 'ashfall', ...ASHFALL }], // U34e (D-094)
     map: { x: 32, y: 8 },
     tags: ['trade', 'glowfen_door'],
   },
@@ -437,6 +467,7 @@ export const locations = [
     events: [{ id: 'ev_grave_breath', text: 'The ash in the bowl rises and falls. Slowly. It is breathing.' }],
     art: { template: 'steppe', horizon: 0.5, silhouettes: ['ash_bowl_rim', 'half_buried_horns', 'vast_dark_shape_under_ash'], particles: 'embers', timeOfDay: 'dusk' },
     levelBand: { min: 11, max: 11 },
+    hazards: [{ id: 'ashfall', ...ASHFALL }], // U34e (D-094)
     map: { x: 48, y: 6 },
     tags: ['boss', 'regional_boss'],
   },

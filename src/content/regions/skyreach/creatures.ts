@@ -27,7 +27,7 @@
 //     carries `when: hpBelow 0.3`, the Phase 3 threshold (the Stormcrown never heals, so the row holds exactly in Phase 3);
 //     the intent chip of a Phase 1 Talon still lists "hastens itself" (tags do not read a row's `when`), as the Cinderback's
 //     Guard-gated Burn still reads "may Burn".
-// Not expressible (the U48a reply): Skyborn Haste in the gale and the storm's lightning on Soaked (region weather, U34d);
+// Skyborn Haste in the gale and the storm's lightning on Soaked are the places' `hazards` (U34e, D-097, locations.ts);
 // the Cloud Ray's "×1.5 if you are Soaked" is the engine's Storm-on-Soaked interplay (DESIGN §4.6 row 1), not a field.
 import type { CombatWhen, CreatureInput, StatusApply, Step } from '@schema/creature';
 

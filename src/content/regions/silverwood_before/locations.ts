@@ -40,10 +40,10 @@
 //   - `ev_conflux_sundering` is not authored: D-083 supersedes it (the echo resets to First Bell in place, at the Garret's
 //     Last Bell rest; the engine writes that line).
 // NPC presence by Bell and hour is each NPC's `schedule` (D-098, npcs.ts): a location's `npcs` is where they stand when no
-// schedule entry holds. Not expressible (the U48b reply; U34e's): the Corridor's Last Bell ley-flare (Burn on entry: a region
-// hazard); the anomaly `cr_anomaly_early_hound` (anomalies have no region link, D-091 gap 4).
+// schedule entry holds. The Corridor's Last Bell ley-flare is its `hazards` (U34e, D-097; LEY_FLARE below). Not expressible
+// (the U48b reply): the anomaly `cr_anomaly_early_hound` (anomalies have no region link, D-091 gap 4).
 import type { Condition } from '@schema/condition';
-import type { LocationInput } from '@schema/location';
+import type { HazardInput, LocationInput } from '@schema/location';
 
 const REGION = 'region_silverwood_before';
 
@@ -62,6 +62,11 @@ const ONLY_WHEN_STARTED: Condition = { not: { all: [] } };
 const TOBRIN_GIVES: Condition = { all: [bell(2), { echo: 'echo_vask_seal' }] };
 /** The Warden kneels to the seal with Caelum beside the Wayfinder (WORLD §3.11, §10.5). */
 const THE_KNEELING: Condition = { all: [SEAL, CAELUM_ACTIVE] };
+
+
+// U34e (D-097): the Corridor's ley-flare on Day 3 (WORLD §2.6: Burn for 1 turn): Burn lives in fights only, so it takes
+// the player at a fight's opening there on the Last Bell.
+const LEY_FLARE: Omit<HazardInput, 'id'> = { on: 'fight', when: { beforeDay: 3 }, status: { id: 'status_burn', duration: 1, to: 'player' } };
 
 export const locations = [
   // ---- The Silver Gate — the Breach-door's far side; the Gate-Captain (WORLD §3.11, §11.3) ----------------------------------
@@ -185,6 +190,7 @@ export const locations = [
       variants: [{ when: bell(3), patch: { particles: 'static' } }],
     },
     levelBand: { min: 13, max: 14 },
+    hazards: [{ id: 'ley_flare', ...LEY_FLARE }], // U34e (D-097)
     map: { x: 64, y: 2 },
     temporallyUnstable: true,
     tags: ['corridor', 'ley_flare'],

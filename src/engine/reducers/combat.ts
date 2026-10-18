@@ -51,6 +51,7 @@ import { dayOf, evaluate } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { GEAR_SCRIPT, derive, scriptPassives } from '../derived';
 import { apply, applyAll, locationState } from '../effects';
+import { hazardsAtOpening, hazardsAtRound } from '../hazards';
 import type { Enumerator } from '../legalActions';
 import { grantXp, resourceGain, type ResourceEventName } from '../progression';
 import { Rng } from '../rng';
@@ -391,10 +392,18 @@ function endRound(ctx: StepCtx, combat: CombatState): void {
   checkPhases(ctx, combat);
   if (combat.enemies.length !== enemies) startRound(combat, ctx.content);
   roundStartStatuses(ctx, combat); // U34e (D-094): a phase's `roundStatuses` (the Bell-Warden's rising water)
+  roundHazards(ctx, combat); // U34e: the place's round hazards (the Cairns' lightning, the gale's Haste)
 }
 
 /** WORLD §6 conventions: "`drowned`: re-applies Soaked to itself at the start of each of its turns" (U34e, D-091). */
 export const DROWNED_TAG = 'drowned';
+
+/** U34e: the place's `round` hazards; a strike that brings a combatant to 0 HP knocks it out (Second Wind first). */
+function roundHazards(ctx: StepCtx, combat: CombatState): void {
+  const { downed, struck } = hazardsAtRound(ctx, combat);
+  for (const c of downed) if (!secondWind(ctx, combat, c)) knockOut(ctx, combat, c);
+  if (struck) checkPhases(ctx, combat); // a strike is a damage event (DESIGN §4.10)
+}
 
 /** U34e: every standing boss's current phase `roundStatuses` go on every living combatant as a round begins. */
 export function roundStartStatuses(ctx: StepCtx, combat: CombatState): void {
@@ -417,6 +426,8 @@ export function runCombat(ctx: StepCtx): void {
     gearFightOpening(ctx, opening); // U34e: a Whetstone Strip's charges, Remnant Ink's Shield (prepared out of combat)
     springTraps(OPS, ctx, opening); // traps set at this node (U26)
     roundStartStatuses(ctx, opening); // U34e: an opening phase's round statuses hold from round 1
+    hazardsAtOpening(ctx, opening); // U34e (D-094): the place's weather and hazards (Soaked, ashfall, glare …), a Void-chill
+    roundHazards(ctx, opening); // U34e: round 1's
   }
   for (let n = 0; n < MAX_COMBAT_TURNS; n++) {
     const combat = ctx.s.combat;

@@ -41,12 +41,11 @@
 //   - Elder Wen "sits with the elders at loc_lanternreed" (WORLD §4), and Lanternreed's block lists her, so both blocks list
 //     her; her home is the Pool.
 //
-// Not expressible yet (listed in the U47 reply): the rain every second day (Soaked region-wide), the Shallows' spore-fog at dawn
-// (Poison for a turn at an ambush) and sinking in the Shallows (Slow): a region or place hazard has no field (U34d's region-hazards
-// gap, region.ts); the Gullet's draw beyond its 2-watch haul west; "lit" for Mireya's lantern; Corruption cleansing at a full
+// The rain every second day, the Shallows' spore-fog and sinking are the places' `hazards` (U34e, D-096; see RAIN below).
+// Not expressible yet (listed in the U47 reply): the Gullet's draw beyond its 2-watch haul west; "lit" for Mireya's lantern; Corruption cleansing at a full
 // rest only. Exits to other regions name their WORLD ids: the Causeway's north exit is the Glowlands' (U45, resolved).
 import type { Condition } from '@schema/condition';
-import type { LocationInput } from '@schema/location';
+import type { HazardInput, LocationInput } from '@schema/location';
 
 /** WORLD §10.1: "barrow light at dusk/night only"; §3.9: the Barrows' first group is "100 %, dusk/night; 40 % by day". */
 const DUSK_OR_NIGHT: Condition = { any: [{ watch: 'dusk' }, { watch: 'night' }] };
@@ -63,6 +62,15 @@ const CLEANSE_PAID: Condition = {
 const CLEANSE_FREE: Condition = { all: [MARKED, { flag: 'flag_heartstone_stabilized' }] };
 const CLEANSED = [{ corruption: -6 }, { setFlag: 'flag_corruption_cleansed' }] as const;
 const POOL_CLEANSE_TEXT = 'Wen puts your hands in the light. Something in you lets go of a book. It takes six breaths.';
+
+
+// U34e (D-096): WORLD §2.10's weather and hazards. Rain every second day, Soaked region-wide for the day: every fight on
+// an even day opens with everyone Soaked. The Shallows: spore-fog at dawn (Poison for 1 turn at an ambush's onset) and
+// sinking (Slow at every fight there; WORLD gives no duration, so the status's own). The Gullet's draw is its 2-watch
+// exit west (loc_pale_gullet), nothing more.
+const RAIN: Omit<HazardInput, 'id'> = { on: 'fight', cycle: { every: 2, days: [2] }, status: { id: 'status_soaked', to: 'all' } };
+const SPORE_FOG: Omit<HazardInput, 'id'> = { on: 'ambush', when: { watch: 'dawn' }, status: { id: 'status_poison', duration: 1, to: 'party' } };
+const SINKING: Omit<HazardInput, 'id'> = { on: 'fight', status: { id: 'status_slow', to: 'party' } };
 
 export const locations = [
   // ---- The Lantern Causeway — the reed road; the lanterns that have no oil (WORLD §3.9, §12.1) ---------------------------------
@@ -91,6 +99,7 @@ export const locations = [
     events: [{ id: 'ev_causeway_light', text: 'You lift a lantern. It is empty. The light stays where the lantern was.' }],
     art: { template: 'swamp', horizon: 0.6, silhouettes: ['reed_road', 'lantern_poles_in_perspective', 'frog_shapes'], particles: 'motes', timeOfDay: 'dusk' },
     levelBand: { min: 8, max: 8 },
+    hazards: [{ id: 'glowfen_rain', ...RAIN }], // U34e (D-096)
     map: { x: 32, y: 12 },
     tags: ['entrance', 'causeway'],
   },
@@ -123,6 +132,7 @@ export const locations = [
     rest: { kind: 'inn', cost: 10 },
     merchantId: 'npc_old_fennick',
     levelBand: { min: 8, max: 9 },
+    hazards: [{ id: 'glowfen_rain', ...RAIN }], // U34e (D-096)
     map: { x: 32, y: 14 },
     tags: ['inn', 'merchant', 'settlement', 'glowfen', 'companion_anchor'],
   },
@@ -160,6 +170,8 @@ export const locations = [
     events: [{ id: 'ev_shallows_sweet', text: 'The air is sweet. You hold your breath too late and the shallows tilt.' }],
     art: { template: 'swamp', horizon: 0.62, silhouettes: ['stumps_with_fungal_shelves', 'mist_layer'], particles: 'spores', timeOfDay: 'dusk' },
     levelBand: { min: 9, max: 9 },
+    // U34e (D-096)
+    hazards: [{ id: 'glowfen_rain', ...RAIN }, { id: 'spore_fog', ...SPORE_FOG }, { id: 'shallows_sinking', ...SINKING }],
     map: { x: 40, y: 12 },
     tags: ['shallows', 'spores'],
   },
@@ -216,6 +228,7 @@ export const locations = [
     ],
     art: { template: 'swamp', horizon: 0.5, silhouettes: ['vast_root_hall', 'hanging_moss', 'light_pools'], particles: 'fireflies', timeOfDay: 'dusk' },
     levelBand: { min: 10, max: 10 },
+    hazards: [{ id: 'glowfen_rain', ...RAIN }], // U34e (D-096)
     map: { x: 40, y: 14 },
     tags: ['mangrove', 'tree'],
   },
@@ -245,6 +258,7 @@ export const locations = [
     // "Rest point: no": open only while the cleansing is on offer (see the header)
     rest: { kind: 'sanctum', when: { any: [CLEANSE_PAID, CLEANSE_FREE] } },
     levelBand: { min: 9, max: 10 },
+    hazards: [{ id: 'glowfen_rain', ...RAIN }], // U34e (D-096)
     map: { x: 32, y: 16 },
     tags: ['pool', 'elder', 'cleansing'],
   },
@@ -303,6 +317,7 @@ export const locations = [
     ],
     art: { template: 'swamp', horizon: 0.58, silhouettes: ['low_mounds', 'walking_light_figures'], particles: 'fireflies', timeOfDay: 'dusk' },
     levelBand: { min: 11, max: 11 },
+    hazards: [{ id: 'glowfen_rain', ...RAIN }], // U34e (D-096)
     map: { x: 40, y: 16 },
     tags: ['barrows', 'graves'],
   },
@@ -341,6 +356,7 @@ export const locations = [
     events: [{ id: 'ev_gullet_white', text: 'The light turns white. Lantern-glass would not shape this. Nothing would.' }],
     art: { template: 'swamp', horizon: 0.55, silhouettes: ['converging_pale_roots', 'fast_water'], particles: 'motes', timeOfDay: 'dusk' },
     levelBand: { min: 11, max: 12 },
+    hazards: [{ id: 'glowfen_rain', ...RAIN }], // U34e (D-096)
     map: { x: 48, y: 14 },
     tags: ['gullet', 'current'],
   },
@@ -379,6 +395,7 @@ export const locations = [
     events: [{ id: 'ev_hall_names', text: 'The lanterns on her back have names scratched in the glass. Mireya reads one and stops reading.' }],
     art: { template: 'cavern', horizon: 0.45, silhouettes: ['root_island', 'mountainous_seated_figure_hung_with_lanterns'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 12, max: 12 },
+    hazards: [{ id: 'glowfen_rain', ...RAIN }], // U34e (D-096)
     map: { x: 48, y: 16 },
     tags: ['boss', 'regional_boss', 'cul_de_sac'],
   },

@@ -19,6 +19,7 @@ import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { addItem, advanceTime, apply, applyAll, locationState } from '../effects';
 import { encounterArrivalHook } from './combat';
 import { companionArrivalHook, restCompanions } from '../combat/companionAi';
+import { leaveWatches } from '../hazards';
 import { HORDE_SOURCE_ID, hordeArrivalHook } from '../horde';
 import type { Enumerator } from '../legalActions';
 import { defaultRarity } from '../newRun';
@@ -428,13 +429,17 @@ function rememberedStep(ctx: StepCtx, from: string, to: string): boolean {
   return true;
 }
 
-/** Leave events → the edge's watches (0 while the clock is frozen, or on a Remembered Step) → regen → arrival. */
+/**
+ * Leave events → the edge's watches (0 while the clock is frozen, or on a Remembered Step) and a `leave` hazard's extra ones
+ * (a `move` only, U34e) → regen → arrival.
+ */
 function travel(ctx: StepCtx, exit: Exit, via: 'move' | 'retreat'): void {
   const { s } = ctx;
   const from = s.world.currentLocationId;
   fireEvents(ctx, from, 'leave');
   if (s.world.currentLocationId !== from || s.mode !== 'explore') return;
-  const watches = s.clock.frozen || rememberedStep(ctx, from, exit.to) ? 0 : exit.travelWatches;
+  const road = s.clock.frozen || rememberedStep(ctx, from, exit.to) ? 0 : exit.travelWatches;
+  const watches = road + (s.clock.frozen || via !== 'move' ? 0 : leaveWatches(ctx, from)); // U34e: the Pass's mirage paths
   advanceTime(ctx, watches);
   travelRegen(ctx, watches);
   s.counters.travels += 1;

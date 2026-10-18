@@ -10,14 +10,15 @@
 // two legacy records; a `description` where no legacy line exists is a sentence drawn from the bestiary entry.
 //
 // Readings the schema forces (each is repeated at its move):
-//   - "ifAllyDown" (an ally died this fight) has no atom; the Rootling uses `allyCountBelow: 2`, which holds once one of a
-//     group of three has fallen (WORLD: "they come in threes");
-//   - "the ally is below 50 %" (the Golem's Cover) has no atom (`hpBelow` is the creature's own HP); Cover is gated on an
-//     ally being present;
+//   - "ifAllyDown" (an ally died this fight) is the `allyDown` atom (U34e, D-092); the Rootling's Burrow, a self-move with no
+//     cadence, waits while its own Shield stands (U45's reading), or it would burrow every turn once one has fallen;
+//   - "the ally is below 50 %" (the Golem's Cover) has an atom since U34e (`allyBelow`, D-092), but the Cover still waits only
+//     on an ally being present: with WORLD's condition the Outpost pair stops spending turns on each other and kills the U52
+//     proof's level-5 Ranger (`q_blighted_outpost`) — a balance call for the lead (listed in the U34e reply);
 //   - "shield ally = 10 % of that ally's max HP" (the Pillar's Ward) is a scale on ATK: 1.0 × 14 = 14, the 10 % of a
 //     130-HP Outpost Golem; a boss in the Before would be shielded more by WORLD's rule than here;
-//   - "repeats its previous move" (the Hound's Echo) has no special; it is the Bite again, which is the move WORLD's own
-//     tactics say it repeats ("Guard the turn after a Bite").
+//   - "repeats its previous move" (the Hound's Echo) is the move's `repeatPrevious` (U34e, D-092): its last move again,
+//     exactly (WORLD's tactics: "Guard the turn after a Bite").
 import type { CreatureInput } from '@schema/creature';
 
 const REVEALS = [{ kills: 1, reveal: 'resist' }, { kills: 3, reveal: 'all' }] as const;
@@ -103,8 +104,8 @@ const rootling = {
     rootling_burrow: { name: 'Burrow', line: 'It sinks into the loam, leaving a twitching mound.', shield: { power: { coef: 1.0, stat: 'atk' } } },
   },
   pattern: [
-    // ifAllyDown: fewer than two allies left of a group of three
-    { move: 'rootling_burrow', target: 'self', when: { allyCountBelow: 2 } },
+    // ifAllyDown (U34e: `allyDown`), while its own Shield is not standing (see the header)
+    { move: 'rootling_burrow', target: 'self', when: { all: [{ allyDown: true }, { not: { selfHas: 'status_shield' } }] } },
     { move: 'rootling_trip', target: 'player' },
     { move: 'rootling_jab', target: 'player' },
   ],
@@ -167,7 +168,7 @@ const stoneHideGolem = {
   },
   pattern: [
     { move: 'golem_harden', target: 'self', when: { selfHas: 'status_armor_break' } },
-    // WORLD: "ifAllyPresent and the ally is below 50 %" — no atom reads an ally's HP, so Cover waits only on an ally
+    // WORLD: "ifAllyPresent and the ally is below 50 %" — `allyBelow: 0.5` would say it (U34e); held back, see the header
     { move: 'golem_cover', target: 'ally', when: { allyPresent: true } },
     { move: 'golem_slam', target: 'player' },
     { move: 'golem_grind', target: 'player' },
@@ -263,15 +264,8 @@ const stutterHound = {
       statuses: [{ status: 'status_bleed', chance: 0.3, duration: 2 }],
     },
     stutter_skip: { name: 'Skip', line: 'It is behind you. It was never in between.', statuses: [{ status: 'status_phase', duration: 1, target: 'self' }] },
-    // WORLD: "repeats its previous move". No move can read the previous one; the Bite is the move WORLD's tactics say it
-    // repeats, so the Echo is the Bite's numbers again.
-    stutter_echo: {
-      name: 'Echo',
-      line: 'It does the last thing again, exactly.',
-      type: 'chrono',
-      power: { coef: 0.6, stat: 'sp', hits: 2 },
-      statuses: [{ status: 'status_bleed', chance: 0.3, duration: 2 }],
-    },
+    // WORLD: "repeats its previous move" (U34e, D-092: `repeatPrevious`)
+    stutter_echo: { name: 'Echo', line: 'It does the last thing again, exactly.', repeatPrevious: true },
   },
   pattern: [
     { move: 'stutter_skip', target: 'self', when: { everyNth: 3 } },

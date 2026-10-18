@@ -17,8 +17,7 @@
 //     Sentinel names Poison only; the tag decides, WORLD §5);
 //   - the Weaver's Mend ("ifHpBelow:50") waits while its Shield stands (`not selfHas status_shield`: a second cast refreshes
 //     the pool and spends the turn, status_shield "keeps the higher pool"), the reading U45 made for the self-Rewind;
-//   - the Glass Mote's Shatter ("onDeath") has no hook (DESIGN §4.2's CombatWhen has none): it is authored, telegraph and
-//     all, and no pattern reaches it, as U45's Spore Drift burst (a gap for U34d);
+//   - the Glass Mote's Shatter ("onDeath") is the creature's `deathMove` (U34e, D-094);
 //   - the Moth's "ifAllyPresent, everyNthTurn:3" Swarm is both conditions at once (`all`); "strips your haste" is the
 //     combat-scope `stripBuffs` (D-069.9);
 //   - the Harrier's Storm Glass (30 %) is DESIGN §8.2 / WORLD §8.1's drop table; the §6.2 block's Loot line omits it.
@@ -175,14 +174,14 @@ const glassMote = {
       statuses: [{ status: 'status_bleed', chance: 0.4, duration: 3 }],
     },
     mote_refract: { name: 'Refract', line: 'Light enters it and leaves it pointed at you.', type: 'ley', power: { coef: 1.1, stat: 'sp' } },
-    // WORLD `onDeath` ("resolves when it dies"): no pattern condition or creature hook fires a move at death (see the header),
-    // so the burst is authored, telegraph and all, and no pattern reaches it
+    // WORLD `onDeath` ("resolves when it dies"): the creature's `deathMove` (U34e, D-094)
     mote_shatter: { name: 'Shatter', line: 'Cracks race through it. It is going to burst.', type: 'physical', power: { coef: 1.2, stat: 'atk' } },
   },
   pattern: [
     { move: 'mote_spin', target: 'player' },
     { move: 'mote_refract', target: 'player' },
   ],
+  deathMove: { move: 'mote_shatter', target: 'all' }, // U34e (D-094): "1.2× all · onDeath"
   loot: [
     { itemId: 'item_aetherium_shard', chance: 0.3 },
     { itemId: 'mat_skyreach_crystal', chance: 0.15 },

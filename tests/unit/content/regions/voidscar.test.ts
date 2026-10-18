@@ -558,7 +558,7 @@ describe('patterns: WORLD’s cadence words hold turn by turn (first-match on ev
     expect(plan(STALKER, 6, { before: (t, _f, c) => withStatus(player(c), 'status_curse', t === 3) })).toEqual(seq('circle starbite pounce starbite lunge starbite'));
   });
 
-  test('the Sentry: Count first; Unsee every third turn; the Choir once no ally is left; Withdraw below a quarter; otherwise the Thread Cut', () => {
+  test('the Sentry: Count first; Unsee every third turn; the Choir once an ally has fallen; Withdraw below a quarter; otherwise the Thread Cut', () => {
     const group = [{ creatureId: STALKER, count: 1 }, { creatureId: SENTRY, count: 1 }];
     const ally = (alive: (t: number) => boolean) => (t: number, f: Combatant, c: CombatState) => {
       for (const e of c.enemies) if (e !== f) e.alive = alive(t);
@@ -569,8 +569,8 @@ describe('patterns: WORLD’s cadence words hold turn by turn (first-match on ev
     expect(plan(SENTRY, 8, { groups: group, before: ally((t) => t < 4) })).toEqual(seq('count thread_cut unsee call_the_choir call_the_choir unsee call_the_choir call_the_choir'));
     // wounded below a quarter beside a living ally: it cuts its thread and goes
     expect(plan(SENTRY, 6, { groups: group, before: (t, f, c) => { ally(() => true)(t, f, c); hpAt(t >= 4 ? 0.2 : 1)(f); } })).toEqual(seq('count thread_cut unsee withdraw withdraw unsee'));
-    // alone (a pool or Chasm encounter): no ally at all, so the Choir from the second turn (the reading in creatures.ts)
-    expect(plan(SENTRY, 6)).toEqual(seq('count call_the_choir unsee call_the_choir call_the_choir unsee'));
+    // alone (a pool or Chasm encounter): no ally has died, so no Choir (U34e, D-094: `allyDown`, "an ally died this fight")
+    expect(plan(SENTRY, 6)).toEqual(seq('count thread_cut unsee thread_cut thread_cut unsee'));
   });
 });
 

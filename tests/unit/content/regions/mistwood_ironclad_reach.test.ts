@@ -646,10 +646,10 @@ describe('the creatures vs WORLD §6', () => {
     expect(b.resistances).toEqual({ fire: 'weak' });
   });
 
-  test('the Rootling: Burrow only once an ally is down (fewer than two of three left), then Trip, then Jab; the statuses are WORLD’s percentages', () => {
+  test('the Rootling: Burrow once an ally is down (U34e `allyDown`, while its own Shield is not up), then Trip, then Jab; the statuses are WORLD’s percentages', () => {
     const r = byId(parsedCreatures, 'cr_rootling');
     expect(r.pattern.map((s) => ('move' in s ? s.move : '?'))).toEqual(['rootling_burrow', 'rootling_trip', 'rootling_jab']);
-    expect(r.pattern[0]).toMatchObject({ target: 'self', when: { allyCountBelow: 2 } });
+    expect(r.pattern[0]).toMatchObject({ target: 'self', when: { all: [{ allyDown: true }, { not: { selfHas: 'status_shield' } }] } });
     expect(r.moves['rootling_burrow']?.shield?.power).toMatchObject({ coef: 1.0, stat: 'atk' });
     expect(r.moves['rootling_trip']?.statuses.map((s) => [s.status, s.chance, s.duration])).toEqual([['status_slow', 0.4, 2]]);
     expect(r.moves['rootling_jab']?.statuses.map((s) => [s.status, s.chance, s.duration])).toEqual([['status_bleed', 0.25, 2]]);
@@ -660,6 +660,7 @@ describe('the creatures vs WORLD §6', () => {
     const g = byId(parsedCreatures, 'cr_stone_hide_golem');
     expect(g.role).toBe('elite');
     expect(g.pattern[0]).toMatchObject({ move: 'golem_harden', target: 'self', when: { selfHas: 'status_armor_break' } });
+    // WORLD: "ifAllyPresent and the ally is below 50 %"; U34e holds `allyBelow` back (see creatures.ts: the Outpost proof)
     expect(g.pattern[1]).toMatchObject({ move: 'golem_cover', target: 'ally', when: { allyPresent: true } });
     expect(g.pattern.slice(2).map((s) => ('move' in s ? s.move : '?'))).toEqual(['golem_slam', 'golem_grind']);
     expect(g.moves['golem_harden']).toMatchObject({ cleanseSelf: true, shield: { power: { coef: 1.0, stat: 'atk' } } });
@@ -695,8 +696,9 @@ describe('the creatures vs WORLD §6', () => {
     expect(h.moves['stutter_bite']).toMatchObject({ type: 'chrono', power: { coef: 0.6, stat: 'sp', hits: 2 } });
     expect(h.moves['stutter_bite']?.statuses.map((s) => [s.status, s.chance, s.duration])).toEqual([['status_bleed', 0.3, 2]]);
     expect(h.moves['stutter_skip']?.statuses.map((s) => [s.status, s.target, s.duration])).toEqual([['status_phase', 'self', 1]]);
-    // "repeats its previous move" has no atom; the Echo is the Bite again (the move WORLD's own tactics say it repeats)
-    expect(h.moves['stutter_echo']).toMatchObject({ type: 'chrono', power: { coef: 0.6, stat: 'sp', hits: 2 } });
+    // "repeats its previous move": U34e (D-092) `repeatPrevious` — its last move again, exactly
+    expect(h.moves['stutter_echo']).toMatchObject({ repeatPrevious: true, line: 'It does the last thing again, exactly.' });
+    expect(h.moves['stutter_echo']?.power).toBeUndefined();
     expect(h.resistances).toEqual({ void: 'weak', chrono: 'resist' });
   });
 

@@ -848,13 +848,21 @@ describe('patterns: WORLD’s cadence words hold turn by turn (first-match on ev
     expect(plan(UMBRA, 7, { phase: 1 })).toEqual(seq('between unname her_hand between unname her_hand between'));
   });
 
-  test('Vell’s Umbra, Forty Years: the hidden Fall on every third turn; Cling eats a lantern, at most twice, only while one stands; else Her Hand', () => {
+  test('Vell’s Umbra, Forty Years: the hidden Fall on every third turn; Cling eats a lantern while one stands (consumes it); else Her Hand', () => {
     const lanterns = [{ creatureId: LANTERN, count: 2 }];
     expect(plan(UMBRA, 7, { phase: 2 })).toEqual(seq('her_hand her_hand fall her_hand her_hand fall her_hand'));
-    expect(plan(UMBRA, 7, { phase: 2, allies: lanterns })).toEqual(seq('cling cling fall her_hand her_hand fall her_hand'));
-    // one lantern already down: a Cling still stands while the other does (the walk does not execute the move, so it stays); no lantern left, no Cling
-    const one = (_t: number, _f: Combatant, c: CombatState): void => ally(c, 1, false);
-    expect(plan(UMBRA, 7, { phase: 2, allies: lanterns, before: one })).toEqual(seq('cling cling fall her_hand her_hand fall her_hand'));
+    // U34e (D-096): each Cling consumes a lantern (`consumesAlly`; the walk does not execute moves, so `before` takes them)
+    expect(cr(UMBRA).moves['umbra_cling']?.consumesAlly).toBe(LANTERN);
+    const eaten = (t: number, _f: Combatant, c: CombatState): void => {
+      for (let i = 1; i <= Math.min(2, t - 1); i++) (c.enemies[i] as Combatant).fledOrGone = true;
+    };
+    expect(plan(UMBRA, 7, { phase: 2, allies: lanterns, before: eaten })).toEqual(seq('cling cling fall her_hand her_hand fall her_hand'));
+    // one lantern already down: one Cling, then none
+    const one = (t: number, _f: Combatant, c: CombatState): void => {
+      ally(c, 1, false);
+      if (t > 1) (c.enemies[2] as Combatant).fledOrGone = true;
+    };
+    expect(plan(UMBRA, 7, { phase: 2, allies: lanterns, before: one })).toEqual(seq('cling her_hand fall her_hand her_hand fall her_hand'));
     const none = (_t: number, _f: Combatant, c: CombatState): void => (ally(c, 1, false), ally(c, 2, false));
     expect(plan(UMBRA, 5, { phase: 2, allies: lanterns, before: none })).toEqual(seq('her_hand her_hand fall her_hand her_hand'));
   });
@@ -874,7 +882,7 @@ describe('patterns: WORLD’s cadence words hold turn by turn (first-match on ev
     expect(W).toContain(`*Transition (<25%):* "${u.phases[2]?.line}"`);
     expect(u.phases[0]?.line).toBeUndefined();
     expect(W).toContain('if `{killed:"cr_vells_umbra"}` in\n  any earlier loop'.replace('\n  ', ' '));
-    expect(u.phases[0]?.skipWhen).toEqual({ killed: { id: UMBRA } });
+    expect(u.phases[0]?.skipWhen).toEqual({ killed: { id: UMBRA, anyLoop: true } }); // U34e (D-096): any earlier loop
     expect(u.phases[1]?.skipWhen).toBeUndefined();
     expect(u.phases[1]?.adds).toEqual([{ creatureId: LANTERN, count: 2, hpPct: 1 }]);
     expect(u.phases[2]?.adds).toEqual([]);

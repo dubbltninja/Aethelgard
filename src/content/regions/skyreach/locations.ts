@@ -36,8 +36,8 @@
 //     loot (creatures.ts) pays the Talon, the feather and the boss's storm-glass; placed here are the bargain's Talon and the
 //     three storm-glass WORLD §8.1 lists at the Perch itself ("loc_stormcrowns_perch ×3"). `ev_perch_watch` grants
 //     `echo_tyrant_never_struck` on arrival, fight or bargain.
-// Not expressible (the U48a reply): "Fleeing here costs 10 % HP" on the Stair (an effect's `damage` is flat HP: a share of max
-// HP has no form, and a wandering roll carries no flee effect); the weather and the storm on Soaked (region.ts);
+// "Fleeing here costs 10 % HP" on the Stair is the location's `fleeEffects` with a `damage` share of max HP (U34e, D-097).
+// Not expressible (the U48a reply): the weather and the storm on Soaked (region.ts);
 // `cr_anomaly_still_kite` (anomalies have no region link, D-091 gap 4); the Crown and the Eyrie "dark" have no description
 // text in WORLD to vary to; the schematic's "reading it grants `echo_anchor_half_a`" is the item's (U49/U50, `onUse`).
 // Exits to other regions name their WORLD ids (the Highlands' two, landed with U44).
@@ -83,8 +83,10 @@ export const locations = [
     items: [{ itemId: 'mat_gale_feather' }],
     // "gathering: mat_skyreach_crystal ×1" (DESIGN §8.2 "Skyreach gathering")
     gather: { itemId: 'mat_skyreach_crystal', perDay: 1 },
+    // "Falls: fleeing on the Stair costs 10 % HP" (WORLD §2.11, §3.10), any fight fled here (U34e, D-097)
+    fleeEffects: [{ damage: { pctMax: 0.1 } }],
     encounters: [
-      // first: Gale Kites ×2 (60 %); return: the pool at 20 %. "Fleeing here costs 10 % HP": see the header
+      // first: Gale Kites ×2 (60 %); return: the pool at 20 %. "Fleeing here costs 10 % HP": `fleeEffects` below
       {
         id: 'enc_windward_kites',
         groups: [{ creatureId: 'cr_gale_kite', count: 2 }],

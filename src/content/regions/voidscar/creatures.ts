@@ -14,9 +14,7 @@
 //   - the Sentry is a Mortal: WORLD §5 gives Mortals "no sigil; a portrait", but a creature record carries a sigil, so its
 //     base is `portrait`; its family id is `fam_mortal` (REGISTRY: `fam_<family>`, WORLD §6's "Mortal"); no family codex
 //     entry exists for it (STORY §14 lists the eight families), so it has no `codexId`;
-//   - "ifAllyDown" (an ally died this fight) has no atom: the Sentry uses `allyCountBelow: 1`, which holds once none of its
-//     allies is left (U43's Rootling uses `allyCountBelow: 2` for a group of three). A Sentry fought alone therefore calls
-//     the Choir from its second turn; WORLD only ever fields it beside another creature but for the pool shares.
+//   - "ifAllyDown" (an ally died this fight) is the `allyDown` atom (U34e, D-094; it was `allyCountBelow: 1`).
 import type { CombatWhen, CreatureInput, Step } from '@schema/creature';
 
 const REVEALS = [{ kills: 1, reveal: 'resist' }, { kills: 3, reveal: 'all' }] as const;
@@ -141,14 +139,14 @@ const veilSentry = {
     // "leaves combat": the move's `leaveCombat` flag (D-069.9), as U45's Tyrant's Reach
     sentry_withdraw: { name: 'Withdraw', line: 'She cuts her own thread and is gone.', leaveCombat: true },
   },
-  // WORLD's priority order, top to bottom: `first` → Count; `everyNthTurn:3` → Unsee; `ifAllyDown` → the Choir (see the
-  // header: no atom, `allyCountBelow: 1`); `ifHpBelow:25` → Withdraw; else the Thread Cut (the only cycled move)
+  // WORLD's priority order, top to bottom: `first` → Count; `everyNthTurn:3` → Unsee; `ifAllyDown` → the Choir (U34e,
+  // D-094: `allyDown`); `ifHpBelow:25` → Withdraw; else the Thread Cut (the only cycled move)
   pattern: [
     firstOf(
       [
         [{ first: true }, { move: 'sentry_count', target: 'player' }],
         [{ everyNth: 3 }, { move: 'sentry_unsee', target: 'self' }],
-        [{ allyCountBelow: 1 }, { move: 'sentry_call_the_choir', target: 'all' }],
+        [{ allyDown: true }, { move: 'sentry_call_the_choir', target: 'all' }],
         [{ hpBelow: 0.25 }, { move: 'sentry_withdraw', target: 'self' }],
       ],
       { move: 'sentry_thread_cut', target: 'player' },

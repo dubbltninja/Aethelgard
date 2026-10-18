@@ -264,9 +264,9 @@ const paradoxWisp = {
   statusImmunities: ['status_poison', 'status_bleed'],
   moves: {
     paradox_before: { name: 'Before', line: 'It is already where you are aiming.', statuses: [{ status: 'status_phase', duration: 1, target: 'self' }] },
-    // WORLD: "using the damage type of the ability you used last" — no move can read the player's last ability, so the
-    // Mirror is Ley, its own type (listed in the U42 reply as an engine special candidate).
-    paradox_mirror: { name: 'Mirror', line: 'It flickers into the shape of your last spell.', type: 'ley', power: { coef: 1.0, stat: 'sp' } },
+    // WORLD: "using the damage type of the ability you used last": the `last_spell` special (U34e, D-091); Ley, its own type,
+    // before you have used one
+    paradox_mirror: { name: 'Mirror', line: 'It flickers into the shape of your last spell.', type: 'ley', power: { coef: 1.0, stat: 'sp' }, special: 'last_spell' },
     paradox_knot: {
       name: 'Knot',
       line: 'Two of it, briefly. Then one.',
@@ -307,18 +307,19 @@ const redundantWayfinder = {
   level: 12,
   stats: { hp: 260, atk: 23, sp: 23, armor: 4, ward: 4, agi: 9 },
   tags: ['breach_born', 'anomaly'],
-  // WORLD: "resist the player's class type" — a resistance table is fixed per creature; only the Ley weakness is written.
+  // WORLD: "resist the player's class type": the engine's, for a creature with a `class_mirror` move (U34e, D-091)
   resistances: { ley: 'weak' },
   statusImmunities: ['status_poison'],
   moves: {
     redundant_recognize: { name: 'Recognize', line: 'It looks at you the way you look at a mirror.' },
-    // WORLD: 1.2× "the player's class type" with the class's status. The status rows read the class; the damage type
-    // cannot (no move reads the player's class), so the blow is Physical — three of the five classes' type.
+    // WORLD: 1.2× "the player's class type" with the class's status: the `class_mirror` special decides the type (U34e,
+    // D-091; Physical is its default), the status rows read the class
     redundant_your_move: {
       name: 'Your Move',
       line: 'It lifts its weapon the way you lift yours.',
       type: 'physical',
       power: { coef: 1.2, stat: 'atk' },
+      special: 'class_mirror',
       statuses: [
         { status: 'status_bleed', chance: 0.4, duration: 3, when: { class: 'ranger' } },
         { status: 'status_burn', chance: 0.4, duration: 3, when: { class: 'wizard' } },

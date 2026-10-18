@@ -75,7 +75,7 @@ import { attemptFlee, fleeOutcome, fleeProblem } from '../combat/flee';
 import { gearAfterBasic, gearAfterCast, gearFightOpening, gearLowHp, gearReflect, gearTurnStart, keepForesight, whetstoneSpec } from '../combat/gear';
 import { expireStances, reactToHit, type CombatOps, type HitKind } from '../combat/specials';
 import { STATUS, afterHit, applyStatus, blocksAction, endOfTurnStatuses, isBoss, skipsTurn, startOfTurnStatuses } from '../combat/statuses';
-import { afterStunnedTurn, executeIntent, generateIntent, openingIntents, refreshIntents } from '../combat/intents';
+import { afterStunnedTurn, executeIntent, generateIntent, openingIntents, playDeathMove, refreshIntents } from '../combat/intents';
 import { checkPhases, openPhases, survivalRounds } from '../combat/phases';
 import { noteIntentsSeen, recordKill, recordSeen, rollSpoils, type Spoils } from '../combat/rewards';
 import {
@@ -273,6 +273,7 @@ function knockOut(ctx: StepCtx, combat: CombatState, target: Combatant): void {
     if (TYRANT_IDS.includes(target.refId)) ctx.s.flags[FLAG_TYRANT_DEAD] = true;
     combatLog(combat, `${target.name} falls.`, 'info');
     recordKill(ctx, target.refId); // the bestiary, at the moment of the kill (U27)
+    playDeathMove(ctx, combat, target, applyHit); // U34e: WORLD `onDeath` (Spore Drift, Glass Mote), before loot
   } else if (target.kind === 'companion') {
     ctx.emit({ t: 'companionKo', companionId: target.refId });
     combatLog(combat, `${target.name} is down.`, 'info');
@@ -352,6 +353,7 @@ function startTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
   if (ticks.ticks.length > 0) gearLowHp(ctx, combat, actor); // U34e: a tick can wake the Lantern-Moth Brooch too
   fireDelayed(OPS, ctx, combat, actor);
   if (!isActive(actor)) return;
+  if (actor.kind === 'enemy' && ctx.content.creatures[actor.refId]?.tags.includes(DROWNED_TAG)) applyStatus(ctx, combat, actor, actor, STATUS.soaked); // U34e
   if (actor.kind !== 'player') return;
   gearTurnStart(ctx, combat, actor); // U34b: gear regen (before the Wizard's mana regen), Foresight
   gainResource(ctx, combat, actor, 'turn_start');
@@ -388,6 +390,18 @@ function endRound(ctx: StepCtx, combat: CombatState): void {
   const enemies = combat.enemies.length;
   checkPhases(ctx, combat);
   if (combat.enemies.length !== enemies) startRound(combat, ctx.content);
+  roundStartStatuses(ctx, combat); // U34e (D-094): a phase's `roundStatuses` (the Bell-Warden's rising water)
+}
+
+/** WORLD §6 conventions: "`drowned`: re-applies Soaked to itself at the start of each of its turns" (U34e, D-091). */
+export const DROWNED_TAG = 'drowned';
+
+/** U34e: every standing boss's current phase `roundStatuses` go on every living combatant as a round begins. */
+export function roundStartStatuses(ctx: StepCtx, combat: CombatState): void {
+  for (const boss of combat.enemies.filter(isActive)) {
+    const ids = ctx.content.creatures[boss.refId]?.phases[boss.phase]?.roundStatuses ?? [];
+    for (const id of ids) for (const c of [...combat.party, ...combat.enemies].filter(isActive)) applyStatus(ctx, combat, boss, c, id);
+  }
 }
 
 /**
@@ -402,6 +416,7 @@ export function runCombat(ctx: StepCtx): void {
     keepForesight(ctx, opening); // att_foresight: next-next intents from the start (U34b)
     gearFightOpening(ctx, opening); // U34e: a Whetstone Strip's charges, Remnant Ink's Shield (prepared out of combat)
     springTraps(OPS, ctx, opening); // traps set at this node (U26)
+    roundStartStatuses(ctx, opening); // U34e: an opening phase's round statuses hold from round 1
   }
   for (let n = 0; n < MAX_COMBAT_TURNS; n++) {
     const combat = ctx.s.combat;
@@ -547,6 +562,7 @@ function finishDefeat(ctx: StepCtx, combat: CombatState): void {
   syncBack(ctx, combat);
   s.counters.deathsThisLoop = 1;
   recordSeen(ctx, combat); // U27
+  ctx.profileDraft().lastDeathLocation = combat.locationId; // U34e (D-091): the `diedHere` condition
   ctx.emit({ t: 'playerDied', loop: s.meta.loop });
   ctx.emit({ t: 'combatEnded', result: 'defeat', rounds: combat.round, xp: 0, gold: 0, loot: [] });
   applyAll(combat.onDefeat as Effect[], ctx, { source: `encounter:${combat.encounterId}` });
@@ -762,6 +778,7 @@ function finishFled(ctx: StepCtx, combat: CombatState): void {
   recordSeen(ctx, combat); // U27
   ctx.emit({ t: 'combatEnded', result: 'fled', rounds: combat.round, xp: 0, gold: 0, loot: [] });
   applyAll(combat.onFleeEffects as Effect[], ctx, { source: `encounter:${combat.encounterId}` });
+  applyAll(ctx.content.locations[combat.locationId]?.fleeEffects ?? [], ctx, { source: `flee:${combat.locationId}` }); // U34e (D-097)
   fleeOutcome(ctx, combat);
   if (s.mode === 'explore' && s.world.currentLocationId === combat.locationId) autosaveAfterCombat(ctx);
 }
@@ -872,7 +889,8 @@ function wanderingEncounter(ctx: StepCtx, loc: Location, arrival: Arrival): Enco
     if (group) group.count += 1;
     else groups.push({ creatureId, count: 1 });
   }
-  return { id: WANDERING_ENCOUNTER_ID, groups, fleeable: true, onFlee: 'previous', ambush: false, onVictory: [], onDefeat: [], onFleeEffects: [] };
+  // U34e: a wandering roll is an ambush (WORLD's "at ambush onset" hazards; a fixed group is one only when it says so)
+  return { id: WANDERING_ENCOUNTER_ID, groups, fleeable: true, onFlee: 'previous', ambush: true, onVictory: [], onDefeat: [], onFleeEffects: [] };
 }
 
 /** The fight this arrival starts, if any (see the file header for the order and the rules). */

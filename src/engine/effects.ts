@@ -406,6 +406,12 @@ export function advanceTime(ctx: StepCtx, watches: number): void {
   }
 }
 
+/** U34e (D-097): the `damage` effect's HP — flat `hp` plus `pctMax` of max HP rounded down (at least 1 when it names a share). */
+export function damageAmount(hpMax: number, hp: number | undefined, pctMax: number | undefined): number {
+  const share = pctMax === undefined ? 0 : Math.max(1, Math.floor(pctMax * hpMax + 1e-9));
+  return (hp ?? 0) + share;
+}
+
 /** The `statBonus` effect's log label per stat. */
 const STAT_BONUS_LABEL: Readonly<Record<EffectAtoms['statBonus']['stat'], string>> = {
   strength: 'Strength',
@@ -530,10 +536,11 @@ const APPLIERS: Appliers = {
     if (mp !== undefined) player.mp = mp === 'full' ? player.mpMax : Math.min(player.mpMax, player.mp + mp);
     ctx.emit({ t: 'healed', targetUid: 'player', amount: player.hp - before, source });
   },
-  damage: ({ hp }, ctx) => {
+  damage: ({ hp, pctMax }, ctx) => {
     const player = ctx.s.player;
     const before = player.hp;
-    player.hp = Math.max(1, before - hp); // out-of-combat damage never kills (D-072); the Horde's lash is horde.ts
+    const amount = damageAmount(player.hpMax, hp, pctMax); // U34e: a share of max HP (D-097)
+    player.hp = Math.max(1, before - amount); // out-of-combat damage never kills (D-072); the Horde's lash is horde.ts
     ctx.s.counters.damageTaken += before - player.hp;
     ctx.log(`You take ${before - player.hp} damage.`, 'event');
   },

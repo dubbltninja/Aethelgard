@@ -167,7 +167,7 @@ const EVALUATORS: Evaluators = {
   },
   corruption: (r, { s }) => inRange(s.player.corruption, r),
   location: (id, { s }) => s.world.currentLocationId === id,
-  killed: (k, { s, scope }) => killsSince(s, k.id, k.sinceStage ? scope.questId : undefined) >= (k.count ?? 1),
+  killed: (k, { s, p, scope }) => killsOf(s, p, k, scope) >= (k.count ?? 1),
   counter: (c, { s, c: content }) => inRange(counterValue(s, content, c.name), c),
   resolve: (r, { s }) => {
     const communion = s.combat?.communion;
@@ -175,7 +175,14 @@ const EVALUATORS: Evaluators = {
   },
   modifier: (id, { s }) => s.meta.modifiers.includes(id),
   infected: (_v, { s }) => standingInfected(s),
+  diedHere: (_v, { s, p }) => p.lastDeathLocation !== undefined && p.lastDeathLocation === s.world.currentLocationId,
 };
+
+/** U34e: `killed`'s count — this loop's (since the quest stage with `sinceStage`), or with `anyLoop` the profile's bestiary in every loop. */
+function killsOf(s: GameState, p: Readonly<Profile>, k: ConditionAtoms['killed'], scope: EvalScope): number {
+  if (k.anyLoop === true) return Math.max(p.bestiary[k.id]?.killed ?? 0, s.counters.kills[k.id] ?? 0);
+  return killsSince(s, k.id, k.sinceStage ? scope.questId : undefined);
+}
 
 function run(cond: Condition, env: Env): boolean {
   const [key, value] = atomOf<ConditionKey>(cond, 'evaluate');
@@ -240,12 +247,13 @@ const DESCRIBERS: Describers = {
   },
   corruption: (r, { s }) => `Corruption ${rangeText(r)} (now ${s.player.corruption})`,
   location: (id, { c }) => `At ${nameIn(c.locations, id)}`,
-  killed: (k, { s, c, scope }) =>
-    `Defeat ${k.count ?? 1} × ${nameIn(c.creatures, k.id)}${k.sinceStage ? ' (this stage)' : ''} (${killsSince(s, k.id, k.sinceStage ? scope.questId : undefined)}/${k.count ?? 1})`,
+  killed: (k, { s, p, c, scope }) =>
+    `Defeat ${k.count ?? 1} × ${nameIn(c.creatures, k.id)}${k.sinceStage ? ' (this stage)' : ''}${k.anyLoop ? ' (in any loop)' : ''} (${killsOf(s, p, k, scope)}/${k.count ?? 1})`,
   counter: (k, { s, c }) => `${humanize(k.name)} ${rangeText(k)} (now ${counterValue(s, c, k.name)})`,
   resolve: (r, { s }) => `Resolve ${rangeText(r)}${s.combat?.communion ? ` (now ${s.combat.communion.resolve})` : ' (communion only)'}`,
   modifier: (id, { c }) => `Modifier: ${nameIn(c.modifiers, id)}`,
   infected: () => 'Here, where the Horde has reached',
+  diedHere: () => 'Here, where you last fell',
 };
 
 function describe(cond: Condition, env: Env): string {

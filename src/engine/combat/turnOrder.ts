@@ -301,7 +301,7 @@ export function enemyCombatant(ctx: StepCtx, creatureId: string, name: string, h
     statuses: [],
     guarding: false,
     initiative: agi + d4(ctx),
-    resistances: { ...def.resistances },
+    resistances: mirroredResistances(ctx.s, def),
     phase: 0,
     pattern: freshPattern(),
     cooldowns: {},
@@ -310,6 +310,29 @@ export function enemyCombatant(ctx: StepCtx, creatureId: string, name: string, h
     isAdd: false,
   };
 }
+
+/**
+ * WORLD §6.8 `cr_redundant_wayfinder`: "the player's class type (Ranger physical, Wizard fire, Elf physical, Warden physical,
+ * Weaver void)" — what a `class_mirror` move deals (intents.ts `moveDamageType`) and its creature resists (below).
+ */
+export const CLASS_MIRROR_TYPES: Readonly<Record<string, DamageType>> = {
+  ranger: 'physical',
+  wizard: 'fire',
+  elf: 'physical',
+  ironclad_warden: 'physical',
+  shadow_weaver: 'void',
+};
+
+/** U34e (D-091): a creature with a `class_mirror` move "resists the player's class type" on top of its own table. */
+function mirroredResistances(s: GameState, def: Creature): Combatant['resistances'] {
+  const out: Combatant['resistances'] = { ...def.resistances };
+  const type = CLASS_MIRROR_TYPES[s.player.classId];
+  if (type !== undefined && Object.values(def.moves).some((m) => m.special === 'class_mirror') && out[type] !== 'immune') out[type] = 'resist';
+  return out;
+}
+
+/** U34e: the player's tag in a fight that began as an ambush (a wandering roll, or an encounter flagged `ambush`). */
+export const AMBUSH_TAG = 'ambush';
 
 /** DESIGN §15.1 Horde Rising's elite variant (D-083, U34b): +40 % max HP, +20 % ATK, "Elite" before the name. */
 export const ELITE_VARIANT = { hpMult: 1.4, atkMult: 1.2, prefix: 'Elite' } as const;
@@ -414,6 +437,7 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
   const held = s.world.locationStates[locationId]?.encounterHp[spec.id];
   const names = enemyNames(content, creatureIds);
   const enemies = creatureIds.map((id, i) => enemyCombatant(ctx, id, names[i] ?? id, held?.[id]));
+  if (spec.ambush) addTag(party[0] as Combatant, AMBUSH_TAG); // U34e: the onset hazards read it (reducers/combat.ts)
   enemies.forEach((e, i) => void (spec.elites?.[i] && makeEliteVariant(e))); // Horde Rising (U34b)
   const canFlee = spec.fleeable && creatureIds.every((id) => content.creatures[id]?.fleeable ?? true);
 

@@ -156,6 +156,8 @@ export function statusImmunities(s: GameState, content: ContentPack, c: Combatan
     if (def.tags.some((t) => POISON_IMMUNE_TAGS.includes(t)) && !out.includes(STATUS.poison)) out.push(STATUS.poison);
     if (def.tags.some((t) => BLEED_IMMUNE_TAGS.includes(t)) && !out.includes(STATUS.bleed)) out.push(STATUS.bleed); // U34e (D-094)
     if (def.tauntImmune && !out.includes(STATUS.taunt)) out.push(STATUS.taunt);
+    // U34e (D-096): a boss phase's own immunities ("her Regen and Shield … cannot be reapplied")
+    for (const id of def.phases[c.phase]?.statusImmunities ?? []) if (!out.includes(id)) out.push(id);
     return out;
   }
   if (c.kind === 'companion') return [...(content.companions[c.refId]?.statusImmunities ?? [])];

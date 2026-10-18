@@ -782,13 +782,21 @@ describe('patterns: WORLD’s cadence words hold turn by turn', () => {
     expect(plan(MATRON, 4, { phase: 0, allies: [{ creatureId: TOAD, count: 2 }] })).toEqual(seq('hum lantern_light call reach'));
   });
 
-  test('the Lantern Matron, Counting the Names: Name You and Embrace in turn; Drink replaces them while a toad stands, twice at most', () => {
+  test('the Lantern Matron, Counting the Names: Name You and Embrace in turn; Drink replaces them while a toad stands, and consumes it', () => {
     expect(plan(MATRON, 6, { phase: 1 })).toEqual(seq('name_you embrace name_you embrace name_you embrace'));
     const toads = [{ creatureId: TOAD, count: 2 }];
-    expect(plan(MATRON, 6, { phase: 1, allies: toads })).toEqual(seq('drink drink name_you embrace name_you embrace'));
-    // one toad killed before the first Drink: she still drinks while one stands (the walk does not execute the move); none left, no Drink
-    const one = (_t: number, _f: Combatant, c: CombatState): void => ally(c, 1, false);
-    expect(plan(MATRON, 4, { phase: 1, allies: toads, before: one })).toEqual(seq('drink drink name_you embrace'));
+    // U34e (D-096): each Drink consumes a toad (`consumesAlly`; the walk does not execute moves, so `before` takes them as she drinks)
+    expect(cr(MATRON).moves['matron_drink']?.consumesAlly).toBe(TOAD);
+    const drunk = (t: number, _f: Combatant, c: CombatState): void => {
+      for (let i = 1; i <= Math.min(2, t - 1); i++) (c.enemies[i] as Combatant).fledOrGone = true;
+    };
+    expect(plan(MATRON, 6, { phase: 1, allies: toads, before: drunk })).toEqual(seq('drink drink name_you embrace name_you embrace'));
+    // one toad killed before the first Drink: she drinks the other, then none is left
+    const one = (t: number, _f: Combatant, c: CombatState): void => {
+      ally(c, 1, false);
+      if (t > 1) (c.enemies[2] as Combatant).fledOrGone = true;
+    };
+    expect(plan(MATRON, 4, { phase: 1, allies: toads, before: one })).toEqual(seq('drink embrace name_you embrace'));
     const none = (_t: number, _f: Combatant, c: CombatState): void => (ally(c, 1, false), ally(c, 2, false));
     expect(plan(MATRON, 4, { phase: 1, allies: toads, before: none })).toEqual(seq('name_you embrace name_you embrace'));
   });
@@ -797,6 +805,7 @@ describe('patterns: WORLD’s cadence words hold turn by turn', () => {
     expect(plan(MATRON, 6, { phase: 2 })).toEqual(seq('embrace flood embrace flood embrace flood'));
     const m = cr(MATRON);
     expect(m.phases[2]?.onEnter).toEqual([{ stripBuffs: { kinds: ['shield', 'regen'], target: 'self' } }]);
+    expect(m.phases[2]?.statusImmunities).toEqual(['status_shield', 'status_regen']); // U34e (D-096): "cannot be reapplied"
     const used = new Set<string>();
     walkSteps(m.phases[2]?.pattern ?? [], [], (s) => void ('move' in s && used.add(s.move)));
     expect([...used].sort()).toEqual(['matron_embrace', 'matron_flood']);

@@ -21,13 +21,11 @@
 //     100 %, WORLD §3.9") is the Barrows' hidden item once a light has been killed there (locations.ts), so the creature's loot
 //     holds the other two rows and nothing pays twice. Gather ("ifHpBelow:40", no "once") replaces the cycled move on every
 //     turn below 40 % HP, as WORLD's rule reads;
-//   - "heal self … ifAllyPresent (consumes the toad)" (the Matron's Drink): no effect removes an ally, so the heal waits on a
-//     living Lantern Toad (`allyPresent: 'cr_lantern_toad'`) and is capped at two uses a fight (`oncePerFight` on two copies of
-//     the step): her Call keeps at most two toads, so two are all that can stand when Phase 2 begins and she has no Call
-//     there; without the cap a living toad would be a heal every turn;
-//   - "her Regen and Shield end and cannot be reapplied" (Phase 3): the phase's `onEnter` strips both from her, and no move of
-//     Phase 3 (or of her other phases, which a boss never returns to: phases never go backwards) applies either, so they
-//     are not reapplied. There is no field that refuses a Regen or a Shield from another source;
+//   - "heal self … ifAllyPresent (consumes the toad)" (the Matron's Drink): the heal waits on a living Lantern Toad
+//     (`allyPresent: 'cr_lantern_toad'`) and the move's `consumesAlly` takes the toad (U34e, D-096: no XP, not a kill), so she
+//     drinks at most once per toad;
+//   - "her Regen and Shield end and cannot be reapplied" (Phase 3): the phase's `onEnter` strips both from her, and the phase's
+//     `statusImmunities` refuse them from any source after (U34e, D-096);
 //   - the Call's toads come from `matron_call` alone (WORLD gives the encounter no opening group: "adds cr_lantern_toad").
 import type { CombatWhen, CreatureInput, Step } from '@schema/creature';
 
@@ -45,9 +43,6 @@ const alternate = (odd: Step, even: Step): Step => ({ if: { everyNth: 2 }, then:
 const everyNthAmong = (step: Extract<Step, { move: string }>, n: number, cycle: readonly Step[]): Step[] =>
   cycle.flatMap((s) => [{ ...step, when: { everyNth: n } }, s]);
 
-/** `copies` first-match rows of a move that "consumes" an ally: it waits on one living, once each (see the header). */
-const consuming = (ally: `cr_${string}`, copies: number, step: Step): (readonly [CombatWhen, Step])[] =>
-  Array.from({ length: copies }, () => [{ all: [{ allyPresent: ally }, { oncePerFight: true }] }, step] as const);
 
 // ---- cr_barrow_light — Green · L11 fodder · XP 253 (WORLD §6.6) ---------------------------------------------------------------
 const barrowLight = {
@@ -185,6 +180,7 @@ const lanternMatron = {
       name: 'Drink',
       line: 'She lifts a toad to her mouth. Its light goes out.',
       heal: { power: { coef: 1.5, stat: 'atk' }, target: 'self' },
+      consumesAlly: 'cr_lantern_toad', // U34e (D-096): "(consumes the toad)"
     },
     matron_flood: {
       name: 'Flood',
@@ -210,9 +206,9 @@ const lanternMatron = {
       name: 'Counting the Names',
       enterWhen: [{ hpBelow: 0.65 }],
       line: "She looks at you properly for the first time. 'You have a name,' she says. 'Let me keep it.'",
-      // Drink replaces the cycled move while a toad stands (capped, see the header); Name You and Embrace in turn
+      // Drink replaces the cycled move while a toad stands (it consumes the toad, see the header); Name You and Embrace in turn
       pattern: [
-        firstOf(consuming('cr_lantern_toad', 2, { move: 'matron_drink', target: 'self' }), alternate({ move: 'matron_name_you', target: 'player' }, { move: 'matron_embrace', target: 'player' })),
+        firstOf([[{ allyPresent: 'cr_lantern_toad' }, { move: 'matron_drink', target: 'self' }]], alternate({ move: 'matron_name_you', target: 'player' }, { move: 'matron_embrace', target: 'player' })),
       ],
     },
     {
@@ -222,6 +218,7 @@ const lanternMatron = {
       line: 'The lanterns on her back crack. The names scratched in the glass go dark. She stops humming.',
       // "her Regen and Shield end and cannot be reapplied" (see the header)
       onEnter: [{ stripBuffs: { kinds: ['shield', 'regen'], target: 'self' } }],
+      statusImmunities: ['status_shield', 'status_regen'],
       // Flood on every second turn, otherwise Embrace
       pattern: [alternate({ move: 'matron_embrace', target: 'player' }, { move: 'matron_flood', target: 'all' })],
     },

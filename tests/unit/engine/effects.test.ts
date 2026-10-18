@@ -215,6 +215,10 @@ const OBSERVED: { [K in EffectKey]: () => void } = {
       { t: 'log', text: 'You take 24 damage.', kind: 'event' },
     ]);
     expect(out.state.recentLog).toHaveLength(2);
+    // U34e (D-097): a share of max HP, rounded down (at least 1), never below 1 HP
+    const share = run([{ damage: { pctMax: 0.1 } }]);
+    const hpMax = share.input.player.hpMax;
+    expect(share.input.player.hp - share.state.player.hp).toBe(Math.max(1, Math.floor(0.1 * hpMax)));
   },
   statBonus: () => {
     // U52 (C1 addition): passiveBonuses for the rest of the loop (derive() reads them; the maxima follow at the post-step)

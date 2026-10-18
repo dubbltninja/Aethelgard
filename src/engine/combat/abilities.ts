@@ -56,7 +56,7 @@ import type { CombatWhen } from '@schema/creature';
 import type { Item } from '@schema/item';
 import type { ContentPack, StepCtx } from '../ctx';
 import { derive } from '../derived';
-import { apply, applyAll } from '../effects';
+import { apply, applyAll, damageAmount } from '../effects';
 import { abilityCost, playerAbilityCost, type AbilityCost } from '../progression';
 import type { ActionOf } from '../types/actions';
 import type { Combatant, CombatState, DamageType, GameState } from '../types/state';
@@ -67,7 +67,7 @@ import { cleanseOnUse } from './gear';
 import { compilePattern, evalCombatWhen, interruptIntent, patternOf, revealIntents, type IntentRead } from './intents';
 import { firePhaseStrikes } from './phases';
 import { STATUS, applyStatus, applyStatusRows, blocksAction, cleanse, cooldownsOf, findStatus, isOwnTurn, removeStatus, skipsTurn, type WhenEval } from './statuses';
-import { FORESIGHT_KEY, REVEAL_KEY, TRAP_FLAG, fixedHit, healFlat, hooksOf, setTimer, struckSince, type CombatOps, type HitKind, type SpecialUse } from './specials';
+import { FORESIGHT_KEY, REVEAL_KEY, TRAP_FLAG, fixedHit, healFlat, hooksOf, noteLastAbility, setTimer, struckSince, type CombatOps, type HitKind, type SpecialUse } from './specials';
 import { combatLog, combatantByUid, isActive, playerOf } from './turnOrder';
 
 // ---- scripts --------------------------------------------------------------------------------------------------------------
@@ -658,6 +658,7 @@ export function castAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState, c
   combatLog(combat, `${caster.name} uses ${ability.name}.`, 'info');
   resolveAbility(ops, ctx, combat, caster, ability, picked, cost.hp);
   addTag(caster, `${USED_TAG}${ability.id}`); // after it resolves: "used earlier this fight" (Crescendo)
+  if (caster.kind === 'player') noteLastAbility(caster, ability.id); // U34e: the Paradox Wisp's "your last spell"
 }
 
 /** `ability` in a fight: check, cast (the reducer ends the turn). */
@@ -888,7 +889,7 @@ export function useCombatItem(ops: CombatOps, ctx: StepCtx, combat: CombatState,
       if (hp !== undefined) healFlat(ctx, combat, receiver, hp === 'full' ? receiver.hpMax : hp, source);
       if (mp !== undefined && receiver.mpMax > 0) ops.addMp(ctx, combat, receiver, mp === 'full' ? receiver.mpMax : mp, source);
     } else if ('damage' in e) {
-      player.hp = Math.max(1, player.hp - e.damage.hp);
+      player.hp = Math.max(1, player.hp - damageAmount(player.hpMax, e.damage.hp, e.damage.pctMax));
     } else apply(e, ctx, { source });
   }
   cleanseOnUse(ctx, combat, receiver, def); // U34e (D-101): Antidote Root, Brine Draught, Hearth Broth

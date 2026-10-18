@@ -180,6 +180,8 @@ export const LocationSchema = Base.extend({
   wanderingPools: z.array(LocationPoolSchema).min(1).optional(),
   /** U34e: level variants of creatures fighting here (see `LevelBonusSchema`); the first entry that holds and names it wins. */
   levelBonus: z.array(LevelBonusSchema).default([]),
+  /** U34e (C1 addition, D-097): applied after any fight fled here, fixed or wandering ("fleeing here costs 10 % HP"). */
+  fleeEffects: Effects,
   /** The `wait` action is allowed. */
   waitable: z.boolean().default(false),
   /** Original Python name, for Appendix A / BIBLE cross-check. */

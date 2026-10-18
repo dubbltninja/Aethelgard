@@ -76,9 +76,9 @@ const commit = (s: GameState, moveId: string, i = 0): GameState =>
 const duel = (o: StateOverrides = {}, n = 1) => fight(state(o), [{ creatureId: DUELIST, count: n }]);
 
 describe('the SPECIALS registry (PLAN §5.19 rule 3, D-072)', () => {
-  test('the engine list mirrors src/content/schema/specials.ts exactly — the same 15 ids, in order, with the same scopes', () => {
+  test('the engine list mirrors src/content/schema/specials.ts exactly — the same 17 ids (U34e: class_mirror, last_spell), in order, with the same scopes', () => {
     expect(SPECIALS).toEqual(CONTENT_SPECIALS);
-    expect(SPECIALS).toHaveLength(15);
+    expect(SPECIALS).toHaveLength(17);
     for (const id of SPECIALS) {
       const hooks = SPECIAL_HOOKS[id];
       expect([id, [...hooks.scopes]]).toEqual([id, [...SPECIAL_INFO[id].scopes]]);

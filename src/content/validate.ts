@@ -716,6 +716,7 @@ function rule01(v: Validation): void {
     for (const [moveId, move] of Object.entries(c.moves)) {
       move.statuses.forEach((s, i) => need(t, c.id, `moves.${moveId}.statuses.${i}.status`, 'statuses', s.status, `move ${moveId} status`));
       if (move.summon) need(t, c.id, `moves.${moveId}.summon.creatureId`, 'creatures', move.summon.creatureId, `move ${moveId} summon`);
+      if (move.consumesAlly !== undefined) need(t, c.id, `moves.${moveId}.consumesAlly`, 'creatures', move.consumesAlly, `move ${moveId} consumesAlly`); // U34e
       if (move.windUp && !moves.has(move.windUp.then)) v.error(R, t, c.id, `moves.${moveId}.windUp.then`, `windUp.then move ${quote(move.windUp.then)} not found in moves`);
     }
     const checkPattern = (steps: Parameters<typeof walkSteps>[0], path: string): void =>
@@ -728,6 +729,9 @@ function rule01(v: Validation): void {
     c.phases.forEach((ph, i) => {
       checkPattern(ph.pattern, `phases.${i}.pattern`);
       ph.adds.forEach((a, j) => need(t, c.id, `phases.${i}.adds.${j}.creatureId`, 'creatures', a.creatureId, `phase ${ph.id} add`));
+      // U34e: a phase's own immunities and round statuses name statuses
+      ph.statusImmunities.forEach((st, j) => need(t, c.id, `phases.${i}.statusImmunities.${j}`, 'statuses', st, `phase ${ph.id} status immunity`));
+      ph.roundStatuses.forEach((st, j) => need(t, c.id, `phases.${i}.roundStatuses.${j}`, 'statuses', st, `phase ${ph.id} round status`));
     });
     if (c.communion) {
       if (!moves.has(c.communion.pressMove)) v.error(R, t, c.id, 'communion.pressMove', `pressMove ${quote(c.communion.pressMove)} not found in moves`);

@@ -20,8 +20,7 @@
 //     (the Hound's Track, the Adept's Ward). Each waits while its own effect still stands, U45's and U46's reading of a
 //     self-move with no cadence: the Track while you are Marked, the Ward while the Adept's Shield holds. "Shield self or
 //     ally" is read as self, the one whose Shield the condition can see;
-//   - "ifAllyDown" (the Halberdier's Whistle) is `allyCountBelow: 1` with `oncePerFight` (U43's and U46's reading; the Watch
-//     comes in pairs);
+//   - "ifAllyDown" (the Halberdier's Whistle) is `allyDown` with `oncePerFight` (U34e, D-094);
 //   - the Halberdier is "non-lethal": its blows "cannot take you below 1 HP; at 1 HP you are arrested (wake in the Garret,
 //     lose a day)". D-098 (U34d): the `non_lethal` tag, which the engine reads — a fight whose every enemy carries it ends,
 //     when the Wayfinder falls, in the arrest (reducers/combat.ts `finishArrest`, before.ts `beforeArrest`); beating them sets
@@ -331,7 +330,7 @@ const cityWatchHalberdier = {
     firstOf(
       [
         [{ first: true }, { move: 'watch_halt', target: 'player' }],
-        [{ all: [{ allyCountBelow: 1 }, { oncePerFight: true }] }, { move: 'watch_whistle', target: 'self' }],
+        [{ all: [{ allyDown: true }, { oncePerFight: true }] }, { move: 'watch_whistle', target: 'self' }],
       ],
       alternate({ move: 'watch_hook', target: 'player' }, { move: 'watch_haft', target: 'player' }),
     ),

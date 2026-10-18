@@ -886,13 +886,14 @@ describe('patterns: WORLD’s cadence words hold turn by turn (first-match on ev
     expect(plan(CROWN, 7, { phase: 0 })).toEqual(seq('regard talon gale talon gale talon gale'));
   });
 
-  test('the Stormcrown, Phase 2 — The Storm Comes Down: Rain on every third turn and the hidden Lightning the turn after, Gale between; Call Kite only when no kite stands', () => {
+  test('the Stormcrown, Phase 2 — The Storm Comes Down: Rain on every third turn and the hidden Lightning the turn after, Gale between; Call Kite once a kite has fallen and none stands', () => {
     // a kite still flies (the fight's opening adds are the reducer's, so the group carries it here): the Gale fills the turns between
     const kite = [{ creatureId: KITE, count: 1 }];
     expect(plan(CROWN, 9, { phase: 1, allies: kite })).toEqual(seq('gale gale rain call_lightning gale rain call_lightning gale rain'));
     // the kite is down: Call Kite takes the Gale's turns, never the Rain's or the Lightning's
     expect(plan(CROWN, 9, { phase: 1, allies: kite, before: (_t, _f, c) => kitesDown(c) })).toEqual(seq('call_kite call_kite rain call_lightning call_kite rain call_lightning call_kite rain'));
-    expect(plan(CROWN, 4, { phase: 1 })).toEqual(seq('call_kite call_kite rain call_lightning'));
+    // U34e (D-094): "ifAllyDown" is `allyDown`: a Stormcrown that never had a kite fall calls none
+    expect(plan(CROWN, 4, { phase: 1 })).toEqual(seq('gale gale rain call_lightning'));
     // entered on a turn after a multiple of three, no Lightning comes without its Rain
     expect(plan(CROWN, 5, { phase: 1, from: 4, allies: kite })).toEqual(seq('gale gale rain call_lightning gale'));
   });

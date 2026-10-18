@@ -197,9 +197,7 @@ const sporeDrift = {
       statuses: [{ status: 'status_weaken', chance: 0.4, duration: 2 }],
     },
     spore_bloom: { name: 'Bloom', line: 'Light-dust blooms from it in a slow ring.', statuses: [{ status: 'status_blind', chance: 0.4, duration: 1 }] },
-    // WORLD `onDeath` ("resolves when it dies, before loot"): no pattern condition or creature hook fires a move at
-    // death (DESIGN §4.2's CombatWhen has none), so the burst is authored, telegraph and all, and no pattern reaches it
-    // (a gap for U34d, listed in the U45 reply; WORLD's Glass Mote has the same).
+    // WORLD `onDeath` ("resolves when it dies, before loot"): the creature's `deathMove` (U34e, D-092)
     spore_burst: {
       name: 'Burst',
       line: 'It bursts, sweetly.',
@@ -214,6 +212,7 @@ const sporeDrift = {
       alternate({ move: 'spore_sweet_air', target: 'all' }, { move: 'spore_settle', target: 'player' }),
     ),
   ],
+  deathMove: { move: 'spore_burst', target: 'all' }, // U34e (D-092): "0.8× all · poison 100% 4 · onDeath"
   loot: [
     { itemId: 'mat_glow_gland', chance: 0.7 },
     { itemId: 'item_antidote_root', chance: 0.2 },
@@ -432,14 +431,14 @@ const hourLeech = {
       power: { coef: 0.8, stat: 'sp' },
       statuses: [{ status: 'status_slow', chance: 0.5, duration: 2 }],
     },
-    // WORLD: also "Breach Clock −1 watch (once per fight)". A move's effects are combat-scope only (the engine applies
-    // stripBuffs, healOnDamage, multiHit, leaveCombat): no form for a clock change from a fight (listed in the reply).
+    // WORLD: also "Breach Clock −1 watch (once per fight)": the move's `clockCost` (U34e, D-092)
     leech_drink_hour: {
       name: 'Drink the Hour',
       line: 'It swells. Somewhere, a watch goes missing.',
       type: 'chrono',
       power: { coef: 1.0, stat: 'sp' },
       effects: [{ healOnDamage: { pct: 0.5 } }],
+      clockCost: { watches: 1, oncePerFight: true },
     },
     leech_coil: { name: 'Coil', line: 'It coils back into the moment it came from.', statuses: [...REWIND_SELF] },
   },
@@ -739,6 +738,8 @@ const unveiledTyrant = {
   tauntImmune: true,
   interruptible: true,
   fleeable: false,
+  // Phase 4: "at 10% HP, once" (WORLD §6.8; U34e, D-098)
+  hpLines: [{ below: 0.1, text: "'If you finish this, run,' says the voice under the chorus. 'I mean that kindly.'" }],
   moves: {
     tyr_speak: { name: 'Speak', line: "It speaks: 'You have crossed. So.'" },
     tyr_time_lash: tyrTimeLash,
@@ -801,8 +802,8 @@ const unveiledTyrant = {
       name: 'The Hold Fails',
       enterWhen: [{ hpBelow: 0.25 }, { round: 20 }],
       line: 'The hold fails. The chorus stops pretending to be one voice.',
-      // outgoing damage +10 % per round in this phase, uncapped (DESIGN). The voice under the chorus "at 10 % HP, once"
-      // ('If you finish this, run …') has no hook outside a phase entry: the dialogue/UI unit's (listed in the reply).
+      // outgoing damage +10 % per round in this phase, uncapped (DESIGN). The voice under the chorus "at 10 % HP, once" is
+      // the creature's `hpLines` (U34e, D-098)
       damageDealtRampPerRound: 0.1,
       pattern: [{ move: 'tyr_unraveling', target: 'all' }],
     },

@@ -16,17 +16,15 @@
 // Readings (each repeated at its move; listed in the U47 reply):
 //   - "ifAllyPresent" is the Lantern's only conditioned move (Shelter): by WORLD's rule it replaces the cycled move for as long
 //     as an ally lives, so a pair of Lanterns shields each other until one falls;
-//   - "heal self … (consumes one lantern)" (the Umbra's Cling): no effect removes an ally, so the heal waits on a living
-//     Hollow Lantern (`allyPresent: 'cr_hollow_lantern'`) and is capped at two uses a fight (`oncePerFight` on two copies of
-//     the step), the two lanterns the Umbra opens Phase 2 with; without the cap a living lantern would be a heal every turn;
+//   - "heal self … (consumes one lantern)" (the Umbra's Cling): the heal waits on a living Hollow Lantern (`allyPresent:
+//     'cr_hollow_lantern'`) and the move's `consumesAlly` takes it (U34e, D-096: no XP, not a kill);
 //   - "Haste self every turn" (Phase 3): a status row `target: 'self'` on each move the Umbra makes in Phase 3; the shared Her
 //     Hand carries it `when` the Umbra's own HP is below the Phase 3 threshold (a Cling heal above it drops Her Hand's Haste
 //     until the next Fall or Cling, which carry it unconditionally);
 //   - the Starved Shadow's Hunger "1.8× highest-MAG target" is the `highest_mag` target rule; Open (hidden) is a plain hidden
 //     move, no wind-up (WORLD gives none).
-// Not expressible (the U47 reply): Phase 1 skipped "if `{killed:"cr_vells_umbra"}` in any earlier loop". The `killed` atom
-// reads this loop's kill count, so `skipWhen` carries WORLD's condition as written and skips Phase 1 only after a kill in the
-// same loop (a later loop's Umbra starts in Her Shape again).
+// Phase 1 is skipped "if `{killed:"cr_vells_umbra"}` in any earlier loop": the `killed` atom's `anyLoop` (U34e, D-096) reads
+// the profile's kills of it in every loop.
 // "Plain steel now lands in full" (the tactics note) needs nothing: the stat block lists no physical resistance, so physical
 // damage is neutral.
 import type { CombatWhen, CreatureInput, Step } from '@schema/creature';
@@ -41,9 +39,6 @@ function firstOf(conditioned: readonly (readonly [CombatWhen, Step])[], otherwis
 /** Two cycled moves: the first on the creature's odd turns, the second on its even turns. */
 const alternate = (odd: Step, even: Step): Step => ({ if: { everyNth: 2 }, then: [even], else: [odd] });
 
-/** `copies` first-match rows of a move that "consumes" an ally: it waits on one living, once each (see the header). */
-const consuming = (ally: `cr_${string}`, copies: number, step: Step): (readonly [CombatWhen, Step])[] =>
-  Array.from({ length: copies }, () => [{ all: [{ allyPresent: ally }, { oncePerFight: true }] }, step] as const);
 
 // ---- cr_hollow_lantern — Hollowed (Void) · L10 fodder · XP 220 (WORLD §6.1) ------------------------------------------------
 const hollowLantern = {
@@ -299,14 +294,15 @@ const vellsUmbra = {
       line: 'It pulls a lantern into itself and darkens.',
       heal: { power: { coef: 2.0, stat: 'atk' }, target: 'self' },
       statuses: [{ status: 'status_haste', duration: 2, target: 'self' }],
+      consumesAlly: 'cr_hollow_lantern', // U34e (D-096)
     },
   },
   phases: [
     {
       id: 'umbra_her_shape',
       name: 'Her Shape',
-      // 100–60 %; skipped (the fight opens in Phase 2) if the Umbra was killed in an earlier loop (WORLD §2.9)
-      skipWhen: { killed: { id: 'cr_vells_umbra' } },
+      // 100–60 %; skipped (the fight opens in Phase 2) if the Umbra was killed in an earlier loop (WORLD §2.9; U34e: `anyLoop`)
+      skipWhen: { killed: { id: 'cr_vells_umbra', anyLoop: true } },
       pattern: [
         firstOf(
           [
@@ -337,7 +333,10 @@ const vellsUmbra = {
       line: "'Forty years,' says a voice that is almost Nyx's. 'I have been patient forty years.'",
       pattern: [
         firstOf(
-          [[{ everyNth: 3 }, { move: 'umbra_fall', target: 'all' }], ...consuming('cr_hollow_lantern', 2, { move: 'umbra_cling', target: 'self' })],
+          [
+            [{ everyNth: 3 }, { move: 'umbra_fall', target: 'all' }],
+            [{ allyPresent: 'cr_hollow_lantern' }, { move: 'umbra_cling', target: 'self' }],
+          ],
           { move: 'umbra_her_hand', target: 'player' },
         ),
       ],

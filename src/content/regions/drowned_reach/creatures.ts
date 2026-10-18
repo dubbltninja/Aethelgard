@@ -8,8 +8,8 @@
 // Conventions are U42's and U45's (silverwood_ruins/creatures.ts and glowlands_nexus/creatures.ts headers): stats
 // `HP · ATK · DEF armor/ward · AGI`, SP = ATK unless WORLD gives one (none here), non-physical moves scale on SP; a move's
 // type is the creature's primary type unless the line names one; `all` = area, `you` = player, `ally` = the lowest-HP
-// ally; the `breach_born` tag is Poison-immune (written out), `drowned` is WORLD §5's Soaked-each-turn (engine gap 5:
-// the tag is never read); loot rows in WORLD's order; bestiary and tactics WORLD's text verbatim (backticks and decision
+// ally; the `breach_born` tag is Poison-immune (written out), `drowned` is WORLD §5's Soaked-each-turn (the engine's
+// since U34e, D-094); loot rows in WORLD's order; bestiary and tactics WORLD's text verbatim (backticks and decision
 // references dropped); `description` a sentence from the bestiary or the location (no legacy line exists: the Archivist is
 // the Reach's only legacy Drowned).
 //
@@ -17,15 +17,14 @@
 // its condition holds, first match top to bottom) as one first-match `if` chain evaluated on every turn (`firstOf`), two
 // cycled moves alternating by the creature's own turn (`alternate`) — U45's form, which keeps every `everyNthTurn` cadence
 // (D-092). Readings (each repeated at its move; listed in the U46 reply):
-//   - "ifAllyDown" (an ally fell this fight) has no atom: `allyCountBelow` stands in (the Rootling's reading), with
-//     `oncePerFight` where WORLD says "once per fight";
-//   - "heal ally" fires on "ifAllyPresent" with no wounded-ally atom (U34d's gap), so the Choir's Amend is placed behind
-//     its rarer conditions (the Reinscribe, the Verse): WORLD lists it first, but ahead of them it would shadow both while
-//     any reader lives, and the bestiary has the Choir read a fallen reader back in;
+//   - "ifAllyDown" (an ally fell this fight) is the `allyDown` atom (U34e, D-094), with `oncePerFight` where WORLD says
+//     "once per fight";
+//   - "heal ally … ifAllyPresent" (the Choir's Amend) heals a wounded ally: `allyBelow: 1` (U34e, D-094), in WORLD's order
+//     (first), so an unhurt reader beside it no longer makes it heal nothing;
 //   - a low-HP self-move with no "once" (the Lamprey's Eddy, the Ringer's Shell) waits while its own effect still stands
 //     (`not selfHas`), as U45's self-Rewind does: otherwise it would repeat every turn and the creature would never strike.
-// Not expressible (the U46 reply): the Soaked-at-the-start-of-each-round rule of the Bell-Warden's Phase 2 (no round hook
-// on a phase; the `drowned` tag is the same gap).
+// The Bell-Warden's Phase 2 "every combatant is Soaked at the start of each round" is the phase's `roundStatuses`, and the
+// `drowned` tag's Soaked-each-turn is the engine's (U34e, D-094).
 import type { CombatWhen, CreatureInput, Step } from '@schema/creature';
 
 const REVEALS = [{ kills: 1, reveal: 'resist' }, { kills: 3, reveal: 'all' }] as const;
@@ -249,11 +248,11 @@ const ledgerChoir = {
   pattern: [
     firstOf(
       [
-        // "ifAllyDown, once per fight": fewer than two readers left of the two it fights beside
-        [{ all: [{ allyCountBelow: 2 }, { oncePerFight: true }] }, { move: 'choir_reinscribe', target: 'self' }],
+        // "ifAllyPresent": a wounded ally (see the header)
+        [{ allyBelow: 1 }, { move: 'choir_amend', target: 'ally' }],
+        // "ifAllyDown, once per fight"
+        [{ all: [{ allyDown: true }, { oncePerFight: true }] }, { move: 'choir_reinscribe', target: 'self' }],
         [{ everyNth: 3 }, { move: 'choir_verse', target: 'player' }],
-        // "ifAllyPresent" (see the header: behind the rarer conditions)
-        [{ allyPresent: true }, { move: 'choir_amend', target: 'ally' }],
       ],
       { move: 'choir_intone', target: 'all' },
     ),
@@ -310,8 +309,8 @@ const bellRinger = {
   pattern: [
     firstOf(
       [
-        // "ifAllyDown, once per fight": the one Archivist it fights beside has fallen
-        [{ all: [{ allyCountBelow: 1 }, { oncePerFight: true }] }, { move: 'ringer_stand_them_up', target: 'self' }],
+        // "ifAllyDown, once per fight" (U34e: `allyDown`)
+        [{ all: [{ allyDown: true }, { oncePerFight: true }] }, { move: 'ringer_stand_them_up', target: 'self' }],
         [hurtAndWithout(0.5, 'status_shield'), { move: 'ringer_shell', target: 'self' }],
       ],
       alternate({ move: 'ringer_low_note', target: 'all' }, { move: 'ringer_rope', target: 'player' }),
@@ -417,6 +416,8 @@ const bellWarden = {
       id: 'warden_the_water_rises',
       name: 'The Water Rises',
       enterWhen: [{ hpBelow: 0.65 }],
+      // "every combatant is Soaked at the start of each round" (U34e, D-094)
+      roundStatuses: ['status_soaked'],
       line: 'The Warden stands. The chain of office swings. The water in the well begins to rise.',
       pattern: [
         firstOf([[{ everyNth: 3 }, { move: 'warden_lift', target: 'all' }]], alternate({ move: 'warden_undertow', target: 'all' }, { move: 'warden_clapper', target: 'player' })),

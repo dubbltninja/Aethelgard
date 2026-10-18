@@ -769,14 +769,17 @@ describe('patterns: WORLD’s cadence words hold turn by turn (first-match on ev
     expect(plan('cr_brine_lamprey', 7, { before: hurt })).toEqual(seq('latch drink drink eddy eddy latch eddy'));
   });
 
-  test('the Ledger Choir: Amend while a reader stands, Verse every third turn, Reinscribe once when one has fallen, Intone when it stands alone', () => {
+  test('the Ledger Choir: Amend while a reader is hurt, Reinscribe once when one has fallen, Verse every third turn, Intone otherwise', () => {
     const readers = [{ creatureId: 'cr_drowned_archivist', count: 2 }];
+    // U34e (D-094): Amend heals a wounded ally (`allyBelow: 1`), in WORLD's order (first); `allyDown` for the Reinscribe
     const fall = (t: number, _f: Combatant, c: CombatState): void => {
       ally(c, 1, t < 4);
       ally(c, 2, t < 7);
+      for (const r of c.enemies.slice(1)) if (r.alive && [1, 2, 5].includes(t)) r.hp = r.hpMax - 1;
     };
     expect(plan('cr_ledger_choir', 9, { allies: readers, before: fall })).toEqual(seq('amend amend verse reinscribe amend verse intone intone verse'));
-    expect(plan('cr_ledger_choir', 3, { allies: readers })).toEqual(seq('amend amend verse'));
+    // unhurt readers: nothing to amend
+    expect(plan('cr_ledger_choir', 3, { allies: readers })).toEqual(seq('intone intone verse'));
   });
 
   test('the Bell-Ringer: Low Note and Rope in turn; stands the archivist up once; Shell below half HP, and not again while it stands', () => {

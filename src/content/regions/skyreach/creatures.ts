@@ -17,8 +17,8 @@
 // every pattern turn by turn. Readings (each repeated at its move; listed in the U48a reply):
 //   - the Spire Loom's Rethread ("ifHpBelow:50", no "once") waits while its own Shield stands (`not selfHas status_shield`),
 //     U44's reading of the Weaver's Mend;
-//   - the Stormcrown's "ifAllyDown" Call Kite has no atom: `allyCountBelow: 1` stands in (no kite standing), the Reach's and
-//     the Steppe's reading (D-094); with "max 1 alive" the summon's `max` is 1;
+//   - the Stormcrown's "ifAllyDown" Call Kite is `allyDown` (U34e, D-094) while no kite stands ("max 1 alive": the summon's
+//     `max` is 1, and a call it cannot answer would waste the turn);
 //   - the Stormcrown's Call Lightning comes "the turn after crown_rain": the Rain's `everyNth: 3` opens a `then` block of two
 //     steps, the Rain and then the Lightning, which DESIGN §4.2 runs to completion before the pointer continues, so the
 //     Lightning is the very next intent after every Rain and never comes without one;
@@ -315,7 +315,7 @@ const stormcrown = {
             { move: 'crown_rain', target: 'all' },
             { move: 'crown_call_lightning', target: 'player' },
           ],
-          else: [firstOf([[{ allyCountBelow: 1 }, { move: 'crown_call_kite', target: 'self' }]], { move: 'crown_gale', target: 'all' })],
+          else: [firstOf([[{ all: [{ allyDown: true }, { allyCountBelow: 1 }] }, { move: 'crown_call_kite', target: 'self' }]], { move: 'crown_gale', target: 'all' })],
         },
       ],
     },

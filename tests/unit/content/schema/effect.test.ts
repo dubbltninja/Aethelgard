@@ -23,6 +23,7 @@ const VALID: { [K in EffectKey]: Effect[] } = {
   resonance: [{ resonance: 10 }],
   heal: [{ heal: { hp: 'full' } }, { heal: { hp: 20, mp: 'full' } }],
   damage: [{ damage: { hp: 12 } }],
+  statBonus: [{ statBonus: { stat: 'magic', delta: 1 } }, { statBonus: { stat: 'hpMax', delta: 15 } }],
   corruption: [{ corruption: 1 }],
   clockWatches: [{ clockWatches: -40 }, { clockWatches: 24 }],
   passWatches: [{ passWatches: 8 }],
@@ -69,6 +70,7 @@ const INVALID: { [K in EffectKey]: [unknown, string][] } = {
   resonance: [[{ resonance: 'lots' }, 'resonance']],
   heal: [[{ heal: {} }, '`heal` needs hp and/or mp'], [{ heal: { hp: 'half' } }, 'heal.hp'], [{ heal: { sp: 3 } }, 'Unrecognized key']],
   damage: [[{ damage: { hp: 0 } }, 'damage.hp'], [{ damage: 5 }, 'damage: Expected object']],
+  statBonus: [[{ statBonus: { stat: 'vitality', delta: 1 } }, 'statBonus.stat'], [{ statBonus: { stat: 'magic', delta: 0.5 } }, 'statBonus.delta']],
   corruption: [[{ corruption: 0.5 }, 'corruption']],
   clockWatches: [[{ clockWatches: { days: -10 } }, 'clockWatches: Expected number']],
   passWatches: [[{ passWatches: 0 }, 'passWatches: `passWatches` must be ≥ 1'], [{ passWatches: -4 }, 'must be ≥ 1']],
@@ -107,11 +109,11 @@ const INVALID: { [K in EffectKey]: [unknown, string][] } = {
 };
 
 describe('EffectSchema', () => {
-  test('the atom set is exactly DESIGN §13.3’s (incl. D-069.9’s six engine kinds, U26b’s areaMove, U34’s revive and U34d’s onlyIf)', () => {
+  test('the atom set is exactly DESIGN §13.3’s (incl. D-069.9’s six engine kinds, U26b’s areaMove, U34’s revive, U34d’s onlyIf and U52’s statBonus)', () => {
     expect([...EFFECT_KEYS].sort()).toEqual(
       [
         'setFlag', 'clearFlag', 'grantEcho', 'questStart', 'questAdvance', 'questFail', 'giveItem', 'takeItem', 'rep', 'loyalty',
-        'gold', 'xp', 'resonance', 'heal', 'damage', 'corruption', 'clockWatches', 'passWatches', 'spawn', 'teleport',
+        'gold', 'xp', 'resonance', 'heal', 'damage', 'statBonus', 'corruption', 'clockWatches', 'passWatches', 'spawn', 'teleport',
         'unlockExit', 'scatter', 'multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat', 'areaMove', 'recruit', 'dismiss', 'revive',
         'startCombat', 'startDialogue', 'endLoop', 'ending', 'unlockRecipe', 'unlockCodex', 'counter', 'resolve', 'onlyIf',
       ].sort(),

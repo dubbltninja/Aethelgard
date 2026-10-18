@@ -485,14 +485,20 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     // order-agnostic (U48b): the Plaza's `flag_visited_before` is set by Silverwood Before's entry events, so it warns only
     // until that region has landed
     const beforeLanded = pack.regions['region_silverwood_before'] !== undefined;
+    // likewise the Depths' three Heartstone flags, which the Heartstone choice sets (U52: scene_heartstone_choice)
+    const heartstoneLanded = pack.dialogues['scene_heartstone_choice'] !== undefined;
     expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual(
       [
         // flags later content units set (the Heartstone choice, the Before); the engine's own (Horde, portal, Anchors) are
         // ENGINE_WRITTEN_FLAGS and raise nothing
         ...(beforeLanded ? [] : ['rule-02 loc_silverwood_plaza events.1.when.flag']),
-        'rule-02 loc_heartstone_depths descriptionVariants.0.when.flag',
-        'rule-02 loc_heartstone_depths descriptionVariants.1.when.flag',
-        'rule-02 loc_heartstone_depths descriptionVariants.2.when.flag',
+        ...(heartstoneLanded
+          ? []
+          : [
+              'rule-02 loc_heartstone_depths descriptionVariants.0.when.flag',
+              'rule-02 loc_heartstone_depths descriptionVariants.1.when.flag',
+              'rule-02 loc_heartstone_depths descriptionVariants.2.when.flag',
+            ]),
         // WORLD's deliberate out-of-band placements (D-091 gap 6): the exploited Depths' Hourglass Crawlers. D-098 (U34d) left
         // out of rule 11 the Loop 4+ anomaly at the start, the Horde boss and the Horde Husks in the Corridor
         'rule-11 cr_hourglass_crawler level',

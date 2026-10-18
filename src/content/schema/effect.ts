@@ -55,6 +55,11 @@ export const EFFECT_ATOMS = {
     .strict()
     .refine((h) => h.hp !== undefined || h.mp !== undefined, '`heal` needs hp and/or mp'),
   damage: z.object({ hp: int.min(1) }).strict(),
+  /**
+   * U52 (C1 addition): a lasting bonus for the rest of the loop to a primary or a maximum (`player.passiveBonuses`, read by
+   * derive()): the legacy quest rewards `q_lost_scroll` +1 MAG, `q_blighted_outpost` +15 max HP, the Heartstone's Destroy +20.
+   */
+  statBonus: z.object({ stat: z.enum(['strength', 'magic', 'agility', 'hpMax', 'mpMax']), delta: int }).strict(),
   corruption: int,
   /** Moves the Breach Clock LIMIT by n watches (−10 days = −40), floored at current day + 3 dawns (DESIGN §10.1). */
   clockWatches: int,

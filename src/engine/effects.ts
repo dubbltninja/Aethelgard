@@ -406,6 +406,15 @@ export function advanceTime(ctx: StepCtx, watches: number): void {
   }
 }
 
+/** The `statBonus` effect's log label per stat. */
+const STAT_BONUS_LABEL: Readonly<Record<EffectAtoms['statBonus']['stat'], string>> = {
+  strength: 'Strength',
+  magic: 'Magic',
+  agility: 'Agility',
+  hpMax: 'Max HP',
+  mpMax: 'Max MP',
+};
+
 /** Rejects: the effect belongs to a system that is not built yet. */
 const notYet =
   (unit: string, why = 'is not implemented yet') =>
@@ -527,6 +536,12 @@ const APPLIERS: Appliers = {
     player.hp = Math.max(1, before - hp); // out-of-combat damage never kills (D-072); the Horde's lash is horde.ts
     ctx.s.counters.damageTaken += before - player.hp;
     ctx.log(`You take ${before - player.hp} damage.`, 'event');
+  },
+  // U52 (C1 addition): a bonus for the rest of the loop; the stored maxima follow at the post-step (derived.ts `syncMaxima`)
+  statBonus: ({ stat, delta }, ctx) => {
+    const bonuses = ctx.s.player.passiveBonuses;
+    bonuses[stat] = (bonuses[stat] ?? 0) + delta;
+    ctx.log(`${STAT_BONUS_LABEL[stat]} ${delta >= 0 ? '+' : '−'}${Math.abs(delta)} for the rest of this loop.`, 'event');
   },
   corruption: (n, ctx) => {
     const player = ctx.s.player;

@@ -216,6 +216,18 @@ const OBSERVED: { [K in EffectKey]: () => void } = {
     ]);
     expect(out.state.recentLog).toHaveLength(2);
   },
+  statBonus: () => {
+    // U52 (C1 addition): passiveBonuses for the rest of the loop (derive() reads them; the maxima follow at the post-step)
+    const out = run([{ statBonus: { stat: 'magic', delta: 1 } }, { statBonus: { stat: 'hpMax', delta: 15 } }, { statBonus: { stat: 'magic', delta: 1 } }]);
+    expect(out.state.player.passiveBonuses).toEqual({ magic: 2, hpMax: 15 });
+    expect(out.input.player.passiveBonuses).toEqual({});
+    expect(out.events).toEqual([
+      { t: 'log', text: 'Magic +1 for the rest of this loop.', kind: 'event' },
+      { t: 'log', text: 'Max HP +15 for the rest of this loop.', kind: 'event' },
+      { t: 'log', text: 'Magic +1 for the rest of this loop.', kind: 'event' },
+    ]);
+    expect(run([{ statBonus: { stat: 'agility', delta: -2 } }]).events).toEqual([{ t: 'log', text: 'Agility −2 for the rest of this loop.', kind: 'event' }]);
+  },
   corruption: () => {
     const out = run([{ corruption: 4 }, { corruption: 4 }, { corruption: -10 }]);
     expect(out.state.player.corruption).toBe(0);

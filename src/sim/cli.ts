@@ -23,6 +23,8 @@
 // Packs load at run time by path (`import()`), so the sim layer never imports test code statically and the real pack
 // plugs in with no change here.
 //
+// `quest` (U52) runs the quest proofs of scripts/quests.ts (PLAN §7.8): `npm run sim -- quest [<questId>…] [--pack real] [--verbose]`.
+//
 // `batch` (U39) plays whole batches on worker threads and writes docs/BALANCE.md — see batch.ts for its options:
 //   bun --define __DEV__=false --define __E2E__=true src/sim/cli.ts batch --pack fixtures --seeds 20 --out /tmp/BALANCE.md
 import fs from 'node:fs';
@@ -338,6 +340,7 @@ export function report(runs: readonly PackRun[], opts: SimOptions): string[] {
 
 export async function main(argv: readonly string[], write: (line: string) => void = (line) => process.stdout.write(`${line}\n`)): Promise<number> {
   if (argv[0] === 'batch') return (await import('./batch')).batchMain(argv.slice(1), write); // loaded on demand: batch.ts imports this module
+  if (argv[0] === 'quest') return (await import('./scripts/quests')).questMain(argv.slice(1), write, loadPack); // U52: the quest proofs
   let opts: SimOptions;
   const runs: PackRun[] = [];
   try {

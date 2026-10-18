@@ -244,8 +244,10 @@ describe('rule 16 with the catalog in: what quests and dialogue will grant or re
   test('most of the catalog is granted by the engine or by region events; the rest waits for U52+ quests and dialogue', () => {
     expect(ungranted.length).toBeGreaterThan(0);
     expect(ungranted.length).toBeLessThan(103 - ENGINE_GRANTED_ECHOES.length);
-    // the three "hold all of …" Echoes have no grant mechanism yet either (the engine grants none of them)
-    for (const id of ['echo_litany_complete', 'echo_heartstone_triune', 'echo_anchor_schema']) expect(ungranted).toContain(id);
+    // two of the three "hold all of …" Echoes have no grant mechanism yet either (the engine grants none of them); U52's
+    // Heartstone choice grants the third, `echo_heartstone_triune`, when the three Heartstone Echoes are held
+    for (const id of ['echo_litany_complete', 'echo_anchor_schema']) expect(ungranted).toContain(id);
+    expect(ungranted).not.toContain('echo_heartstone_triune');
   });
 
   test('the release gate (strict, pending): no errors; the ungranted Echoes and the Echoes nothing reads yet are pending warnings', () => {

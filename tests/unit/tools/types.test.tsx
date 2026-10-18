@@ -3,7 +3,7 @@
 // bun only runs the trivial test at the bottom; the probes live in a function that is never called.
 import { expect, test } from 'bun:test';
 import { createContext, useContext, useRef, useState, type CSSProperties } from 'react';
-import { ScaffoldPage } from '../../../src/main';
+import { BootFailure } from '../../../src/main';
 
 export function typeProbes(): unknown[] {
   const [count] = useState(0);
@@ -21,10 +21,10 @@ export function typeProbes(): unknown[] {
     <div tabIndex="0" />,
     // @ts-expect-error — not an intrinsic element in the shim
     <blink />,
-    // @ts-expect-error — ScaffoldPage requires `version`
-    <ScaffoldPage />,
-    // @ts-expect-error — `version` is a string
-    <ScaffoldPage version={2} />,
+    // @ts-expect-error — BootFailure requires `message`
+    <BootFailure />,
+    // @ts-expect-error — `message` is a string
+    <BootFailure message={2} />,
     // @ts-expect-error — unknown CSS property
     { colr: 'red' } satisfies CSSProperties,
     // @ts-expect-error — the ref is for a div, not an input

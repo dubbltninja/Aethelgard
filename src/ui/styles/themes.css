@@ -1,0 +1,69 @@
+/*
+ * Themes and motion (DESIGN §16.7, §17.7, D-035). The Shell writes the settings onto <html>:
+ *   data-theme="default" | "high-contrast"   (Settings → High contrast)
+ *   data-motion="system" | "reduce" | "full" (Settings → Motion; "system" follows prefers-reduced-motion)
+ *   style.font-size = 100 % | 125 % | 150 %  (Settings → Text size; every size here is in rem)
+ */
+
+/* High contrast: white on black, solid fills, white borders, no translucency. Text >= 7:1. */
+:root[data-theme="high-contrast"] {
+  --surface-base: #000000;
+  --surface-panel: #000000;
+
+  --text-primary: #ffffff;
+  --text-muted: #e6e6e6;
+  --text-accent: #bfe8ff;
+  --text-gold: #ffd77f;
+  --text-danger: #ffb8b8;
+
+  --glyph-hp: #ff7a7a;
+  --glyph-mp: #8fb8ff;
+  --glyph-gold: #ffd77f;
+  --glyph-echo: #bfe8ff;
+  --glyph-corruption: #c4a6ff;
+
+  --fill-primary: #ffffff;
+  --on-fill-primary: #000000;
+  --fill-danger: #ffb8b8;
+  --on-fill-danger: #000000;
+
+  --line-strong: #ffffff;
+  --line-soft: #ffffff;
+  --focus-ring: #ffd37a;
+  --focus-width: 4px;
+
+  --veil: #000000;
+  --backdrop: #000000;
+  --hover-wash: transparent;
+}
+
+/* Reduced motion: no animation, no smooth scrolling, transitions cut to nothing (<= 100 ms allowed, PLAN §6.7). */
+:root[data-motion="reduce"] {
+  --dur-micro: 0ms;
+  --dur-panel: 0ms;
+  --dur-scene: 0ms;
+}
+
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation: none !important;
+  transition-duration: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]) {
+    --dur-micro: 0ms;
+    --dur-panel: 0ms;
+    --dur-scene: 0ms;
+  }
+
+  :root:not([data-motion="full"]) *,
+  :root:not([data-motion="full"]) *::before,
+  :root:not([data-motion="full"]) *::after {
+    animation: none !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}

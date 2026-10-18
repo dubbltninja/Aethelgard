@@ -1,0 +1,72 @@
+// Panels (PLAN §6.2–6.3): overlay state local to the Shell (`activePanel`), never engine state, so opening one never
+// changes GameState or a replay trace. Each mode allows its own set (`legalPanels`); a panel opens only when it is
+// allowed in the mode and its component exists (PanelHost's registry). Later units add their component to
+// PANEL_COMPONENTS in PanelHost.tsx and their hotkey to SHELL panel keys; the ids and titles are fixed here.
+import type { Mode } from '@engine/index';
+
+export type PanelId =
+  | 'inventory'
+  | 'equipment'
+  | 'abilities'
+  | 'journal'
+  | 'codex'
+  | 'bestiary'
+  | 'timeline'
+  | 'settings'
+  | 'saves'
+  | 'merchant'
+  | 'crafting'
+  | 'companion'
+  | 'map'
+  | 'help';
+
+export const PANEL_TITLES: Record<PanelId, string> = {
+  inventory: 'Inventory',
+  equipment: 'Equipment',
+  abilities: 'Abilities',
+  journal: 'Quest journal',
+  codex: 'Codex',
+  bestiary: 'Bestiary',
+  timeline: 'Loop timeline',
+  settings: 'Settings',
+  saves: 'Saves',
+  merchant: 'Merchant',
+  crafting: 'Forge',
+  companion: 'Companion',
+  map: 'Map',
+  help: 'Keys',
+};
+
+/** DESIGN §16.4 panel letters; in a fight they need Shift (D-066 #13, enforced by the resolver's `panel` group). */
+export const PANEL_KEYS: Partial<Record<PanelId, string>> = {
+  inventory: 'i',
+  journal: 'q',
+  codex: 'c',
+  bestiary: 'b',
+  map: 'm',
+  timeline: 'l',
+};
+
+const ALL: readonly PanelId[] = Object.keys(PANEL_TITLES) as PanelId[];
+
+/**
+ * Panels a mode allows (PLAN §6.3): in combat only Inventory (read-only), Bestiary, Help, Settings; in dialogue only
+ * Help and Settings; at the title only Settings, Saves, Codex (and Help). The Threshold and the ending screens allow
+ * the reading panels and the shell's own.
+ */
+export function legalPanels(mode: Mode): readonly PanelId[] {
+  switch (mode) {
+    case 'title':
+      return ['settings', 'saves', 'codex', 'help'];
+    case 'combat':
+      return ['inventory', 'bestiary', 'help', 'settings'];
+    case 'dialogue':
+      return ['help', 'settings'];
+    case 'threshold':
+      return ['codex', 'bestiary', 'timeline', 'journal', 'settings', 'saves', 'help'];
+    case 'ending':
+      return ['settings', 'help'];
+    case 'explore':
+      return ALL;
+  }
+}

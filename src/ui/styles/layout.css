@@ -1,0 +1,79 @@
+/*
+ * Layout (PLAN §6.8, DESIGN §16.1): the Shell frame. 760 px is the one breakpoint: under it every screen is a single
+ * column with a 16 px gutter. Screens own their inner grids (screens.css); U64/U69 add the desktop columns and the
+ * bottom tab bar here.
+ */
+.app {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 100dvh;
+}
+
+.screen-host {
+  position: relative;
+  min-width: 0;
+}
+
+.screen-host:focus {
+  outline: none;
+}
+
+.screen {
+  position: relative;
+  min-height: 100%;
+}
+
+.legend-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface-base);
+  color: var(--text-muted);
+  font-size: var(--type-small);
+}
+
+/* Touch-only devices have no keys to show. */
+@media (hover: none) and (pointer: coarse) {
+  .legend-bar {
+    display: none;
+  }
+}
+
+.toasts {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--gutter);
+  z-index: 60;
+  display: grid;
+  gap: var(--space-2);
+  width: min(24rem, calc(100vw - 2 * var(--gutter)));
+  pointer-events: none;
+}
+
+.toasts > * {
+  pointer-events: auto;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  background: var(--backdrop);
+}
+
+@media (max-width: 759.98px) {
+  .toasts {
+    top: auto;
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+
+  .modal-backdrop {
+    place-items: end stretch;
+    padding: 0;
+  }
+}

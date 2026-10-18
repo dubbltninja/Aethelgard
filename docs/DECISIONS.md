@@ -1606,3 +1606,35 @@ owning unit (PLAN §9.1).
      with ✦ U60/U61. STORY §14.1 also lacks Vask, Rhune and Dreyl.
   2. Scenario `communion_movement_2` crashes on the real pack (`cannot walk in ending mode` at the Corridor, Day 30). This
      is a scenario builder bug → U34e.
+
+### D-102 · U34d details — world-state expressiveness, 2026-10-17
+- **U34d (42be256), C1 additions (all optional, with defaults):**
+  - `npc.schedule` is a list of `{when, at}`: the first entry that holds wins, `at: []` means absent, and `npcOverrides`
+    still win.
+  - Location items gain `chance` (default 1) and `onTake` effects.
+  - `gather` takes one node or a list.
+  - Locations gain `wanderingPools: [{regionId, chance}]`.
+  - Region pool entries gain an optional `when`.
+  - New effect `onlyIf {when, effects}`.
+  - New condition `infected: true`.
+  - The `gather` action gains an optional `itemId`.
+- **Behaviour:**
+  - The Before's people move by Bell and hour; talk, examine and merchants follow their schedules.
+  - Tessaly is at Hearthring and also at the Camp after `flag_hearthring_caravan`. Dask is absent in Loop 1.
+  - Item `chance` is rolled once per loop on the run Rng; a miss waits for the next loop. A `when` that turns true later
+    spawns the item on a later arrival.
+  - The Roost greataxe uses item `onTake`, so its coined interact events and flag are gone.
+  - Threshold places fire their `enter` events.
+  - Infected nodes say "The air here is coming apart at the seams."
+  - The Before keeps its own hour, and a Garret short rest advances it, so "noon" works.
+  - Creatures tagged `non_lethal` (the halberdiers) arrest instead of killing: you wake in the Garret a Bell later.
+  - Rule 11 skips Horde-only encounters and anomalies (20 → 15 warnings).
+- **Not done:** "dark" description variants, because WORLD gives no text for them.
+- **Readings of WORLD contradictions:**
+  - Oriel is at the Archives on Days 1–2 and at the plinths on Day 3.
+  - The Masque's place follows §3.11.
+  - Tessaly is at both Hearthring and the Camp.
+  - Caelum is at the Plaza at noon on First Bell.
+- **Real-pack sim** (18 runs × 3,000 steps, 6 bots × classes): the only errors are codex entries (`codex_oriel_danthe`,
+  `codex_maelis_korr`) unlocked by `readBook`. The ✦ codex units (U60/U61) fix them. There are no soft-locks, and 3,153
+  tests pass.

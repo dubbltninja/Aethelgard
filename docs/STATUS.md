@@ -1,9 +1,9 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete through **C2** + gear passives + companion signatures; sim harness complete (U36–U39); shared content I–II (U40–U41); **the whole world: 12 regions, 73 locations, 56 creatures, 38 NPCs** (U42–U48b) — 2,960 tests. Next: U49 ∥ U51, then U50 ∥ U34d (see §4). Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete through **C2** + gear passives + companion signatures + world-state expressiveness (U34d); sim harness complete; **all world data except quests/dialogue/codex**: 12 regions, 73 locations, 56 creatures, 38 NPCs, 157 items, 30 recipes, 8 merchants, 103 Echoes, 40 achievements, 15 attunements, 6 modifiers, endings, factions — 3,153 tests. Next: U52 ∥ U63, then U34e ∥ U60 (✦). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-101), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-102), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -95,7 +95,10 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U49 | Items I: weapons, armor, trinkets T1–T5 (WORLD §7) — brief `briefs/u49.md` | Sonnet | ✅ 3732c2b, merged abd8777 (spot-reviewed) — 70 gear; 2985 tests; D-099 |
 | U51 | Echo catalog, achievements, attunements, modifiers, ending/closer records, factions (data) — brief `briefs/u51.md` | Sonnet | ✅ c27b972 (spot-reviewed) — 103 Echoes, 40 achievements, 15 attunements, 6 modifiers, 8 ending records, 3 factions; 3033 tests; D-100 |
 | U50 | Items II: consumables, materials, quest/key/recipe/tome items, 30 recipes, 8 merchants; Tyrant scenarios get band gear — brief `briefs/u50.md` | Sonnet | ✅ 60cba5c, merged d6c88ce (spot-reviewed) — 157 items, 30 recipes, 8 merchants; first Tyrant numbers (D-101); 3120 tests |
-| U34d | World-state expressiveness: NPC schedules, location-item chance/late spawns, event/pool conditions, Threshold arrivals (D-098) — brief `briefs/u34d.md` | Opus | ▶ in progress (worktree) |
+| U34d | World-state expressiveness: NPC schedules, location-item chance/late spawns, event/pool conditions, Threshold arrivals (D-098) — brief `briefs/u34d.md` | Opus | ✅ 42be256 — schedules, item chance, onlyIf, pools, arrest; 3153 tests; D-102 |
+| U52 | Legacy quests + their dialogues (first quest/dialogue file) | Opus | ⏳ ready |
+| U63 | UI foundation: store, App, Shell, hotkeys, tokens/themes, Title + Character creation | Opus | ⏳ ready |
+| U60 | Codex I (≈43 entries) — unblocks real-pack sims (D-102) | ✦ Fable | ⏳ ready |
 | U34e | Combat expressiveness: condition atoms, on-death/clock moves, caps, hazards, anomalies (D-098) | Opus | ⏳ queued |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
@@ -206,15 +209,12 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. **U49** (Sonnet, Items I: weapons/armor/trinkets) ∥ **U51** (Sonnet, Echo catalog + achievements + attunements +
-   modifiers + ending records; settle `echo_sky_oath`'s source, D-097). Worktrees (D-092).
-2. **U50** (Sonnet, Items II + 30 recipes + 8 merchants; then `items`/`recipes`/`merchants` leave INCOMPLETE_TABLES and the
-   real-pack sims run) ∥ **U34d** (Opus: the gap list in D-091/D-092/D-094–D-097 — NPC schedules for the Before first,
-   location-item chance and late spawns, anomalies + `cr_unmade`, on-death moves, condition atoms, hazards; scope it into
-   two units if it is too big for one window).
-3. After U50: re-run the Tyrant scenario sims with band gear (D-092) and generate the first real `docs/BALANCE.md`.
-4. Open follow-ups: D-080/D-081/D-089 balance flags; companions register at U56 (D-088). First ✦ Fable units: U53–U57
-   (remind Tim before them).
+1. **U52** (Opus; legacy quests + dialogues, the first quest/dialogue file — sets the pattern for the ✦ quest units) ∥
+   **U63** (Opus; UI foundation — starts the UI track in parallel with content). Worktrees (D-092).
+2. **U34e** (Opus; combat expressiveness, unread custom passives, the `communion_movement_2` scenario bug, anomalies,
+   D-098/D-099/D-101) ∥ **U60** (✦ Fable; Codex I — clears the real-pack sim blockers). Tell Tim before U60.
+3. Then the ✦ quest units U53–U59 (need U52), U61/U62, and the UI units U64+ (need U63).
+4. Balance once companions register (U56): re-run the Tyrant sims (D-101: Warden 0%, fights 20 rounds vs 12–18).
 
 ## 4b. Dev quickstart
 

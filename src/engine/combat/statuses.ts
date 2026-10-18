@@ -71,6 +71,8 @@ export const STUN_RECOVERY_TURNS = 2;
 export const STUN_RECOVERY_KEY = STATUS.stun;
 /** DESIGN §4.5 Poison: constructs and breach-born are immune (creature tags). */
 export const POISON_IMMUNE_TAGS: readonly string[] = ['construct', 'breach_born'];
+/** U34e (D-094): WORLD §6's conventions — "`construct`: Poison and Bleed immune" (creature tag). */
+export const BLEED_IMMUNE_TAGS: readonly string[] = ['construct'];
 /** DESIGN §4.5 / D-066 #1: a boss's Rewind restores at most 10 % of its max HP. */
 export const BOSS_REWIND_CAP = 0.1;
 /** DESIGN §4.5 Rewind: what its restore also cleanses. */
@@ -143,7 +145,7 @@ const sideOf = (combat: CombatState, c: Combatant): Combatant[] => (c.kind === '
 const opponentsOf = (combat: CombatState, c: Combatant): Combatant[] => (c.kind === 'enemy' ? combat.party : combat.enemies);
 
 /**
- * What `c` cannot be given: a creature's `statusImmunities` (+ Poison for constructs and breach-born, + Taunt when
+ * What `c` cannot be given: a creature's `statusImmunities` (+ Poison for constructs and breach-born, Bleed for constructs, + Taunt when
  * `tauntImmune`), a companion's record, the player's gear passives (derive).
  */
 export function statusImmunities(s: GameState, content: ContentPack, c: Combatant): string[] {
@@ -152,6 +154,7 @@ export function statusImmunities(s: GameState, content: ContentPack, c: Combatan
     if (!def) return [];
     const out = [...def.statusImmunities];
     if (def.tags.some((t) => POISON_IMMUNE_TAGS.includes(t)) && !out.includes(STATUS.poison)) out.push(STATUS.poison);
+    if (def.tags.some((t) => BLEED_IMMUNE_TAGS.includes(t)) && !out.includes(STATUS.bleed)) out.push(STATUS.bleed); // U34e (D-094)
     if (def.tauntImmune && !out.includes(STATUS.taunt)) out.push(STATUS.taunt);
     return out;
   }

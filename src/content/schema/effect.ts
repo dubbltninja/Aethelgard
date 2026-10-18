@@ -104,6 +104,11 @@ export const EFFECT_ATOMS = {
   resolve: int,
   /** U34d: `{ onlyIf: { when, effects } }` — see `OnlyIf`. */
   onlyIf: OnlyIfSchema,
+  /**
+   * U34e (C1 addition, D-105): the Heartstone choice sets `world.heartstone` for the loop (DESIGN §11.2, D-017) — Destroy's
+   * Ley +25 % MP and Breach-born −25 % HP, Exploit's +1-level Hollow variants read it. Once resolved it stays (loop scope).
+   */
+  heartstone: z.enum(['stabilized', 'exploited', 'destroyed']),
 } as const;
 
 export type EffectAtoms = { [K in keyof typeof EFFECT_ATOMS]: z.output<(typeof EFFECT_ATOMS)[K]> };

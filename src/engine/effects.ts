@@ -677,6 +677,13 @@ const APPLIERS: Appliers = {
   onlyIf: ({ when, effects }, ctx, _key, source) => {
     if (evaluate(when, ctx.s, ctx.profile, ctx.content)) applyAll(effects, ctx, { source });
   },
+  // U34e (D-105): the Heartstone's state for the loop; the first resolution stands (the choice is offered once)
+  heartstone: (outcome, ctx) => {
+    const world = ctx.s.world;
+    if (world.heartstone !== 'intact') return;
+    world.heartstone = outcome;
+    ctx.emit({ t: 'heartstoneResolved', outcome });
+  },
 };
 
 /** Applies one effect to the step draft (PLAN §4.9). */

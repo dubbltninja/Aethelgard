@@ -52,6 +52,7 @@ const VALID: { [K in EffectKey]: Effect[] } = {
     { onlyIf: { when: { item: { id: 'item_orrery_key' } }, effects: [{ giveItem: { item: 'item_chronal_dust', count: 2 } }] } },
     { onlyIf: { when: { not: { echo: 'echo_sky_oath' } }, effects: [{ rep: { faction: 'ironclad', delta: -10 } }, { onlyIf: { when: { loop: { min: 2 } }, effects: [{ gold: 1 }] } }] } },
   ],
+  heartstone: [{ heartstone: 'stabilized' }, { heartstone: 'exploited' }, { heartstone: 'destroyed' }],
 };
 
 const INVALID: { [K in EffectKey]: [unknown, string][] } = {
@@ -106,16 +107,17 @@ const INVALID: { [K in EffectKey]: [unknown, string][] } = {
     [{ onlyIf: { when: { flag: 'flag_a' }, effects: [{ golds: 1 }] } }, "unknown effect atom 'golds'"],
     [{ onlyIf: { when: { flag: 'flag_a' }, then: [{ gold: 1 }] } }, 'Unrecognized key'],
   ],
+  heartstone: [[{ heartstone: 'intact' }, 'heartstone'], [{ heartstone: true }, 'heartstone']],
 };
 
 describe('EffectSchema', () => {
-  test('the atom set is exactly DESIGN §13.3’s (incl. D-069.9’s six engine kinds, U26b’s areaMove, U34’s revive, U34d’s onlyIf and U52’s statBonus)', () => {
+  test('the atom set is exactly DESIGN §13.3’s (incl. D-069.9’s six engine kinds, U26b’s areaMove, U34’s revive, U34d’s onlyIf, U52’s statBonus and U34e’s heartstone)', () => {
     expect([...EFFECT_KEYS].sort()).toEqual(
       [
         'setFlag', 'clearFlag', 'grantEcho', 'questStart', 'questAdvance', 'questFail', 'giveItem', 'takeItem', 'rep', 'loyalty',
         'gold', 'xp', 'resonance', 'heal', 'damage', 'statBonus', 'corruption', 'clockWatches', 'passWatches', 'spawn', 'teleport',
         'unlockExit', 'scatter', 'multiHit', 'stripBuffs', 'healOnDamage', 'surviveRounds', 'leaveCombat', 'areaMove', 'recruit', 'dismiss', 'revive',
-        'startCombat', 'startDialogue', 'endLoop', 'ending', 'unlockRecipe', 'unlockCodex', 'counter', 'resolve', 'onlyIf',
+        'startCombat', 'startDialogue', 'endLoop', 'ending', 'unlockRecipe', 'unlockCodex', 'counter', 'resolve', 'onlyIf', 'heartstone',
       ].sort(),
     );
   });

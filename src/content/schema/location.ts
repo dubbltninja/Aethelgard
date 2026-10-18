@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { ConditionSchema } from './condition';
 import { Effects } from './effect';
 import { EncounterSchema } from './encounter';
-import { Base, Id, ItemId, LocationId, NpcId, Pct, PId, Rarity, RegionId, Text } from './primitives';
+import { Base, CreatureId, Id, ItemId, LocationId, NpcId, Pct, PId, Rarity, RegionId, Text } from './primitives';
 import { LevelBandSchema } from './region';
 
 export const Dir = z.enum(['north', 'south', 'east', 'west', 'up', 'down', 'in', 'out', 'portal', 'path']);
@@ -75,6 +75,15 @@ export const GatherNodeSchema = z.object({ itemId: ItemId, perDay: z.number().in
  * 10 %"). Replaces the region's own pool and rate: one return roll at the sum of the chances, then the pool by chance.
  */
 export const LocationPoolSchema = z.object({ regionId: RegionId, chance: Pct }).strict();
+
+/**
+ * U34e (C1 addition, D-098 "the exploited Heartstone's +1 level"): while `when` holds, the named creatures fight here as a
+ * variant `levels` above their own (WORLD §3.3 the Hollow, `ws_heartstone_exploited`: "Void-touched +1 level variants").
+ * The engine scales HP, ATK/SP and kill XP by DESIGN §6.5/§6.2's per-level rules (combat/turnOrder.ts `levelVariant`).
+ */
+export const LevelBonusSchema = z
+  .object({ when: ConditionSchema, creatures: z.array(CreatureId).min(1), levels: z.number().int().min(1).max(3) })
+  .strict();
 
 export const LocationEventSchema = Base.extend({
   id: PId('ev_'),
@@ -169,6 +178,8 @@ export const LocationSchema = Base.extend({
     .optional(),
   /** U34d: the location's return rolls draw from these pools instead of its region's (see `LocationPoolSchema`). */
   wanderingPools: z.array(LocationPoolSchema).min(1).optional(),
+  /** U34e: level variants of creatures fighting here (see `LevelBonusSchema`); the first entry that holds and names it wins. */
+  levelBonus: z.array(LevelBonusSchema).default([]),
   /** The `wait` action is allowed. */
   waitable: z.boolean().default(false),
   /** Original Python name, for Appendix A / BIBLE cross-check. */
@@ -198,6 +209,7 @@ export type ExitInput = z.input<typeof ExitSchema>;
 export type LocationItem = z.output<typeof LocationItemSchema>;
 export type GatherNode = z.output<typeof GatherNodeSchema>;
 export type LocationPool = z.output<typeof LocationPoolSchema>;
+export type LevelBonus = z.output<typeof LevelBonusSchema>;
 export type LocationEvent = z.output<typeof LocationEventSchema>;
 export type LocationArt = z.output<typeof LocationArtSchema>;
 export type Location = z.output<typeof LocationSchema>;

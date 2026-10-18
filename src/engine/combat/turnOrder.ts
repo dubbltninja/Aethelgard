@@ -14,8 +14,10 @@
 // No enemy acts here: `beginCombat` leaves the fight in phase 'start' and the combat reducer (reducers/combat.ts) runs
 // turns, so content effects (`startCombat`) can start a fight without importing the reducer.
 import type { Companion } from '@schema/companion';
+import type { Creature } from '@schema/creature';
 import type { Effect } from '@schema/effect';
 import type { Encounter } from '@schema/encounter';
+import { evaluate } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { DAMAGE_TYPES, derive } from '../derived';
 import { modifierDamageMult } from '../runRules';
@@ -230,6 +232,36 @@ function companionCombatant(ctx: StepCtx): Combatant | null {
   };
 }
 
+// ---- U34e: the Heartstone's world effects on creatures (D-017, D-098, D-105) -----------------------------------------------
+
+/** DESIGN §11.2 / D-017: with the Heartstone destroyed, every Breach-born creature has −25 % HP this loop. */
+export const DESTROYED_HEARTSTONE_HP_MULT = 0.75;
+/**
+ * The tags the destroyed Heartstone weakens: `breach_born` (WORLD §6 conventions) and `ley_made` — WORLD §2.4 "the Breach-born
+ * rule applies to Constructs of ley make too" (the Aetherial Weaver, WORLD §6.4's "−25 % HP if the Heartstone was destroyed").
+ */
+export const HEARTSTONE_BOUND_TAGS: readonly string[] = ['breach_born', 'ley_made'];
+
+/** The destroyed Heartstone weakens this creature (U34e). */
+export function heartstoneWeakened(s: GameState, def: Pick<Creature, 'tags'>): boolean {
+  return s.world.heartstone === 'destroyed' && def.tags.some((t) => HEARTSTONE_BOUND_TAGS.includes(t));
+}
+
+/** U34e: the levels a creature fights above its own at the current location (`Location.levelBonus`: the first that holds and names it). */
+export function levelBonusAt(ctx: Pick<StepCtx, 's' | 'profile' | 'content'>, creatureId: string): number {
+  const loc = ctx.content.locations[ctx.s.world.currentLocationId];
+  const row = loc?.levelBonus.find((b) => (b.creatures as readonly string[]).includes(creatureId) && evaluate(b.when, ctx.s, ctx.profile, ctx.content));
+  return row?.levels ?? 0;
+}
+
+/** DESIGN §6.5's fodder rules of thumb, which a level variant follows: HP ≈ 22 + 9·L, ATK ≈ 5 + 1.5·L. */
+const fodderHp = (level: number): number => 22 + 9 * level;
+const fodderAtk = (level: number): number => 5 + 1.5 * level;
+/** A level variant's HP multiplier: the fodder HP of its new level over its own (1 for no levels). */
+export const levelHpMult = (level: number, levels: number): number => (levels === 0 ? 1 : fodderHp(level + levels) / fodderHp(level));
+/** A level variant's ATK/SP multiplier, by the same rule. */
+export const levelStatMult = (level: number, levels: number): number => (levels === 0 ? 1 : fodderAtk(level + levels) / fodderAtk(level));
+
 /**
  * An enemy Combatant from its creature record (PLAN §5.4): stats × the loop nudge (HP rounded half-up), accuracy
  * `85 + ⌊AGI/2⌋`, evasion `⌊AGI/2⌋`, crit `5 + ⌊AGI/2⌋` (DESIGN §3.2: one rule for every combatant). `hp` overrides the
@@ -242,19 +274,23 @@ export function enemyCombatant(ctx: StepCtx, creatureId: string, name: string, h
   const nudge = loopNudge(ctx.s, content);
   const agi = def.stats.agi;
   const { config } = content;
-  const hpMax = Math.max(1, round(def.stats.hp * nudge));
+  // U34e: a level variant here (the exploited Heartstone's Hollow), then the destroyed Heartstone's −25 % (D-017, D-105)
+  const levels = levelBonusAt(ctx, creatureId);
+  const hpMult = levelHpMult(def.level, levels) * (heartstoneWeakened(ctx.s, def) ? DESTROYED_HEARTSTONE_HP_MULT : 1);
+  const statMult = levelStatMult(def.level, levels);
+  const hpMax = Math.max(1, round(def.stats.hp * nudge * hpMult));
   return {
     uid: ctx.uid('c'),
     kind: 'enemy',
     refId: creatureId,
     name,
-    level: def.level,
+    level: def.level + levels,
     hp: hp === undefined ? hpMax : Math.min(hpMax, Math.max(1, hp)),
     hpMax,
     mp: 0,
     mpMax: 0,
-    atk: def.stats.atk * nudge,
-    sp: def.stats.sp * nudge,
+    atk: def.stats.atk * nudge * statMult,
+    sp: def.stats.sp * nudge * statMult,
     armor: def.stats.armor,
     ward: def.stats.ward,
     agi,

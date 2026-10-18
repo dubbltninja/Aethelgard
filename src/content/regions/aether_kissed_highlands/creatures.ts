@@ -212,7 +212,8 @@ const aetherialWeaver = {
   level: 8,
   // legacy: HP 38 · dmg 8 · def 3 · agi 5 · XP 55; WORLD: −25 % HP if the Heartstone was destroyed (the engine's breach rule)
   stats: { hp: 96, atk: 17, sp: 17, armor: 2, ward: 4, agi: 7 },
-  tags: ['construct', 'legacy'],
+  // U34e (D-105): `ley_made` — WORLD §2.4 "the Breach-born rule applies to Constructs of ley make too": the engine's −25 %
+  tags: ['construct', 'ley_made', 'legacy'],
   resistances: { void: 'weak', ley: 'resist' },
   statusImmunities: ['status_poison', 'status_bleed'],
   moves: {

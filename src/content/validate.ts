@@ -695,6 +695,8 @@ function rule01(v: Validation): void {
     loc.items.forEach((it, i) => need(t, loc.id, `items.${i}.itemId`, 'items', it.itemId, 'item'));
     (loc.gather ?? []).forEach((g, i) => need(t, loc.id, `gather.${i}.itemId`, 'items', g.itemId, 'gather item'));
     (loc.wanderingPools ?? []).forEach((p, i) => need(t, loc.id, `wanderingPools.${i}.regionId`, 'regions', p.regionId, 'wandering pool region'));
+    // U34e: level variants name creatures
+    loc.levelBonus.forEach((b, i) => b.creatures.forEach((c, j) => need(t, loc.id, `levelBonus.${i}.creatures.${j}`, 'creatures', c, 'level-variant creature')));
     loc.encounters.forEach((enc, i) =>
       enc.groups.forEach((g, j) => need(t, loc.id, `encounters.${i}.groups.${j}.creatureId`, 'creatures', g.creatureId, `encounter ${enc.id} creature`)),
     );

@@ -444,6 +444,13 @@ const OBSERVED: { [K in EffectKey]: () => void } = {
     expect(nested.state.player.xp).toBe(5);
     rejectedWith(run([{ onlyIf: { when: { all: [] }, effects: [{ gold: 1 }, { multiHit: { hits: 2 } }] } }]), 'combat-scope');
   },
+  heartstone: () => {
+    // U34e (D-105): the choice sets the loop's Heartstone state once; a second resolution changes nothing
+    const out = run([{ heartstone: 'destroyed' }, { heartstone: 'stabilized' }]);
+    expect(out.state.world.heartstone).toBe('destroyed');
+    expect(out.events).toEqual([{ t: 'heartstoneResolved', outcome: 'destroyed' }]);
+    expect(out.input.world.heartstone).toBe('intact');
+  },
 };
 
 function emptyLocation() {

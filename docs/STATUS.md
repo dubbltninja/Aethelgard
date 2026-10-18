@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete through **C2** + gear passives + companion signatures; sim harness complete (U36–U39); shared content I–II (U40–U41); **the whole world: 12 regions, 73 locations, 56 creatures, 38 NPCs** (U42–U48b) — 2,960 tests. Next: U49 ∥ U51, then U50 ∥ U34d (see §4). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-099), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-100), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -93,9 +93,9 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U48b | Region data: Silverwood Before + The Threshold — brief `briefs/u48b.md` | Opus (Tim, D-093) | ✅ 8879f95 — 14 locations, 5 creatures, 16 NPCs; Before + Threshold mechanics proven; D-095 |
 | U48a | Region data: The Skyreach — brief `briefs/u48a.md` | Opus (Tim, D-093) | ✅ f2a7263, merged f66b184 — 5 locations, 4 creatures; **all 12 regions / 73 locations done**, regions+locations off INCOMPLETE_TABLES (D-097) |
 | U49 | Items I: weapons, armor, trinkets T1–T5 (WORLD §7) — brief `briefs/u49.md` | Sonnet | ✅ 3732c2b, merged abd8777 (spot-reviewed) — 70 gear; 2985 tests; D-099 |
-| U51 | Echo catalog, achievements, attunements, modifiers, ending/closer records, factions (data) — brief `briefs/u51.md` | Sonnet | ▶ in progress (worktree) |
+| U51 | Echo catalog, achievements, attunements, modifiers, ending/closer records, factions (data) — brief `briefs/u51.md` | Sonnet | ✅ c27b972 (spot-reviewed) — 103 Echoes, 40 achievements, 15 attunements, 6 modifiers, 8 ending records, 3 factions; 3033 tests; D-100 |
 | U50 | Items II: consumables, materials, quest/key/recipe/tome items, 30 recipes, 8 merchants; Tyrant scenarios get band gear — brief `briefs/u50.md` | Sonnet | ▶ in progress (worktree) |
-| U34d | World-state expressiveness: NPC schedules, location-item chance/late spawns, event/pool conditions, Threshold arrivals (D-098) — brief `briefs/u34d.md` | Opus | ⏳ round 2 |
+| U34d | World-state expressiveness: NPC schedules, location-item chance/late spawns, event/pool conditions, Threshold arrivals (D-098) — brief `briefs/u34d.md` | Opus | ▶ in progress (worktree) |
 | U34e | Combat expressiveness: condition atoms, on-death/clock moves, caps, hazards, anomalies (D-098) | Opus | ⏳ queued |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 

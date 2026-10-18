@@ -1538,3 +1538,27 @@ owning unit (PLAN §9.1).
 - **Open for U50:**
   - Merchant stock can't name a fixed affix.
   - The Clapper recipe needs `output.rarity: 'common'`.
+
+### D-100 · U51 details — the loop records; Echo codex lines are placeholders, 2026-10-17
+- **U51 (c27b972):** 103 Echoes, 40 achievements, 15 attunements, 6 modifiers, 6 endings plus 2 closers, and 3 factions,
+  all registered. `echoes`, `achievements`, `attunements`, `modifiers`, `endings` and `factions` are off
+  `INCOMPLETE_TABLES`; no region reference was a typo.
+- **`echo_sky_oath` (D-097):** it is earned at the Ashen Cairns (`ev_cairns_strike`) and spent at the Stormcrown's Perch
+  (Loop 2+). STORY §12's row is amended to match WORLD and the authored data.
+- **C1 changes:**
+  - The validator's `awaitsStory` turns rules 15 and 16 into pending warnings while quests and dialogues are unauthored.
+  - `endingSlides` puts `CLOSER_TEXT.fall[reason]` in front of the `closer_fall` records.
+- **Rule 16 now (pending):**
+  - 56 Echoes have no grant yet; they arrive with quests and dialogue (U52+).
+  - 51 Echoes "gate nothing" yet.
+  - Endings C, D and E wait for their quests' `{ending}` effects.
+  - `echo_litany_complete`, `echo_heartstone_triune` and `echo_anchor_schema` have **no grant mechanism at all**. The quest
+    or dialogue units must give them one, or the lead rules on it.
+- **Rulings:**
+  - Achievements pay **0 Resonance**. DESIGN §10.6 lists no such source, and 40 × 10 would buy most of the shop.
+  - The attunement costs sum to 430; DESIGN §10.7's prose says 440, and the table wins.
+  - Achievement ids and names follow DESIGN §15.2 over STORY's titles.
+- **Echo `codexLine`s (103)** were written by U51 (Sonnet) as functional Wayfinder's-Notes lines. They read like
+  mechanics notes. **The ✦ codex unit rewrites them** in the BIBLE's voice (STORY §14's codex plan).
+- **Gaps → the achievement/engine work:** 13 engine-only `tally_*` counters (listed in the `achievements.ts` header).
+  `flag_named_nyx` must be set by dialogue.

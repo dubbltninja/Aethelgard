@@ -2225,7 +2225,7 @@ Removed outright (engine rules now): the bestiary-reveal Echoes, the map-memory 
 | `echo_horde_path` | How the Unraveling Spreads | Witness the Horde once | Infection forecast on the map during any Horde | — |
 | `echo_rhune_choice` | By Her Own Choice | Tidewell Hall's ledger (`ev_tidewell_ledger`); or Ilsabet Rhune in the Cistern Gardens, Second Bell | The Bell-Warden surrenders the Cistern Key; codex | — |
 | `echo_dreyl_brand` | Dreyl's Brand | The Bone Orchard (`ev_orchard_brand`) | Answers the Steppe beasts; the Ashbrand recipe; codex | — |
-| `echo_sky_oath` | The Sky-Oath | The Stormcrown's Perch, Loop 2+ (bargain, not battle) | The Stormcrown's bargain: the Perch without a fight for a Talisman-bearer | — |
+| `echo_sky_oath` | The Sky-Oath | Earned at the Ashen Cairns (`ev_cairns_strike`, WORLD §3.7); spent on the Stormcrown's Perch, Loop 2+ (bargain, not battle) — D-100 | The Stormcrown's bargain: the Perch without a fight for a Talisman-bearer | — |
 | `echo_tyrant_never_struck` | It Never Strikes First | The Stormcrown's bargain: "it does not strike what keeps its distance" | Communion Movement I answer; codex (D-067.12) | — |
 | `echo_hadrek_clockwright` | The Clockwright's Key | Hadrek in the Ninefold Hall, First Bell | A second Orrery Key; codex | — |
 | `echo_crystal_seeded` | The Seeded Crystal | The Grand Library's dark Crystal in the Before, Loop 3+ (`ev_library_cradle`): tell it what it will hear | From the next loop the Crystal already knows your voice: *Listen* in the Library yields `echo_nine_voices` whether or not the Crystal was kept | — |

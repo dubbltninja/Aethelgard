@@ -38,7 +38,7 @@ import type { Merchant, StockEntry } from '@schema/merchant';
 import { isBeforeLocation } from '../before';
 import { FACTIONS, dayOf, evaluate, hasEcho, repTier, type RepTier } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
-import { rarityScaled } from '../derived';
+import { GEAR_SCRIPT, rarityScaled, scriptPassives } from '../derived';
 import { addItem } from '../effects';
 import type { Enumerator } from '../legalActions';
 import { lootBand, rollAffixes, rollPiece, type Rolls } from '../rarity';
@@ -199,6 +199,27 @@ export function stockKey(s: GameState, content: ContentPack, merchantId: string)
 export const stockRng = (s: GameState, content: ContentPack, merchantId: string): Rng =>
   Rng.fromSeed(`${s.meta.seed}:${s.meta.loop}:${merchantId}:${stockKey(s, content, merchantId)}`);
 
+/**
+ * U34e (D-101; WORLD §7.10 `item_remnant_wax_seal`): the state a merchant's STOCK reads — while the player carries a
+ * `remnant_wax_seal` naming this merchant, its faction's standing counts as `tiersHigher` tiers higher (the lower bound of
+ * that tier); prices and refusal read the real standing. Unchanged (the same object) otherwise.
+ */
+export function stockView(s: GameState, content: ContentPack, merchantId: string): GameState {
+  let view = s;
+  for (const { params } of scriptPassives(s.player, content, GEAR_SCRIPT.remnantWaxSeal)) {
+    const { faction, tiersHigher, merchants } = params;
+    if (!FACTIONS.includes(faction as (typeof FACTIONS)[number]) || typeof tiersHigher !== 'number' || tiersHigher < 1) continue;
+    if (Array.isArray(merchants) && !merchants.includes(merchantId)) continue;
+    const f = faction as (typeof FACTIONS)[number];
+    const t = content.config.repTiers;
+    const floors: readonly number[] = [t.hostile, t.wary, t.neutral, t.trusted, t.sworn];
+    const rank = TIER_RANK[repTier(view.reputation[f], content)];
+    const floor = floors[Math.min(floors.length - 1, rank + tiersHigher)] ?? view.reputation[f];
+    if (floor > view.reputation[f]) view = { ...view, reputation: { ...view.reputation, [f]: floor } };
+  }
+  return view;
+}
+
 /** True when the merchant shows its theme pool: no faction, or Neutral or better (WORLD §9.1: Wary sees core only). */
 export function poolOpen(s: GameState, content: ContentPack, m: Merchant): boolean {
   const tier = merchantTier(s, content, m);
@@ -208,6 +229,7 @@ export function poolOpen(s: GameState, content: ContentPack, m: Merchant): boole
 /** Regenerates a merchant's stock now (see the file header); keeps its purchase count; `merchantRestocked`. */
 export function restock(ctx: StepCtx, merchantId: string): void {
   const { s, content } = ctx;
+  const view = stockView(s, content, merchantId); // U34e: the Remnant Wax Seal (stock only)
   const m = content.merchants[merchantId];
   if (!m) return; // a save from a build that had this merchant: nothing to stock
   const rolls: Rolls = { rng: stockRng(s, content, merchantId), content };
@@ -230,12 +252,12 @@ export function restock(ctx: StepCtx, merchantId: string): void {
     }
   };
   for (const entry of m.stock) {
-    if (entry.when !== undefined && !evaluate(entry.when, s, ctx.profile, content)) continue;
+    if (entry.when !== undefined && !evaluate(entry.when, view, ctx.profile, content)) continue;
     const def = needItem(content, entry.itemId);
     const count = entry.count === 'unlimited' ? (def.stackable ? def.maxStack : 1) : entry.count;
     add(def, count, entry.rarity, entry.rollRarity);
   }
-  if (m.rollStock && poolOpen(s, content, m)) {
+  if (m.rollStock && poolOpen(view, content, m)) {
     const { pool, pick } = m.rollStock;
     const n = rolls.rng.int(pick.min, pick.max);
     for (const id of rolls.rng.shuffle(pool).slice(0, n)) add(needItem(content, id), 1, undefined, true);

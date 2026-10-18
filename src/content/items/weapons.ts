@@ -370,7 +370,7 @@ export const weapons = [
     art: { icon: 'hammer' },
   },
   // "Heavy Stun chance 20% (base 10%)": the shield_heavy basic attack's Stun chance (DESIGN §5.7: 10% on non-bosses) becomes 20%. No passive kind says
-  // it, so the number travels in the `basic_stun_chance` script (not yet read by the engine). WORLD also lists a Common copy under
+  // it, so the number travels in the `basic_stun_chance` script (read since U34e, D-099). WORLD also lists a Common copy under
   // `recipe_bell_clapper`: that is the recipe's `output.rarity: 'common'` (note crafting.ts keeps `fixedAffixes` on a Common piece).
   {
     id: 'item_bell_clapper',

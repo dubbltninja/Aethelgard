@@ -32,7 +32,7 @@
 import type { CombatWhen, StatusApply } from '@schema/creature';
 import type { Status } from '@schema/status';
 import type { ContentPack, StepCtx } from '../ctx';
-import { derive } from '../derived';
+import { derive, statusDurationCut } from '../derived';
 import { modifierDamageMult } from '../runRules';
 import type { Combatant, CombatState, GameState, StatusInstance } from '../types/state';
 import { afterHitBuffs, buffTurnEnd, buffTurnStart, tetherHeal } from './buffHooks';
@@ -295,7 +295,9 @@ export function applyStatus(ctx: StepCtx, combat: CombatState, source: Combatant
   }
 
   const ownTurn = isOwnTurn(combat, target);
-  const duration = Math.max(1, opts.duration ?? def.defaultDuration);
+  // U34e (D-099): the wearer's `status_duration_reduction` gear (Diver's Coat, Salt Charm) takes turns off, never below 1
+  const cut = target.kind === 'player' ? statusDurationCut(ctx.s.player, ctx.content, statusId) : 0;
+  const duration = Math.max(1, (opts.duration ?? def.defaultDuration) - cut);
   const magnitude = magnitudeOf(def, source, target, opts);
   const existing = findStatus(target, statusId);
   let inst: StatusInstance;

@@ -10,9 +10,9 @@
 //            `requiresItemRead` (DESIGN §8.1). The two Breach-anchor schematic halves grant their persistent Echo instead (D-067.6).
 //   tome     Read out of combat (consumed), stack 5. A codex tome unlocks its STORY §14.1 entry; Vask's, Rhune's and Dreyl's have no
 //            entry there (the U50 reply lists it), so they read for nothing and say so in `notes`.
-// Effects the engine has no atom for are `custom` passives whose params carry WORLD's wording (scriptId = the verb); the engine does
-// not read them yet (listed in the U50 reply): Keeper's Copy, Scout's Whistle, Remnant Wax Seal, Korr's Marginalia counting as a
-// Spellbook. `sources` are WORLD's: the row's Sources column, §9.2 stock, §6 loot and §3 Items lines (a gift from an NPC who is not
+// Effects the engine has no atom for are `custom` passives whose params carry WORLD's wording (scriptId = the verb); the engine reads
+// them since U34e (D-101): Keeper's Copy and Scout's Whistle at `use`, Remnant Wax Seal at a restock, Korr's Marginalia counting as a
+// Spellbook at `readBook`. `sources` are WORLD's: the row's Sources column, §9.2 stock, §6 loot and §3 Items lines (a gift from an NPC who is not
 // a merchant is named by the location or quest where the gift happens).
 import type { ItemInput } from '@schema/item';
 
@@ -143,6 +143,7 @@ export const questItems = [
     type: 'quest',
     tier: 0,
     usableInCombat: false,
+    consumeOnUse: false, // U34e (D-101): the engine's `use` reads it (a codex replay of the verses held); the copy stays
     passives: [{ kind: 'custom', scriptId: 'keepers_copy', params: { outOfCombat: true, rereadsVerseEchoes: true } }],
     value: 0,
     sources: ['quest:q_keepers_ledger'],
@@ -155,6 +156,8 @@ export const questItems = [
     description: 'A bone whistle cut with an Ironclad mark. One note, and Brak comes.',
     type: 'quest',
     tier: 0,
+    usableInCombat: false,
+    consumeOnUse: false, // U34e (D-101): the engine's `use` at a camp calls Brak to the active slot; the whistle stays
     passives: [{ kind: 'custom', scriptId: 'scouts_whistle', params: { at: 'camp', companion: 'brak' } }],
     value: 0,
     sources: ['quest:q_the_scouts_oath'],

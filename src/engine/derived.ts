@@ -135,7 +135,60 @@ export const GEAR_SCRIPT = {
   damageVsStatus: 'damage_vs_status',
   /** affix_of_thorns armor `{ damageType, pct }`: pct × the HP a melee blow took goes back to the attacker. */
   reflectMelee: 'reflect_melee',
+  // U34e (D-099, D-101): the item rows' scripts (combat/gear.ts, reducers/inventory.ts, reducers/economy.ts, progression.ts,
+  // horde-free hazards in reducers/explore.ts) — each named by the item that carries it.
+  /** Bell-Warden's Clapper `{ chance }`: the basic attack's Stun chance (non-bosses) is at least this (heavy 10 % → 20 %). */
+  basicStunChance: 'basic_stun_chance',
+  /** Diver's Coat, Salt Charm `{ statuses, turns }`: those statuses last `turns` fewer turns on the wearer (at least 1). */
+  statusDurationReduction: 'status_duration_reduction',
+  /** Lantern-Moth Brooch `{ below, status, duration, oncePerFight, power? }`: the wearer's HP drops below `below` → the status. */
+  lowHpStatus: 'low_hp_status',
+  /** Unlidded Eye `{}`: next-next intents all fight, as `att_foresight` (one key: the two never stack). */
+  foresight: 'foresight',
+  /** Oriel's Quill `{ damageType, pct }`: abilities of that type cost pct less MP, on top of a staff's reduction. */
+  abilityMpCostReduction: 'ability_mp_cost_reduction',
+  /** Weaver's Thread Ring `{ hazard }`: the named location hazard passes the wearer by (reducers/explore.ts hazards). */
+  hazardImmunity: 'hazard_immunity',
+  /** Antidote Root, Brine Draught, Hearth Broth `{ statuses }`: using the consumable removes those statuses. */
+  cleanse: 'cleanse',
+  /** Whetstone Strip `{ basicAttacks, power }`: used out of combat, the next fight's first n basic attacks have +power. */
+  whetstoneStrip: 'whetstone_strip',
+  /** Remnant Ink `{ status: 'status_shield', amount }`: used out of combat, the next fight opens with that Shield. */
+  remnantInk: 'remnant_ink',
+  /** Lantern Oil `{ preventsStatusOnAmbush }`: used out of combat, no such status at an ambush's onset until the next dawn. */
+  lanternOilWard: 'lantern_oil_ward',
+  /** Keeper's Copy: used out of combat, the verse Echoes held are read again (a codex replay in the log). */
+  keepersCopy: 'keepers_copy',
+  /** Scout's Whistle `{ companion }`: used at a camp, the companion is called to the active slot. */
+  scoutsWhistle: 'scouts_whistle',
+  /** Remnant Wax Seal `{ faction, tiersHigher, merchants }`: carried, those merchants stock as if the tier were higher. */
+  remnantWaxSeal: 'remnant_wax_seal',
+  /** Korr's Marginalia `{ toward }`: reading it counts as one Dark Spellbook read (no HP, no Corruption). */
+  countsAsSpellbook: 'counts_as_spellbook',
 } as const;
+
+/** U34e: the `custom` passives with `scriptId` the player's gear (and carried quest items) hold, each with its source. */
+export function scriptPassives(player: PlayerState, content: ContentPack, scriptId: string): { source: string; params: Record<string, unknown> }[] {
+  const out: { source: string; params: Record<string, unknown> }[] = [];
+  for (const { source, passive } of gearPassives(player, content)) if (passive.kind === 'custom' && passive.scriptId === scriptId) out.push({ source, params: passive.params });
+  return out;
+}
+
+/** U34e: an item's own `custom` passive with `scriptId` (a consumable's use script), if it carries one. */
+export function itemScript(def: Pick<Item, 'passives'>, scriptId: string): Record<string, unknown> | undefined {
+  for (const p of def.passives) if (p.kind === 'custom' && p.scriptId === scriptId) return p.params;
+  return undefined;
+}
+
+/** U34e (`status_duration_reduction`): how many turns the wearer's gear takes off `statusId` (0 for none). */
+export function statusDurationCut(player: PlayerState, content: ContentPack, statusId: string): number {
+  let turns = 0;
+  for (const { params } of scriptPassives(player, content, GEAR_SCRIPT.statusDurationReduction)) {
+    const ids = params.statuses;
+    if (Array.isArray(ids) && ids.includes(statusId) && typeof params.turns === 'number') turns += params.turns;
+  }
+  return turns;
+}
 
 /** A gear passive with what carries it: `gear:<itemId>` or `affix:<affixId>` (U34b: the `source` of its events). */
 export interface SourcedPassive {

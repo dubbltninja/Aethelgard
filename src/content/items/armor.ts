@@ -81,7 +81,7 @@ export const armor = [
     sources: ['quest:q_bone_road'],
     art: { icon: 'cloak' },
   },
-  // "`status_soaked` lasts 1 turn less": no passive kind says it; the `status_duration_reduction` script carries the status and the turns (not yet read by the engine).
+  // "`status_soaked` lasts 1 turn less": no passive kind says it; the `status_duration_reduction` script carries the status and the turns (read since U34e, D-099).
   {
     id: 'item_divers_coat',
     name: "Diver's Coat",

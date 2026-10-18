@@ -49,7 +49,7 @@ import type { Location } from '@schema/location';
 import { beforeArrest } from '../before';
 import { dayOf, evaluate } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
-import { derive } from '../derived';
+import { GEAR_SCRIPT, derive, scriptPassives } from '../derived';
 import { apply, applyAll, locationState } from '../effects';
 import type { Enumerator } from '../legalActions';
 import { grantXp, resourceGain, type ResourceEventName } from '../progression';
@@ -72,7 +72,7 @@ import {
 } from '../combat/abilities';
 import { consumeShield, resolveHit, rollPct, type HitResult, type HitSpec } from '../combat/damage';
 import { attemptFlee, fleeOutcome, fleeProblem } from '../combat/flee';
-import { gearAfterBasic, gearAfterCast, gearReflect, gearTurnStart, keepForesight } from '../combat/gear';
+import { gearAfterBasic, gearAfterCast, gearFightOpening, gearLowHp, gearReflect, gearTurnStart, keepForesight, whetstoneSpec } from '../combat/gear';
 import { expireStances, reactToHit, type CombatOps, type HitKind } from '../combat/specials';
 import { STATUS, afterHit, applyStatus, blocksAction, endOfTurnStatuses, isBoss, skipsTurn, startOfTurnStatuses } from '../combat/statuses';
 import { afterStunnedTurn, executeIntent, generateIntent, openingIntents, refreshIntents } from '../combat/intents';
@@ -178,11 +178,18 @@ export function weaponTypeOf(s: GameState, content: ContentPack): WeaponType {
   return (weapon ? content.items[weapon.itemId]?.weaponType : undefined) ?? 'melee';
 }
 
-/** The player's basic attack with the equipped weapon. */
+/**
+ * The player's basic attack with the equipped weapon. U34e (D-099): gear's `basic_stun_chance` (the Bell-Warden's Clapper:
+ * "heavy Stun chance 20 % (base 10 %)") raises the Stun chance to its own when that is higher.
+ */
 export function basicAttackOf(s: GameState, content: ContentPack): BasicAttack {
   const weaponType = weaponTypeOf(s, content);
   const row = BASIC_ATTACKS[weaponType];
-  return { ...row, weaponType, spec: { ...row.spec }, gritOnHit: s.player.classId === WARDEN_CLASS_ID ? row.gritOnHit : 0 };
+  let stunChance = row.stunChance;
+  for (const { params } of scriptPassives(s.player, content, GEAR_SCRIPT.basicStunChance)) {
+    if (typeof params.chance === 'number' && params.chance > stunChance) stunChance = params.chance;
+  }
+  return { ...row, weaponType, spec: { ...row.spec }, gritOnHit: s.player.classId === WARDEN_CLASS_ID ? row.gritOnHit : 0, stunChance };
 }
 
 /** A creature move as a hit spec (null for a non-damaging move). */
@@ -314,6 +321,7 @@ export function applyHit(ctx: StepCtx, combat: CombatState, attacker: Combatant,
   else {
     reactToHit(ctx, combat, OPS, attacker, target, spec, result); // counter stances and ripostes answer (U26)
     gearReflect(OPS, ctx, combat, attacker, target, spec, result); // U34b: reflect_melee (affix_of_thorns)
+    gearLowHp(ctx, combat, target); // U34e: low_hp_status (the Lantern-Moth Brooch)
   }
   checkPhases(ctx, combat); // boss phase triggers and reinforcements after every damage event (U27, DESIGN §4.10)
 }
@@ -341,6 +349,7 @@ function startTurn(ctx: StepCtx, combat: CombatState, actor: Combatant): void {
     return;
   }
   if (ticks.ticks.length > 0) checkPhases(ctx, combat); // a tick is a damage event (U27, DESIGN §4.10)
+  if (ticks.ticks.length > 0) gearLowHp(ctx, combat, actor); // U34e: a tick can wake the Lantern-Moth Brooch too
   fireDelayed(OPS, ctx, combat, actor);
   if (!isActive(actor)) return;
   if (actor.kind !== 'player') return;
@@ -391,6 +400,7 @@ export function runCombat(ctx: StepCtx): void {
     openPhases(ctx, opening); // bosses enter their opening phase (U27)
     openingIntents(ctx, opening); // DESIGN §4.1 Setup: every enemy's first intent (U25)
     keepForesight(ctx, opening); // att_foresight: next-next intents from the start (U34b)
+    gearFightOpening(ctx, opening); // U34e: a Whetstone Strip's charges, Remnant Ink's Shield (prepared out of combat)
     springTraps(OPS, ctx, opening); // traps set at this node (U26)
   }
   for (let n = 0; n < MAX_COMBAT_TURNS; n++) {
@@ -626,8 +636,9 @@ export const attackHandler: Handler<'attack'> = (ctx: StepCtx, a: ActionOf<'atta
     player.hp -= basic.hpCost;
     combatLog(combat, `The focus takes ${basic.hpCost} HP.`, 'info');
   }
-  const result = resolveHit(ctx, player, target, basic.spec);
-  applyHit(ctx, combat, player, target, basic.spec, result, 'basic');
+  const spec = whetstoneSpec(ctx, player, basic.spec); // U34e: a Whetstone Strip's charge (+power), if one is left
+  const result = resolveHit(ctx, player, target, spec);
+  applyHit(ctx, combat, player, target, spec, result, 'basic');
   if (result.hit) {
     gainResource(ctx, combat, player, result.crit && hasRule(ctx, 'basic_crit') ? 'basic_crit' : 'basic_hit');
     if (result.crit) gainResource(ctx, combat, player, 'crit');

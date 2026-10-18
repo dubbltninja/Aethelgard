@@ -63,6 +63,7 @@ import type { Combatant, CombatState, DamageType, GameState } from '../types/sta
 import { BONUS_KEY, BONUS_PENDING, FREE_CAST_TAG, NEXT_CRIT_TAG, USED_TAG, addTag, bonusState, hasTag, removeTag, setBuff } from './buffs';
 import { GUARD_VALUE_KEY, TRUSTED_MULT, hasStatus, isTrusted, resolveHeal, resolveHit, resolveTick, roundHalfUp, statusMods, type HealSpec, type HitSpec } from './damage';
 import { grantFleeAuto } from './flee';
+import { cleanseOnUse } from './gear';
 import { compilePattern, evalCombatWhen, interruptIntent, patternOf, revealIntents, type IntentRead } from './intents';
 import { firePhaseStrikes } from './phases';
 import { STATUS, applyStatus, applyStatusRows, blocksAction, cleanse, cooldownsOf, findStatus, isOwnTurn, removeStatus, skipsTurn, type WhenEval } from './statuses';
@@ -890,6 +891,7 @@ export function useCombatItem(ops: CombatOps, ctx: StepCtx, combat: CombatState,
       player.hp = Math.max(1, player.hp - e.damage.hp);
     } else apply(e, ctx, { source });
   }
+  cleanseOnUse(ctx, combat, receiver, def); // U34e (D-101): Antidote Root, Brine Draught, Hearth Broth
   for (const ability of itemAbilities(def, ctx.content)) {
     const picked = use.picked ?? (pickTargets(combat, player, ability) as Picked);
     resolveAbility(ops, ctx, combat, player, ability, picked, 0, 'item');

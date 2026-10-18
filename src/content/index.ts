@@ -68,7 +68,7 @@ import { endings } from './shared/endings';
 import { factions } from './shared/factions';
 import { merchants } from './shared/merchants';
 import { modifiers } from './shared/modifiers';
-import { quests } from './shared/quests';
+import { encounters as questEncounters, quests } from './shared/quests';
 import { recipes } from './shared/recipes';
 import { statuses } from './shared/statuses';
 import { INCOMPLETE_TABLES } from './progress';
@@ -151,7 +151,7 @@ export const contentTables: ContentTables = {
   endings: [...endings],
   merchants: [...merchants],
   affixes: [...affixes],
-  encounters: [],
+  encounters: [...questEncounters], // U53: the fights a quest starts itself (shared/quests/index.ts)
   factions: [...factions],
   config: configInput,
 };

@@ -1004,8 +1004,8 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     expect([...targets].sort()).toEqual(
       [
         'loc_sky_whisper_plateau', 'loc_reedmarch_descent', 'loc_lantern_causeway', 'loc_silver_gate', 'loc_conflux_chamber', 'loc_aetherium_spires',
-        // (every item and material dropped out when U49 authored the gear and U50 the rest: the items table is complete)
-        'q_unlidded_eye',
+        // (every item and material dropped out when U49 authored the gear and U50 the rest: the items table is complete; the
+        // Aberration's quest drop resolved when U53 authored `q_unlidded_eye`)
         'codex_region_glowlands_nexus', 'codex_creatures_green', 'codex_creatures_watch_wardens', 'codex_creatures_unravelled',
         'codex_tyrant_holding', 'codex_tyrant_six', 'codex_veyran_thal',
         'mireya', // the companion record (D-088: registered by U56)

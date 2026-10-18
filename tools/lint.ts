@@ -188,9 +188,9 @@ const ENGINE_GLOBALS = new Set([
 ]);
 const ENGINE_MEMBERS: Record<string, readonly string[]> = { Math: ['random'], Date: ['now'] };
 
-/** D-044 type prefixes (PLAN §3.4) and plain ids. */
+/** D-044 type prefixes (PLAN §3.4) and plain ids (`enc_`: the encounters table, U53; the regions nest theirs). */
 const ID_PREFIX =
-  /^(?:region|loc|cr|item|mat|recipe|npc|q|echo|scene|codex|ending|closer|status|affix|att|ach|mod|sfx|screen|ev|flag|fam|pool|gate|ws|tyr|rgr|wiz|elf|wrd|wvr|comp|itm)_[a-z0-9_]+$/;
+  /^(?:region|loc|cr|item|mat|recipe|npc|q|echo|scene|codex|ending|closer|status|affix|att|ach|mod|sfx|screen|ev|enc|flag|fam|pool|gate|ws|tyr|rgr|wiz|elf|wrd|wvr|comp|itm)_[a-z0-9_]+$/;
 const PLAIN_IDS = new Set([
   'ranger', 'wizard', 'elf', 'ironclad_warden', 'shadow_weaver',
   'ilyra', 'brak', 'nyx', 'dask', 'mireya', 'caelum',

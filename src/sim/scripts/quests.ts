@@ -1,7 +1,8 @@
 // Quest proofs (PLAN §7.8, DESIGN §13.4; U52): a `pathBot` script per quest — one per outcome that something later reads (the
 // Crystal given or kept, each Heartstone path, the shards given or refused, the scroll to Ilyra or to Nyx) — that completes it
 // on the real pack. `npm run sim -- quest [<questId>…] [--pack real] [--verbose]` runs them; tests/unit/sim/questScripts.test.ts
-// runs them in CI. The quest units U53–U59 append theirs to `QUEST_SCRIPTS`.
+// runs them in CI. The quest units U53–U59 append theirs to `QUEST_SCRIPTS` (U53: the four faction chains, two outcomes
+// each, on constructed Loop 2+ profiles that hold the standing Echo opening the chain).
 //
 // A script starts at the title screen (or a scenario) with a fresh profile, or with `profile`: a constructed profile for a
 // Loop 2+ proof (the loop counter and the Echoes an earlier loop would have earned) — the proof is about the quest, not the
@@ -175,6 +176,128 @@ const shardsGathered: ScriptStep[] = [
   { goto: 'loc_chasm_of_whispers' },
 ];
 
+// ---- U53: the faction chains (Loop 2+; the profile holds the standing Echo that opens each chain) ---------------------------
+
+/** q_keepers_ledger up to its decision: the Keeper's ask and the Ledger read, Ilyra's lantern, the case from the Cistern. */
+const ledgerFetched: ScriptStep[] = [
+  { goto: 'loc_shattered_library' },
+  { talk: 'npc_ansel_dray', pick: ['yes'] },
+  holds({ all: [{ quest: { id: 'q_keepers_ledger', stage: 'recover_day_count' } }, { echo: 'echo_seven_wayfinders' }] }, 'the Ledger was not read'),
+  { goto: 'loc_sunken_archives' },
+  takeAll, // Ilyra's lantern: the Reach's dark gate
+  { goto: 'loc_cistern_of_names' },
+  takeAll,
+  holds({ quest: { id: 'q_keepers_ledger', stage: 'choose_copy' } }, 'the day-count was not in the Cistern'),
+  { goto: 'loc_lamplighters_rest' }, // the Reach's one dry room: whole for the road back up
+  { rest: 1 },
+  { goto: 'loc_shattered_library' },
+];
+
+/** The Keeper's copy: `choiceId` decides, and the quest completes at `stage`. */
+const ledgerCopied = (choiceId: 'whole' | 'verse_one', stage: string): ScriptStep[] => [
+  ...ledgerFetched,
+  { talk: 'npc_ansel_dray', pick: [choiceId] },
+  done('q_keepers_ledger', stage),
+  holds({ all: [{ item: { id: 'item_keepers_copy' } }, { not: { item: { id: 'item_pells_day_count' } } }] }, "the Keeper's Copy was not paid, or the case not taken"),
+];
+
+/**
+ * Brak's two quests with the warder's word (the Scorched Gate opens), the Nexus's Aberration on a visit of its own (a first-visit
+ * fight, and the waves follow the arrival that starts the stage without a breath between), Hadda's Telling, the Nexus again.
+ */
+const axeRecovered: ScriptStep[] = [
+  ...clearPath,
+  ...outpostAccepted,
+  { fight: 'flee' },
+  { goto: 'loc_blighted_outpost' }, // the word stills the Golems (the shortcut)
+  { goto: 'loc_ironclad_camp' },
+  { talk: 'npc_brak', pick: [] },
+  done('q_blighted_outpost', 'done'),
+  { fight: 'melee' },
+  // Nyx's shards too (the Hollow's Stalkers: levels, and their Warrior's Sword one time in four), then to the Nexus the long
+  // way through the Highlands (the Sentinel, the Weaver at the Spires): the levels the Nexus asks of a carry-over start; then
+  // the Aberration, and the astronomers' cell to rest in after
+  ...shardsGathered,
+  { talk: 'npc_nyx', pick: ['yes'] },
+  done('q_void_shards', 'given'),
+  { rest: 1 },
+  { goto: 'loc_ironclad_camp' }, // by the Camp and the Peaks, not the Depths (the heartbeat has started: its choice would open on the way)
+  { goto: 'loc_sky_whisper_plateau' },
+  { goto: 'loc_aetherium_spires' },
+  { goto: 'loc_chronos_nexus' },
+  takeAll, // the orrery key: the brass knight stands down on the return
+  { rest: 1 },
+  { goto: 'loc_hearthring' },
+  { talk: 'npc_hadda_ironvow', pick: ['yes'] },
+  holds({ quest: { id: 'q_day_of_teeth', stage: 'hear_telling' } }, 'q_day_of_teeth did not start'),
+  { rest: 1 },
+  // the Nexus again: the three waves the stage starts on arrival, then the axe
+  { goto: 'loc_chronos_nexus' },
+  holds({ all: [{ quest: { id: 'q_day_of_teeth', stage: 'return' } }, { item: { id: 'item_blackreeds_axe' } }, { killed: { id: 'cr_horde_husk', count: 3 } }] }, 'the Horde-echo did not fall, or the axe was not taken'),
+  { rest: 1 },
+  { goto: 'loc_hearthring' },
+];
+
+/** Loop 2: the Crystal kept and the shards given (Weavers 30: the curtain opens), a fourth shard from the Scar Shelf, the Sanctum. */
+const weaverRouteToSanctum: ScriptStep[] = [
+  ...crystalToIlyra(true),
+  { talk: 'npc_ilyra', pick: ['keep', 'leave'] },
+  done('q_echo_crystal', 'kept'),
+  ...shardsGathered,
+  { talk: 'npc_nyx', pick: ['yes'] },
+  done('q_void_shards', 'given'),
+  { rest: 1 },
+  { goto: 'loc_scar_shelf' },
+  takeAll,
+  holds({ item: { id: 'item_void_shard' } }, 'the Shelf had no shard'),
+  { goto: 'loc_chasm_of_whispers' },
+  { rest: 1 }, // the cold camp again: whole for the Veil
+  { fight: 'flee' }, // the Veil's fixed groups scatter when fled (the pacifist's way down, STORY: "yes")
+  { goto: 'loc_sanctum_of_threads' },
+  { fight: 'melee' },
+];
+
+/** q_hollow_choir accepted at the Sanctum, then the rite: `offering` given, `answer` to the eighth verse. */
+const choirHeard = (offering: 'shard' | 'verse', answer: 'correct' | 'silent', stage: string): ScriptStep[] => [
+  { talk: 'npc_sethe_unlidded', pick: ['yes'] },
+  holds({ quest: { id: 'q_hollow_choir', stage: 'torn_thing' } }, 'q_hollow_choir did not start'),
+  { talk: 'npc_sethe_unlidded', pick: [offering, answer] },
+  done('q_hollow_choir', stage),
+  holds({ all: [{ item: { id: 'item_choir_mask' } }, { echo: 'echo_weaver_sign' }] }, 'the mask or the hand-sign was not paid'),
+];
+
+/** Loop 3 with the hand-sign (Weavers start 20) and the Hollow's path known: to the Sanctum by the Chasm's camp, fleeing the Veil's groups. */
+const signRouteToSanctum: ScriptStep[] = [
+  { goto: 'loc_chasm_of_whispers' },
+  { rest: 1 },
+  { fight: 'flee' },
+  { goto: 'loc_sanctum_of_threads' },
+  { fight: 'melee' },
+];
+
+/** Loop 3 with the hand-sign: the Choir heard (a verse offered, nothing said), then the Eye asked for and taken at the Nexus. */
+const eyeTaken: ScriptStep[] = [
+  ...signRouteToSanctum,
+  ...choirHeard('verse', 'silent', 'silent'),
+  { talk: 'npc_sethe_unlidded', pick: ['yes'] },
+  holds({ quest: { id: 'q_unlidded_eye', stage: 'lens' } }, 'q_unlidded_eye did not start'),
+  { rest: 1 },
+  { goto: 'loc_chronos_nexus' }, // the Aberration (first visit) drops the Eye while the quest runs
+  holds({ all: [{ quest: { id: 'q_unlidded_eye', stage: 'return' } }, { item: { id: 'item_aberrant_eye' } }] }, 'the Aberration did not drop the Eye'),
+  { rest: 1 },
+  { goto: 'loc_sanctum_of_threads' },
+];
+
+/** Sethe's decision over the Eye, then the Note of Closing on the next talk (Weavers Trusted). */
+const eyeDecided = (choiceId: 'warn' | 'look', stage: string): ScriptStep[] => [
+  ...eyeTaken,
+  { talk: 'npc_sethe_unlidded', pick: [choiceId] },
+  done('q_unlidded_eye', stage),
+  holds({ item: { id: 'item_unlidded_eye' } }, 'the Unlidded Eye was not paid'),
+  { talk: 'npc_sethe_unlidded', pick: ['ask_note'] },
+  holds({ echo: 'echo_void_resonance' }, 'the Note of Closing was not granted'),
+];
+
 // ---- The proofs -------------------------------------------------------------------------------------------------------------
 
 export const QUEST_SCRIPTS: readonly QuestScript[] = [
@@ -277,6 +400,82 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
       done('q_void_shards', 'refused'),
       holds({ all: [{ flag: 'flag_shards_refused' }, { item: { id: 'item_void_shard', count: 3 } }] }, 'the shards were not kept'),
     ],
+  },
+  // ---- U53 · q_keepers_ledger (Loop 2+, Remnants Trusted: the watchword starts them at 20) ----
+  {
+    questId: 'q_keepers_ledger',
+    outcome: 'whole',
+    name: 'Loop 2: the whole Litany copied; the thirtieth dawn read with the Ledger (the Jailer, with the Recoil)',
+    classId: CLASS,
+    seed: 'quest:ledger:whole',
+    profile: { loop: 2, echoes: ['echo_ilyra_watchword', 'echo_thirtieth_dawn', 'echo_breach_recoil'], bestLevel: 10 },
+    steps: [...ledgerCopied('whole', 'whole'), holds({ all: [{ flag: 'flag_remnants_hold_litany' }, { echo: 'echo_tyrant_jailer' }] }, 'the flag or the Jailer is missing')],
+  },
+  {
+    questId: 'q_keepers_ledger',
+    outcome: 'verse_one',
+    name: 'Loop 2: verse one only',
+    classId: CLASS,
+    seed: 'quest:ledger:verse',
+    profile: { loop: 2, echoes: ['echo_ilyra_watchword'], bestLevel: 10 },
+    steps: [...ledgerCopied('verse_one', 'verse_one'), holds({ not: { flag: 'flag_remnants_hold_litany' } }, 'the flag was set')],
+  },
+  // ---- U53 · q_day_of_teeth (Loop 2+, Ironclad Trusted: the oath starts them at 20) ----
+  {
+    questId: 'q_day_of_teeth',
+    outcome: 'told_truth',
+    name: 'Loop 3: the axe from the Horde-echo; the truth told with the Jailer',
+    seed: 'quest:teeth:truth:b', // the Aberration at level 11 and the three waves behind it beat a carry-over Warden about two seeds in three (a balance note): a seed that wins
+    classId: 'ironclad_warden',
+    profile: { loop: 3, echoes: ['echo_ironclad_oath', 'echo_stone_hide_origin', 'echo_tyrant_jailer'], bestLevel: 17 },
+    steps: [...axeRecovered, { talk: 'npc_hadda_ironvow', pick: ['truth'] }, done('q_day_of_teeth', 'told_truth'), holds({ echo: 'echo_day_of_teeth' }, 'the Day of Teeth was not granted')],
+  },
+  {
+    questId: 'q_day_of_teeth',
+    outcome: 'told_monster',
+    name: 'Loop 3: the axe from the Horde-echo; a monster (the scouts ride east)',
+    classId: 'ironclad_warden',
+    seed: 'quest:teeth:monster',
+    profile: { loop: 3, echoes: ['echo_ironclad_oath', 'echo_stone_hide_origin'], bestLevel: 17 },
+    steps: [...axeRecovered, { talk: 'npc_hadda_ironvow', pick: ['monster'] }, done('q_day_of_teeth', 'told_monster'), holds({ not: { echo: 'echo_day_of_teeth' } }, 'the Day of Teeth was granted')],
+  },
+  // ---- U53 · q_hollow_choir (Loop 2+, Weavers not Wary; the Sanctum behind the curtain) ----
+  {
+    questId: 'q_hollow_choir',
+    outcome: 'silent',
+    name: 'Loop 2: the Weaver route (Crystal kept, shards given), a Shard offered, nothing said',
+    classId: CLASS,
+    seed: 'quest:choir:shard',
+    profile: { loop: 2, echoes: ['echo_crystal_location'], bestLevel: 17 },
+    steps: [...weaverRouteToSanctum, ...choirHeard('shard', 'silent', 'silent')],
+  },
+  {
+    questId: 'q_hollow_choir',
+    outcome: 'corrected',
+    name: 'Loop 3: with the hand-sign, a verse offered, the Choir corrected (verse 8)',
+    classId: CLASS,
+    seed: 'quest:choir:correct',
+    profile: { loop: 3, echoes: ['echo_weaver_sign', 'echo_hollow_path', 'echo_litany_verse_8'], bestLevel: 17 },
+    steps: [...signRouteToSanctum, ...choirHeard('verse', 'correct', 'corrected')],
+  },
+  // ---- U53 · q_unlidded_eye (after the Choir, Weavers Trusted) ----
+  {
+    questId: 'q_unlidded_eye',
+    outcome: 'looked',
+    name: 'Loop 3: the Eye from the Nexus; Sethe looks (the Choir knows); the Note of Closing',
+    classId: 'ironclad_warden',
+    seed: 'quest:eye:look:a', // the Aberration at level 11 beats a carry-over Warden about one seed in two (a balance note): a seed that wins
+    profile: { loop: 3, echoes: ['echo_weaver_sign', 'echo_hollow_path', 'echo_heartstone_path', 'echo_litany_verse_1'], bestLevel: 17 },
+    steps: [...eyeDecided('look', 'looked'), holds({ echo: 'echo_choir_knows' }, 'the Choir does not know')],
+  },
+  {
+    questId: 'q_unlidded_eye',
+    outcome: 'warned',
+    name: 'Loop 3: the Eye from the Nexus; Nyx warned first; the Note of Closing',
+    classId: 'ironclad_warden',
+    seed: 'quest:eye:warn:a', // as above
+    profile: { loop: 3, echoes: ['echo_weaver_sign', 'echo_hollow_path', 'echo_heartstone_path', 'echo_litany_verse_1'], bestLevel: 17 },
+    steps: [...eyeDecided('warn', 'warned'), holds({ not: { echo: 'echo_choir_knows' } }, 'the Choir knows')],
   },
 ];
 

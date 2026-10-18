@@ -661,6 +661,8 @@ function stubTables(drop?: string): ContentTables {
     // U60: the codex entries' unlocks and cross-links name Echoes, quests, locations and codex entries of the whole game;
     // tests/unit/content/codex/codexI.test.ts builds them with the real pack
     codex: [],
+    // the quests' own fights (U53: the Horde-echo's waves) name a creature this stub pack does not have
+    encounters: [],
     abilities: [...contentTables.abilities, ...companionAbilities],
     companions: [...companions],
     npcs: keep(stubNpcs),

@@ -34,8 +34,13 @@
 //   - No `recruit` until U56 registers the companions (the effect throws on an unknown companion, D-088).
 //   - Proof: each quest gets a `pathBot` script in src/sim/scripts/quests.ts (PLAN §7.8) that completes it on the real pack —
 //     every outcome a later quest or ending reads — run by `npm run sim -- quest <id>` and tests/unit/sim/questScripts.test.ts.
+import type { EncounterInput } from '@schema/encounter';
 import type { QuestInput } from '@schema/quest';
+import { encounters as factionEncounters, quests as factions } from './factions';
 import { quests as legacy } from './legacy';
 
-/** Every shared quest, in STORY §11 order. U52: the six legacy quests. */
-export const quests: readonly QuestInput[] = [...legacy];
+/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. */
+export const quests: readonly QuestInput[] = [...legacy, ...factions];
+
+/** The fights a quest starts itself (`startCombat` from a stage or a wave's `onVictory`): U53's Horde-echo waves. */
+export const encounters: readonly EncounterInput[] = [...factionEncounters];

@@ -1,5 +1,5 @@
 // Item-granted abilities (DESIGN §5.7 "the Amulet's Echo Bolt", D-047, D-066 #2, D-067.19, D-085).
-// While the Wayfinder carries the Amulet of Echoes (src/content/items/amulet.ts, `grantAbility: itm_echo_bolt`), every class
+// While the Wayfinder carries the Amulet of Echoes (src/content/items/quest.ts, `grantAbility: itm_echo_bolt`), every class
 // has one extra ability tile. It costs no AP and is part of no tree, hence no branch, tier or kind; its owner is the granting
 // item (validator rule 13 checks the pair). It is the every-class answer to the Tyrant's Rewind: Ley breaks a Rewind
 // (interplay row 9). The Wizard's `wiz_echo_bolt` is the real spell and strictly better for a Wizard.

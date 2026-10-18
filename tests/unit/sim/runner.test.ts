@@ -228,13 +228,13 @@ describe('configuration', () => {
     expect(() => resolveClass('auto', randomBot(), { ...fixturePack(), classes: {} } as ContentPack)).toThrow('no classes');
   });
 
-  test('the real pack starts (U42: the Ruins exist) and stops on its first dangling reference, as D-090 expects', () => {
-    // Only the Silverwood Ruins are authored: the Loop opens at the Whispering Ruins and the run ends with an engine error the
-    // first time it touches a table still being authored (an item placed on the ground, a loot row, an exit to another region).
+  test('the real pack starts (U42: the Ruins exist) and meets a dangling reference only in a table still being authored (D-090)', () => {
+    // The regions, the gear and (U50) every item, recipe and merchant exist; what is still being authored (quests, dialogues, Echoes,
+    // codex entries …) is not there yet, so a run that reaches one ends with an engine error naming it — and until it does it plays on.
     const r = runLoop({ seed: 's', classId: 'ranger', bot: meleeBot(), maxSteps: 200 }, buildContentPack());
     expect(r.steps).toBeGreaterThan(0);
-    expect(r.stopReason).toBe('error');
-    expect(r.errors[0]?.message).toMatch(/unknown (item|location|creature|quest|scene|dialogue)/);
+    expect(['error', 'max_steps']).toContain(r.stopReason);
+    for (const e of r.errors) expect(e.message).toMatch(/unknown (item|location|creature|quest|scene|dialogue|codex entry|echo|npc)/);
   });
 
   test('modifiers are toggled before Loop 1 (Frayed Clock: an earlier expiry); unknown ones throw', () => {

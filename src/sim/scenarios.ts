@@ -721,12 +721,75 @@ function startLoop1(id: ScenarioId, content: ContentPack, seed: string, opts: Sc
 /** Healing consumables a pre-boss kit carries. */
 const KIT_HEALS = 5;
 
-/** The pack's best healing consumable (most HP, then id). */
-function bestPotion(content: ContentPack): string | undefined {
-  return Object.values(content.items)
-    .map((d) => ({ id: d.id, hp: healOf(content, d.id) }))
-    .filter((x) => x.hp > 0)
-    .sort((a, b) => b.hp - a.hp || (a.id < b.id ? -1 : 1))[0]?.id;
+/** WORLD "Tiers" (DESIGN §7.4, T5 from D-066 #22): the gear tier that belongs to a level band, T1 1–4 · T2 5–8 · T3 9–13 · T4 14–15 · T5 16–18. */
+export function gearTierOf(level: number): number {
+  return level <= 4 ? 1 : level <= 8 ? 2 : level <= 13 ? 3 : level <= 15 ? 4 : 5;
+}
+
+/**
+ * The pack's best healing consumable for a character of `level`: the most HP among those that work in a fight and belong to its
+ * band or below (a higher tier is not on the shelves yet; the Hardtack is for the road), then id. A pack none of whose potions
+ * fits (a fixture's) falls back to its best.
+ */
+function bestPotion(content: ContentPack, level?: number): string | undefined {
+  const all = Object.values(content.items)
+    .filter((d) => d.usableInCombat)
+    .map((d) => ({ id: d.id, hp: healOf(content, d.id), tier: d.tier }))
+    .filter((x) => x.hp > 0);
+  const inBand = level === undefined ? all : all.filter((x) => x.tier <= gearTierOf(level));
+  return (inBand.length > 0 ? inBand : all).sort((a, b) => b.hp - a.hp || (a.id < b.id ? -1 : 1))[0]?.id;
+}
+
+type GearDef = ContentPack['items'][string];
+
+/** What a character can wear at Common: rolled gear starts at Common, crafted and boss pieces are fixed Common; sellable means not a bound reward. */
+function commonGear(d: GearDef, classId: string, level: number): boolean {
+  if (d.type !== 'weapon' && d.type !== 'armor' && d.type !== 'trinket') return false;
+  if (!d.sellable || d.requirements?.when !== undefined) return false;
+  if (d.requirements?.classIds !== undefined && !(d.requirements.classIds as readonly string[]).includes(classId)) return false;
+  if (d.requirements?.level !== undefined && d.requirements.level > level) return false;
+  return d.rarityRule === 'rolled' || d.fixedRarity === 'common';
+}
+
+/**
+ * The best band-appropriate Common gear the pack has for a class at `level` (D-092): the highest tier at or below the level's band
+ * (WORLD's tier table), then the most of what the piece adds. The weapon is of the class's own type (the type of its starter
+ * weapon), the armor is weighted to Armor for a martial class and to Ward for a caster, the two trinkets differ and lean to the
+ * primary stat. A pack with no such piece (a fixture's) has none of that slot.
+ */
+export function bestGear(content: ContentPack, classId: string, level: number): { weapon?: string; armor?: string; trinkets: string[] } {
+  const tier = gearTierOf(level);
+  const primary = primaryStat(content, classId);
+  const caster = primary === 'magic';
+  const starter = (content.classes[classId]?.starterItems ?? []).map((k) => content.items[k.itemId]).find((d) => d?.type === 'weapon');
+  const total = (d: GearDef): number =>
+    d.stats.power + d.stats.spellPower + d.stats.armor + d.stats.ward + d.stats.strength + d.stats.magic + d.stats.agility + d.stats[primary] + (d.stats.hpMax + d.stats.mpMax) / 10;
+  const armorScore = (d: GearDef): number => (caster ? 2 * d.stats.ward + d.stats.armor : 2 * d.stats.armor + d.stats.ward);
+  const best = (list: GearDef[], score: (d: GearDef) => number): GearDef[] =>
+    list.filter((d) => commonGear(d, classId, level) && d.tier >= 1 && d.tier <= tier).sort((a, b) => b.tier - a.tier || score(b) - score(a) || (a.id < b.id ? -1 : 1));
+  const items = Object.values(content.items);
+  const weapon = starter?.weaponType === undefined ? undefined : best(items.filter((d) => d.type === 'weapon' && d.weaponType === starter.weaponType), total)[0];
+  const armor = best(items.filter((d) => d.type === 'armor'), armorScore)[0];
+  const trinkets = best(items.filter((d) => d.type === 'trinket'), total).slice(0, 2);
+  return { ...(weapon ? { weapon: weapon.id } : {}), ...(armor ? { armor: armor.id } : {}), trinkets: trinkets.map((d) => d.id) };
+}
+
+/** Grants the band's best Common gear (constructed) and puts it on with legal `equip` actions; a piece already worn stays. */
+function equipBestGear(run: Run, level: number): void {
+  const { content } = run;
+  const pick = bestGear(content, run.s.player.classId, level);
+  const wanted = [pick.weapon, pick.armor, ...pick.trinkets].filter((id): id is string => id !== undefined);
+  const worn = (s: GameState, id: string): boolean => Object.values(s.player.equipment).some((i) => i?.itemId === id);
+  run.edit((w) => {
+    for (const id of wanted) if (!worn(w.s, id)) grantItem(w, content, id);
+  });
+  for (const id of wanted) {
+    if (worn(run.s, id)) continue;
+    const inst = run.s.player.inventory.find((i) => i.itemId === id);
+    if (inst === undefined) continue;
+    const action: Action = { type: 'equip', uid: inst.uid };
+    if (isLegal(run.s, action, content, run.profile)) run.act(action);
+  }
 }
 
 /** Before the boss: HP/MP and the companions full again, the potion stack back to `KIT_HEALS` (constructed: the walk's fights spent them). */
@@ -737,7 +800,7 @@ function restock(run: Run): void {
     p.hp = p.hpMax;
     p.mp = p.mpMax;
     for (const c of Object.values(w.s.companions.recruited)) Object.assign(c, { hp: c.hpMax, ko: false });
-    const potion = bestPotion(content);
+    const potion = bestPotion(content, p.level);
     if (potion === undefined) return;
     const have = p.inventory.filter((i) => i.itemId === potion).reduce((n, i) => n + i.qty, 0);
     if (have < KIT_HEALS) grantItem(w, content, potion, KIT_HEALS - have);
@@ -746,20 +809,22 @@ function restock(run: Run): void {
 
 /**
  * A pre-boss character: `level` (constructed), its points then SPENT by legal actions — the primary stat for stat points,
- * the cheapest unlockable ability first for ability points — plus a stack of the best healing consumable the pack has
- * (constructed) and, with `companionId`, a recruited companion (constructed). The class's starter kit stays as it is.
+ * the cheapest unlockable ability first for ability points — plus a stack of the best healing consumable the band has
+ * (constructed), with `withGear` the band's best Common gear (granted — constructed — then worn by legal `equip` actions:
+ * D-092; the Tyrant scenarios) and, with `companionId`, a recruited companion (constructed). The rest of the starter kit stays.
  */
-function buildCharacter(run: Run, level: number, opts: ScenarioOptions): void {
+function buildCharacter(run: Run, level: number, opts: ScenarioOptions, withGear = false): void {
   const { content } = run;
   run.edit((w) => {
     setLevel(w, content, level);
-    const best = bestPotion(content);
+    const best = bestPotion(content, level);
     if (best !== undefined) grantItem(w, content, best, KIT_HEALS);
     if (opts.companionId !== undefined && !recruit(w, content, opts.companionId)) {
       throw new ScenarioUnavailable(run.id, `the pack has no companion '${opts.companionId}'`);
     }
   });
   spendPoints(run);
+  if (withGear) equipBestGear(run, level);
 }
 
 /** Spends stat points on the primary stat and ability points on the cheapest unlockable abilities, all through `step`. */
@@ -974,7 +1039,7 @@ function toApexPrompt(id: ScenarioId, content: ContentPack, seed: string, opts: 
   const contained = apex?.encounters.some((e) => e.groups.some((g) => g.creatureId === 'cr_chronos_tyrant_contained'));
   if (apex === undefined || !contained) throw new ScenarioUnavailable(id, "the pack has no Loop 1 encounter with the Contained Tyrant at the Apex");
   const run = startLoop1(id, content, seed, opts);
-  buildCharacter(run, opts.level ?? defaultLevel, opts);
+  buildCharacter(run, opts.level ?? defaultLevel, opts, true);
   run.walkTo(APEX_LOCATION_ID, false);
   if (!isApexPromptOpen(run.s)) throw run.fail('the Apex prompt did not open');
   restock(run);
@@ -1139,13 +1204,13 @@ export const SCENARIOS: Record<ScenarioId, ScenarioInfo & { build: Builder }> = 
   pre_tyrant_l11_ranger: {
     summary: 'Loop 1, Level 11, standing at the Apex with the Face it / Not yet prompt open.',
     route: 'mixed',
-    constructed: 'the level, 5 healing consumables, the Apex gate (quests marked complete); HP/MP and the potion stack are restored on arrival; points are spent by play, the walk is played',
+    constructed: "the level, 5 healing consumables and the band's best Common gear (class-fit weapon, armor, two trinkets by WORLD's tier table; granted, then worn by legal equips), the Apex gate (quests marked complete); HP/MP and the potion stack are restored on arrival; points are spent by play, the walk is played",
     build: (c, s, o) => preTyrant('pre_tyrant_l11_ranger')(c, s, o),
   },
   pre_tyrant_l13_ranger: {
     summary: 'Loop 1, Level 13, standing at the Apex with the Face it / Not yet prompt open.',
     route: 'mixed',
-    constructed: 'the level, 5 healing consumables, the Apex gate (quests marked complete); HP/MP and the potion stack are restored on arrival; points are spent by play, the walk is played',
+    constructed: "the level, 5 healing consumables and the band's best Common gear (class-fit weapon, armor, two trinkets by WORLD's tier table; granted, then worn by legal equips), the Apex gate (quests marked complete); HP/MP and the potion stack are restored on arrival; points are spent by play, the walk is played",
     build: (c, s, o) => preTyrant('pre_tyrant_l13_ranger')(c, s, o),
   },
   combat_tyrant_contained_p2: {

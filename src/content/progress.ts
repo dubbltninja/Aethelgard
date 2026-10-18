@@ -10,15 +10,13 @@ import type { TableName } from '@schema/contentPack';
 
 // U48a (2026-10-17): `regions` and `locations` are complete — all 12 regions and 73 locations, every one reachable.
 // U51 (2026-10-17): `echoes`, `achievements`, `attunements`, `modifiers`, `endings` and `factions` are complete.
+// U50 (2026-10-17): `items` (157), `recipes` (30) and `merchants` (8) are complete.
 export const INCOMPLETE_TABLES: readonly TableName[] = [
   'creatures',
-  'items',
-  'recipes',
   'quests',
   'dialogues',
   'npcs',
   'companions',
   'codex',
-  'merchants',
   'encounters',
 ];

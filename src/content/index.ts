@@ -43,14 +43,16 @@ import { RecipeSchema, type RecipeInput } from '@schema/recipe';
 import { RegionSchema, type RegionInput } from '@schema/region';
 import { StatusSchema, type StatusInput } from '@schema/status';
 import { elfAbilities } from './abilities/elf';
+import { consumableAbilities } from './abilities/consumables';
 import { itemAbilities } from './abilities/items';
 import { rangerAbilities } from './abilities/ranger';
 import { wardenAbilities } from './abilities/warden';
 import { weaverAbilities } from './abilities/weaver';
 import { wizardAbilities } from './abilities/wizard';
-import { amuletItems } from './items/amulet';
 import { armor } from './items/armor';
-import { starterItems } from './items/starter';
+import { consumables } from './items/consumables';
+import { materials } from './items/materials';
+import { questTableItems } from './items/quest';
 import { trinkets } from './items/trinkets';
 import { weapons } from './items/weapons';
 import * as regionTables from './regions';
@@ -62,7 +64,9 @@ import { configInput, gameConfig } from './shared/config';
 import { echoes } from './shared/echoes';
 import { endings } from './shared/endings';
 import { factions } from './shared/factions';
+import { merchants } from './shared/merchants';
 import { modifiers } from './shared/modifiers';
+import { recipes } from './shared/recipes';
 import { statuses } from './shared/statuses';
 import { INCOMPLETE_TABLES } from './progress';
 import { validateContent } from './validate';
@@ -104,8 +108,9 @@ export interface ContentTables {
 /**
  * The authored content. Each content unit appends its tables here (PLAN §5.18: regions/index.ts concatenates the
  * per-region tables, shared/*.ts supply the global ones). U40: classes, statuses, affixes, the Ranger and Wizard trees,
- * and the starting kits' item records (items/starter.ts, until the item units own them). U41: the Elf, Warden and Weaver
- * trees, the Amulet of Echoes and its Echo Bolt. The six companions and their 24 abilities (shared/companions.ts,
+ * and the starting kits' item records. U41: the Elf, Warden and Weaver trees, the Amulet of Echoes and its Echo Bolt. U49: the
+ * weapons, armor and trinkets. U50: the consumables, materials, quest/key/recipe/tome items, the 30 recipes, the eight merchants and
+ * the seven abilities the consumables unleash (`items`, `recipes` and `merchants` leave INCOMPLETE_TABLES). The six companions and their 24 abilities (shared/companions.ts,
  * abilities/companions.ts) are authored but NOT listed here until the unit that lands the last NPC/quest/scene they
  * reference registers them (D-088, planned U56). U42+: the region folders' tables arrive through regions/index.ts (one
  * import line per region there; nothing changes here), with their references into tables still being authored pending
@@ -116,9 +121,17 @@ export const contentTables: ContentTables = {
   regions: [...regionTables.regions],
   locations: [...regionTables.locations],
   creatures: [...regionTables.creatures],
-  items: [...starterItems, ...amuletItems, ...weapons, ...armor, ...trinkets, ...regionTables.items],
-  recipes: [],
-  abilities: [...rangerAbilities, ...wizardAbilities, ...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities],
+  items: [...weapons, ...armor, ...trinkets, ...consumables, ...materials, ...questTableItems, ...regionTables.items],
+  recipes: [...recipes],
+  abilities: [
+    ...rangerAbilities,
+    ...wizardAbilities,
+    ...elfAbilities,
+    ...wardenAbilities,
+    ...weaverAbilities,
+    ...itemAbilities,
+    ...consumableAbilities,
+  ],
   classes: [...classes],
   statuses: [...statuses],
   quests: [],
@@ -131,7 +144,7 @@ export const contentTables: ContentTables = {
   attunements: [...attunements],
   modifiers: [...modifiers],
   endings: [...endings],
-  merchants: [],
+  merchants: [...merchants],
   affixes: [...affixes],
   encounters: [],
   factions: [...factions],

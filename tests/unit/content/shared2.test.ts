@@ -11,12 +11,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import { companionAbilities } from '@content/abilities/companions';
+import { consumableAbilities } from '@content/abilities/consumables';
 import { elfAbilities } from '@content/abilities/elf';
 import { itemAbilities } from '@content/abilities/items';
 import { wardenAbilities } from '@content/abilities/warden';
 import { weaverAbilities } from '@content/abilities/weaver';
 import { buildContentPack, contentTables, parseContentPack, type ContentTables } from '@content/index';
-import { amuletItems } from '@content/items/amulet';
+import { questItems } from '@content/items/quest';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { companions } from '@content/shared/companions';
 import { gameConfig } from '@content/shared/config';
@@ -73,10 +74,10 @@ describe('the real pack (U41 tables)', () => {
       expect(tree).toHaveLength(15);
       expect(pack.index.abilitiesByClass[classId]).toEqual(tree.map((a) => a.id));
     }
-    expect(Object.keys(pack.abilities)).toHaveLength(76); // 75 class abilities + itm_echo_bolt
-    expect(Object.keys(pack.abilities).filter((id) => !/^(rgr|wiz|elf|wrd|wvr)_/.test(id))).toEqual(['itm_echo_bolt']);
+    expect(Object.keys(pack.abilities)).toHaveLength(83); // 75 class abilities + itm_echo_bolt + the consumables' seven (U50)
+    expect(Object.keys(pack.abilities).filter((id) => !/^(rgr|wiz|elf|wrd|wvr)_/.test(id))).toEqual(['itm_echo_bolt', ...consumableAbilities.map((a) => a.id)]);
     expect(Object.keys(pack.items)).toContain('item_amulet_of_echoes');
-    expect(amuletItems.map((i) => i.id)).toEqual(['item_amulet_of_echoes']);
+    expect(questItems.filter((i) => i.id === 'item_amulet_of_echoes')).toHaveLength(1);
     expect(itemAbilities.map((a) => a.id)).toEqual(['itm_echo_bolt']);
     // D-088: authored, exported, not registered
     expect(contentTables.companions).toEqual([]);
@@ -98,12 +99,12 @@ describe('the real pack (U41 tables)', () => {
     expect(strict.warnings.filter((w) => w.rule === 'rule-22').map((w) => w.id)).not.toContain('item_amulet_of_echoes');
   });
 
-  test('`npm run validate` shows 76 abilities (75 class abilities + itm_echo_bolt), 75 items (U49: + 70 gear) and fewer pending checks than before', () => {
+  test('`npm run validate` shows 83 abilities (75 class abilities + 8 item abilities), 157 items (U49: 70 gear, U50: 87) and fewer pending checks than before', () => {
     const out: string[] = [];
     expect(validateCli([], (line) => out.push(line))).toBe(0);
     const text = out.join('\n');
-    expect(text).toMatch(/ items 75 · /);
-    expect(text).toMatch(/ abilities 76 · /);
+    expect(text).toMatch(/ items 157 · /);
+    expect(text).toMatch(/ abilities 83 · /);
     expect(text).not.toContain('pending rule-13');
     const pending = Number(/(\d+) pending completeness check/.exec(text)?.[1]);
     // 130 before this unit (U40's pack); without U51's rule 15/16 findings, the Echo grants and ending effects the quests and dialogue bring
@@ -634,8 +635,14 @@ function stubTables(drop?: string): ContentTables {
   const keep = <T extends { id: string }>(list: readonly T[]): T[] => list.filter((r) => r.id !== drop);
   return {
     ...contentTables,
-    // the gear's `sources` name merchants, recipes, quests and creatures this stub pack does not have (U49)
-    items: contentTables.items.map((i) => ({ ...i, sources: [] })),
+    // the items' `sources` name merchants, recipes, quests and creatures this stub pack does not have (U49, U50), and the schematics,
+    // patterns, tomes and Litany pages grant Echoes, recipes and codex entries (and the Warder Plate asks about a quest) it lacks too
+    items: contentTables.items.map((i) => ({
+      ...i,
+      sources: [],
+      onUse: (i.onUse ?? []).filter((e) => !('grantEcho' in e || 'unlockRecipe' in e || 'unlockCodex' in e)),
+      requirements: i.requirements === undefined ? undefined : { ...i.requirements, when: undefined },
+    })),
     // the real apexGate reads `echo_apex_resonance`, which no table here defines (config conditions are checked once there are locations)
     config: { ...contentTables.config, apexGate: { counter: { name: 'quests_completed', min: 6 } } },
     regions: [stubRegion],
@@ -648,6 +655,9 @@ function stubTables(drop?: string): ContentTables {
     modifiers: [],
     attunements: [],
     endings: [],
+    // the recipes and merchants (U50) name quests, NPCs, factions, flags and Echoes this stub pack does not have
+    recipes: [],
+    merchants: [],
     abilities: [...contentTables.abilities, ...companionAbilities],
     companions: [...companions],
     npcs: keep(stubNpcs),

@@ -4,8 +4,7 @@
 // - Resources: each class lists the events that fill its pool. Guard is the universal +5 (`config.guardResource`); it is
 //   written on every class anyway so the table reads as DESIGN does (the Warden's +8 replaces it), and the Weaver,
 //   whose pool fills from nothing else, needs one rule.
-// - Starting kits are DESIGN §5.2–5.6's; the item records live in `src/content/items/starter.ts` until the item units
-//   own them. Every class starts with 30 gold and no ability: 1 AP at level 1 buys a Tier-1 ability (DESIGN §5.1).
+// - Starting kits are DESIGN §5.2–5.6's; the item records live in `src/content/items/{weapons,armor,consumables,quest}.ts`. Every class starts with 30 gold and no ability: 1 AP at level 1 buys a Tier-1 ability (DESIGN §5.1).
 // - `intro` keeps the legacy class-select lines for Ranger, Wizard and Elf (legacy/echoes_of_aethelgard.py CLASS_DEFS);
 //   the Warden's and the Weaver's follow their pattern.
 // - `uniqueQuestId` (q_class_<class>, STORY §11.8) is set by the quest unit that authors those quests: a reference to a

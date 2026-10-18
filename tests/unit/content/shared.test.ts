@@ -7,15 +7,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import { elfAbilities } from '@content/abilities/elf';
+import { consumableAbilities } from '@content/abilities/consumables';
 import { itemAbilities } from '@content/abilities/items';
 import { rangerAbilities } from '@content/abilities/ranger';
 import { wardenAbilities } from '@content/abilities/warden';
 import { weaverAbilities } from '@content/abilities/weaver';
 import { wizardAbilities } from '@content/abilities/wizard';
 import { buildContentPack, contentTables } from '@content/index';
-import { amuletItems } from '@content/items/amulet';
 import { armor } from '@content/items/armor';
-import { starterItems } from '@content/items/starter';
+import { consumables } from '@content/items/consumables';
+import { materials } from '@content/items/materials';
+import { questTableItems, tomes } from '@content/items/quest';
 import { trinkets } from '@content/items/trinkets';
 import { weapons } from '@content/items/weapons';
 import { INCOMPLETE_TABLES } from '@content/progress';
@@ -66,11 +68,11 @@ describe('the real pack (U40 tables)', () => {
     expect(Object.keys(pack.classes)).toEqual(['ranger', 'wizard', 'elf', 'ironclad_warden', 'shadow_weaver']);
     expect(Object.keys(pack.statuses)).toEqual([...CANONICAL_STATUSES]);
     expect(Object.keys(pack.affixes)).toHaveLength(12);
-    // U41 appended the other three trees, the Amulet's bolt and the Amulet (tests/unit/content/shared2.test.ts)
-    const abilityRows = [...rangerAbilities, ...wizardAbilities, ...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities];
+    // U41 appended the other three trees, the Amulet's bolt and the Amulet (tests/unit/content/shared2.test.ts); U50 the consumables' seven
+    const abilityRows = [...rangerAbilities, ...wizardAbilities, ...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities, ...consumableAbilities];
     expect(Object.keys(pack.abilities)).toEqual(abilityRows.map((a) => a.id));
-    // U49 moved the kit gear out of starter.ts and added the rest of the weapons, armor and trinkets (items/gear.test.ts)
-    expect(Object.keys(pack.items)).toEqual([...starterItems, ...amuletItems, ...weapons, ...armor, ...trinkets].map((i) => i.id));
+    // U49 added the weapons, armor and trinkets (items/gear.test.ts); U50 the consumables, materials, quest/key/recipe/tome items
+    expect(Object.keys(pack.items)).toEqual([...weapons, ...armor, ...trinkets, ...consumables, ...materials, ...questTableItems].map((i) => i.id));
     expect(contentTables.classes).toEqual(classes);
     expect(contentTables.statuses).toEqual(statuses);
     expect(contentTables.affixes).toEqual(affixes);
@@ -520,13 +522,15 @@ function expectNumbers(item: Item, cell: string): void {
 }
 
 describe('the starting kits\' items vs DESIGN §7.7 and §5.5–5.6', () => {
-  // the ten items the five kits name; U49 moved the five weapons and the harness to items/{weapons,armor}.ts, the rest wait in starter.ts for U50
+  // the ten items the five kits name: the five weapons and the harness (items/{weapons,armor}.ts, U49), three consumables (consumables.ts) and the Dark Spellbook (quest.ts, U50)
   const kitIds = new Set(Object.values(pack.classes).flatMap((c) => c.starterItems.map((s) => s.itemId)));
 
-  test('ten records, each in some class kit: four in starter.ts, the five kit weapons and the Scrap Harness among the U49 gear', () => {
+  test('ten records, each in some class kit: three consumables, the Dark Spellbook, the five kit weapons and the Scrap Harness', () => {
     const kitGear = [...weapons, ...armor, ...trinkets].filter((i) => kitIds.has(i.id));
     expect(kitGear).toHaveLength(6);
-    expect([...starterItems, ...kitGear].map((i) => i.id).sort()).toEqual([...kitIds].sort());
+    const kitOther = [...consumables, ...tomes].filter((i) => kitIds.has(i.id));
+    expect(kitOther).toHaveLength(4);
+    expect([...kitOther, ...kitGear].map((i) => i.id).sort()).toEqual([...kitIds].sort());
   });
 
   test('the seven legacy items: §7.7 name (kept exactly), type, weapon type, tier, numbers and value', () => {

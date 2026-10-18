@@ -130,11 +130,12 @@ describe('main', () => {
     expect(data.results[0]?.trace).toBeUndefined();
   });
 
-  test('the real pack runs until its first dangling reference (D-090): a blocker, exit 1; an unknown bot is a configuration error, exit 2', async () => {
+  test('the real pack runs (D-090): a dangling reference into a table still being authored is a blocker, exit 1, else exit 0; an unknown bot is a configuration error, exit 2', async () => {
     const real = await run(['--pack', 'real', '--seeds', '1', '--max-steps', '200']);
-    expect(real.code).toBe(1);
-    expect(real.out.join('\n')).toMatch(/BLOCKER real .* stop error/);
-    expect(real.out.join('\n')).toMatch(/unknown (item|location|creature)/);
+    const text = real.out.join('\n');
+    expect(text).toMatch(/real · melee · /);
+    expect(real.code).toBe(/BLOCKER real /.test(text) ? 1 : 0);
+    if (real.code === 1) expect(text).toMatch(/unknown (item|location|creature|quest|scene|dialogue|codex entry|echo|npc)/);
     expect((await run(['--bot', 'pathBot'])).code).toBe(2);
   });
 

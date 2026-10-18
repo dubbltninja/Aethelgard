@@ -9,7 +9,6 @@ import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import { buildContentPack, contentTables, parseContentPack } from '@content/index';
 import { armor } from '@content/items/armor';
-import { starterItems } from '@content/items/starter';
 import { trinkets } from '@content/items/trinkets';
 import { weapons } from '@content/items/weapons';
 import { INCOMPLETE_TABLES } from '@content/progress';
@@ -215,11 +214,10 @@ describe('the gear tables (items/weapons.ts, armor.ts, trinkets.ts) against WORL
     expect(new Set(GEAR_IDS).size).toBe(70);
   });
 
-  test('registered once each in contentTables (after the starter items and the Amulet), nothing else of gear left in starter.ts', () => {
+  test('registered once each in contentTables, first (U50 deleted starter.ts and amulet.ts and registered its own items after the gear)', () => {
     const registered = contentTables.items.map((i) => i.id);
     for (const id of GEAR_IDS) expect([id, registered.filter((x) => x === id).length]).toEqual([id, 1]);
-    expect(registered.slice(starterItems.length + 1, starterItems.length + 1 + 70)).toEqual(GEAR_IDS);
-    expect(starterItems.filter((i) => ['weapon', 'armor', 'trinket'].includes(i.type)).map((i) => i.id)).toEqual([]);
+    expect(registered.slice(0, 70)).toEqual(GEAR_IDS);
     expect(Object.keys(pack.items).filter((id) => GEAR_IDS.includes(id))).toEqual(GEAR_IDS);
   });
 
@@ -625,16 +623,11 @@ describe('the pack with the gear in it', () => {
     expect(strict.warnings.filter((w) => w.rule === 'rule-12' || w.rule === 'rule-04')).toEqual([]);
   });
 
-  test('fewer pending item references than before U49 (269 into items from 88 ids); none names a piece of gear, all name U50\'s items', () => {
+  test('no reference into items is pending any more: the table is complete (U50), so every id a region, creature or merchant names exists', () => {
     const strict = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
-    const intoItems = strict.warnings.filter((w) => w.message.startsWith('pending — content not yet authored (reference)') && / not found in items$/.test(w.message));
-    const missing = new Set(intoItems.map((w) => /'([^']+)' not found in items$/.exec(w.message)?.[1] ?? ''));
-    expect(intoItems.length).toBeLessThan(269);
-    expect(missing.size).toBeLessThan(88);
-    expect([...missing].filter((id) => GEAR_IDS.includes(id))).toEqual([]);
-    // what is left is U50's: consumables, materials, quest, key, recipe and tome items (WORLD §7.8–7.13, §8.1), never weapon/armor/trinket rows
-    const worldGearIds = new Set(ROWS.map((r) => r.id));
-    expect([...missing].filter((id) => worldGearIds.has(id))).toEqual([]);
+    const intoItems = strict.warnings.filter((w) => / not found in items$/.test(w.message));
+    expect(intoItems).toEqual([]);
+    expect(INCOMPLETE_TABLES).not.toContain('items');
   });
 });
 

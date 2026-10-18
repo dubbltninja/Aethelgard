@@ -51,14 +51,16 @@ export function SettingsForm({ settings, onChange }: SettingsFormProps): ReactNo
       </fieldset>
       <fieldset className="field-group">
         <legend>Display and saving</legend>
-        <label className="choice">
-          <input type="checkbox" name="high-contrast" checked={settings.highContrast} onChange={() => onChange({ highContrast: !settings.highContrast })} />
-          <span>High contrast</span>
-        </label>
-        <label className="choice">
-          <input type="checkbox" name="autosave" checked={settings.autosave} onChange={() => onChange({ autosave: !settings.autosave })} />
-          <span>Autosave at each checkpoint</span>
-        </label>
+        <div className="choice-row">
+          <label className="choice">
+            <input type="checkbox" name="high-contrast" checked={settings.highContrast} onChange={() => onChange({ highContrast: !settings.highContrast })} />
+            <span>High contrast</span>
+          </label>
+          <label className="choice">
+            <input type="checkbox" name="autosave" checked={settings.autosave} onChange={() => onChange({ autosave: !settings.autosave })} />
+            <span>Autosave at each checkpoint</span>
+          </label>
+        </div>
       </fieldset>
     </form>
   );

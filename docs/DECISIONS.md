@@ -1746,3 +1746,22 @@ owning unit (PLAN §9.1).
   - In Loop 1 the clock chip shows only the day and watch.
 - **Left for later units:** the Fall forecast and Threshold inset (U70), quest rings on the map (U66), merchant and forge
   buttons (U67), the bottom tab bar (U69), per-location silhouettes and focal pieces (U71/U72).
+
+### D-108 · U60 details — Codex I, 2026-10-18
+- **U60 (3e5ab55, dede08c):** 42 codex entries by voice: RA 22, IT 8, WF 5, WN 7.
+  - The 31 listed in the brief.
+  - `codex_litany_2..9`, the 8 missing from STORY §14.1's 79 rows (its "`codex_litany_1` .. `_9`" row).
+  - Three new people STORY lacked (D-101): `codex_tobrin_vask` (WN), `codex_ilsabet_rhune` (RA) and `codex_corvin_dreyl`
+    (IT). The lead pointed their tomes (`item_tobrins_warding_primer`, `item_rhunes_hydromancy`, `item_dreyls_pyre_ledger`)
+    at these entries.
+  - `codex` stays on `INCOMPLETE_TABLES` until U61.
+- **Real-pack sim** (random, melee, explorer × 3 seeds): 0 errors and 0 soft-locks. The codex blockers are cleared.
+- **Unlock readings where §14.1 has no condition atom:**
+  - "Reach the Apex" = at the Apex or `echo_apex_resonance`.
+  - "Meet X" = their offer scene is done, or the quest or recruitment.
+  - "Trade with Borin" = at the Emberforge or one of Borin's Echoes (no trade atom exists).
+  - `q_hollow_choir` counts as completed.
+  - Quest and companion references are pending until U53/U56.
+- **Fact choice:** the Choir has sung verse VIII wrong for "four hundred years" (BIBLE/§14.1), longer than Ysolde (Year
+  243): their practice is older than she is.
+- `echo_hadrek_clockwright` mentions a codex entry that doesn't exist. U61 writes it, or the Echo line is amended.

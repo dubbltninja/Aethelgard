@@ -25,6 +25,11 @@ export const SCENE_PRIORITY = {
   report: 50,
   /** The giver offers a quest (the legacy yes/no prompt). */
   offer: 40,
+  /**
+   * A once-a-loop line that waits for every offer and report but comes before reminders: the Loop 2+ déjà vu (STORY §5.2,
+   * §6.4; the companion units, U54). Above `offer` it would stand between a proof's `talk` and the pick it expects.
+   */
+  dejaVu: 30,
   /** A reminder while the quest runs. */
   waiting: 20,
   /** What the giver says once the quest is done. */

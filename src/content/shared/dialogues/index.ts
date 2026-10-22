@@ -28,12 +28,15 @@
 //     only when something reads it and the documents name it (`flag_crystal_given`, `flag_shards_refused`); otherwise a
 //     decision is read through its quest's stage (`{ quest: { id, stage: 'given' } }`) or the engine's `flag_choice_<scene>_
 //     <choice>` (an `oncePerLoop` choice) and `flag_scene_done_<scene>` (C-58).
-//   - A line a companion says only when in the party is a `companionReactions` entry ("Name: "…""): a companion id cannot
-//     speak a node until U56 registers the companions (validator rule 10, D-088). No `recruit` until then either.
-//   - A one-time payoff on "the next talk" is its own non-repeatable scene in the `payoff` band (scene_ilyra_crystal_deciphered).
+//   - A line a companion says only when in the party is a `companionReactions` entry ("Name: "…""). The companions are
+//     registered (D-111): a scene may `recruit`, and a companion's camp scenes (its record's `campScenes`; no `npcId`, opened
+//     by a full rest with it in the party, once a loop each, in descending priority order) earn their +2 from the engine.
+//   - A one-time payoff on "the next talk" is its own non-repeatable scene in the `payoff` band (scene_ilyra_crystal_deciphered,
+//     the déjà vu lines).
 import type { DialogueSceneInput } from '@schema/dialogue';
+import { dialogues as companionsU54 } from './companions_u54';
 import { dialogues as factions } from './factions';
 import { dialogues as legacy } from './legacy';
 
-/** Every shared scene. U52: the legacy quests' scenes. U53: the faction chain quests' scenes. */
-export const dialogues: readonly DialogueSceneInput[] = [...legacy, ...factions];
+/** Every shared scene. U52: the legacy quests' scenes. U53: the faction chain quests' scenes. U54: Ilyra's and Brak's arcs. */
+export const dialogues: readonly DialogueSceneInput[] = [...legacy, ...factions, ...companionsU54];

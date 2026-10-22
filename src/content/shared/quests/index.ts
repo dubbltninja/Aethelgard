@@ -2,8 +2,9 @@
 // conventions; the quest units U53–U59 add one file each here and one spread in `quests` below (and their scenes in
 // ../dialogues/, the same file name). Regional quests may instead live in a region folder's `quests.ts` (PLAN §10.3).
 //
-// Files: legacy.ts (U52) · factions.ts (U53) · companions_<a>_<b>.ts (U54–U56) · regional.ts (U57) · loop.ts, endings.ts
-// (U58) · class.ts (U59). Each exports `quests` (`satisfies QuestInput[]`), in STORY §11's order.
+// Files: legacy.ts (U52) · factions.ts (U53) · companions_u54.ts (U54: Ilyra, Brak) · companions_u55.ts, companions_u56.ts
+// (U55–U56) · regional.ts (U57) · loop.ts, endings.ts (U58) · class.ts (U59). Each exports `quests` (`satisfies QuestInput[]`),
+// in STORY §11's order.
 //
 // Conventions (the scene side is ../dialogues/index.ts):
 //   - Ids, names and the givers are STORY §11's exactly (D-090: no id is coined unless listed in the unit's reply). Stage ids are
@@ -31,16 +32,18 @@
 //     whose value is another option of the same choice; a personal quest stage completed is +5 (the arc units).
 //   - Gates: `availableWhen` for a quest offered after another; `startWhen` for one that starts by itself. Loop 1 opens only the
 //     legacy six and D-067.17's four; every other quest's `availableWhen`/`startWhen` reads `{ loop: { min: 2 } }` or an Echo.
-//   - No `recruit` until U56 registers the companions (the effect throws on an unknown companion, D-088).
+//   - The companions are registered (D-111): the arc units recruit as STORY says, and a companion's arc stage pays +5 on its
+//     `onExit` (companions_u54.ts `stageDone`).
 //   - Proof: each quest gets a `pathBot` script in src/sim/scripts/quests.ts (PLAN §7.8) that completes it on the real pack —
 //     every outcome a later quest or ending reads — run by `npm run sim -- quest <id>` and tests/unit/sim/questScripts.test.ts.
 import type { EncounterInput } from '@schema/encounter';
 import type { QuestInput } from '@schema/quest';
+import { quests as companionsU54 } from './companions_u54';
 import { encounters as factionEncounters, quests as factions } from './factions';
 import { quests as legacy } from './legacy';
 
-/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. */
-export const quests: readonly QuestInput[] = [...legacy, ...factions];
+/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. U54: Ilyra's and Brak's arcs. */
+export const quests: readonly QuestInput[] = [...legacy, ...factions, ...companionsU54];
 
 /** The fights a quest starts itself (`startCombat` from a stage or a wave's `onVictory`): U53's Horde-echo waves. */
 export const encounters: readonly EncounterInput[] = [...factionEncounters];

@@ -484,7 +484,8 @@ describe('the scenes (STORY §13; legacy handle_* lines; the conventions of src/
   });
 
   test('companion lines (STORY §13 "[X present]") are reactions in STORY’s words; nothing a companion says is a node yet (D-088)', () => {
-    const reactions = scene('scene_heartstone_choice').companionReactions;
+    // U54 added Ilyra's leaving line on an Exploit (written; STORY §7.1 "leaves the party for the loop"): its own test holds it
+    const reactions = scene('scene_heartstone_choice').companionReactions.filter((r) => !(r.companionId === 'ilyra' && JSON.stringify(r.when) === JSON.stringify({ flag: 'flag_heartstone_exploited' })));
     expect(reactions.map((r) => [r.companionId, r.when])).toEqual([
       ['ilyra', { flag: 'flag_heartstone_stabilized' }],
       ['nyx', { flag: 'flag_heartstone_exploited' }],

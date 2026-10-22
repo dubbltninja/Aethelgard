@@ -666,7 +666,10 @@ describe('Dask vs WORLD §4', () => {
 
   test('D-098 (U34d): in Loop 1 he is "a flicker the player cannot speak to" — his schedule stands him nowhere; from Loop 2 he is at the Pass', () => {
     expect(WL[PASS]?.block).toContain('in Loop 1 he is a flicker the player cannot speak to — Loop 2+ only');
-    expect(dask.schedule).toEqual([{ when: { loop: { max: 1 } }, at: [] }]);
+    // the first entry is the Loop 1 flicker; the rest (U55) place him where his arc quests' scenes find him while they run
+    // (tests/unit/content/quests/companions_u55.test.ts pins them), and every one keeps the Pass
+    expect(dask.schedule?.[0]).toEqual({ when: { loop: { max: 1 } }, at: [] });
+    for (const entry of (dask.schedule ?? []).slice(1)) expect(entry.at).toContain(PASS);
     const here = (o: At) => {
       const s = stateAt(PASS, { stood: { [PASS]: { cleared: ['enc_pass_phantom'] } }, ...o });
       return {

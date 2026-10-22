@@ -201,7 +201,8 @@ describe('the four locations vs WORLD §3.12 blocks', () => {
   test('events: every WORLD event, its text verbatim; the loop numbers as WORLD writes them, read in the next loop’s count (D-082) with Loop 1 skipping the Threshold (D-049)', () => {
     for (const l of parsedLocations) {
       expect([l.id, Object.fromEntries(l.events.map((e) => [e.id, e.text]))]).toEqual([l.id, WL[l.id]?.events]);
-      for (const e of l.events) expect([e.id, e.trigger, e.once, e.effects]).toEqual([e.id, 'enter', true, []]);
+      // U55 hooked `q_seven_marks`'s Gallery stage on the marks event (tests/unit/content/quests/companions_u55.test.ts pins it); the rest carry no effects
+      for (const e of l.events) expect([e.id, e.trigger, e.once, e.id === 'ev_gallery_marks' ? e.effects.length : e.effects]).toEqual([e.id, 'enter', true, e.id === 'ev_gallery_marks' ? 2 : []]);
     }
     // "once, Loop 1→2 only": the first crossing, whose state is already Loop 3's
     expect(ev(TS, 'ev_shore_first').when).toEqual({ loop: { max: 3 } });
@@ -423,10 +424,11 @@ describe('the Threshold in the engine (reducers/threshold.ts on the real pack)',
 
   test('every place offers its legal actions: the walk to the other three; Dask stands on the Shore; the Far Light’s class change and the step into the light', () => {
     const shore = arrive();
-    expect(offered(shore)).toEqual([go('far_light'), go('gallery'), go('loom')]);
+    // the walk to the other three, and (U55: his Shore scene, Loop 3+) a word with Dask
+    expect(offered(shore).filter((a) => a.type === 'thresholdGo')).toEqual([go('far_light'), go('gallery'), go('loom')]);
+    expect(offered(shore).filter((a) => a.type !== 'thresholdGo')).toEqual([{ type: 'talk', npcId: DASK }]);
     expect(npcsAt(shore.s, pack, shore.prof, thresholdLocationId(shore.s))).toEqual([DASK]);
-    // his Threshold scene is the dialogue units' (U52–U59): until it lands he is there with nothing to say
-    if (Object.values(pack.dialogues).every((d) => d.npcId !== DASK)) expect(talkProblem(shore.s, pack, shore.prof, DASK)).toBe('Dask has nothing more to say');
+    expect(talkProblem(shore.s, pack, shore.prof, DASK)).toBeNull();
     for (const area of ['gallery', 'loom', 'far_light'] as const) {
       const there = act(shore, go(area));
       expect([thresholdLocationId(there.s), ofType(there.last, 'thresholdEntered')]).toEqual([THRESHOLD_LOCATIONS[area], [{ t: 'thresholdEntered', area }]]);

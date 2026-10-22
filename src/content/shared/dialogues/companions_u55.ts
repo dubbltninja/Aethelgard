@@ -7,8 +7,8 @@
 //
 // Who says what, and when (priority bands from ./common.ts; every NPC scene is closed while the Horde runs):
 //   Nyx, the Chasm   scene_nyx_deja_vu (payoff, once a loop from Loop 2: STORY §5.2 / §6.4 by tier; "I know what you are,
-//                    Nyx" with `echo_nine_voices`) · scene_nyx_walk_with_me (recruit: the shards given at Neutral, or
-//                    unmasked) · scene_nyx_tears_offer · _waiting · scene_nyx_tears_reading (the Shard read: `echo_shard_
+//                    Nyx" with `echo_nine_voices`) · scene_nyx_walk_with_me, _again (recruit: the shards given at Neutral,
+//                    or unmasked; the first ask ahead of her offers, turned down once it waits behind them) · scene_nyx_tears_offer · _waiting · scene_nyx_tears_reading (the Shard read: `echo_shard_
 //                    moments`, Weavers +5) · scene_nyx_dark_between_offer · scene_nyx_undo_offer · scene_nyx_chasm (what she
 //                    says at the lip when nothing is pending, by the arc's state; the Echo line again)
 //   Nyx, elsewhere   scene_nyx_unmasking (Where She Fell by the quest, or opened from the Chasm by the Echo line: keep her
@@ -158,6 +158,54 @@ const camp = (id: `scene_${string}`, title: string, when: Condition, priority: n
   nodes,
 });
 
+/** DESIGN §12.1: Nyx's recruitment at the lip — two scenes, one purpose: the first ask outranks her offers; turned down once a loop, it waits behind them. */
+const walkWithMe = (id: `scene_${string}`, priority: number, turnedDown: Condition, firstAsk: boolean): DialogueSceneInput => ({
+  id,
+  npcId: NYX,
+  title: 'Walk with me',
+  when: {
+    all: [
+      NOT_IN_HORDE,
+      AT_CHASM,
+      { not: NYX_RECRUITED },
+      { not: NYX_HOSTILE },
+      turnedDown,
+      { any: [{ all: [stageOf('q_void_shards', 'given'), WEAVERS_NEUTRAL] }, { all: [{ echo: 'echo_nyx_is_of_the_nine' }, UNMASKED_THIS_LOOP] }] },
+    ],
+  },
+  priority,
+  entry: [
+    { when: { echo: 'echo_choir_knows' }, node: 'watched' },
+    { when: UNMASKED_THIS_LOOP, node: 'known' },
+    // DESIGN §12.5: the bond Echo (she started this loop at 25); STORY §6.4: nobody remembers, the void does
+    { when: { echo: 'echo_nyx_bond' }, node: 'before' },
+    { when: { all: [] }, node: 'owed' },
+  ],
+  nodes: [
+    { id: 'owed', tags: ['written'], speaker: NYX, text: 'You gave the dark what it was owed. Walk with me a while; it listens better when there are two of us.', next: 'ask' },
+    { id: 'known', tags: ['written'], speaker: NYX, text: 'You know what I am and you came back down to the lip. Walk with me. I would rather be watched by you than by the Choir.', next: 'ask' },
+    { id: 'watched', tags: ['written'], speaker: NYX, text: 'The Choir looks at me now the way I look at the seam. Someone showed them. Walk with me anyway; I have nowhere left that is only mine.', next: 'ask' },
+    { id: 'before', tags: ['written'], speaker: NYX, text: 'You have walked beside me before. I do not remember it; the void does, and it has stopped flinching when you breathe. Walk with me.', next: 'ask' },
+    {
+      id: 'ask',
+      tags: ['written'],
+      speaker: 'narrator',
+      text: 'She does not hold out a hand. She waits.',
+      choices: [
+        {
+          id: 'yes',
+          text: 'Walk with me.',
+          effects: [{ recruit: 'nyx' }, { onlyIf: { when: { echo: 'echo_choir_knows' }, effects: loyaltyFor([], ['nyx']) } }],
+          next: 'joins',
+        },
+        { id: 'no', text: 'Not yet.', oncePerLoop: firstAsk, next: 'stays' },
+      ],
+    },
+    { id: 'joins', tags: ['written'], speaker: NYX, text: 'Then the void walks with you. Do not thank it. It is not a compliment.', next: 'end' },
+    { id: 'stays', tags: ['written'], speaker: NYX, text: 'Then I keep the lip. It has kept me forty years; it can keep me another day.', next: 'end' },
+  ],
+});
+
 export const dialogues = [
   // ==== Nyx at the Chasm of Whispers ============================================================================================
 
@@ -202,52 +250,10 @@ export const dialogues = [
   },
 
   // DESIGN §12.1 / STORY §7.3: after the shards are given at Weavers ≥ Neutral (any loop); or, unmasked, even with the shards
-  // refused and the Weavers Wary. With `echo_choir_knows` she joins Wary (DESIGN §12.5's against-value cost; STORY §12).
-  {
-    id: 'scene_nyx_walk_with_me',
-    npcId: NYX,
-    title: 'Walk with me',
-    when: {
-      all: [
-        NOT_IN_HORDE,
-        AT_CHASM,
-        { not: NYX_RECRUITED },
-        { not: NYX_HOSTILE },
-        { any: [{ all: [stageOf('q_void_shards', 'given'), WEAVERS_NEUTRAL] }, { all: [{ echo: 'echo_nyx_is_of_the_nine' }, UNMASKED_THIS_LOOP] }] },
-      ],
-    },
-    priority: SCENE_PRIORITY.waiting,
-    entry: [
-      { when: { echo: 'echo_choir_knows' }, node: 'watched' },
-      { when: UNMASKED_THIS_LOOP, node: 'known' },
-      // DESIGN §12.5: the bond Echo (she started this loop at 25); STORY §6.4: nobody remembers, the void does
-      { when: { echo: 'echo_nyx_bond' }, node: 'before' },
-      { when: { all: [] }, node: 'owed' },
-    ],
-    nodes: [
-      { id: 'owed', tags: ['written'], speaker: NYX, text: 'You gave the dark what it was owed. Walk with me a while; it listens better when there are two of us.', next: 'ask' },
-      { id: 'known', tags: ['written'], speaker: NYX, text: 'You know what I am and you came back down to the lip. Walk with me. I would rather be watched by you than by the Choir.', next: 'ask' },
-      { id: 'watched', tags: ['written'], speaker: NYX, text: 'The Choir looks at me now the way I look at the seam. Someone showed them. Walk with me anyway; I have nowhere left that is only mine.', next: 'ask' },
-      { id: 'before', tags: ['written'], speaker: NYX, text: 'You have walked beside me before. I do not remember it; the void does, and it has stopped flinching when you breathe. Walk with me.', next: 'ask' },
-      {
-        id: 'ask',
-        tags: ['written'],
-        speaker: 'narrator',
-        text: 'She does not hold out a hand. She waits.',
-        choices: [
-          {
-            id: 'yes',
-            text: 'Walk with me.',
-            effects: [{ recruit: 'nyx' }, { onlyIf: { when: { echo: 'echo_choir_knows' }, effects: loyaltyFor([], ['nyx']) } }],
-            next: 'joins',
-          },
-          { id: 'no', text: 'Not yet.', next: 'stays' },
-        ],
-      },
-      { id: 'joins', tags: ['written'], speaker: NYX, text: 'Then the void walks with you. Do not thank it. It is not a compliment.', next: 'end' },
-      { id: 'stays', tags: ['written'], speaker: NYX, text: 'Then I keep the lip. It has kept me forty years; it can keep me another day.', next: 'end' },
-    ],
-  },
+  // refused and the Weavers Wary. With `echo_choir_knows` she joins Wary (DESIGN §12.5's against-value cost; STORY §12). The
+  // ask comes before her quest offers (the report band) until it is turned down once a loop; from then it waits behind them.
+  walkWithMe('scene_nyx_walk_with_me', SCENE_PRIORITY.report, { not: { flag: 'flag_choice_scene_nyx_walk_with_me_no' } }, true),
+  walkWithMe('scene_nyx_walk_with_me_again', SCENE_PRIORITY.waiting, { flag: 'flag_choice_scene_nyx_walk_with_me_no' }, false),
 
   // ---- q_tears_of_the_breach ------------------------------------------------------------------------------------------------
   {
@@ -1153,13 +1159,22 @@ export const dialogues = [
   ]),
   camp('scene_dask_camp_2', 'The thing round your neck', { all: [{ companion: { id: 'dask' } }, { loyalty: { companion: 'dask', min: 25 } }] }, 2, 'remembers', [
     // STORY §7.4's sample, said whole
-    { id: 'remembers', tags: ['story'], speaker: 'dask', text: "You've got a thing round your neck that remembers. I'd have killed for that. Did, in a way.", choices: [{ id: 'what_did', text: 'What did you do?', next: 'reflex' }] },
+    {
+      id: 'remembers',
+      tags: ['story'],
+      speaker: 'dask',
+      text: "You've got a thing round your neck that remembers. I'd have killed for that. Did, in a way.",
+      choices: [
+        { id: 'what_did', text: 'What did you do?', next: 'reflex' },
+        { id: 'nearly_did', text: 'What did you nearly do?', next: 'nearly' },
+      ],
+    },
     {
       id: 'reflex',
       tags: ['written'],
       speaker: 'dask',
       text: "Walked up to it and started talking. I'd worked out what it was, see, and I wanted to tell it I knew. It's got a reflex, like a knee. That's all it was. A reflex, and seventy years.",
-      next: 'nearly',
+      next: 'end',
     },
     {
       id: 'nearly',
@@ -1179,7 +1194,7 @@ export const dialogues = [
       textVariants: [
         {
           when: { echo: 'echo_nyx_is_of_the_nine' },
-          text: "Somebody could take his place. I've said it to three of you; you're the one that stood still for it. It should be me. I know the words. I'm not anywhere long enough to say them, and I'm ashamed of that, if you want the truth. The Weaver woman knows them too. She hasn't said so where I can hear, and till she does I've nothing to say to her.",
+          text: "Somebody could take his place. I've said it to three of you; you're the one that stood still for it. It should be me. I know the words. I'm not anywhere long enough to say them, and I'm ashamed of that, if you want the truth. The Weaver woman knows them too. She hasn't said so where I can hear; till she does I've nothing to say to her.",
         },
       ],
       choices: [

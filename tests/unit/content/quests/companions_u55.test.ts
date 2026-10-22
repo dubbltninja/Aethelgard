@@ -47,6 +47,7 @@ const QUEST_IDS = [...NYX_QUESTS, ...DASK_QUESTS];
 const SCENE_IDS = [
   'scene_nyx_deja_vu',
   'scene_nyx_walk_with_me',
+  'scene_nyx_walk_with_me_again',
   'scene_nyx_tears_offer',
   'scene_nyx_tears_waiting',
   'scene_nyx_tears_reading',
@@ -326,10 +327,14 @@ describe('reputation, loyalty, Echoes and flags at every decision (STORY §11.4,
     expect(storyBlock('q_what_she_would_undo')).toContain('Agreed (stage `agreed`): path to C; Weavers +15. Refused with the truth (`echo_ritual_inevitable`): she breaks, then thanks you; if Weavers ≥ 20, `echo_void_resonance`. Refused flatly: Weavers −10.');
     // her "so that someone closes it who knows what it is" rides on the thanks at Trusted
     expect(node('scene_nyx_undo_plan', 'thanks').textVariants).toEqual([{ when: { rep: { faction: 'weavers', min: 20 } }, text: expect.stringContaining('Let someone close it who knows what it is.') }]);
-    // nothing else in these scenes moves reputation
-    const all = arcScenes.flatMap((s) => s.nodes.flatMap((n) => [...n.onEnter, ...n.choices.flatMap((c) => c.effects)]));
-    const counted = [WHOSE, SAFE, CHOIR, AGREED, TRUTH.effects, REFUSED].flat().filter((e) => 'rep' in e).length;
-    expect(all.filter((e) => 'rep' in e).length).toBe(counted);
+    // nothing else in these scenes moves reputation: every effect list that does is one of the decisions above (the unmasking's two sit on two nodes)
+    const known = [WHOSE, SAFE, CHOIR, AGREED, TRUTH.effects, REFUSED].map((e) => JSON.stringify(e));
+    for (const s of arcScenes) {
+      for (const n of s.nodes) {
+        expect([s.id, n.id, n.onEnter.some((e) => 'rep' in e)]).toEqual([s.id, n.id, false]);
+        for (const c of n.choices) if (c.effects.some((e) => 'rep' in e)) expect([s.id, n.id, c.id, known.includes(JSON.stringify(c.effects))]).toEqual([s.id, n.id, c.id, true]);
+      }
+    }
   });
 
   test('Dask’s choice: rest → `echo_dask_rest` and he is gone; stay → `flag_dask_anchor`; the whole sentence pays `echo_flickering_man`', () => {
@@ -342,17 +347,24 @@ describe('reputation, loyalty, Echoes and flags at every decision (STORY §11.4,
   test('recruitment (DESIGN §12.1, STORY §7.3, §7.4): Nyx after the shards at Neutral or once unmasked (Wary with the Choir knowing); Dask at the Pass from Loop 2 after the introduction', () => {
     expect(DESIGN).toContain('| `nyx` | Nyx | Chasm of Whispers | after `q_void_shards` (given) or Loop 2+ with `echo_nyx_is_of_the_nine`; Weavers ≥ Neutral |');
     expect(STORY_FLAT).toContain('Loop 2+ with `echo_nyx_is_of_the_nine`: recruitable after `scene_nyx_unmasking` even if shards are refused, Wary.');
-    const walk = scene('scene_nyx_walk_with_me');
-    expect(walk.when).toEqual({
-      all: [
-        NOT_IN_HORDE,
-        { location: 'loc_chasm_of_whispers' },
-        { not: { companion: { id: 'nyx', state: 'recruited' } } },
-        { not: { flag: 'flag_nyx_hostile' } },
-        { any: [{ all: [{ quest: { id: 'q_void_shards', stage: 'given' } }, { rep: { faction: 'weavers', min: -9 } }] }, { all: [{ echo: 'echo_nyx_is_of_the_nine' }, { flag: 'flag_scene_done_scene_nyx_unmasking' }] }] },
-      ],
-    });
-    expect(choice('scene_nyx_walk_with_me', 'ask', 'yes').effects).toEqual([{ recruit: 'nyx' }, { onlyIf: { when: { echo: 'echo_choir_knows' }, effects: [{ loyalty: { companion: 'nyx', delta: LOYALTY_AGAINST } }] } }]);
+    // one purpose, two scenes: the first ask ahead of her offers; turned down once a loop (C-58's choice flag), it waits behind them
+    for (const [id, turnedDown] of [['scene_nyx_walk_with_me', { not: { flag: 'flag_choice_scene_nyx_walk_with_me_no' } }], ['scene_nyx_walk_with_me_again', { flag: 'flag_choice_scene_nyx_walk_with_me_no' }]] as const) {
+      expect([id, scene(id).when]).toEqual([
+        id,
+        {
+          all: [
+            NOT_IN_HORDE,
+            { location: 'loc_chasm_of_whispers' },
+            { not: { companion: { id: 'nyx', state: 'recruited' } } },
+            { not: { flag: 'flag_nyx_hostile' } },
+            turnedDown,
+            { any: [{ all: [{ quest: { id: 'q_void_shards', stage: 'given' } }, { rep: { faction: 'weavers', min: -9 } }] }, { all: [{ echo: 'echo_nyx_is_of_the_nine' }, { flag: 'flag_scene_done_scene_nyx_unmasking' }] }] },
+          ],
+        },
+      ]);
+      expect(choice(id, 'ask', 'yes').effects).toEqual([{ recruit: 'nyx' }, { onlyIf: { when: { echo: 'echo_choir_knows' }, effects: [{ loyalty: { companion: 'nyx', delta: LOYALTY_AGAINST } }] } }]);
+      expect([id, choice(id, 'ask', 'no').oncePerLoop, scene(id).priority]).toEqual([id, id === 'scene_nyx_walk_with_me', id === 'scene_nyx_walk_with_me' ? SCENE_PRIORITY.report : SCENE_PRIORITY.waiting]);
+    }
     expect(DESIGN).toContain('| `dask` | Dask | Shimmering Pass | **Loop 2+ only**');
     expect(STORY_FLAT).toContain('Recruitment. Loop 2+, Shimmering Pass, after `scene_dask_introduction`. No quest needed');
     expect(choice('scene_dask_introduction', 'not_what_i_did', 'come').effects).toEqual([{ recruit: 'dask' }]);
@@ -363,7 +375,7 @@ describe('reputation, loyalty, Echoes and flags at every decision (STORY §11.4,
     expect(choice('scene_dask_recruit', 'still_here', 'come').effects).toEqual([{ recruit: 'dask' }]);
     // no other recruit anywhere in the file
     const recruits = arcScenes.flatMap((s) => s.nodes.flatMap((n) => [...n.onEnter, ...n.choices.flatMap((c) => c.effects)])).filter((e) => 'recruit' in e);
-    expect(recruits).toHaveLength(3);
+    expect(recruits).toHaveLength(4);
   });
 
   test('"I know what you are, Nyx" (D-010, DESIGN §12.7): Echo-locked on `echo_nine_voices`, sets `flag_named_nyx` (D-100) and opens the unmasking, once a loop', () => {
@@ -400,7 +412,8 @@ describe('the scenes (the conventions of src/content/shared/dialogues/index.ts; 
     for (const id of ['scene_dask_flickering_man_sentence', 'scene_dask_seven_marks_symptom']) expect([id, band(id)]).toEqual([id, SCENE_PRIORITY.report]);
     expect([band('scene_nyx_deja_vu'), band('scene_dask_shore')]).toEqual([SCENE_PRIORITY.payoff, SCENE_PRIORITY.idle]);
     // the "nothing pending" lines ride in the waiting band, after the waiting scenes (the legacy after-line would win a tie at `after`)
-    for (const id of ['scene_nyx_walk_with_me', 'scene_nyx_sanctum_eye', 'scene_nyx_chasm', 'scene_dask_recruit', 'scene_dask_pass']) expect([id, band(id)]).toEqual([id, SCENE_PRIORITY.waiting]);
+    for (const id of ['scene_nyx_walk_with_me_again', 'scene_nyx_sanctum_eye', 'scene_nyx_chasm', 'scene_dask_recruit', 'scene_dask_pass']) expect([id, band(id)]).toEqual([id, SCENE_PRIORITY.waiting]);
+    expect(band('scene_nyx_walk_with_me')).toBe(SCENE_PRIORITY.report);
     expect(SCENE_IDS.indexOf('scene_nyx_chasm')).toBeGreaterThan(SCENE_IDS.indexOf('scene_nyx_tears_waiting'));
     expect(SCENE_IDS.indexOf('scene_dask_pass')).toBeGreaterThan(SCENE_IDS.indexOf('scene_dask_last_instant_waiting'));
     // once a loop: the déjà vu, the introduction, his three moments
@@ -469,9 +482,10 @@ describe('the scenes (the conventions of src/content/shared/dialogues/index.ts; 
         const tag = n.tags[0];
         if (tag === 'story') expect([s.id, n.id, inStory(n.text)]).toEqual([s.id, n.id, true]);
         else expect([s.id, n.id, tag, WRITTEN.nodes.includes(n.text)]).toEqual([s.id, n.id, 'written', true]);
+        // a variant appends to its line, or is a line of its own (the Shard offer, the Choir told at the lip, her chair pushed back)
         for (const v of n.textVariants) {
           expect([s.id, n.id, WRITTEN.variants.includes(v.text)]).toEqual([s.id, n.id, true]);
-          expect([s.id, n.id, v.text.startsWith(n.text) || n.id === 'ear' || n.id === 'told']).toEqual([s.id, n.id, true]);
+          expect([s.id, n.id, v.text.startsWith(n.text) || ['ear', 'told', 'kept'].includes(n.id)]).toEqual([s.id, n.id, true]);
         }
       }
     }
@@ -551,7 +565,8 @@ describe('the scenes (the conventions of src/content/shared/dialogues/index.ts; 
     for (const t of WRITTEN.storyChoices) expect([t, inStory(t)]).toEqual([t, true]);
     const other = [...arcQuests.map((q) => q.description), ...arcScenes.flatMap((s) => s.nodes.flatMap((n) => n.choices.flatMap((c) => (c.disabledText === undefined ? [] : [c.disabledText]))))];
     expect([...new Set(other)].sort()).toEqual([...WRITTEN.other].sort());
-    for (const t of [...WRITTEN.nodes, ...WRITTEN.variants]) expect([t, words(t) <= 60]).toEqual([t, true]);
+    for (const t of WRITTEN.nodes) expect([t, words(t) <= 50]).toEqual([t, true]);
+    for (const t of WRITTEN.variants) expect([t, words(t) <= 75]).toEqual([t, true]);
     for (const t of [...WRITTEN.choices, ...WRITTEN.journals, ...WRITTEN.other]) expect([t, words(t) <= 40]).toEqual([t, true]);
     const banned = /\b(fabric of (reality|existence)|eldritch|unspeakable|unimaginable|nightmarish|epic|suddenly|very|literally|ancient|mysterious|ethereal)\b|!|You feel a sense of/i;
     for (const t of [...WRITTEN.nodes, ...WRITTEN.variants, ...WRITTEN.choices, ...WRITTEN.journals, ...WRITTEN.other]) expect([t, banned.test(t)]).toEqual([t, false]);
@@ -672,7 +687,7 @@ const WRITTEN = {
     '...Thank you. No one has told me that in forty years. No one could. Take the note, then. The Shards sing one note; it is the tear closing, not opening. Let someone close it who knows what it is.',
     'That the far side of the tear is not power. It is a room with nine chairs and one of them pushed back. Mine. Sleep, Wayfinder. I will watch the fire; it is the one thing out here that is honest.',
     'When I have a reason to stand in front of him that is better than looking. Not before. He held the door for me; the least I owe him is a plan. You have heard it. When the Core is in your hand, we go.',
-    "Somebody could take his place. I've said it to three of you; you're the one that stood still for it. It should be me. I know the words. I'm not anywhere long enough to say them, and I'm ashamed of that, if you want the truth. The Weaver woman knows them too. She hasn't said so where I can hear, and till she does I've nothing to say to her.",
+    "Somebody could take his place. I've said it to three of you; you're the one that stood still for it. It should be me. I know the words. I'm not anywhere long enough to say them, and I'm ashamed of that, if you want the truth. The Weaver woman knows them too. She hasn't said so where I can hear; till she does I've nothing to say to her.",
   ],
   /** The Wayfinder's lines STORY §13 gives (and the ending-C words that serve the truth). */
   storyChoices: [
@@ -715,6 +730,7 @@ const WRITTEN = {
     "What's it like, being in four places?",
     'What was it like, being a Wayfinder?',
     'What did you do?',
+    'What did you nearly do?',
     "It's not a thing to be ashamed of.",
     'Then who?',
   ],
@@ -790,18 +806,21 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect(play(one.s, [talk('npc_nyx')], { content: pack, profile: one.profile }).state.dialogue?.sceneId).toBe('scene_nyx_void_shards_offer');
   });
 
-  test('the shards given at Neutral: "Walk with me" recruits her (at 25 with the bond); refused and Wary she is not offered; with the Choir knowing she joins at −10', () => {
+  test('the shards given at Neutral: "Walk with me" comes before her offer and recruits her (at 25 with the bond); turned down it waits behind the offer; refused and Wary she is not offered; with the Choir knowing she joins at −10', () => {
     const given = at({ locationId: 'loc_chasm_of_whispers', quests: { q_void_shards: { status: 'completed', stage: 'given' } }, flags: { flag_scene_done_scene_nyx_deja_vu: true } });
-    const opened = play(given.s, [talk('npc_nyx')], { content: pack, profile: given.profile });
-    expect(opened.state.dialogue?.sceneId).toBe('scene_nyx_tears_offer'); // the offer outranks the recruit line
-    const walk = play(opened.state, [pick('no'), go, talk('npc_nyx'), go], { content: pack, profile: given.profile });
-    expect(walk.state.dialogue?.sceneId).toBe('scene_nyx_walk_with_me');
-    expect(nodesSeen(walk.events).slice(-2)).toEqual(['owed', 'ask']);
+    const walk = play(given.s, [talk('npc_nyx'), go], { content: pack, profile: given.profile });
+    expect([walk.state.dialogue?.sceneId, nodesSeen(walk.events)]).toEqual(['scene_nyx_walk_with_me', ['owed', 'ask']]);
     const joined = play(walk.state, [pick('yes'), go], { content: pack, profile: given.profile });
-    expect([joined.state.companions.activeId, loyalty(joined.state, 'nyx')]).toEqual(['nyx', 0]);
+    expect([joined.state.companions.activeId, loyalty(joined.state, 'nyx'), joined.state.mode]).toEqual(['nyx', 0, 'explore']);
+    expect(play(joined.state, [talk('npc_nyx')], { content: pack, profile: given.profile }).state.dialogue?.sceneId).toBe('scene_nyx_tears_offer');
+    // turned down once: her offer comes first from then on, and the ask waits behind it
+    const later = play(walk.state, [pick('no'), go, talk('npc_nyx')], { content: pack, profile: given.profile });
+    expect([later.state.flags.flag_choice_scene_nyx_walk_with_me_no, later.state.dialogue?.sceneId]).toEqual([true, 'scene_nyx_tears_offer']);
+    const taken = play(later.state, [pick('yes'), go, talk('npc_nyx')], { content: pack, profile: given.profile });
+    expect(taken.state.dialogue?.sceneId).toBe('scene_nyx_walk_with_me_again');
     const bond = at({ locationId: 'loc_chasm_of_whispers', quests: { q_void_shards: { status: 'completed', stage: 'given' } }, flags: { flag_scene_done_scene_nyx_deja_vu: true } }, 3, ['echo_nyx_bond']);
-    const bonded = play(bond.s, [talk('npc_nyx'), pick('no'), go, talk('npc_nyx'), go, pick('yes'), go], { content: pack, profile: bond.profile });
-    expect([nodesSeen(bonded.events).includes('before'), loyalty(bonded.state, 'nyx')]).toEqual([true, 25]);
+    const bonded = play(bond.s, [talk('npc_nyx'), go, pick('yes'), go], { content: pack, profile: bond.profile });
+    expect([nodesSeen(bonded.events)[0], loyalty(bonded.state, 'nyx')]).toEqual(['before', 25]);
     const refused = at({ locationId: 'loc_chasm_of_whispers', reputation: { weavers: -20 }, quests: { q_void_shards: { status: 'completed', stage: 'refused' } }, flags: { flag_scene_done_scene_nyx_deja_vu: true } });
     expect(play(refused.s, [talk('npc_nyx')], { content: pack, profile: refused.profile }).state.dialogue?.sceneId).toBe('scene_nyx_chasm');
     // unmasked this loop, Wary, the shards refused: still offered (STORY §7.3); the Choir knowing costs her 10 on joining
@@ -811,9 +830,16 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
   });
 
   test('the Shard read: a Shard at the edge at night opens the reading; whose moment → Weavers +5, `echo_shard_moments`, 150 XP, a Shard paid, +15 loyalty over the stages', () => {
-    const base = { locationId: 'loc_chasm_of_whispers', watch: 'night' as const, items: ['item_void_shard'], quests: { q_tears_of_the_breach: 'shard_at_night' }, patch: withCompanion('nyx') };
+    const base = {
+      locationId: 'loc_chasm_of_whispers',
+      watch: 2 as const,
+      items: ['item_void_shard'],
+      quests: { q_void_shards: { status: 'completed' as const, stage: 'given' }, q_tears_of_the_breach: 'shard_at_night' },
+      flags: { flag_scene_done_scene_nyx_deja_vu: true },
+      patch: withCompanion('nyx'),
+    };
     const { s, profile } = at(base);
-    // the sweep after any step: the stage advances
+    // dusk; a wait brings night, and the sweep after it advances the stage
     const waited = play(s, [{ type: 'wait' }], { content: pack, profile });
     expect(waited.state.quests.q_tears_of_the_breach?.stage).toBe('read');
     expect(loyalty(waited.state, 'nyx')).toBe(5);
@@ -824,7 +850,7 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect(read.state.echoesThisLoop).toContain('echo_shard_moments');
     expect(nodesSeen(play(read.state, [talk('npc_nyx')], { content: pack, profile }).events)).toEqual(['tears_done']);
     // by day the stage waits, and she says so
-    const day = at({ ...base, watch: 'day' });
+    const day = at({ ...base, watch: 0 });
     const idle = play(day.s, [{ type: 'wait' }, talk('npc_nyx')], { content: pack, profile: day.profile });
     expect([idle.state.quests.q_tears_of_the_breach?.stage, nodesSeen(idle.events)]).toEqual(['shard_at_night', ['night']]);
   });
@@ -862,12 +888,19 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     const opened = play(s, [talk('npc_nyx'), go], { content: pack, profile });
     expect(choiceViews(opened.state, pack, profile).map((v) => [v.id, v.enabled])).toEqual([['i_know', true], ['nothing', true]]);
     const named = play(opened.state, [pick('i_know'), go, pick('nine'), pick('tyrant'), pick('safe'), go], { content: pack, profile });
-    expect(nodesSeen(named.events)).toEqual(['crossed', 'stirs', 'listen', 'stop', 'vell', 'veyran', 'kept']);
+    expect(nodesSeen(named.events)).toEqual(['listen', 'stop', 'vell', 'veyran', 'kept']);
     expect([named.state.flags.flag_named_nyx, named.state.quests.q_the_dark_between, named.state.reputation.weavers]).toEqual([true, undefined, 10]);
     expect(named.state.echoesThisLoop).toContain('echo_nyx_is_of_the_nine');
-    // once unmasked, the line is gone from the lip for the loop
+    // unmasked, she offers to walk (STORY §7.3: even with the shards refused); once unmasked, the line is gone from the lip for the loop
     const again = play(named.state, [talk('npc_nyx')], { content: pack, profile });
-    expect(choiceViews(again.state, pack, profile).map((v) => v.id)).toEqual(['nothing']);
+    expect([again.state.dialogue?.sceneId, nodesSeen(again.events)]).toEqual(['scene_nyx_walk_with_me', ['known']]);
+    const settled = at(
+      { locationId: 'loc_chasm_of_whispers', quests: { q_void_shards: { status: 'completed', stage: 'given' }, q_tears_of_the_breach: { status: 'completed', stage: 'unanswered' } }, flags: { flag_scene_done_scene_nyx_deja_vu: true, flag_scene_done_scene_nyx_unmasking: true }, patch: withCompanion('nyx') },
+      2,
+      ['echo_nine_voices', 'echo_nyx_is_of_the_nine'],
+    );
+    const lip = play(settled.s, [talk('npc_nyx')], { content: pack, profile: settled.profile });
+    expect([lip.state.dialogue?.sceneId, choiceViews(lip.state, pack, settled.profile).map((v) => v.id)]).toEqual(['scene_nyx_chasm', ['nothing']]);
     // the Choir told at the lip: the Crystal route's words
     const other = at({ locationId: 'loc_chasm_of_whispers' }, 2, ['echo_nine_voices']);
     const toldHere = play(other.s, [talk('npc_nyx'), go, pick('i_know'), go, pick('nine'), pick('tyrant'), pick('choir')], { content: pack, profile: other.profile });
@@ -917,7 +950,7 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     const plateauEarly = at({ locationId: 'loc_sky_whisper_plateau', quests: { q_the_flickering_man: 'spires' } });
     expect(play(plateauEarly.s, [{ reject: talk('npc_dask'), reason: 'nothing more to say' }], { content: pack, profile: plateauEarly.profile }).state.mode).toBe('explore');
     // the Pass with all three heard: the sentence, the Echo, the badge, 150 XP
-    const sentence = at({ locationId: 'loc_shimmering_pass', quests: { q_the_flickering_man: 'sentence' }, patch: withCompanion('dask', { loyalty: 15 }) });
+    const sentence = at({ locationId: 'loc_shimmering_pass', quests: { q_the_flickering_man: 'sentence' }, flags: { flag_scene_done_scene_dask_introduction: true }, patch: withCompanion('dask', { loyalty: 15 }) });
     const whole = play(sentence.s, [talk('npc_dask'), go, go, go, go], { content: pack, profile: sentence.profile });
     expect(whole.state.quests.q_the_flickering_man).toMatchObject({ status: 'completed', stage: 'heard' });
     expect([whole.state.echoesThisLoop.includes('echo_flickering_man'), carries(whole.state, 'item_dasks_scout_badge'), xpOf(whole.events), loyalty(whole.state, 'dask')]).toEqual([true, 1, 150, 25]);
@@ -930,19 +963,21 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
   test('the last instant at the Apex: the communion done with Dask beside you opens his choice; rest → `echo_dask_rest`, he is gone, 400 XP; stay → `flag_dask_anchor`', () => {
     const base = { locationId: 'loc_temporal_breach_apex', quests: { q_the_last_instant: 'ask_it' }, flags: { flag_tyrant_spared: true }, patch: withCompanion('dask', { loyalty: 55 }) };
     const { s, profile } = at(base, 3, ['echo_tyrant_speaks']);
-    const swept = play(s, [{ type: 'wait' }], { content: pack, profile }).state.quests.q_the_last_instant?.stage;
+    // the Apex cannot be waited in: any step sweeps the quest on
+    const look: Action = { type: 'examine', target: { kind: 'location' } };
+    const swept = play(s, [look], { content: pack, profile }).state.quests.q_the_last_instant?.stage;
     expect(swept).toBe('gathered');
-    const opened = play(s, [{ type: 'wait' }, talk('npc_dask'), go], { content: pack, profile });
+    const opened = play(s, [look, talk('npc_dask'), go], { content: pack, profile });
     expect([opened.state.dialogue?.sceneId, nodesSeen(opened.events)]).toEqual(['scene_dask_last_instant_choice', ['said_yes', 'one_thing']]);
     const rests = play(opened.state, [pick('rest'), go, go], { content: pack, profile });
     expect(rests.state.quests.q_the_last_instant).toMatchObject({ status: 'completed', stage: 'rests' });
     expect([rests.state.echoesThisLoop.includes('echo_dask_rest'), rests.state.companions.recruited.dask, xpOf(rests.events), nodesSeen(rests.events).slice(-2)]).toEqual([true, undefined, 400, ['afternoon', 'gathered']]);
     const stays = play(opened.state, [pick('stay'), go], { content: pack, profile });
     expect(stays.state.quests.q_the_last_instant).toMatchObject({ status: 'completed', stage: 'stays' });
-    expect([stays.state.flags.flag_dask_anchor, stays.state.companions.activeId, loyalty(stays.state, 'dask')]).toEqual([true, 'dask', 55 + 5 + 5]);
+    expect([stays.state.flags.flag_dask_anchor, stays.state.companions.activeId, loyalty(stays.state, 'dask')]).toEqual([true, 'dask', 55 + 5 + 5 + 5]);
     // without him beside you the ask waits
     const alone = at({ locationId: 'loc_temporal_breach_apex', quests: { q_the_last_instant: 'ask_it' }, flags: { flag_tyrant_spared: true } }, 3, ['echo_tyrant_speaks']);
-    expect(play(alone.s, [{ type: 'wait' }], { content: pack, profile: alone.profile }).state.quests.q_the_last_instant?.stage).toBe('ask_it');
+    expect(play(alone.s, [look], { content: pack, profile: alone.profile }).state.quests.q_the_last_instant?.stage).toBe('ask_it');
   });
 
   test('camp conversations: a full rest with Nyx opens the first (+2), the second needs 25, the third 50 and the unmasking; each plays once; Dask alike', () => {
@@ -967,18 +1002,23 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect([three.state.dialogue?.sceneId, nodesSeen(three.events)]).toEqual(['scene_nyx_camp_3', ['there', 'ready']]);
     // Dask in his cleft
     const dask = camp('dask', { loyalty: 25 }, { flag_scene_done_scene_dask_camp_1: true });
-    const his = play(dask.s, [rest, pick('what_did'), go], { content: pack, profile: dask.profile });
-    expect([his.state.dialogue?.sceneId, nodesSeen(his.events)]).toEqual(['scene_dask_camp_2', ['remembers', 'reflex', 'nearly']]);
+    const his = play(dask.s, [rest, pick('nearly_did')], { content: pack, profile: dask.profile });
+    expect([his.state.dialogue?.sceneId, nodesSeen(his.events)]).toEqual(['scene_dask_camp_2', ['remembers', 'nearly']]);
     const third_d = camp('dask', { loyalty: 50 }, { flag_scene_done_scene_dask_camp_1: true, flag_scene_done_scene_dask_camp_2: true }, ['echo_nyx_is_of_the_nine']);
     const nyxKnown = play(third_d.s, [rest], { content: pack, profile: third_d.profile });
     expect((nyxKnown.events.findLast((e) => e.t === 'dialogueNode') as { text: string }).text).toContain('The Weaver woman knows them too.');
   });
 
   test("Nyx's side of the Eye (D-109): in the Sanctum while Sethe's Eye is sought; afterwards, at the lip, the Choir looking or her coming back", () => {
-    const sanctum = at({ locationId: 'loc_sanctum_of_threads', reputation: { weavers: 20 }, quests: { q_unlidded_eye: 'lens' } });
+    const sanctum = at({ locationId: 'loc_sanctum_of_threads', reputation: { weavers: 20 }, quests: { q_void_shards: { status: 'completed', stage: 'given' }, q_unlidded_eye: 'lens' } });
     expect(nodesSeen(play(sanctum.s, [talk('npc_nyx')], { content: pack, profile: sanctum.profile }).events)).toEqual(['seam']);
     for (const [stage, nodeId] of [['looked', 'eye_looked'], ['warned', 'eye_warned']] as const) {
-      const lip = at({ locationId: 'loc_chasm_of_whispers', quests: { q_void_shards: { status: 'completed', stage: 'given' }, q_unlidded_eye: { status: 'completed', stage } }, flags: { flag_scene_done_scene_nyx_deja_vu: true }, patch: withCompanion('nyx') });
+      const lip = at({
+        locationId: 'loc_chasm_of_whispers',
+        quests: { q_void_shards: { status: 'completed', stage: 'given' }, q_tears_of_the_breach: { status: 'completed', stage: 'unanswered' }, q_unlidded_eye: { status: 'completed', stage } },
+        flags: { flag_scene_done_scene_nyx_deja_vu: true },
+        patch: withCompanion('nyx'),
+      });
       expect([stage, nodesSeen(play(lip.s, [talk('npc_nyx')], { content: pack, profile: lip.profile }).events)]).toEqual([stage, [nodeId]]);
     }
   });

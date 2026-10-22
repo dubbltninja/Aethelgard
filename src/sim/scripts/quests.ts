@@ -334,11 +334,11 @@ const nyxShardRead: ScriptStep[] = [
   { talk: 'npc_nyx', pick: ['yes'] },
   done('q_void_shards', 'given'),
   settle('loc_chasm_of_whispers'),
+  { talk: 'npc_nyx', pick: ['yes'] }, // scene_nyx_walk_with_me (ahead of her offers)
+  holds({ all: [{ companion: { id: 'nyx' } }, { loyalty: { companion: 'nyx', min: 25 } }] }, 'Nyx was not recruited at the bond start'),
+  settle('loc_chasm_of_whispers'),
   { talk: 'npc_nyx', pick: ['yes'] }, // scene_nyx_tears_offer
   holds({ quest: { id: 'q_tears_of_the_breach', stage: 'shard_at_night' } }, 'q_tears_of_the_breach did not start'),
-  settle('loc_chasm_of_whispers'),
-  { talk: 'npc_nyx', pick: ['yes'] }, // scene_nyx_walk_with_me
-  holds({ all: [{ companion: { id: 'nyx' } }, { loyalty: { companion: 'nyx', min: 25 } }] }, 'Nyx was not recruited at the bond start'),
   { rest: 1 },
   { goto: 'loc_scar_shelf' },
   takeAll,

@@ -1,9 +1,9 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–e); sim harness complete; world data complete except quests/dialogue (10 of 44 quests), codex (42 of 87) and companions (authored, registered at U56); UI: foundation, Title, Class Select, Explore + map — 3,532 tests. Next: U65, U61 (✦), U54 (✦), U55 (✦). Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–e); sim harness complete; world data complete except quests/dialogue (22 of 44 quests), codex (42 of 87); companions registered (D-111), 4 of 6 arcs written; UI: foundation, Title, Class Select, Explore + map — 3,613 tests. Next: U56 (✦), U61 (✦), U65, U34f. Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-112), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-113), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -104,7 +104,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U34e | Combat expressiveness: Heartstone effects, item custom passives, creature mechanics, scenario bug, hazards, anomalies — brief `briefs/u34e.md` | Opus | ✅ a8b7a3c (resumed after the cutoff) — all 7 items; creatures complete (73); 3532 tests; D-110 |
 | U65 | Combat screen: enemy cards, intent chips, ability bar, companion card, log, communion bar | Opus | ⏳ ready |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
-| U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ▶ resumed after the cutoff (snapshot 74c023a, `wip/u54`) |
+| U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ✅ 6824137 (resumed after the cutoff) — 6 quests, 23 scenes, 11 proofs; 3613 tests; D-113 |
+| U34f | Companion refusals of places (`refusesWhen`), Dask's Tyrant hooks, Named/Unbound Hand, the Keeper's Price tie (D-113) | Opus | ⏳ ready |
 | U55 | Companion arcs: Nyx + Dask (6 quests) + camp scenes — brief `briefs/u55.md` | ✦ Fable | ✅ d32f4a1 (resumed after the cutoff) — 6 quests, 34 scenes, 11 proofs; 3573 tests; D-112 |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
@@ -215,12 +216,12 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. **U65** (Opus; Combat screen — reads U34e's `foreseenMove`) · **U61** (✦ Fable; Codex II + rewrite the 103 Echo
-   `codexLine`s, D-100/D-106; `codex` leaves INCOMPLETE_TABLES) · **U54** (✦ Fable; Ilyra + Brak arcs) · **U55** (✦ Fable;
-   Nyx + Dask arcs). Independent; worktrees + `wip/<unit>` backups (D-103). If the window is tight, run two.
-2. Then U56 (✦; Mireya + Caelum; **registers the companions**, D-088), U57–U59, U62 (✦), U66+ (UI).
-3. The balance + bot unit (Opus), once companions register: bots stop guarding forever; Drowned Reach at L6 in Loop 2
-   (D-110); the Nexus chain (D-109); Tyrant numbers (D-101); Warden vs bosses (D-089).
+1. **U56** (✦ Fable; Mireya + Caelum arcs — the last companions) · **U61** (✦ Fable; Codex II + the 103 Echo codex lines) ·
+   **U65** (Opus; Combat screen) · **U34f** (Opus, small; companion refusals, Dask's Tyrant hooks, D-113). Independent;
+   worktrees + `wip/` backups. Fable units: tell agents to commit early (two cutoffs so far hit uncommitted work).
+2. Then U57–U59, U62 (✦), U66+ (UI screens).
+3. The balance + bot unit (Opus): bots stop guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain
+   (D-109); Tyrant numbers (D-101); Warden vs bosses (D-089); Ilyra's loyalty arithmetic for ending E (D-113).
 
 ## 4b. Dev quickstart
 

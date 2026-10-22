@@ -1859,3 +1859,36 @@ owning unit (PLAN §9.1).
   - Dask's −30 for a Tyrant kill and +3 for sparing it need a hook in the Tyrant's data.
   - The Phase 3 "one voice quieter" with `echo_dask_rest` is creature data.
   - `echo_threshold` and `echo_ritual_inevitable` are granted by U57/U58.
+
+### D-113 · U54 details — Ilyra's and Brak's arcs; companion gaps queued (U34f), 2026-10-22
+- **U54 (6824137; resumed after the usage cutoff from the lead's snapshot 74c023a):**
+  - 6 quests and 23 scenes: hubs `scene_ilyra_arc` and `scene_brak_arc` hold recruitment and the offers, plus 3 déjà-vu
+    scenes, 6 camp scenes, `scene_the_first_drowned`, `scene_braks_brother`, Dray's and Hadda's scenes, Kaelen's offer
+    and Borin's oath.
+  - 11 proofs. All 43 quest proofs pass together on the real pack after the merge.
+  - Written words: 97 nodes, about 1,790 words, pinned in `WRITTEN`.
+  - Pending: rule 16 down 13, rule 18 from 6 to 2 after U55, rule 1 from 193 to 178.
+- **Edits outside its owned files:**
+  - a `dejaVu: 30` scene band in `dialogues/common.ts`;
+  - Ilyra's reaction to an Exploit, plus her leaving for the loop (STORY §7.1), in the legacy Heartstone scene;
+  - `ev_archives_first_drowned`;
+  - Brak's schedule at Hearthring when he is kept away.
+  - Merging U54 after U55 concatenated both quest-script blocks; U55's `waiter` was renamed `restingWaiter`.
+- **Readings:**
+  - An NPC's offers share one hub.
+  - Legacy offers still win ties: Brak joins after the Outpost offer, Ilyra after the scroll offer (DESIGN §12.1).
+  - The Line's outcome A is DESIGN example 5 verbatim, plus `dismiss`.
+  - The Line's `failWhen` is `flag_tyrant_dead`.
+  - Every end of the Line gives Ironclad +10 (§11.2/STORY over §11.3's +15).
+  - Loyalty tiers follow §12.5 (25/50) over §11.4.
+  - `echo_borin_oath`'s line is written (STORY gives only the beat).
+- **Balance flag:** without the bond Echo, a single loop reaches about 46 loyalty with Ilyra, so STORY §6.2's "ending E in
+  Loop 2" falls about 4 short of Loyal (50). The balance unit decides: raise the per-stage +5, or accept that E needs the
+  bond or Companion's Trust.
+- **Engine gaps → U34f (Opus, small):**
+  - Companions refusing places has no data form: Ilyra and the Veil; Brak and the Choir, Nyx behind him, the Apex after an
+    Exploit; Nyx and the Emberforge, the Apex and the Before; Dask's silence toward Nyx (D-112). Proposed: `refusesWhen`
+    on the companion record, read by `companionAllowedAt`, plus each refusal line.
+  - Dask's −30 for killing the Tyrant and +3 for sparing it need a hook in the Tyrant's data.
+  - "Named" and "Unbound Hand" have no engine effect.
+  - A refused Ledger offer hides the Keeper's Price, because U53's offer wins Dray's tie.

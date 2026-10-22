@@ -5,7 +5,8 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    # wip/<unit> are the agents' mid-unit backups (D-103): unverified snapshots, not worth a CI run (or a failure email)
+    branches: ['**', '!wip/**']
   pull_request:
   workflow_dispatch:
 

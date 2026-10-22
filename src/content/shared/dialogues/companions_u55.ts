@@ -86,47 +86,56 @@ const advanceDarkBetween = (stage: 'kept' | 'told'): Effect => ({
   onlyIf: { when: { quest: { id: 'q_the_dark_between', status: 'active' } }, effects: [{ questAdvance: { quest: 'q_the_dark_between', stage } }] },
 });
 
-// STORY §13 / §11.4: keep her secret → Weavers +10, Nyx Loyal (DESIGN §12.5: not telling the Choir what she is is her value);
-// tell the Choir → Weavers −20, `echo_choir_knows`, Nyx Hostile this loop (she leaves the party).
-const KEEP_SECRET: ChoiceInput = {
-  id: 'safe',
-  text: "Your secret's safe.",
-  effects: [{ rep: { faction: 'weavers', delta: 10 } }, ...loyaltyFor(['nyx']), advanceDarkBetween('kept')],
-  next: 'kept',
-};
-const TELL_CHOIR: ChoiceInput = {
-  id: 'choir',
-  text: 'The Choir should know.',
-  effects: [
-    { rep: { faction: 'weavers', delta: -20 } },
-    { grantEcho: 'echo_choir_knows' },
-    { setFlag: 'flag_nyx_hostile' },
-    ...loyaltyFor([], ['nyx']),
-    { dismiss: 'nyx' },
-    advanceDarkBetween('told'),
-  ],
-  next: 'told',
-};
-// STORY §13: "What's the plan?" opens `q_what_she_would_undo` — which asks Nyx Loyal (§11.4), so the line is greyed until then
-const ASK_PLAN: ChoiceInput = {
-  id: 'plan',
-  text: "What's the plan?",
-  when: { all: [NYX_RECRUITED, NYX_LOYAL] },
-  disabledText: '(She will not say it to you yet)',
-  once: true,
-  effects: [{ questStart: 'q_what_she_would_undo' }],
-  next: 'plan_later',
-};
+/**
+ * STORY §13 / §11.4: keep her secret → Weavers +10, Nyx Loyal (DESIGN §12.5: not telling the Choir what she is is her value);
+ * tell the Choir → Weavers −20, `echo_choir_knows`, Nyx Hostile this loop (she leaves the party); "What's the plan?" opens
+ * `q_what_she_would_undo`, which asks Nyx Loyal (§11.4), so the line is greyed until then. (One object: the lint reads a
+ * top-level object literal with an `id` as a content record.)
+ */
+const UNMASKING = {
+  keep: {
+    id: 'safe',
+    text: "Your secret's safe.",
+    effects: [{ rep: { faction: 'weavers', delta: 10 } }, ...loyaltyFor(['nyx']), advanceDarkBetween('kept')],
+    next: 'kept',
+  },
+  tell: {
+    id: 'choir',
+    text: 'The Choir should know.',
+    effects: [
+      { rep: { faction: 'weavers', delta: -20 } },
+      { grantEcho: 'echo_choir_knows' },
+      { setFlag: 'flag_nyx_hostile' },
+      ...loyaltyFor([], ['nyx']),
+      { dismiss: 'nyx' },
+      advanceDarkBetween('told'),
+    ],
+    next: 'told',
+  },
+  plan: {
+    id: 'plan',
+    text: "What's the plan?",
+    when: { all: [NYX_RECRUITED, NYX_LOYAL] },
+    disabledText: '(She will not say it to you yet)',
+    once: true,
+    effects: [{ questStart: 'q_what_she_would_undo' }],
+    next: 'plan_later',
+  },
+} satisfies Record<string, ChoiceInput>;
 
 /** D-010 / DESIGN §12.7: the Echo-triggered truth, spoken at the Chasm; it opens the unmasking and sets the achievement's flag. */
-const I_KNOW_WHAT_YOU_ARE: ChoiceInput = echoLocked('echo_nine_voices', {
-  id: 'i_know',
-  text: 'I know what you are, Nyx.',
-  when: { all: [{ not: UNMASKED_THIS_LOOP }, { not: NYX_HOSTILE }] },
-  effects: [{ setFlag: 'flag_named_nyx' }, { startDialogue: 'scene_nyx_unmasking' }],
-  next: 'end',
-});
-const NOTHING_MORE: ChoiceInput = { id: 'nothing', text: 'Nothing more.', next: 'end' };
+const AT_THE_LIP = {
+  iKnow: echoLocked('echo_nine_voices', {
+    id: 'i_know',
+    text: 'I know what you are, Nyx.',
+    when: { all: [{ not: UNMASKED_THIS_LOOP }, { not: NYX_HOSTILE }] },
+    effects: [{ setFlag: 'flag_named_nyx' }, { startDialogue: 'scene_nyx_unmasking' }],
+    next: 'end',
+  }),
+  nothing: { id: 'nothing', text: 'Nothing more.', next: 'end' },
+} satisfies Record<string, ChoiceInput>;
+/** The Echo line, or nothing more: every line of hers at the lip when nothing is pending ends so. */
+const LIP_CHOICES: ChoiceInput[] = [AT_THE_LIP.iKnow, AT_THE_LIP.nothing];
 
 /** Dask's rule, said on recruitment (DESIGN §12.8, STORY §13 "he explains the rule"). */
 const DASK_RULE = "I'll come. Mind the rule, though: I'm only anywhere the hour's loose. Walk me somewhere it holds steady and I go, and I don't choose where. I come back when it slips again.";
@@ -229,21 +238,21 @@ export const dialogues = [
         tags: ['story'],
         speaker: NYX,
         text: 'The void stirs when you breathe. It knows you. I would like to know why.',
-        choices: [I_KNOW_WHAT_YOU_ARE, NOTHING_MORE],
+        choices: LIP_CHOICES,
       },
       {
         id: 'true_name',
         tags: ['story'],
         speaker: NYX,
         text: "You have heard my true name. Don't deny it; you flinched when the Choir sang it wrong.",
-        choices: [I_KNOW_WHAT_YOU_ARE, NOTHING_MORE],
+        choices: LIP_CHOICES,
       },
       {
         id: 'how_many',
         tags: ['story'],
         speaker: NYX,
         text: 'How many times, Wayfinder? Do not lie to me. I have counted forty years of this day and I can feel that you have counted more.',
-        choices: [{ id: 'more', text: 'More than I can count.', next: 'both_old' }, I_KNOW_WHAT_YOU_ARE, NOTHING_MORE],
+        choices: [{ id: 'more', text: 'More than I can count.', next: 'both_old' }, ...LIP_CHOICES],
       },
       { id: 'both_old', tags: ['written'], speaker: NYX, text: 'Then we are both old in this day. Sit a while. The void remembers you; let it remember you resting.', next: 'end' },
     ],
@@ -403,10 +412,10 @@ export const dialogues = [
         speaker: NYX,
         text: 'Is Veyran. Yes. He stepped in. He is holding it, Wayfinder, he has been holding it since I fell, and I have not gone to look at his face in forty years because I am a coward, and because I have a plan, and the plan is better than looking.',
         onEnter: [{ grantEcho: 'echo_tyrant_name' }],
-        choices: [KEEP_SECRET, TELL_CHOIR, ASK_PLAN],
+        choices: [UNMASKING.keep, UNMASKING.tell, UNMASKING.plan],
       },
       { id: 'plan_later', tags: ['written'], speaker: NYX, text: 'Not on the rim. Walk with me to the Hollow, where I came in, and I will say it where only the dark listens.', next: 'decide' },
-      { id: 'decide', tags: ['written'], speaker: 'narrator', text: 'She waits for what you will do with her name.', choices: [KEEP_SECRET, TELL_CHOIR] },
+      { id: 'decide', tags: ['written'], speaker: 'narrator', text: 'She waits for what you will do with her name.', choices: [UNMASKING.keep, UNMASKING.tell] },
       { id: 'kept', tags: ['written'], speaker: NYX, text: 'Then it is yours to keep, and mine to go on carrying. The void remembers you, Wayfinder. Tonight that is a compliment.', next: 'end' },
       {
         id: 'told',
@@ -583,44 +592,44 @@ export const dialogues = [
         tags: ['written'],
         speaker: NYX,
         text: 'We go to the Apex together, and not before the Core is in your hand. I have waited forty years; I can wait for a stone.',
-        choices: [I_KNOW_WHAT_YOU_ARE, NOTHING_MORE],
+        choices: LIP_CHOICES,
       },
       {
         id: 'undo_truth',
         tags: ['written'],
         speaker: NYX,
         text: 'I keep thinking about the version where I was not there. Go on, Wayfinder. I am still deciding what to do with my hands.',
-        choices: [I_KNOW_WHAT_YOU_ARE, NOTHING_MORE],
+        choices: LIP_CHOICES,
       },
-      { id: 'undo_refused', tags: ['written'], speaker: NYX, text: 'You said no. The void remembers that too.', choices: [I_KNOW_WHAT_YOU_ARE, NOTHING_MORE] },
-      { id: 'dark_kept', tags: ['written'], speaker: NYX, text: 'The glass keeps my name. So do you. That is two more than I meant.', choices: [I_KNOW_WHAT_YOU_ARE, NOTHING_MORE] },
+      { id: 'undo_refused', tags: ['written'], speaker: NYX, text: 'You said no. The void remembers that too.', choices: LIP_CHOICES },
+      { id: 'dark_kept', tags: ['written'], speaker: NYX, text: 'The glass keeps my name. So do you. That is two more than I meant.', choices: LIP_CHOICES },
       {
         id: 'eye_looked',
         tags: ['written'],
         speaker: NYX,
         text: 'The Choir looks at me now. You let them. Do not ask me to be sorry in a way you can use.',
-        choices: [I_KNOW_WHAT_YOU_ARE, NOTHING_MORE],
+        choices: LIP_CHOICES,
       },
       {
         id: 'eye_warned',
         tags: ['written'],
         speaker: NYX,
         text: 'You came to me first. I did not thank you. I am not going to; take it from the fact that I came back.',
-        choices: [I_KNOW_WHAT_YOU_ARE, NOTHING_MORE],
+        choices: LIP_CHOICES,
       },
       {
         id: 'tears_done',
         tags: ['written'],
         speaker: NYX,
         text: 'You have read one Shard. Do not read them all. Some of those seconds are mine.',
-        choices: [I_KNOW_WHAT_YOU_ARE, NOTHING_MORE],
+        choices: LIP_CHOICES,
       },
       {
         id: 'stirs',
         tags: ['story'],
         speaker: NYX,
         text: 'The void stirs when you breathe. It knows you. I would like to know why.',
-        choices: [I_KNOW_WHAT_YOU_ARE, NOTHING_MORE],
+        choices: LIP_CHOICES,
       },
     ],
   },

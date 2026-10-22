@@ -98,7 +98,7 @@ const SALT_OK: Condition = { not: { quest: { id: 'q_blood_and_salt' } } };
 const LINE_OK: Condition = { all: [{ echo: 'echo_brak_death' }, { quest: { id: 'q_blighted_outpost', status: 'completed' } }, { not: { quest: { id: 'q_the_line_he_holds' } } }] };
 
 /** Blood and Salt's ask, shared by the hub and the Peaks-refuser's first offer. */
-const SALT_ASK: NodeInput[] = [
+const saltAsk = (): NodeInput[] => [
   { id: 'short', tags: ['written'], speaker: 'npc_brak', text: "Camp's short of salt. Kaelen sells it, down at the Respite. Four gold the sack.", next: 'ask_salt' },
   {
     id: 'ask_salt',
@@ -664,7 +664,7 @@ export const dialogues = [
       { id: 'dawn', tags: ['written'], speaker: 'npc_brak', text: "Dawn, then. Off-foot back on the ash; it slides. If a jackal gets up, it's not alone.", next: 'end' },
       { id: 'alone', tags: ['written'], speaker: 'npc_brak', text: 'Then I ride alone. Faster, anyway. Quieter.', next: 'end' },
       // q_blood_and_salt
-      ...SALT_ASK,
+      ...saltAsk(),
       // q_the_line_he_holds
       {
         id: 'look',
@@ -836,7 +836,7 @@ export const dialogues = [
     },
     priority: SCENE_PRIORITY.report,
     entry: 'short',
-    nodes: SALT_ASK.map((n) => (n.id === 'ask_salt' ? { ...n, choices: n.choices?.map((c) => (c.id === 'no' ? { ...c, oncePerLoop: true } : c)) } : n)),
+    nodes: saltAsk().map((n) => (n.id === 'ask_salt' ? { ...n, choices: n.choices?.map((c) => (c.id === 'no' ? { ...c, oncePerLoop: true } : c)) } : n)),
   },
   // STORY §5.2 / §11.4: with the dropped name, Kaelen gives the quest (the shortcut opens it at `kaelen`).
   {

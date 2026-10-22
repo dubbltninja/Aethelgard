@@ -1835,3 +1835,27 @@ owning unit (PLAN §9.1).
 - The tests that pinned "not registered" were repinned in the same commit.
 - U52's convention "no `recruit` until U56" (D-105) is lifted: U54–U56 recruit as STORY says.
 - U54 (Ilyra, Brak) and U55 (Nyx, Dask) run as ✦ Fable subagents in parallel, in worktrees with `wip/` backups.
+
+### D-112 · U55 details — Nyx's and Dask's arcs, 2026-10-22
+- **U55 (d32f4a1; resumed after the usage cutoff from the lead's snapshot e3024ba):**
+  - 6 quests with 25 stages, and 34 scenes: 14 for Nyx, including 3 camp scenes, and 20 for Dask, including 3 camp scenes.
+  - 11 proofs cover every outcome and recruitment; all 31 quest proofs pass on the real pack.
+  - Written words: 97 nodes (Nyx 47, Dask 35, narrator 15), 29 choices and 19 journal lines, pinned in `WRITTEN`.
+  - Pending: rule 16 went from 75 to 64, and rule 18 from 6 to 4. The `flag_named_nyx` warning is gone.
+- **Edits outside its owned files (the region units left the hooks):**
+  - Nyx's and Dask's NPC `schedule`s for their arcs: "in four places" for Dask, Nyx's Sanctum line during
+    `q_unlidded_eye`.
+  - `ev_gallery_marks` grants `echo_seven_wayfinders` and advances `q_seven_marks`.
+  - `shardsGathered(loop2)`, because Nyx's Loop 2+ déjà-vu scene now comes before the legacy offer. U53's proofs were
+    updated to match.
+- **Readings:**
+  - `q_seven_marks` starts only on the Still Shore (Loop 3+, once per profile).
+  - "Ask in Movement III" means `flag_tyrant_spared` with Dask active; his choice is a talk at the Apex afterwards.
+  - Loyalty: +5 per stage, +3 for agreeing to undo, −10 for a flat refusal, and −10 for Nyx joining while
+    `echo_choir_knows` is held.
+  - Telling in `q_the_dark_between` sets `flag_nyx_hostile` and dismisses her.
+- **Gaps → U58 and the balance unit:**
+  - No condition atom expresses a companion refusing a place (Nyx at the Emberforge, the Apex or the Before).
+  - Dask's −30 for a Tyrant kill and +3 for sparing it need a hook in the Tyrant's data.
+  - The Phase 3 "one voice quieter" with `echo_dask_rest` is creature data.
+  - `echo_threshold` and `echo_ritual_inevitable` are granted by U57/U58.

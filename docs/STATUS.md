@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–e); sim harness complete; world data complete except quests/dialogue (10 of 44 quests), codex (42 of 87) and companions (authored, registered at U56); UI: foundation, Title, Class Select, Explore + map — 3,532 tests. Next: U65, U61 (✦), U54 (✦), U55 (✦). Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-111), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-112), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -104,8 +104,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U34e | Combat expressiveness: Heartstone effects, item custom passives, creature mechanics, scenario bug, hazards, anomalies — brief `briefs/u34e.md` | Opus | ✅ a8b7a3c (resumed after the cutoff) — all 7 items; creatures complete (73); 3532 tests; D-110 |
 | U65 | Combat screen: enemy cards, intent chips, ability bar, companion card, log, communion bar | Opus | ⏳ ready |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
-| U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ▶ in progress (worktree, `wip/u54`) |
-| U55 | Companion arcs: Nyx + Dask (6 quests) + camp scenes — brief `briefs/u55.md` | ✦ Fable | ▶ in progress (worktree, `wip/u55`) |
+| U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ▶ resumed after the cutoff (snapshot 74c023a, `wip/u54`) |
+| U55 | Companion arcs: Nyx + Dask (6 quests) + camp scenes — brief `briefs/u55.md` | ✦ Fable | ✅ d32f4a1 (resumed after the cutoff) — 6 quests, 34 scenes, 11 proofs; 3573 tests; D-112 |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 
 

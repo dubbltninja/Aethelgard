@@ -1826,3 +1826,12 @@ owning unit (PLAN §9.1).
   - Drowned Reach lethality at L6 in Loop 2.
   - The D-109 Nexus chain.
   - The D-101 Tyrant numbers.
+
+### D-111 · The companions are registered now; this supersedes D-088's "at U56", 2026-10-21
+- With D-090 in place, a companion record's references to arc quests and camp scenes that don't exist yet are pending
+  warnings, not errors. All six NPCs exist.
+- So the lead registered the six companions and their 24 abilities in `contentTables` before U54/U55, and took
+  `companions` off `INCOMPLETE_TABLES`. `npm run validate` reports 0 errors.
+- The tests that pinned "not registered" were repinned in the same commit.
+- U52's convention "no `recruit` until U56" (D-105) is lifted: U54–U56 recruit as STORY says.
+- U54 (Ilyra, Brak) and U55 (Nyx, Dask) run as ✦ Fable subagents in parallel, in worktrees with `wip/` backups.

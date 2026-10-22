@@ -127,11 +127,11 @@ describe('the real pack (U41 tables)', () => {
     for (const c of companions) expect([c.id, c.npcId, pack.npcs[c.npcId]?.companionId]).toEqual([c.id, `npc_${c.id}`, c.id]);
     expect([companions.flatMap((c) => c.arcQuestIds).length, companions.flatMap((c) => c.campScenes).length]).toEqual([18, 18]);
     // a companion whose unit has landed (U54: Ilyra and Brak; U55: Nyx and Dask; U56: Mireya and Caelum) has every reference in the pack
-    const authored = (c: CompanionInput): boolean => c.arcQuestIds.every((q) => q in pack.quests) && c.campScenes.every((d) => d in pack.dialogues);
+    const authored = (c: CompanionInput): boolean => c.arcQuestIds.every((q) => q in pack.quests) && (c.campScenes ?? []).every((d) => d in pack.dialogues);
     const open = companions.filter((c) => !authored(c));
     for (const c of open) {
       for (const id of c.arcQuestIds) expect([c.id, id, id in pack.quests]).toEqual([c.id, id, false]);
-      for (const id of c.campScenes) expect([c.id, id, id in pack.dialogues]).toEqual([c.id, id, false]);
+      for (const id of c.campScenes ?? []) expect([c.id, id, id in pack.dialogues]).toEqual([c.id, id, false]);
     }
     // the open set only shrinks: at most the four U54 left (Nyx, Dask, Mireya, Caelum), and never Ilyra or Brak
     expect(open.every((c) => ['nyx', 'dask', 'mireya', 'caelum'].includes(c.id))).toBe(true);
@@ -144,7 +144,7 @@ describe('the real pack (U41 tables)', () => {
     // exactly the open companions' arc quests and camp scenes are pending references
     const pendingRefs = open.flatMap((c) => [
       ...c.arcQuestIds.map((q, i) => `${c.id}.arcQuestIds.${i}: pending — content not yet authored (reference): arc quest '${q}' not found in quests`),
-      ...c.campScenes.map((d, i) => `${c.id}.campScenes.${i}: pending — content not yet authored (reference): camp scene '${d}' not found in dialogues`),
+      ...(c.campScenes ?? []).map((d, i) => `${c.id}.campScenes.${i}: pending — content not yet authored (reference): camp scene '${d}' not found in dialogues`),
     ]);
     expect(theirs.filter((w) => w.rule === 'rule-01').map((w) => `${w.id}.${w.path}: ${w.message}`).sort()).toEqual([...pendingRefs].sort());
     // rule 18 counts the arcs' terminal outcomes, which the missing arc quests cannot give yet: one pending line per open companion

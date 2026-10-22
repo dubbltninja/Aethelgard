@@ -274,7 +274,7 @@ export const dialogues = [
         id: 'heard',
         tags: ['written'],
         speaker: 'npc_ilyra',
-        text: 'I sat where you sat. The stone kept it: one verse, over and over, in a voice I would know in the dark. It is mine, and it is older than I am.',
+        text: 'I sat where you sat. The stone kept it: one verse, over and over, in a voice I know in the dark. It is mine, and older than I am.',
         choices: [
           { id: 'read_aloud', text: 'Read it to me.', oncePerLoop: true, effects: loyaltyFor(['ilyra']), next: 'verse' },
           { id: 'go_on', text: 'Go on.', next: 'question' },
@@ -538,7 +538,7 @@ export const dialogues = [
         id: 'lid',
         tags: ['written'],
         speaker: 'npc_ilyra',
-        text: 'The Remnants say the thing at the Apex is a wound dressed with a lid. I used to say it too. Now I think it is a hand on the lid.',
+        text: 'The Remnants say the thing at the Apex is a wound with a lid on it. I said it too. Now I think it is a hand on the lid.',
         choices: [
           { id: 'what_then', text: 'What would you do with it?', next: 'held' },
           { id: 'sleep', text: 'Sleep on it.', next: 'end' },
@@ -548,7 +548,7 @@ export const dialogues = [
         id: 'held',
         tags: ['written'],
         speaker: 'npc_ilyra',
-        text: 'Hold it better. Not kill it; nothing we have killed has ever stayed dead here. Hold it so that it does not hurt. I do not know yet what that means.',
+        text: 'Hold it better. Not kill it; nothing we have killed here has stayed dead. Hold it so that it does not hurt. I do not know yet what that means.',
         next: 'hands',
       },
       {
@@ -586,7 +586,7 @@ export const dialogues = [
         textVariants: [
           {
             when: { echo: 'echo_oriel_lineage' },
-            text: "There. Under the fire's noise. Someone said a verse here once, and the stones are still saying it back. I know the voice now. It is the one I was born with.",
+            text: "There. Under the fire's noise. Someone said a verse here once, and the stones are still saying it back. I know the voice now; I was born with it.",
           },
         ],
         next: 'enough',

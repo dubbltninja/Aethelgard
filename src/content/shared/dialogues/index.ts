@@ -32,8 +32,9 @@
 //     speak a node until U56 registers the companions (validator rule 10, D-088). No `recruit` until then either.
 //   - A one-time payoff on "the next talk" is its own non-repeatable scene in the `payoff` band (scene_ilyra_crystal_deciphered).
 import type { DialogueSceneInput } from '@schema/dialogue';
+import { dialogues as companionsU55 } from './companions_u55';
 import { dialogues as factions } from './factions';
 import { dialogues as legacy } from './legacy';
 
-/** Every shared scene. U52: the legacy quests' scenes. U53: the faction chain quests' scenes. */
-export const dialogues: readonly DialogueSceneInput[] = [...legacy, ...factions];
+/** Every shared scene. U52: the legacy quests' scenes. U53: the faction chain quests' scenes. U55: Nyx's and Dask's arcs and camps. */
+export const dialogues: readonly DialogueSceneInput[] = [...legacy, ...factions, ...companionsU55];

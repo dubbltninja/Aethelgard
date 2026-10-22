@@ -88,11 +88,14 @@ export const locations = [
     exits: [{ dir: 'east', to: 'loc_still_shore', travelWatches: 0 }],
     events: [
       { id: 'ev_gallery_ending', text: 'A new painting, larger than the others. It is not of you. It is of everyone.', when: ANY_ENDING },
-      // "once, Loop 3+, while `q_seven_marks` is active (its Gallery stage …)"
+      // "once, Loop 3+, while `q_seven_marks` is active (its Gallery stage …)": U55 hooked the quest's Gallery stage here —
+      // the seven marks seen (`echo_seven_wayfinders`, STORY §11.4) and the quest on to the Shore (once a visit, and the
+      // quest is started on this visit's Shore, so it never fires on a later stage)
       {
         id: 'ev_gallery_marks',
         text: 'Seven frames carry a scratch in the gilt, low on the left, where a hand would rest. The same hand.',
         when: { all: [{ loop: { min: 3 } }, { quest: { id: 'q_seven_marks', status: 'active' } }] },
+        effects: [{ grantEcho: 'echo_seven_wayfinders' }, { questAdvance: { quest: 'q_seven_marks', stage: 'marks_seen' } }],
       },
     ],
     // "after any true ending the Gallery shows the epilogue slides as paintings" (WORLD §2.12)

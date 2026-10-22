@@ -36,11 +36,12 @@
 //     every outcome a later quest or ending reads — run by `npm run sim -- quest <id>` and tests/unit/sim/questScripts.test.ts.
 import type { EncounterInput } from '@schema/encounter';
 import type { QuestInput } from '@schema/quest';
+import { quests as companionsU55 } from './companions_u55';
 import { encounters as factionEncounters, quests as factions } from './factions';
 import { quests as legacy } from './legacy';
 
-/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. */
-export const quests: readonly QuestInput[] = [...legacy, ...factions];
+/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. U55: Nyx's and Dask's arcs. */
+export const quests: readonly QuestInput[] = [...legacy, ...factions, ...companionsU55];
 
 /** The fights a quest starts itself (`startCombat` from a stage or a wave's `onVictory`): U53's Horde-echo waves. */
 export const encounters: readonly EncounterInput[] = [...factionEncounters];

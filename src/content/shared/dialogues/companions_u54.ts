@@ -36,7 +36,7 @@
 // their +2 from the engine (reducers/dialogue.ts CAMP_LOYALTY), so no camp scene carries a loyalty effect of its own.
 //
 // Not here, by design: Ilyra's and Brak's refusals of places (the Veil; the Hollow Choir, Nyx behind him, the Apex after an
-// Exploit) have no engine form beyond Dask's rule, so they are the records' `banter` (shared/companions.ts) and a camp line;
+// Exploit) have no engine form beyond Dask's rule (shared/companions.ts says what would carry them); Brak's is a camp line;
 // Ilyra leaving after an Exploit is the Heartstone scene's `onEnd` (legacy.ts); the Horde's lines and the portal are U62's;
 // `scene_ilyra_portal`'s `flag_ilyra_told` variant is U62's; Nyx's and Dask's side of anything is U55's.
 import type { Condition } from '@schema/condition';

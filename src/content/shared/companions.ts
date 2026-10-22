@@ -16,11 +16,10 @@
 //                 fresh one (reducers/dialogue.ts), so their priorities descend (3, 2, 1) and they come in order: the first plays
 //                 at a rest with the companion, the second from loyalty 25, the third from 50 (DESIGN §12.5, §12.7). A unit that
 //                 wants more or fewer edits this list.
-//   banter        STORY §7's refusals of places ("Will not enter the Veil"), as data with the place they refuse (U54): the engine
-//                 reads no banter yet, and only Dask's rule (`requiresTemporallyUnstable`) keeps a companion out of a place —
-//                 a `refusesWhen` on the record and `companionAllowedAt` would play these (listed in the U54 reply).
 // Fields left to their defaults: `stances` (the engine's §4.9 numbers are constants, D-080), `startingLoyalty` 0 (the bond
-// Echoes raise it to 25).
+// Echoes raise it to 25), `banter` (the engine reads none yet). STORY §7's refusals of places (Ilyra: the Veil; Brak: the Hollow
+// Choir, Nyx behind him, the Apex after an Exploit) have no form in data: only Dask's rule (`requiresTemporallyUnstable`) keeps a
+// companion out of a place; a `refusesWhen` on the record read by `companionAllowedAt` would carry them (the U54 reply lists it).
 // The signature cooldown is the record's (the ability row has none); loyalty ≥ 50 shortens it by 1 (DESIGN §12.5, engine).
 import type { CompanionInput } from '@schema/companion';
 
@@ -39,11 +38,6 @@ export const companions = [
     deathRule: 'ko',
     arcQuestIds: ['q_voices_in_the_stacks', 'q_the_danthe_line', 'q_the_keepers_price'],
     campScenes: ['scene_ilyra_camp_1', 'scene_ilyra_camp_2', 'scene_ilyra_camp_3'],
-    // STORY §7.1 refusals (U54; data only, see the header): the Veil, and the Apex in Loop 1
-    banter: [
-      { regionId: 'region_veil', text: 'That place reads you back.' },
-      { when: { loop: { max: 1 } }, locationId: 'loc_temporal_breach_apex', text: 'Not there. Not yet. I have pages to finish before I look at that.' },
-    ],
     portrait: { sigil: 'ilyra', accent: 'remnants' },
   },
   {
@@ -61,12 +55,6 @@ export const companions = [
     deathRule: 'permadeath_scripted',
     arcQuestIds: ['q_the_scouts_oath', 'q_blood_and_salt', 'q_the_line_he_holds'],
     campScenes: ['scene_brak_camp_1', 'scene_brak_camp_2', 'scene_brak_camp_3'],
-    // STORY §7.2 refusals (U54; data only, see the header): the Hollow Choir, Nyx behind him, the Apex after an Exploit
-    banter: [
-      { locationId: 'loc_sanctum_of_threads', text: "Not in there. They sing with their mouths covered. I'll wait where I can see the sky." },
-      { when: { companion: { id: 'nyx', state: 'recruited' } }, text: "She walks in front of me or she doesn't walk. I don't turn my back on the void." },
-      { when: { flag: 'flag_heartstone_exploited' }, locationId: 'loc_temporal_breach_apex', text: "That thing's in your pack hurting you and you want me to hold a line?" },
-    ],
     portrait: { sigil: 'brak', accent: 'ironclad' },
   },
   {

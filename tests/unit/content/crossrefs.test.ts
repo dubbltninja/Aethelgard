@@ -953,7 +953,14 @@ describe('the validate CLI', () => {
   test('--verbose lists each pending check, --lenient skips the counts but keeps the pending references', () => {
     const verbose = run(['--verbose']);
     expect(verbose.code).toBe(0);
-    expect(verbose.out).toMatch(/pending rule-21: [a-z]+\.-: pending — content not yet authored: \d+ [a-z ]+; expected \d+/); // (regions and locations are complete since U48a)
+    // what is still short: the story quests (D-045), the class mini-quests and the codex; regions and locations are complete since U48a,
+    // the companions (6) and their 24 abilities since D-111, so neither has a pending completeness line any more
+    expect(verbose.out).toMatch(/pending rule-21: quests\.-: pending — content not yet authored: \d+ story quests \(D-045, legacy six included\); expected 44/);
+    expect(verbose.out).toMatch(/pending rule-21: quests\.-: pending — content not yet authored: \d+ class mini-quests; expected 5/);
+    expect(verbose.out).toMatch(/pending rule-21: codex\.-: pending — content not yet authored: \d+ codex entries; expected at least 85/);
+    expect(verbose.out).not.toMatch(/pending rule-21: companions\./);
+    expect(verbose.out).not.toMatch(/companion abilities/);
+    expect(verbose.out).toContain(' · companions 6 · ');
     const lenient = run(['--lenient']);
     expect(lenient.code).toBe(0);
     expect(lenient.out).toContain('22 rules, lenient');

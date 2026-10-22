@@ -4,9 +4,10 @@
 // so a drive-by edit of either the content or the document fails here; the class rows are also held field-for-field to the
 // U26/U26b combat fixture, the companion rows to the U28 fixture (both are cast through the engine in their own tests).
 //
-// The companions are authored but NOT registered (D-088): their records name NPCs, quests and camp scenes that do not exist
-// yet. They are proven here by parsing every record and building a pack of the real tables plus them plus stub NPC, quest,
-// scene, region and location records that exist only in this file.
+// The companions and their 24 abilities are registered since D-111 (they were authored first and held back by D-088): their six
+// NPCs are authored with the regions, while their 18 arc quests and 18 camp scenes are still pending references (D-090) until
+// U54–U56 write them. The real pack is pinned as it stands; a second pack of the real tables with stub NPC, quest, scene, region
+// and location records (that exist only in this file) proves the records are complete once every outside id exists.
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
@@ -16,7 +17,7 @@ import { elfAbilities } from '@content/abilities/elf';
 import { itemAbilities } from '@content/abilities/items';
 import { wardenAbilities } from '@content/abilities/warden';
 import { weaverAbilities } from '@content/abilities/weaver';
-import { buildContentPack, contentTables, parseContentPack, type ContentTables } from '@content/index';
+import { buildContentPack, contentTables, parseContentPack, type ContentPack, type ContentReport, type ContentTables } from '@content/index';
 import { questItems } from '@content/items/quest';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { companions } from '@content/shared/companions';
@@ -68,23 +69,29 @@ const STAT = { ATK: 'atk', SP: 'sp' } as const;
 const TREES = { elf: elfAbilities, ironclad_warden: wardenAbilities, shadow_weaver: weaverAbilities } as const;
 
 describe('the real pack (U41 tables)', () => {
-  test('all five classes now have their 15 abilities; the Amulet and its Echo Bolt are in; the companions are not', () => {
+  test('all five classes now have their 15 abilities; the Amulet and its Echo Bolt are in; the six companions and their 24 comp_ abilities are registered (D-111)', () => {
     for (const classId of Object.keys(pack.classes)) expect([classId, pack.index.abilitiesByClass[classId]?.length]).toEqual([classId, 15]);
     for (const [classId, tree] of Object.entries(TREES)) {
       expect(tree).toHaveLength(15);
       expect(pack.index.abilitiesByClass[classId]).toEqual(tree.map((a) => a.id));
     }
-    expect(Object.keys(pack.abilities)).toHaveLength(83); // 75 class abilities + itm_echo_bolt + the consumables' seven (U50)
-    expect(Object.keys(pack.abilities).filter((id) => !/^(rgr|wiz|elf|wrd|wvr)_/.test(id))).toEqual(['itm_echo_bolt', ...consumableAbilities.map((a) => a.id)]);
+    expect(Object.keys(pack.abilities)).toHaveLength(107); // 75 class abilities + itm_echo_bolt + the consumables' seven (U50) + the companions' 24 (D-111)
+    expect(Object.keys(pack.abilities).filter((id) => !/^(rgr|wiz|elf|wrd|wvr)_/.test(id))).toEqual([
+      'itm_echo_bolt',
+      ...consumableAbilities.map((a) => a.id),
+      ...companionAbilities.map((a) => a.id),
+    ]);
     expect(Object.keys(pack.items)).toContain('item_amulet_of_echoes');
     expect(questItems.filter((i) => i.id === 'item_amulet_of_echoes')).toHaveLength(1);
     expect(itemAbilities.map((a) => a.id)).toEqual(['itm_echo_bolt']);
-    // D-088: authored, exported, not registered
-    expect(contentTables.companions).toEqual([]);
-    expect(contentTables.abilities.filter((a) => a.id.startsWith('comp_'))).toEqual([]);
-    expect(Object.keys(pack.companions)).toEqual([]);
+    // D-111: authored (D-088) and registered — the six records, in DESIGN order, and their 24 abilities in the table and the pack
     expect(companions).toHaveLength(6);
     expect(companionAbilities).toHaveLength(24);
+    expect(contentTables.companions).toEqual(companions);
+    expect(contentTables.abilities.filter((a) => a.id.startsWith('comp_'))).toEqual(companionAbilities);
+    expect(Object.keys(pack.companions)).toEqual(companions.map((c) => c.id));
+    expect(Object.keys(pack.abilities).filter((id) => id.startsWith('comp_'))).toEqual(companionAbilities.map((a) => a.id));
+    expect(INCOMPLETE_TABLES).not.toContain('companions');
   });
 
   test('validates with no errors, and rule 13 (15 per class, itm_echo_bolt and its Amulet) has nothing pending', () => {
@@ -99,17 +106,45 @@ describe('the real pack (U41 tables)', () => {
     expect(strict.warnings.filter((w) => w.rule === 'rule-22').map((w) => w.id)).not.toContain('item_amulet_of_echoes');
   });
 
-  test('`npm run validate` shows 83 abilities (75 class abilities + 8 item abilities), 157 items (U49: 70 gear, U50: 87) and fewer pending checks than before', () => {
+  test('`npm run validate` shows 107 abilities (75 class + 8 item + 24 companion), 6 companions, 157 items (U49: 70 gear, U50: 87) and fewer pending checks than before', () => {
     const out: string[] = [];
     expect(validateCli([], (line) => out.push(line))).toBe(0);
     const text = out.join('\n');
     expect(text).toMatch(/ items 157 · /);
-    expect(text).toMatch(/ abilities 83 · /);
+    expect(text).toMatch(/ abilities 107 · /);
+    expect(text).toMatch(/ companions 6 · /);
     expect(text).not.toContain('pending rule-13');
+    // the companion counts (6 records, 24 abilities) are met: rule 21 has no pending line for either table
+    expect(text).not.toMatch(/pending rule-21: (companions|abilities)\./);
     const pending = Number(/(\d+) pending completeness check/.exec(text)?.[1]);
     // 130 before this unit (U40's pack); without U51's rule 15/16 findings, the Echo grants and ending effects the quests and dialogue bring
     const waiting = [...text.matchAll(/pending rule-1[56]: (\d+) completeness/g)].reduce((n, m) => n + Number(m[1]), 0);
     expect(pending - waiting).toBeLessThan(130);
+  });
+
+  test('the companions\' open references are exactly their 18 arc quests and 18 camp scenes (pending, D-090, until U54–U56); their 6 NPCs are authored and point back', () => {
+    for (const c of companions) expect([c.id, c.npcId, pack.npcs[c.npcId]?.companionId]).toEqual([c.id, `npc_${c.id}`, c.id]);
+    const arcs = companions.flatMap((c) => c.arcQuestIds);
+    const scenes = companions.flatMap((c) => c.campScenes);
+    expect([arcs.length, scenes.length]).toEqual([18, 18]);
+    for (const id of arcs) expect([id, id in pack.quests]).toEqual([id, false]);
+    for (const id of scenes) expect([id, id in pack.dialogues]).toEqual([id, false]);
+
+    expect(parseContentPack().report.errors).toEqual([]);
+    const strict = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
+    expect(strict.errors).toEqual([]);
+    const theirs = strict.warnings.filter((w) => w.table === 'companions' || (w.table === 'abilities' && w.id.startsWith('comp_')));
+    const pendingRefs = companions.flatMap((c) => [
+      ...c.arcQuestIds.map((q, i) => `${c.id}.arcQuestIds.${i}: pending — content not yet authored (reference): arc quest '${q}' not found in quests`),
+      ...c.campScenes.map((d, i) => `${c.id}.campScenes.${i}: pending — content not yet authored (reference): camp scene '${d}' not found in dialogues`),
+    ]);
+    expect(theirs.filter((w) => w.rule === 'rule-01').map((w) => `${w.id}.${w.path}: ${w.message}`).sort()).toEqual([...pendingRefs].sort());
+    // rule 18 counts the arcs' terminal outcomes, which the missing arc quests cannot give yet: one pending line per companion
+    expect(theirs.filter((w) => w.rule === 'rule-18').map((w) => [w.id, w.message])).toEqual(
+      companions.map((c) => [c.id, 'pending — content not yet authored: the arc quests have fewer than two distinct terminal outcomes']),
+    );
+    expect(theirs).toHaveLength(pendingRefs.length + 6);
+    expect(pendingRefs).toHaveLength(36);
   });
 });
 
@@ -564,7 +599,7 @@ describe('three auto abilities and one signature each; cooldowns', () => {
   });
 });
 
-// ---- Arc quests, camp scenes, and the pack with stubs ----------------------------------------------------------------------
+// ---- Arc quests, camp scenes: the real pack, and a pack with stubs for what is still pending ----------------------------------------------------------------------
 
 /** STORY §11.4's headings: `#### \`q_voices_in_the_stacks\` — Voices in the Stacks (Ilyra 1)` → companion → arc order. */
 function storyArcs(): Record<string, string[]> {
@@ -630,7 +665,7 @@ const stubScenes: DialogueSceneInput[] = companions.flatMap((c) =>
   })),
 );
 
-/** The real tables, the six companion records and 24 abilities, and the stubs. `drop` removes one stub record by id. */
+/** The real tables (the six companion records and 24 abilities among them since D-111) and the stubs. `drop` removes one stub record by id. */
 function stubTables(drop?: string): ContentTables {
   const keep = <T extends { id: string }>(list: readonly T[]): T[] => list.filter((r) => r.id !== drop);
   return {
@@ -663,15 +698,13 @@ function stubTables(drop?: string): ContentTables {
     codex: [],
     // the quests' own fights (U53: the Horde-echo's waves) name a creature this stub pack does not have
     encounters: [],
-    abilities: [...contentTables.abilities, ...companionAbilities],
-    companions: [...companions],
     npcs: keep(stubNpcs),
     quests: keep(stubQuests),
     dialogues: keep(stubScenes),
   };
 }
 
-describe('the companions in a pack with stub NPC, quest and scene records (exists only in this test)', () => {
+describe('the companions in the real pack (D-111)', () => {
   test('STORY §11.4: three arc quests per companion, in arc order, are the record\'s `arcQuestIds`', () => {
     const arcs = storyArcs();
     expect(Object.keys(arcs).sort()).toEqual(companions.map((c) => c.id).sort());
@@ -683,6 +716,52 @@ describe('the companions in a pack with stub NPC, quest and scene records (exist
     expect(DESIGN).toContain('25 → camp conversation 2');
   });
 
+  test('without its companion record a comp_ ability is an error, and without its NPC pointing back so is the record (rule 1)', () => {
+    const noRecord = parseContentPack({ ...contentTables, companions: companions.filter((c) => c.id !== 'nyx') }).report.errors.map((e) => `${e.table}.${e.id}`);
+    expect(noRecord).toContain('abilities.comp_nyx_void_needle');
+    const unlinked = parseContentPack({ ...contentTables, npcs: contentTables.npcs.map((n) => (n.id === 'npc_brak' ? { ...n, companionId: undefined } : n)) }, { incompleteTables: INCOMPLETE_TABLES }).report.errors;
+    expect(unlinked.some((e) => e.table === 'companions' && e.id === 'brak' && /point back/.test(e.message))).toBe(true);
+  });
+
+  test('each of the six NPCs is needed: drop one from the real npcs and the validator names it on its companion', () => {
+    const strictReport = (p: ContentPack): ContentReport => validateContent(p, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
+    for (const c of companions) {
+      const { report } = parseContentPack({ ...contentTables, npcs: contentTables.npcs.filter((n) => n.id !== c.npcId) }, { incompleteTables: INCOMPLETE_TABLES, validate: strictReport });
+      const named = [...report.errors, ...report.warnings].filter((f) => f.table === 'companions' && f.id === c.id && f.message.includes(`'${c.npcId}'`));
+      expect([c.id, named.length]).toEqual([c.id, 1]);
+    }
+  });
+
+  test('Dask\'s restriction in data (DESIGN §12.8): active only where a location is temporally unstable or infected; nobody else is restricted', () => {
+    expect(S128).toContain('`location.temporallyUnstable || location.infected`');
+    expect(S128).toContain('No region list');
+    expect(companions.filter((c) => c.requiresTemporallyUnstable).map((c) => c.id)).toEqual(['dask']);
+    const dask = CompanionSchema.parse(companions.find((c) => c.id === 'dask') as CompanionInput);
+    expect([dask.requiresTemporallyUnstable, dask.constraintText, dask.stats.evasion]).toEqual([true, 'Dask flickers and cannot follow.', 20]);
+    expect(dask.banter.length + dask.campScenes.length).toBeGreaterThan(0);
+
+    // the real map: every location, every companion — only Dask is ever kept out, and only where the node is calm and uninfected
+    const s = newRun('u41', 'ranger', pack, freshProfile());
+    expect(s.world.infected).toEqual([]);
+    const locations = Object.values(pack.locations);
+    const unstable = locations.filter((l) => l.temporallyUnstable === true);
+    const calm = locations.filter((l) => l.temporallyUnstable !== true);
+    expect(unstable.length).toBeGreaterThan(0);
+    expect(calm.length).toBeGreaterThan(1);
+    for (const c of companions) {
+      for (const l of locations) {
+        expect([c.id, l.id, companionAllowedAt(s, pack, c.id, l.id)]).toEqual([c.id, l.id, c.id !== 'dask' || l.temporallyUnstable === true]);
+      }
+    }
+    // a Horde-infected node counts while infected
+    const [infected, other] = calm;
+    s.world.infected = [infected?.id ?? ''];
+    expect(companionAllowedAt(s, pack, 'dask', infected?.id ?? '')).toBe(true);
+    expect(companionAllowedAt(s, pack, 'dask', other?.id ?? '')).toBe(false);
+  });
+});
+
+describe('the companions in a pack with stub NPC, arc-quest and camp-scene records (exists only in this test)', () => {
   test('every record and ability parses, and the whole pack builds and validates with no errors or warnings', () => {
     const parsed = parseContentPack(stubTables());
     expect(parsed.report).toEqual({ errors: [], warnings: [] });
@@ -706,33 +785,5 @@ describe('the companions in a pack with stub NPC, quest and scene records (exist
       const { report } = parseContentPack(stubTables(id));
       expect([id, report.errors.some((e) => e.message.includes(`'${id}'`))]).toEqual([id, true]);
     }
-  });
-
-  test('without its companion record a comp_ ability is an error, and without its NPC pointing back so is the record (rule 1)', () => {
-    const noRecord = parseContentPack({ ...stubTables(), companions: companions.filter((c) => c.id !== 'nyx') }).report.errors.map((e) => `${e.table}.${e.id}`);
-    expect(noRecord).toContain('abilities.comp_nyx_void_needle');
-    const wrongNpc = stubTables();
-    const unlinked = parseContentPack({ ...wrongNpc, npcs: stubNpcs.map((n) => (n.id === 'npc_brak' ? { ...n, companionId: undefined } : n)) }).report.errors;
-    expect(unlinked.some((e) => e.table === 'companions' && e.id === 'brak' && /point back/.test(e.message))).toBe(true);
-  });
-
-  test('Dask\'s restriction in data (DESIGN §12.8): active only where a location is temporally unstable or infected; nobody else is restricted', () => {
-    expect(S128).toContain('`location.temporallyUnstable || location.infected`');
-    expect(S128).toContain('No region list');
-    expect(companions.filter((c) => c.requiresTemporallyUnstable).map((c) => c.id)).toEqual(['dask']);
-    const dask = CompanionSchema.parse(companions.find((c) => c.id === 'dask') as CompanionInput);
-    expect([dask.requiresTemporallyUnstable, dask.constraintText, dask.stats.evasion]).toEqual([true, 'Dask flickers and cannot follow.', 20]);
-    expect(dask.banter.length + dask.campScenes.length).toBeGreaterThan(0);
-
-    const p = buildContentPack(stubTables());
-    const s = newRun('u41', 'ranger', p, freshProfile());
-    for (const c of companions) {
-      expect([c.id, 'unstable', companionAllowedAt(s, p, c.id, UNSTABLE)]).toEqual([c.id, 'unstable', true]);
-      expect([c.id, 'calm', companionAllowedAt(s, p, c.id, CALM)]).toEqual([c.id, 'calm', c.id !== 'dask']);
-    }
-    // a Horde-infected node counts while infected
-    s.world.infected = [CALM];
-    expect(companionAllowedAt(s, p, 'dask', CALM)).toBe(true);
-    expect(companionAllowedAt(s, p, 'dask', HOME)).toBe(false);
   });
 });

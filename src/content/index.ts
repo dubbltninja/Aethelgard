@@ -43,6 +43,7 @@ import { RecipeSchema, type RecipeInput } from '@schema/recipe';
 import { RegionSchema, type RegionInput } from '@schema/region';
 import { StatusSchema, type StatusInput } from '@schema/status';
 import { elfAbilities } from './abilities/elf';
+import { companionAbilities } from './abilities/companions';
 import { consumableAbilities } from './abilities/consumables';
 import { itemAbilities } from './abilities/items';
 import { rangerAbilities } from './abilities/ranger';
@@ -60,6 +61,7 @@ import { achievements } from './shared/achievements';
 import { affixes } from './shared/affixes';
 import { attunements } from './shared/attunements';
 import { classes } from './shared/classes';
+import { companions } from './shared/companions';
 import { codex } from './shared/codex';
 import { configInput, gameConfig } from './shared/config';
 import { dialogues } from './shared/dialogues';
@@ -114,8 +116,8 @@ export interface ContentTables {
  * and the starting kits' item records. U41: the Elf, Warden and Weaver trees, the Amulet of Echoes and its Echo Bolt. U49: the
  * weapons, armor and trinkets. U50: the consumables, materials, quest/key/recipe/tome items, the 30 recipes, the eight merchants and
  * the seven abilities the consumables unleash (`items`, `recipes` and `merchants` leave INCOMPLETE_TABLES). The six companions and their 24 abilities (shared/companions.ts,
- * abilities/companions.ts) are authored but NOT listed here until the unit that lands the last NPC/quest/scene they
- * reference registers them (D-088, planned U56). U42+: the region folders' tables arrive through regions/index.ts (one
+ * abilities/companions.ts) are registered since D-111 (their arc quests and camp scenes are pending references until
+ * U54–U56 author them, D-090). U42+: the region folders' tables arrive through regions/index.ts (one
  * import line per region there; nothing changes here), with their references into tables still being authored pending
  * under D-090. U51: the 103 Echoes, 40 achievements, 15 Attunements, six modifiers, the eight ending and closer records and
  * the three factions (shared/{echoes,achievements,attunements,modifiers,endings,factions}.ts). U52: the six legacy quests and their
@@ -136,13 +138,14 @@ export const contentTables: ContentTables = {
     ...weaverAbilities,
     ...itemAbilities,
     ...consumableAbilities,
+    ...companionAbilities,
   ],
   classes: [...classes],
   statuses: [...statuses],
   quests: [...quests],
   dialogues: [...dialogues],
   npcs: [...regionTables.npcs],
-  companions: [],
+  companions: [...companions],
   echoes: [...echoes],
   codex: [...codex],
   achievements: [...achievements],

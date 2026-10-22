@@ -998,7 +998,7 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
     }
   });
 
-  test('the pending references are exactly the ids WORLD/STORY/DESIGN spell: neighbouring locations, quests, codex entries, Mireya (items since U49/U50, Echoes and endings since U51 resolve)', () => {
+  test('the pending references are exactly the ids WORLD/STORY/DESIGN spell: neighbouring locations, quests, codex entries (items since U49/U50, Echoes and endings since U51, Mireya since D-111 resolve)', () => {
     const { report } = parseContentPack(contentTables);
     const targets = new Set(report.warnings.filter((w) => w.message.includes('(reference)') && mine.has(w.id)).map((w) => /'([a-z_0-9]+)' not found/.exec(w.message)?.[1] ?? w.message));
     // the neighbouring locations drop out as their regions land (the Steppe's Reedmarch Descent, U46; the Highlands' Plateau, U44), and
@@ -1012,11 +1012,13 @@ describe('the real pack with Glowlands & Nexus registered (D-090)', () => {
         // Aberration's quest drop resolved when U53 authored `q_unlidded_eye`)
         'codex_region_glowlands_nexus', 'codex_creatures_green', 'codex_creatures_watch_wardens', 'codex_creatures_unravelled',
         'codex_tyrant_holding', 'codex_tyrant_six', 'codex_veyran_thal',
-        'mireya', // the companion record (D-088: registered by U56)
+        // (`mireya`, the companion record, dropped out when D-111 registered the six companions)
       ]
         .filter(stillPending)
         .sort(),
     );
+    expect(targets.has('mireya')).toBe(false);
+    expect(pack.companions['mireya']?.npcId).toBe('npc_mireya');
     // every one is an id the documents spell
     const docs = `${WORLD}\n${STORY}\n${DESIGN}`;
     for (const id of targets) expect([id, docs.includes(id)]).toEqual([id, true]);

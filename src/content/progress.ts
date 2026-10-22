@@ -12,11 +12,11 @@ import type { TableName } from '@schema/contentPack';
 // U51 (2026-10-17): `echoes`, `achievements`, `attunements`, `modifiers`, `endings` and `factions` are complete.
 // U50 (2026-10-17): `items` (157), `recipes` (30) and `merchants` (8) are complete.
 // U34e (2026-10-18): `creatures` is complete — WORLD §6's 57 plus §10.2's 16 anomaly variants.
+// D-111 (2026-10-21): `companions` is complete — the six records are registered (their arcs and camp scenes stay pending).
 export const INCOMPLETE_TABLES: readonly TableName[] = [
   'quests',
   'dialogues',
   'npcs',
-  'companions',
   'codex',
   'encounters',
 ];

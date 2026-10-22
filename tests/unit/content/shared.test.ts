@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
+import { companionAbilities } from '@content/abilities/companions';
 import { elfAbilities } from '@content/abilities/elf';
 import { consumableAbilities } from '@content/abilities/consumables';
 import { itemAbilities } from '@content/abilities/items';
@@ -23,6 +24,7 @@ import { weapons } from '@content/items/weapons';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { affixes } from '@content/shared/affixes';
 import { classes } from '@content/shared/classes';
+import { companions } from '@content/shared/companions';
 import { statuses } from '@content/shared/statuses';
 import { validateContent } from '@content/validate';
 import { derive, newRun, resourceGain } from '@engine/index';
@@ -68,9 +70,17 @@ describe('the real pack (U40 tables)', () => {
     expect(Object.keys(pack.classes)).toEqual(['ranger', 'wizard', 'elf', 'ironclad_warden', 'shadow_weaver']);
     expect(Object.keys(pack.statuses)).toEqual([...CANONICAL_STATUSES]);
     expect(Object.keys(pack.affixes)).toHaveLength(12);
-    // U41 appended the other three trees, the Amulet's bolt and the Amulet (tests/unit/content/shared2.test.ts); U50 the consumables' seven
-    const abilityRows = [...rangerAbilities, ...wizardAbilities, ...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities, ...consumableAbilities];
+    // U41 appended the other three trees, the Amulet's bolt and the Amulet (tests/unit/content/shared2.test.ts); U50 the consumables' seven;
+    // D-111 the six companions' 24 comp_ abilities, last
+    const abilityRows = [...rangerAbilities, ...wizardAbilities, ...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities, ...consumableAbilities, ...companionAbilities];
     expect(Object.keys(pack.abilities)).toEqual(abilityRows.map((a) => a.id));
+    expect(abilityRows).toHaveLength(107);
+    expect(Object.keys(pack.abilities).filter((id) => id.startsWith('comp_'))).toHaveLength(24);
+    // D-111: the six companions are registered (their arc quests and camp scenes are pending references until U54–U56, D-090)
+    expect(Object.keys(pack.companions)).toEqual(companions.map((c) => c.id));
+    expect(Object.keys(pack.companions)).toHaveLength(6);
+    expect(contentTables.companions).toEqual(companions);
+    expect(INCOMPLETE_TABLES).not.toContain('companions');
     // U49 added the weapons, armor and trinkets (items/gear.test.ts); U50 the consumables, materials, quest/key/recipe/tome items
     expect(Object.keys(pack.items)).toEqual([...weapons, ...armor, ...trinkets, ...consumables, ...materials, ...questTableItems].map((i) => i.id));
     expect(contentTables.classes).toEqual(classes);

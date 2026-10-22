@@ -318,6 +318,16 @@ export const locations = [
     events: [
       { id: 'ev_archives_murmur', text: 'A submerged page unfurls, whispering of the Ley Line Conflux.' },
       { id: 'ev_archives_lamp', text: 'On the top step of the drowned stair sits a lantern etched with glyphs. The water below it is black, not dark.' },
+      // U54 (STORY §11.4 q_the_danthe_line stage 3, §13 scene_the_first_drowned): with Ilyra in the party, the carrel under the
+      // east stair opens Oriel's scene on every arrival while the stage runs (as the Depths' `ev_depths_choice`); the scene
+      // grants `echo_oriel_drowned`, which makes the Archivist's fight optional from then on.
+      {
+        id: 'ev_archives_first_drowned',
+        text: 'In the carrel under the east stair the Archivist has not turned her back. She is reading, and Ilyra has stopped walking.',
+        once: false,
+        when: { all: [{ quest: { id: 'q_the_danthe_line', stage: 'carrel' } }, { companion: { id: 'ilyra' } }] },
+        effects: [{ startDialogue: 'scene_the_first_drowned' }],
+      },
     ],
     // WORLD's particles are "slow rising bubbles with ley-green light under the waterline"; motes is the nearest preset.
     art: { template: 'archive', horizon: 0.6, silhouettes: ['submerged_shelves', 'vault_arch', 'stair_head'], particles: 'motes', timeOfDay: 'timeless' },

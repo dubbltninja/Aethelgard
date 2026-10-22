@@ -306,15 +306,135 @@ const eyeDecided = (choiceId: 'warn' | 'look', stage: string): ScriptStep[] => [
   holds({ echo: 'echo_void_resonance' }, 'the Note of Closing was not granted'),
 ];
 
+// ---- U54: Ilyra's and Brak's arcs (recruitment proved inside the quest proofs; the camp scenes play through the rests) ------------
+
+/** A bot that passes the time where it stands (for `until`: the Library's second watch). */
+const waiter: Bot = { name: 'waiter', choose: (_s, legal) => legal.find((a) => a.type === 'wait') ?? (legal[0] as Action) };
+
+/** A bot that buys `itemId` at the stall here (for `until`: Kaelen's salt), else waits. */
+const buyer = (itemId: string): Bot => ({
+  name: `buyer:${itemId}`,
+  choose: (s, legal) =>
+    legal.find((a) => a.type === 'buy' && s.merchants[a.merchantId]?.stock.find((i) => i.uid === a.uid)?.itemId === itemId) ??
+    legal.find((a) => a.type === 'wait') ??
+    (legal[0] as Action),
+});
+
+/** A bot that takes `choiceId` whenever it is offered and otherwise continues (for `until`: a scene an arrival opened). */
+const chooser = (choiceId: string): Bot => ({
+  name: `chooser:${choiceId}`,
+  choose: (_s, legal) =>
+    legal.find((a) => a.type === 'choose' && a.choiceId === choiceId) ?? legal.find((a) => a.type === 'continue') ?? legal.find((a) => a.type === 'choose') ?? (legal[0] as Action),
+});
+
+const ILYRA_RECRUITED: Condition = { companion: { id: 'ilyra', state: 'recruited' } };
+const BRAK_RECRUITED: Condition = { companion: { id: 'brak', state: 'recruited' } };
+
+/** q_voices_in_the_stacks from its offer: the Library's night watch, the verse read aloud, the watchword. */
+const voicesHeard: ScriptStep[] = [
+  { talk: 'npc_ilyra', pick: ['voices', 'yes'] }, // the hub: the Voices
+  holds({ quest: { id: 'q_voices_in_the_stacks', stage: 'stacks' } }, 'q_voices_in_the_stacks did not start'),
+  { goto: 'loc_shattered_library' },
+  { until: { quest: { id: 'q_voices_in_the_stacks', stage: 'ask' } }, do: waiter, maxSteps: 12 },
+  { goto: 'loc_whispering_ruins' },
+  { talk: 'npc_ilyra', pick: ['read_aloud', 'what_would'] },
+  done('q_voices_in_the_stacks', 'watchword'),
+  holds({ echo: 'echo_ilyra_watchword' }, 'the watchword was not granted'),
+];
+
+/**
+ * Loop 3 with the watchword and the bond: she believes you at the first meeting, the Crystal by the shortcut and given, the
+ * scroll accepted, and she joins (loyalty 25 from `echo_ilyra_bond`).
+ */
+const ilyraJoinsLoop3: ScriptStep[] = [
+  { talk: 'npc_ilyra', pick: ['watchword', 'third_alcove'] },
+  holds({ quest: { id: 'q_echo_crystal', stage: 'take_crystal' } }, 'the shortcut did not open the Crystal quest'),
+  { goto: 'loc_shattered_library' },
+  takeAll,
+  { goto: 'loc_whispering_ruins' },
+  { talk: 'npc_ilyra', pick: ['give'] },
+  done('q_echo_crystal', 'given'),
+  { talk: 'npc_ilyra', pick: [] }, // scene_ilyra_crystal_deciphered
+  { talk: 'npc_ilyra', pick: ['yes'] }, // the scroll offer wins the tie
+  { talk: 'npc_ilyra', pick: ['come'] }, // the hub: she joins
+  holds({ all: [ILYRA_RECRUITED, { loyalty: { companion: 'ilyra', min: 25 } }] }, 'Ilyra did not join at the bond loyalty'),
+];
+
+/** The scroll (accepted already) from the Archivist's carrel, delivered to Ilyra (a loyalty beat, now that she is in the party). */
+const scrollToIlyra: ScriptStep[] = [...scrollFetched.slice(1), { goto: 'loc_whispering_ruins' }, { talk: 'npc_ilyra', pick: ['give'] }, done('q_lost_scroll', 'to_ilyra')];
+
+/** q_the_danthe_line from its offer: the Door of Pages with her, back to the carrel, Oriel; `choiceId` decides. */
+const dantheLine = (choiceId: 'take' | 'leave', stage: string): ScriptStep[] => [
+  { talk: 'npc_ilyra', pick: ['door', 'yes'] }, // the hub: the Door of Pages
+  holds({ quest: { id: 'q_the_danthe_line', stage: 'door' } }, 'q_the_danthe_line did not start'),
+  { goto: 'loc_sunken_archives' },
+  takeAll, // the lantern: the Reach's dark gate
+  { goto: 'loc_sunken_scriptorium' },
+  holds({ all: [{ quest: { id: 'q_the_danthe_line', stage: 'carrel' } }, { echo: 'echo_oriel_lineage' }] }, 'the Door did not open to her seal'),
+  { goto: 'loc_lamplighters_rest' },
+  { rest: 1 },
+  { goto: 'loc_drowned_stair' },
+  { type: 'move', to: 'loc_sunken_archives' }, // the carrel's event opens scene_the_first_drowned
+  { until: { quest: { id: 'q_the_danthe_line', status: 'completed' } }, do: chooser(choiceId), maxSteps: 30 },
+  done('q_the_danthe_line', stage),
+  holds({ echo: 'echo_oriel_drowned' }, 'the First Drowned was not met'),
+];
+
+/** Loop 3: she joins, the Voices, the scroll, the Door of Pages: Loyal (50) by the Keeper's table. */
+const ilyraLoyalLoop3: ScriptStep[] = [...ilyraJoinsLoop3, ...voicesHeard, ...scrollToIlyra, ...dantheLine('take', 'taken'), holds({ loyalty: { companion: 'ilyra', min: 50 } }, 'Ilyra is not Loyal')];
+
+/** The Keeper's table: the Ledger accepted first (it wins the tie), then the telling and `choiceId`. */
+const keepersPrice = (choiceId: 'keeper' | 'never', stage: string): ScriptStep[] => [
+  ...ilyraLoyalLoop3,
+  { goto: 'loc_shattered_library' },
+  { talk: 'npc_ansel_dray', pick: ['yes'] }, // q_keepers_ledger: its offer wins the tie
+  { talk: 'npc_ansel_dray', pick: ['yes', choiceId] },
+  done('q_the_keepers_price', stage),
+];
+
+/** Loop 2+: the Peaks and the Outpost (the warder's word), Brak recruited between them. */
+const brakJoins: ScriptStep[] = [
+  ...clearPath,
+  ...outpostAccepted,
+  { talk: 'npc_brak', pick: ['come'] }, // the hub: he joins for the Outpost
+  holds(BRAK_RECRUITED, 'Brak did not join'),
+  { fight: 'flee' },
+  { goto: 'loc_blighted_outpost' }, // the word stills the Golems (the shortcut)
+  { goto: 'loc_ironclad_camp' },
+  { talk: 'npc_brak', pick: [] },
+  done('q_blighted_outpost', 'done'),
+  { fight: 'melee' },
+];
+
+/** Blood and Salt by Kaelen's door (Loop 2+ with the dropped name: the quest opens at Kaelen's), the whetstone to Brak. */
+const saltByKaelen: ScriptStep[] = [
+  { goto: 'loc_wayfarers_respite' },
+  { talk: 'npc_kaelen_stonehand', pick: ['salt'] },
+  holds({ quest: { id: 'q_blood_and_salt', stage: 'kaelen' } }, 'the dropped name did not open the quest at Kaelen'),
+  { talk: 'npc_kaelen_stonehand', pick: ['brother', 'said_it'] },
+  holds({ all: [{ quest: { id: 'q_blood_and_salt', stage: 'to_brak_spoke' } }, { item: { id: 'item_fathers_whetstone' } }, { item: { id: 'mat_steppe_salt' } }] }, 'Kaelen did not give the salt and the whetstone'),
+  { goto: 'loc_ironclad_camp' },
+  { talk: 'npc_brak', pick: [] },
+  done('q_blood_and_salt', 'spoke'),
+  holds({ all: [{ echo: 'echo_kaelen_ledger' }, { not: { item: { id: 'item_fathers_whetstone' } } }] }, "the ledger was not granted, or Brak did not take the whetstone"),
+];
+
+/** The Line, told after the Outpost: `choiceId` is his. */
+const lineHeHolds = (choiceId: 'stay' | 'come_anyway' | 'nexus', stage: string): ScriptStep[] => [
+  { goto: 'loc_ironclad_camp' },
+  { talk: 'npc_brak', pick: ['apex', 'tell', 'words', choiceId] },
+  done('q_the_line_he_holds', stage),
+];
+
 // ---- U55: Nyx's and Dask's arcs (Loop 2+; the bond Echo starts the companion at 25, DESIGN §12.5) -------------------------------
 
-/** A bot that passes time in place (`wait`, else a short rest): for an `until` that waits for a watch. */
-const waiter: Bot = {
+/** A bot that passes time in place (`wait`, else a short rest): for an `until` that waits for a watch. (U54 has a plain `waiter`.) */
+const restingWaiter: Bot = {
   name: 'waiter',
   choose: (_s, legal) => legal.find((a) => a.type === 'wait') ?? legal.find((a) => a.type === 'rest' && a.kind === 'short') ?? (legal[0] as Action),
 };
 /** Pass time here until `when` holds (a watch, at most a day). */
-const waitFor = (when: Condition): ScriptStep => ({ until: when, do: waiter, maxSteps: 12 });
+const waitFor = (when: Condition): ScriptStep => ({ until: when, do: restingWaiter, maxSteps: 12 });
 /**
  * Before a `talk` at a camp: a `goto` of the place one stands in walks through the camp conversation a rest just opened
  * (a full rest with a companion in the party opens one, DESIGN §12.7 — `trained` rests when HP is low, and a `talk` would
@@ -649,6 +769,142 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     seed: 'quest:eye:warn:a', // as above
     profile: { loop: 3, echoes: ['echo_weaver_sign', 'echo_hollow_path', 'echo_heartstone_path', 'echo_litany_verse_1'], bestLevel: 17 },
     steps: [...eyeDecided('warn', 'warned'), holds({ not: { echo: 'echo_choir_knows' } }, 'the Choir knows')],
+  },
+  // ---- U54 · q_voices_in_the_stacks (Loop 2+, after the Crystal; she joins after it: "Ilyra recruitable") ----
+  {
+    questId: 'q_voices_in_the_stacks',
+    outcome: 'watchword',
+    name: 'Loop 2: the Library at night, the verse read aloud, the watchword; then she joins',
+    classId: CLASS,
+    seed: 'quest:voices',
+    profile: { loop: 2, echoes: ['echo_crystal_location'], bestLevel: 5 },
+    steps: [
+      ...crystalGiven(true),
+      { talk: 'npc_ilyra', pick: ['yes'] }, // the scroll offer wins the tie
+      ...voicesHeard,
+      { talk: 'npc_ilyra', pick: ['come'] }, // the hub: she believes you now
+      holds(ILYRA_RECRUITED, 'Ilyra did not join after the Voices'),
+    ],
+  },
+  // ---- U54 · q_the_danthe_line (Loop 3 with the watchword, the Door of Pages known and the bond) ----
+  {
+    questId: 'q_the_danthe_line',
+    outcome: 'taken',
+    name: "Loop 3: she joins at the watchword; the Door of Pages, Oriel's carrel, the ring taken",
+    classId: CLASS,
+    seed: 'quest:danthe:ring',
+    profile: { loop: 3, echoes: ['echo_ilyra_watchword', 'echo_crystal_location', 'echo_archive_door', 'echo_ilyra_bond'], bestLevel: 17 },
+    steps: [...ilyraJoinsLoop3, ...dantheLine('take', 'taken'), holds({ all: [{ item: { id: 'item_oriels_ring' } }, { echo: 'echo_oriel_lineage' }] }, "Oriel's Ring or the lineage is missing")],
+  },
+  {
+    questId: 'q_the_danthe_line',
+    outcome: 'left',
+    name: "Loop 3: she joins at the watchword; the Door of Pages, Oriel's carrel, the ring left",
+    classId: CLASS,
+    seed: 'quest:danthe:left',
+    profile: { loop: 3, echoes: ['echo_ilyra_watchword', 'echo_crystal_location', 'echo_archive_door', 'echo_ilyra_bond'], bestLevel: 17 },
+    steps: [...ilyraJoinsLoop3, ...dantheLine('leave', 'left'), holds({ not: { item: { id: 'item_oriels_ring' } } }, "Oriel's Ring was taken")],
+  },
+  // ---- U54 · q_the_keepers_price (Loop 3: Loyal by the Voices, the scroll and the Door; the cost known) ----
+  {
+    questId: 'q_the_keepers_price',
+    outcome: 'keeper',
+    name: "Loop 3: Loyal by her arc; the Keeper's way (the Library portal hers to open)",
+    classId: CLASS,
+    seed: 'quest:keeper:keeper',
+    profile: { loop: 3, echoes: ['echo_ilyra_watchword', 'echo_crystal_location', 'echo_archive_door', 'echo_ilyra_bond', 'echo_ilyra_cost'], bestLevel: 17 },
+    steps: [...keepersPrice('keeper', 'keeper'), holds({ echo: 'echo_portal_tear' }, "the Keeper's Echo was not granted")],
+  },
+  {
+    questId: 'q_the_keepers_price',
+    outcome: 'unbound_hand',
+    name: 'Loop 3: Loyal by her arc; never again',
+    classId: CLASS,
+    seed: 'quest:keeper:never',
+    profile: { loop: 3, echoes: ['echo_ilyra_watchword', 'echo_crystal_location', 'echo_archive_door', 'echo_ilyra_bond', 'echo_ilyra_cost'], bestLevel: 17 },
+    steps: [...keepersPrice('never', 'unbound_hand'), holds({ not: { echo: 'echo_portal_tear' } }, "the Keeper's Echo was granted")],
+  },
+  // ---- U54 · q_the_scouts_oath (Loop 3 with the oath: the Peaks, the Outpost, Brak joins, the ride east) ----
+  {
+    questId: 'q_the_scouts_oath',
+    outcome: 'named',
+    name: 'Loop 3: Brak joins for the Outpost; the ride east, two ambushes, the Ring; the name said once',
+    classId: 'ironclad_warden',
+    seed: 'quest:oath',
+    profile: { loop: 3, echoes: ['echo_ironclad_oath', 'echo_stone_hide_origin'], bestLevel: 17 },
+    steps: [
+      ...brakJoins,
+      { talk: 'npc_brak', pick: ['ring', 'yes'] }, // the hub: the Ring
+      holds({ quest: { id: 'q_the_scouts_oath', stage: 'ride' } }, 'q_the_scouts_oath did not start'),
+      { rest: 1 },
+      { goto: 'loc_scorched_gate' }, // the jackal
+      { goto: 'loc_ash_wind_flats' }, // the harrier
+      { goto: 'loc_hearthring' },
+      holds({ quest: { id: 'q_the_scouts_oath', stage: 'oath' } }, 'the ride did not reach the Ring'),
+      { talk: 'npc_hadda_ironvow', pick: ['word'] },
+      done('q_the_scouts_oath', 'named'),
+      holds({ all: [{ item: { id: 'item_scouts_whistle' } }, { echo: 'echo_brak_birth_name' }, { flag: 'flag_hearthring_caravan' }] }, 'the whistle, the name or the caravan is missing'),
+    ],
+  },
+  // ---- U54 · q_blood_and_salt (Loop 1 from Brak, the Peaks refused; Loop 3 from Kaelen with the dropped name) ----
+  {
+    questId: 'q_blood_and_salt',
+    outcome: 'fine',
+    name: 'Loop 1: the Peaks refused, the salt bought, no word from Kaelen',
+    classId: CLASS,
+    seed: 'quest:salt:fine',
+    steps: [
+      ...heartstone('stabilize', 'done_stabilize'),
+      { goto: 'loc_ironclad_camp' },
+      { talk: 'npc_brak', pick: ['no'] }, // the Peaks refused
+      { talk: 'npc_brak', pick: ['yes'] }, // the first offer outranks the Peaks offer
+      holds({ quest: { id: 'q_blood_and_salt', stage: 'salt' } }, 'q_blood_and_salt did not start'),
+      { goto: 'loc_wayfarers_respite' },
+      { until: { item: { id: 'mat_steppe_salt' } }, do: buyer('mat_steppe_salt'), maxSteps: 6 },
+      holds({ quest: { id: 'q_blood_and_salt', stage: 'kaelen' } }, 'the salt did not move the quest on'),
+      { talk: 'npc_kaelen_stonehand', pick: ['brother', 'only_salt'] },
+      { goto: 'loc_ironclad_camp' },
+      { talk: 'npc_brak', pick: [] },
+      done('q_blood_and_salt', 'fine'),
+      holds({ all: [{ echo: 'echo_kaelen_ledger' }, { not: { item: { id: 'mat_steppe_salt' } } }] }, 'the ledger was not granted, or the salt not taken'),
+    ],
+  },
+  {
+    questId: 'q_blood_and_salt',
+    outcome: 'spoke',
+    name: "Loop 3: by Kaelen's door with the dropped name; the whetstone to Brak",
+    classId: CLASS,
+    seed: 'quest:salt:spoke',
+    profile: { loop: 3, echoes: ['echo_brak_birth_name'], bestLevel: 5 },
+    steps: saltByKaelen,
+  },
+  // ---- U54 · q_the_line_he_holds (Loop 3 with his death known: the Peaks, the Outpost, then the truth) ----
+  {
+    questId: 'q_the_line_he_holds',
+    outcome: 'kept_away',
+    name: 'Loop 3: told and proved; he stays at the Ring (and leaves the party)',
+    classId: 'ironclad_warden',
+    seed: 'quest:line:stay',
+    profile: { loop: 3, echoes: ['echo_brak_death', 'echo_stone_hide_origin'], bestLevel: 17 },
+    steps: [...brakJoins, ...lineHeHolds('stay', 'kept_away'), holds({ all: [{ flag: 'flag_brak_kept_away' }, { not: BRAK_RECRUITED }] }, 'he was not kept away')],
+  },
+  {
+    questId: 'q_the_line_he_holds',
+    outcome: 'comes_anyway',
+    name: 'Loop 3: told and proved; he comes anyway',
+    classId: 'ironclad_warden',
+    seed: 'quest:line:come',
+    profile: { loop: 3, echoes: ['echo_brak_death', 'echo_stone_hide_origin'], bestLevel: 17 },
+    steps: [...brakJoins, ...lineHeHolds('come_anyway', 'comes_anyway'), holds({ all: [{ not: { flag: 'flag_brak_kept_away' } }, BRAK_RECRUITED] }, 'he did not stay in the party')],
+  },
+  {
+    questId: 'q_the_line_he_holds',
+    outcome: 'holds_nexus',
+    name: "Loop 3: Blood and Salt by Kaelen's door first; told and proved; he holds the Nexus and lives",
+    classId: 'ironclad_warden',
+    seed: 'quest:line:nexus',
+    profile: { loop: 3, echoes: ['echo_brak_death', 'echo_stone_hide_origin', 'echo_brak_birth_name'], bestLevel: 17 },
+    steps: [...brakJoins, ...saltByKaelen, ...lineHeHolds('nexus', 'holds_nexus'), holds({ all: [{ echo: 'echo_brak_lives' }, BRAK_RECRUITED] }, 'the Nexus line was not granted')],
   },
   // ---- U55 · q_tears_of_the_breach (Loop 2, the bond; the shards given, Nyx recruited at the lip) ----
   {

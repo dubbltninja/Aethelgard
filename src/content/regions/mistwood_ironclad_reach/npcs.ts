@@ -37,6 +37,8 @@ export const npcs = [
     // quest giver: q_clear_path, q_blighted_outpost and the Brak arc (WORLD §4)
     roles: ['companion', 'questgiver'],
     companionId: 'brak',
+    // U54 (WORLD §12.1 `ws_brak_kept_away`; STORY §7.2 outcome A): kept away, he waits at Hearthring for the loop (D-102 schedule)
+    schedule: [{ when: { flag: 'flag_brak_kept_away' }, at: ['loc_hearthring'] }],
     barks: [
       { text: 'Peaks first. Then the Outpost. Then we talk.' },
       { text: 'Two golems. One of you. I like the odds less than you do.' },

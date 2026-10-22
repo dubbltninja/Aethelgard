@@ -652,9 +652,13 @@ export const dialogues = [
     // STORY §13: what the companion in the party says (a companion may not voice a node until U56 registers them, D-088)
     companionReactions: [
       { companionId: 'ilyra', when: { flag: 'flag_heartstone_stabilized' }, text: 'Ilyra: "It\'s keeping time with something. Can you hear it? It\'s keeping time."' },
+      // U54 (STORY §7.1 refusals): she will not help exploit the Heartstone, and leaves the party for the loop (`onEnd` below; written)
+      { companionId: 'ilyra', when: { flag: 'flag_heartstone_exploited' }, text: 'Ilyra: "No. Not with my hands near it. Find me when it is quiet again, Wayfinder; it will not be this loop."' },
       { companionId: 'nyx', when: { flag: 'flag_heartstone_exploited' }, text: 'Nyx: "Good. Now it has to hold without its anchor. Now we\'ll see what it is."' },
       { companionId: 'brak', when: { flag: 'flag_heartstone_destroyed' }, text: 'Brak: "That\'s the kind of quiet I don\'t trust."' },
     ],
+    // U54: an Exploit sends Ilyra from the party for the loop (her recruitment scene will not have her back in it)
+    onEnd: [{ onlyIf: { when: { all: [{ flag: 'flag_heartstone_exploited' }, { companion: { id: 'ilyra', state: 'recruited' } }] }, effects: [{ dismiss: 'ilyra' }] } }],
   },
   {
     id: 'scene_brak_twenty_dawns',

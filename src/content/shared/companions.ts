@@ -2,21 +2,24 @@
 // D-013, D-053, D-059, D-066 #12, D-080). Plain ids (D-044); each companion's NPC record is `npc_<name>` with
 // `companion: "<id>"` (WORLD §4). Their 24 abilities are in src/content/abilities/companions.ts.
 //
-// NOT REGISTERED YET. A companion record names its NPC, its three arc quests and its camp scenes, and every `comp_` ability
-// needs its companion record (validator rule 1); none of those NPCs, quests or scenes exist yet, so putting these records in
-// `contentTables` would break the real pack (D-088). Registered by the unit that lands the last NPC/quest/scene they reference
-// (U56). Until then real-pack sims run without companions.
+// Registered since D-111 (authored by U41, held back by D-088 until the six NPCs existed): a companion record names its NPC,
+// its three arc quests and its camp scenes, and every `comp_` ability needs its companion record (validator rule 1). The arc
+// quests and camp scenes are pending references (D-090) until their unit lands them: U54 Ilyra and Brak (done), U55 Nyx and
+// Dask, U56 Mireya and Caelum.
 //
-// What the later units must use (the ids below are the contract):
+// What the arc units use (the ids below are the contract):
 //   npcId         `npc_<id>`: the region unit that authors the NPC uses this id and sets `companionId` back (WORLD §4 ids).
-//   arcQuestIds   STORY §11.4's three quests per companion, in arc order: U54 Ilyra and Brak, U55 Nyx and Dask, U56 Mireya and
-//                 Caelum (PLAN's unit table).
-//   campScenes    `scene_<id>_camp_1…3`, in the order they are offered: STORY names no camp scenes, so these ids are this unit's
-//                 (the pattern is the companion schema test's `scene_brak_camp_1`). The arc units author them: the first plays at
-//                 a rest with the companion, the second from loyalty 25, the third from 50 (DESIGN §12.5). A unit that wants more
-//                 or fewer edits this list.
+//   arcQuestIds   STORY §11.4's three quests per companion, in arc order (shared/quests/companions_u5<n>.ts).
+//   campScenes    `scene_<id>_camp_1…3`, in the order they are offered: STORY names no camp scenes, so these ids are U41's (the
+//                 pattern is the companion schema test's `scene_brak_camp_1`; U54 kept them). The arc units author them
+//                 (shared/dialogues/companions_u5<n>.ts): no `npcId`, a full rest with the companion in the party opens the best
+//                 fresh one (reducers/dialogue.ts), so their priorities descend (3, 2, 1) and they come in order: the first plays
+//                 at a rest with the companion, the second from loyalty 25, the third from 50 (DESIGN §12.5, §12.7). A unit that
+//                 wants more or fewer edits this list.
 // Fields left to their defaults: `stances` (the engine's §4.9 numbers are constants, D-080), `startingLoyalty` 0 (the bond
-// Echoes raise it to 25), `banter` (the arc units' dialogue).
+// Echoes raise it to 25), `banter` (the engine reads none yet). STORY §7's refusals of places (Ilyra: the Veil; Brak: the Hollow
+// Choir, Nyx behind him, the Apex after an Exploit) have no form in data: only Dask's rule (`requiresTemporallyUnstable`) keeps a
+// companion out of a place; a `refusesWhen` on the record read by `companionAllowedAt` would carry them (the U54 reply lists it).
 // The signature cooldown is the record's (the ability row has none); loyalty ≥ 50 shortens it by 1 (DESIGN §12.5, engine).
 import type { CompanionInput } from '@schema/companion';
 

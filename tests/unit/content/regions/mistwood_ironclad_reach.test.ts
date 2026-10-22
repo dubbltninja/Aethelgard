@@ -801,10 +801,11 @@ describe('the real pack with the region registered (D-090)', () => {
     const beforePillars = ['loc_archives_of_danthe', 'loc_conflux_chamber'].filter((id) => pack.locations[id] !== undefined).map(() => 'rule-11 cr_warding_pillar level');
     expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual(
       [
-        // Tessaly's caravan flag is a later unit's to set; the engine's own (Horde, Brak kept away, the expiry) are
-        // ENGINE_WRITTEN_FLAGS and raise nothing. The Heartstone flags the Forge reads raise rule-02 once per flag, at their
-        // first use in table order, which is the Ruins' Depths (silverwood_ruins.test.ts pins those three).
-        'rule-02 loc_ironclad_camp events.1.when.flag',
+        // Tessaly's caravan flag is set by the Scout's Oath (U54, WORLD §12.1 `ws_caravan`) once that quest has landed; the
+        // engine's own (Horde, Brak kept away, the expiry) are ENGINE_WRITTEN_FLAGS and raise nothing. The Heartstone flags the
+        // Forge reads raise rule-02 once per flag, at their first use in table order, which is the Ruins' Depths
+        // (silverwood_ruins.test.ts pins those three).
+        ...(pack.quests['q_the_scouts_oath'] === undefined ? ['rule-02 loc_ironclad_camp events.1.when.flag'] : []),
         ...beforePillars,
       ].sort(),
     );

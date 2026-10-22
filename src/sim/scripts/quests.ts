@@ -352,8 +352,8 @@ const ilyraJoinsLoop3: ScriptStep[] = [
   holds({ all: [ILYRA_RECRUITED, { loyalty: { companion: 'ilyra', min: 25 } }] }, 'Ilyra did not join at the bond loyalty'),
 ];
 
-/** The scroll from the Archivist's carrel, delivered to Ilyra (a loyalty beat, now that she is in the party). */
-const scrollToIlyra: ScriptStep[] = [...scrollFetched, { goto: 'loc_whispering_ruins' }, { talk: 'npc_ilyra', pick: ['give'] }, done('q_lost_scroll', 'to_ilyra')];
+/** The scroll (accepted already) from the Archivist's carrel, delivered to Ilyra (a loyalty beat, now that she is in the party). */
+const scrollToIlyra: ScriptStep[] = [...scrollFetched.slice(1), { goto: 'loc_whispering_ruins' }, { talk: 'npc_ilyra', pick: ['give'] }, done('q_lost_scroll', 'to_ilyra')];
 
 /** q_the_danthe_line from its offer: the Door of Pages with her, back to the carrel, Oriel; `choiceId` decides. */
 const dantheLine = (choiceId: 'take' | 'leave', stage: string): ScriptStep[] => [

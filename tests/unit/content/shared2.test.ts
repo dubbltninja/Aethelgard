@@ -132,7 +132,7 @@ describe('the real pack (U41 tables)', () => {
     // the open set only shrinks, and every remaining entry belongs to a companion not yet authored
     const authored = (c: (typeof companions)[number]): boolean => c.arcQuestIds.every((q) => q in pack.quests) && c.campScenes.every((d) => d in pack.dialogues);
     const authoredIds = companions.filter(authored).map((c) => c.id);
-    expect(authoredIds).toEqual(expect.arrayContaining(['nyx', 'dask']));
+    for (const id of ['nyx', 'dask']) expect(authoredIds).toContain(id);
     for (const c of companions.filter((x) => !authored(x))) {
       for (const id of c.arcQuestIds) expect([c.id, id, id in pack.quests]).toEqual([c.id, id, false]);
       for (const id of c.campScenes) expect([c.id, id, id in pack.dialogues]).toEqual([c.id, id, false]);

@@ -326,7 +326,8 @@ describe('reputation, loyalty, Echoes and flags at every decision (STORY §11.4,
     expect(loyaltyOf(REFUSED)).toEqual({ nyx: LOYALTY_AGAINST });
     expect(storyBlock('q_what_she_would_undo')).toContain('Agreed (stage `agreed`): path to C; Weavers +15. Refused with the truth (`echo_ritual_inevitable`): she breaks, then thanks you; if Weavers ≥ 20, `echo_void_resonance`. Refused flatly: Weavers −10.');
     // her "so that someone closes it who knows what it is" rides on the thanks at Trusted
-    expect(node('scene_nyx_undo_plan', 'thanks').textVariants).toEqual([{ when: { rep: { faction: 'weavers', min: 20 } }, text: expect.stringContaining('Let someone close it who knows what it is.') }]);
+    const thanks = node('scene_nyx_undo_plan', 'thanks').textVariants;
+    expect([thanks.length, thanks[0]?.when, thanks[0]?.text.includes('Let someone close it who knows what it is.')]).toEqual([1, { rep: { faction: 'weavers', min: 20 } }, true]);
     // nothing else in these scenes moves reputation: every effect list that does is one of the decisions above (the unmasking's two sit on two nodes)
     const known = [WHOSE, SAFE, CHOIR, AGREED, TRUTH.effects, REFUSED].map((e) => JSON.stringify(e));
     for (const s of arcScenes) {
@@ -778,6 +779,8 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
   const pick = (choiceId: string): Action => ({ type: 'choose', choiceId });
   const go: Action = { type: 'continue' };
   const nodesSeen = (events: readonly GameEvent[]): string[] => events.flatMap((e) => (e.t === 'dialogueNode' ? [e.nodeId] : []));
+  /** The last line shown. */
+  const lastSaid = (events: readonly GameEvent[]): { text: string } | undefined => [...events].reverse().find((e): e is Extract<GameEvent, { t: 'dialogueNode' }> => e.t === 'dialogueNode');
   const xpOf = (events: readonly GameEvent[]): number => events.reduce((t, e) => t + (e.t === 'xpGained' ? e.amount : 0), 0);
   const carries = (s: GameState, itemId: string): number => s.player.inventory.filter((i) => i.itemId === itemId).reduce((t, i) => t + i.qty, 0);
   const companion = (id: string, o: Partial<CompanionRunState> = {}): CompanionRunState => ({
@@ -862,7 +865,7 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect(opened.state.dialogue?.sceneId).toBe('scene_nyx_unmasking');
     expect(nodesSeen(opened.events)).toEqual(['crater', 'stop']);
     const told = play(opened.state, [pick('nine'), pick('tyrant')], { content: pack, profile });
-    expect(told.state.echoesThisLoop).toEqual(expect.arrayContaining(['echo_nyx_is_of_the_nine', 'echo_litany_verse_8', 'echo_tyrant_name']));
+    for (const id of ['echo_nyx_is_of_the_nine', 'echo_litany_verse_8', 'echo_tyrant_name']) expect(told.state.echoesThisLoop).toContain(id);
     expect(choiceViews(told.state, pack, profile).map((v) => [v.id, v.enabled])).toEqual([['safe', true], ['choir', true], ['plan', false]]);
     const kept = play(told.state, [pick('safe'), go], { content: pack, profile });
     expect(kept.state.quests.q_the_dark_between).toMatchObject({ status: 'completed', stage: 'kept' });
@@ -904,7 +907,7 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     // the Choir told at the lip: the Crystal route's words
     const other = at({ locationId: 'loc_chasm_of_whispers' }, 2, ['echo_nine_voices']);
     const toldHere = play(other.s, [talk('npc_nyx'), go, pick('i_know'), go, pick('nine'), pick('tyrant'), pick('choir')], { content: pack, profile: other.profile });
-    const said = toldHere.events.findLast((e) => e.t === 'dialogueNode') as { text: string } | undefined;
+    const said = lastSaid(toldHere.events);
     expect(said?.text.startsWith('You will carry it down the stair to the Choir')).toBe(true);
   });
 
@@ -926,11 +929,11 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     const truth = play(trusted.s, [talk('npc_nyx'), go, go, pick('truth'), go, go], { content: pack, profile: trusted.profile });
     expect(truth.state.quests.q_what_she_would_undo).toMatchObject({ status: 'completed', stage: 'refused_truth' });
     expect([truth.state.echoesThisLoop.includes('echo_void_resonance'), truth.state.reputation.weavers, nodesSeen(truth.events).slice(-2)]).toEqual([true, 20, ['breaks', 'thanks']]);
-    expect((truth.events.findLast((e) => e.t === 'dialogueNode') as { text: string }).text).toContain('Let someone close it who knows what it is.');
+    expect(lastSaid(truth.events)?.text).toContain('Let someone close it who knows what it is.');
     const neutral = at(base, 3, ['echo_ritual_inevitable']);
     const plain = play(neutral.s, [talk('npc_nyx'), go, go, pick('truth'), go, go], { content: pack, profile: neutral.profile });
     expect(plain.state.echoesThisLoop).not.toContain('echo_void_resonance');
-    expect((plain.events.findLast((e) => e.t === 'dialogueNode') as { text: string }).text).toBe('...Thank you. No one has told me that in forty years. No one could.');
+    expect(lastSaid(plain.events)?.text).toBe('...Thank you. No one has told me that in forty years. No one could.');
   });
 
   test("Dask at the Pass, Loop 2: the introduction; Come with me recruits him (the rule); Where are the other three starts the quest; his moments count by their scenes", () => {
@@ -1006,7 +1009,7 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect([his.state.dialogue?.sceneId, nodesSeen(his.events)]).toEqual(['scene_dask_camp_2', ['remembers', 'nearly']]);
     const third_d = camp('dask', { loyalty: 50 }, { flag_scene_done_scene_dask_camp_1: true, flag_scene_done_scene_dask_camp_2: true }, ['echo_nyx_is_of_the_nine']);
     const nyxKnown = play(third_d.s, [rest], { content: pack, profile: third_d.profile });
-    expect((nyxKnown.events.findLast((e) => e.t === 'dialogueNode') as { text: string }).text).toContain('The Weaver woman knows them too.');
+    expect(lastSaid(nyxKnown.events)?.text).toContain('The Weaver woman knows them too.');
   });
 
   test("Nyx's side of the Eye (D-109): in the Sanctum while Sethe's Eye is sought; afterwards, at the lip, the Choir looking or her coming back", () => {

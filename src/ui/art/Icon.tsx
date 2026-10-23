@@ -1,13 +1,21 @@
 // <Icon> (PLAN §6.4; DESIGN §17.5): single-stroke 24 × 24 glyphs in `currentColor`. A glyph never carries meaning on
-// its own (D-035): it sits beside a text label, so it is decorative (`aria-hidden`) unless a `title` names it. This is
-// U64's first set — the HUD, the exits, the actions and the map; U73 adds item icons and the full status/damage set.
+// its own (D-035): it sits beside a text label, so it is decorative (`aria-hidden`) unless a `title` names it. U64's
+// first set covers the HUD, the exits, the actions and the map; U65 adds DESIGN §17.5's six damage types and eighteen
+// statuses and the combat controls. U73 adds item icons.
 import type { ReactNode } from 'react';
 
 export const ICON_KINDS = [
   // HUD
   'hp', 'mp', 'gold', 'xp', 'day', 'night', 'clock', 'echo', 'corruption', 'loop', 'level',
-  // statuses that persist out of combat (DESIGN §4.5)
+  // statuses (DESIGN §4.5, §17.5), keyed by status id
   'status_poison', 'status_bleed', 'status_curse', 'status_rested',
+  'status_burn', 'status_shock', 'status_soaked', 'status_slow', 'status_haste', 'status_stun', 'status_weaken',
+  'status_armor_break', 'status_mark', 'status_shield', 'status_regen', 'status_taunt', 'status_phase', 'status_rewind',
+  'status_blind',
+  // damage types (DESIGN §4.4, §17.5)
+  'dmg_physical', 'dmg_fire', 'dmg_storm', 'dmg_ley', 'dmg_void', 'dmg_chrono',
+  // combat (DESIGN §4.1, §4.2 intent effects, §4.11 communion)
+  'attack', 'guard', 'flee', 'heal', 'buff', 'summon', 'command', 'commune', 'listen', 'offer', 'resist', 'fallen',
   // directions (location exits)
   'north', 'south', 'east', 'west', 'up', 'down', 'in', 'out', 'portal', 'path',
   // actions and places
@@ -78,6 +86,65 @@ const GLYPHS: Record<IconKind, ReactNode> = {
     </>
   ),
   status_rested: <path d="M4 17 L20 17 M6 17 L6 11 L18 11 L18 17 M8 11 C 8 9, 10 8, 12 8 M15 4 L18 4 L15 7 L18 7" />,
+  // DESIGN §17.5: Burn flame-with-base, Shock small bolt in a circle, Soaked droplet with ripple, Slow hourglass
+  // bottom-heavy, Haste top-heavy with motion lines, Stun starburst, Weaken down-arrow, Armor Break cracked plate, Mark
+  // crosshair, Shield hexagon, Regen leaf, Taunt horn, Phase dashed figure, Rewind counter-clockwise spiral, Blind eye shut.
+  status_burn: <path d="M12 3 C 16 8, 17 11, 15.5 14 C 15 12.5, 14 12, 13 12 C 14 15, 11 16, 10 14 C 9 15, 8.5 16, 9 17 C 7 15, 7 11, 12 3 Z M5 20 L19 20" />,
+  status_shock: (
+    <>
+      <circle cx={12} cy={12} r={8.5} />
+      <path d="M13 6.5 L9.5 12.5 L13 12.5 L11 17.5" />
+    </>
+  ),
+  status_soaked: <path d="M12 3 C 15 8, 16.5 10, 16.5 12.5 A 4.5 4.5 0 0 1 7.5 12.5 C 7.5 10, 9 8, 12 3 Z M4 19 C 7 17.5, 9 20.5, 12 19 C 15 17.5, 17 20.5, 20 19" />,
+  status_slow: <path d="M7 3 L17 3 M7 21 L17 21 M8 3 C 8 7, 12 9, 12 12 C 12 15, 8 16, 8 21 M16 3 C 16 7, 12 9, 12 12 C 12 15, 16 16, 16 21 M9 19.5 L15 19.5 L12 16.5 Z" />,
+  status_haste: <path d="M9 3 L19 3 M9 21 L19 21 M10 3 C 10 8, 14 9, 14 12 C 14 15, 10 16, 10 21 M18 3 C 18 8, 14 9, 14 12 C 14 15, 18 16, 18 21 M11 4.5 L17 4.5 L14 7.5 Z M2 9 L6 9 M3 13 L7 13 M2 17 L6 17" />,
+  status_stun: <path d="M12 2.5 L13.6 8.6 L19.5 6 L15.6 11 L21 14 L14.8 14.5 L16 20.5 L12 15.8 L8 20.5 L9.2 14.5 L3 14 L8.4 11 L4.5 6 L10.4 8.6 Z" />,
+  status_weaken: <path d="M12 3 L12 19 M6 13 L12 19 L18 13 M5 22 L19 22" />,
+  status_armor_break: <path d="M5 4 L19 4 L19 12 C 19 16, 16 19, 12 21 C 8 19, 5 16, 5 12 Z M12 4 L10 9 L14 12 L11 16 L12 21" />,
+  status_mark: (
+    <>
+      <circle cx={12} cy={12} r={7} />
+      <circle cx={12} cy={12} r={1.5} />
+      <path d="M12 2 L12 7 M12 17 L12 22 M2 12 L7 12 M17 12 L22 12" />
+    </>
+  ),
+  status_shield: <path d="M12 2.5 L20.5 7.3 L20.5 16.7 L12 21.5 L3.5 16.7 L3.5 7.3 Z" />,
+  status_regen: <path d="M5 19 C 5 10, 11 5, 19 5 C 19 13, 14 19, 5 19 Z M5 19 L13 11 M10 14 L10 10 M12.5 11.5 L16 11.5" />,
+  status_taunt: <path d="M4 20 C 6 12, 10 7, 19 4 C 16 9, 15 12, 15 15 C 12 14, 9 16, 8 20 Z" />,
+  status_phase: (
+    <>
+      <circle cx={12} cy={6.5} r={3} strokeDasharray="2.5 2" />
+      <path d="M5 21 C 5 13, 19 13, 19 21" strokeDasharray="2.5 2" />
+    </>
+  ),
+  status_rewind: <path d="M12 12 C 12 10.5, 14 10.5, 14 12 C 14 14.5, 9.5 14.5, 9.5 12 C 9.5 8, 16.5 8, 16.5 12 C 16.5 17.5, 6.5 17.5, 6.5 12 C 6.5 6, 15 4, 19 7 M19 3 L19 7 L15 7" />,
+  status_blind: <path d="M3 10 C 7 15, 17 15, 21 10 M6.5 13 L5 16 M12 14.5 L12 17.5 M17.5 13 L19 16" />,
+  // DESIGN §17.5: Physical diagonal blade, Fire three-tongue flame, Storm jagged bolt, Ley flowing double wave, Void
+  // ring with a missing arc, Chrono hourglass-spiral.
+  dmg_physical: <path d="M19 3 L21 3 L21 5 L9 17 L7 15 Z M5 15 L9 19 M3 21 L6.5 17.5" />,
+  dmg_fire: <path d="M12 21 C 7 21, 5 17, 6 13 C 6.5 11, 8 10, 8 7 C 10 9, 10.5 11, 10 12.5 C 11.5 10, 12 6, 11 2.5 C 15 5, 18 9, 18 14 C 18 18, 15.5 21, 12 21 Z M12 21 C 10 20, 10 17, 12 15 C 14 17, 14 20, 12 21" />,
+  dmg_storm: <path d="M14 2 L6 13 L11 13 L9 22 L18 9 L13 9 L15 2 Z" />,
+  dmg_ley: <path d="M2 9 C 5 5, 8 13, 12 9 C 16 5, 19 13, 22 9 M2 15 C 5 11, 8 19, 12 15 C 16 11, 19 19, 22 15" />,
+  dmg_void: <path d="M17.3 5.2 A 8.5 8.5 0 1 0 20.4 13.2 M12 9.5 L12 14.5" />,
+  dmg_chrono: <path d="M6 3 L18 3 M6 21 L18 21 M7 3 C 7 8, 12 10, 12 12 C 12 14, 7 16, 7 21 M17 3 C 17 8, 12 10, 12 12 M12 12 C 15 12.5, 16 15, 15 17 C 14 18.5, 12 18, 12.5 16.5" />,
+  attack: <path d="M14.5 3 L21 3 L21 9.5 L10 20.5 L3.5 14 Z M7 17 L3 21 M13 6 L18 11" />,
+  guard: <path d="M12 2.5 L19.5 5.5 L19.5 11.5 C 19.5 16, 16.5 19.5, 12 21.5 C 7.5 19.5, 4.5 16, 4.5 11.5 L4.5 5.5 Z M12 6.5 L12 17.5 M8 11 L16 11" />,
+  flee: <path d="M13 4.5 A 1.6 1.6 0 1 0 13 4.49 M6 21 L10 15.5 L13 17 L15 12 L11 9 L8 12 M15 12 L18.5 13.5 M13 17 L14.5 21 M17 7 L22 7 M18 10 L22 10" />,
+  heal: <path d="M9 3 L15 3 L15 9 L21 9 L21 15 L15 15 L15 21 L9 21 L9 15 L3 15 L3 9 L9 9 Z" />,
+  buff: (
+    <>
+      <path d="M2.5 12 C 6 6.5, 18 6.5, 21.5 12 C 18 17.5, 6 17.5, 2.5 12 Z" />
+      <circle cx={12} cy={12} r={3} />
+    </>
+  ),
+  summon: <path d="M12 3 L12 21 M3 12 L21 12 M6 6 L18 18 M18 6 L6 18" />,
+  command: <path d="M5 21 L5 3 M5 4 L18 4 L15 8.5 L18 13 L5 13" />,
+  commune: <path d="M4 5 L20 5 L20 15 L13 15 L8 20 L8 15 L4 15 Z M9 10 L9.01 10 M12 10 L12.01 10 M15 10 L15.01 10" />,
+  listen: <path d="M8 9 C 8 5, 11 3, 13.5 3 C 17 3, 19 5.5, 19 9 C 19 13, 15 14, 15 17 C 15 19.5, 13 21, 11 21 C 9 21, 8 19.5, 8 18.5 M11.5 9 C 11.5 7.5, 15.5 7.5, 15.5 10 C 15.5 12, 13 12, 13 13.5" />,
+  offer: <path d="M3 14 L7 14 L11 17 L16 17 C 17 17, 17 15.5, 16 15.5 L12 15.5 M7 14 L7 20 L3 20 M16 15.5 L20 12.5 C 21 11.8, 22 13, 21 14 L16 19 L8 19 M13 4 L16 7 L13 10 L10 7 Z" />,
+  resist: <path d="M12 21 L12 13 M7 21 L17 21 M12 13 C 6 13, 4 8, 4 3 C 8 3, 11 5, 12 9 C 13 5, 16 3, 20 3 C 20 8, 18 13, 12 13" />,
+  fallen: <path d="M8 21 L8 17 C 4.5 15, 4 12, 4 9.5 A 8 8 0 0 1 20 9.5 C 20 12, 19.5 15, 16 17 L16 21 Z M9 10.5 L9.01 10.5 M15 10.5 L15.01 10.5 M12 21 L12 18" />,
   north: arrow(0),
   east: arrow(90),
   south: arrow(180),
@@ -212,6 +279,17 @@ export function Icon({ kind, size = 20, title, className }: IconProps): ReactNod
       {GLYPHS[kind]}
     </svg>
   );
+}
+
+/** The glyph of a status id (DESIGN §17.5); a status this set does not draw yet falls back to the warning triangle. */
+export function statusIcon(statusId: string): IconKind {
+  return (ICON_KINDS as readonly string[]).includes(statusId) ? (statusId as IconKind) : 'danger';
+}
+
+/** The glyph of a damage type (DESIGN §17.5). */
+export function damageIcon(type: string): IconKind {
+  const kind = `dmg_${type}`;
+  return (ICON_KINDS as readonly string[]).includes(kind) ? (kind as IconKind) : 'attack';
 }
 
 /** An Icon kind for an exit direction (schema `Dir`). */

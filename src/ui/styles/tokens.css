@@ -32,6 +32,14 @@
   --glyph-gold: #e2b14b;
   --glyph-echo: #9fd8ff;
   --glyph-corruption: #7b3fe4;
+  /* damage types and status kinds (DESIGN §17.5; U65): glyph + label always, never colour alone */
+  --glyph-physical: #c3c8d4;
+  --glyph-fire: #f0803c;
+  --glyph-storm: #f5d547;
+  --glyph-ley: #4fd6b0;
+  --glyph-void: #a77bf3;
+  --glyph-chrono: #8fb3ff;
+  --glyph-buff: #6fd38f;
 
   /* filled controls */
   --fill-primary: #9fd8ff;

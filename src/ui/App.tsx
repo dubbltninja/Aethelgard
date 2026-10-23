@@ -1,8 +1,12 @@
 // Routing by `state.mode` (PLAN §6.2): no router library — there is one page and the game's own mode is the route.
 // The Title includes Class Select as a sub-view; the modes later units build render a placeholder until then.
-// Pattern: a new screen replaces its placeholder line in `ScreenFor`, and nothing else here changes.
+// Pattern: a new screen replaces its placeholder line in `ScreenFor`, and nothing else here changes. <CombatAftermath/>
+// (U65) sits beside the screen: a fight that ends in a victory or a flight has already left combat mode, so its summary is
+// a dialog over the next screen.
 import type { ReactNode } from 'react';
 import type { Mode } from '@engine/index';
+import { CombatAftermath } from './components/combat/CombatSummary';
+import { CombatScreen } from './screens/CombatScreen';
 import { ExploreScreen } from './screens/ExploreScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { TitleScreen } from './screens/TitleScreen';
@@ -16,7 +20,7 @@ export function ScreenFor({ mode }: { mode: Mode }): ReactNode {
     case 'explore':
       return <ExploreScreen />;
     case 'combat':
-      return <PlaceholderScreen key="combat" mode="combat" />; // U65: <CombatScreen />
+      return <CombatScreen />;
     case 'dialogue':
       return <PlaceholderScreen key="dialogue" mode="dialogue" />; // U66: <DialogueScreen />
     case 'threshold':
@@ -31,6 +35,7 @@ export function App(): ReactNode {
   return (
     <Shell>
       <ScreenFor mode={mode} />
+      <CombatAftermath />
     </Shell>
   );
 }

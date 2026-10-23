@@ -9,6 +9,7 @@ import './ui/styles/layout.css';
 import './ui/styles/components.css';
 import './ui/styles/screens.css';
 import './ui/styles/explore.css';
+import './ui/styles/combat.css';
 import { StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SCENARIO_IDS, loadScenario, type ScenarioId } from '@sim/scenarios';

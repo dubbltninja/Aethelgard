@@ -1,0 +1,485 @@
+// The Combat screen (PLAN §6.3, DESIGN §4 and §16.5 `screen_combat`): the enemy cards across the top (sigil, HP bar
+// segmented at a boss's phases, statuses, resistances once known, the intent chip and the foreseen next one), the turn
+// order strip and the round, a banner for a boss's phase change or line, the player panel (HP, the class resource,
+// statuses, Guard with its post-Guard numbers, Flee with its odds, Item), the ability bar (Attack and the abilities by
+// branch, with costs, cooldowns and why a tile is unavailable), the companion card (stance, Command, orders), the
+// communion bar against the Tyrant (Resolve, the question, the answers), and the log with each hit explained. In
+// Loop 1 a death outside a Horde stays here as the FALLEN screen (load or title, D-082); every other ending of a fight
+// leaves combat mode, and <CombatAftermath/> (App) shows its summary.
+//
+// Keys (DESIGN §16.4, PLAN §6.6, D-066 #13): 1 attacks the target, 2–9 use the abilities in displayed order (while the
+// communion runs, 1–9 are its acts), G guards, F flees, I opens the items, C commands the companion, ← / → change the
+// target, Space expands the log; the panel letters need Shift in a fight (the resolver's `panel` group). Tab stays the
+// browser's focus key (no focus traps, D-035), so ← / → cycle the target where PLAN says Tab.
+//
+// Pattern (D-104, D-107): the container gathers hooks, builds the model with combatModel.ts, and renders `CombatView`
+// (props only). The container also remembers, per step, each hit's explanation and the last hit on each enemy (events
+// are its only source); a target chosen by click, tap or arrows is screen state, never engine state.
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import type { Action, GameEvent, GameState, Stance } from '@engine/index';
+import type { Region } from '@schema/region';
+import { Icon } from '../art/Icon';
+import { RegionPalette } from '../art/RegionPalette';
+import { Button } from '../components/Button';
+import { Modal } from '../components/Modal';
+import { AbilityBar } from '../components/combat/AbilityBar';
+import { CombatLog } from '../components/combat/CombatLog';
+import { CommunionBar } from '../components/combat/CommunionBar';
+import { CompanionCard } from '../components/combat/CompanionCard';
+import { EnemyCard, type HitFlash } from '../components/combat/EnemyCard';
+import { PlayerPanel } from '../components/combat/PlayerPanel';
+import { TurnOrder } from '../components/combat/TurnOrder';
+import type { HotkeyMap } from '../hooks/hotkeys';
+import { useHotkeys } from '../hooks/useHotkeys';
+import { useReducedMotion } from '../hooks/useMediaQuery';
+import { useShell } from '../shellContext';
+import type { SlotInfo } from '../store/gameStore';
+import { useContent, useGame, useGameEvents, useLegal, useProfile, useStore } from '../store/useGame';
+import {
+  COMBAT_LOG_EXPANDED,
+  COMBAT_LOG_LINES,
+  abilityTiles,
+  allyChoices,
+  bannerModel,
+  combatItems,
+  combatLogLines,
+  communionButtons,
+  communionModel,
+  companionCard,
+  cycleTarget,
+  effectiveTarget,
+  enemyCards,
+  explainHits,
+  fightTitle,
+  fleeModel,
+  guardModel,
+  playerPanel,
+  turnOrder,
+  type AbilityTileModel,
+  type BannerModel,
+  type CombatItemModel,
+  type CombatLogLine,
+  type CommunionButton,
+  type CommunionModel,
+  type CompanionCardModel,
+  type EnemyCardModel,
+  type FleeModel,
+  type GuardModel,
+  type PlayerPanelModel,
+  type TurnEntry,
+} from './combatModel';
+
+/** Explanations kept for the log (the engine caps the log at 200 lines). */
+const EXPLAINED_CAP = 200;
+
+export interface FallenModel {
+  /** Saves that can be loaded from here (DESIGN §4.7: Load autosave / Load slot / Title). */
+  loads: { slot: SlotInfo['slot']; label: string }[];
+  canTitle: boolean;
+}
+
+export type CombatMenuId = 'inventory' | 'bestiary' | 'help' | 'settings';
+
+export interface CombatViewProps {
+  title: string;
+  regionId: string;
+  region?: Pick<Region, 'palette'>;
+  round: number;
+  turns: readonly TurnEntry[];
+  banner: BannerModel | null;
+  enemies: readonly EnemyCardModel[];
+  hits: Readonly<Record<string, HitFlash>>;
+  reducedMotion: boolean;
+  player: PlayerPanelModel;
+  guard: GuardModel;
+  flee: FleeModel;
+  itemCount: number;
+  canItem: boolean;
+  tiles: readonly AbilityTileModel[];
+  targetName: string | null;
+  companion: CompanionCardModel | null;
+  communion: CommunionModel | null;
+  communionButtons: readonly CommunionButton[];
+  showAbilities: boolean;
+  log: readonly CombatLogLine[];
+  logExpanded: boolean;
+  fallen: FallenModel | null;
+  menu: Readonly<Record<CombatMenuId, boolean>>;
+  onSelectTarget: (uid: string) => void;
+  onTile: (tile: AbilityTileModel) => void;
+  onGuard: () => void;
+  onFlee: () => void;
+  onItems: () => void;
+  onStance: (stance: Stance) => void;
+  onAct: (action: Action) => void;
+  onToggleCommuneView: () => void;
+  onToggleLog: () => void;
+  onMenu: (id: CombatMenuId) => void;
+  onLoad: (slot: SlotInfo['slot']) => void;
+  onTitle: () => void;
+  logRef?: RefObject<HTMLOListElement | null>;
+}
+
+const MENU_LABELS: Readonly<Record<CombatMenuId, string>> = { inventory: 'Inventory', bestiary: 'Bestiary', help: 'Keys', settings: 'Settings' };
+const MENU_ICONS = { inventory: 'item', bestiary: 'look', help: 'keys', settings: 'settings' } as const;
+
+export function CombatView(p: CombatViewProps): ReactNode {
+  const communing = p.communion?.active === true && !p.showAbilities;
+  return (
+    <RegionPalette regionId={p.regionId} region={p.region} className="screen screen--combat">
+      <section className="combat" data-screen="combat" aria-labelledby="combat-heading">
+        <header className="combat__head">
+          <p className="combat__kicker">Combat</p>
+          <h1 id="combat-heading" className="combat__title" tabIndex={-1}>
+            {p.title}
+          </h1>
+          <TurnOrder entries={p.turns} round={p.round} />
+        </header>
+        {p.banner === null ? null : (
+          <aside className="combat-banner" aria-label="What changed">
+            {p.banner.title === null ? null : <p className="combat-banner__title">{p.banner.title}</p>}
+            {p.banner.lines.map((line, i) => (
+              <p key={`${i}:${line}`} className="combat-banner__line">
+                {line}
+              </p>
+            ))}
+          </aside>
+        )}
+        <ul className="combat__enemies" aria-label="Enemies">
+          {p.enemies.map((enemy) => (
+            <EnemyCard key={enemy.uid} enemy={enemy} reducedMotion={p.reducedMotion} hit={p.hits[enemy.uid] ?? null} onSelect={p.onSelectTarget} />
+          ))}
+        </ul>
+        {p.fallen === null ? null : (
+          <section className="fallen" aria-labelledby="fallen-heading">
+            <Icon kind="fallen" size={48} className="fallen__icon" />
+            <h2 id="fallen-heading" className="fallen__title">
+              FALLEN
+            </h2>
+            <p className="fallen__text">The Breach closes over you. This loop is over; what you learned stays with you.</p>
+            <div className="button-row">
+              {p.fallen.loads.map((l, i) => (
+                <Button key={String(l.slot)} variant={i === 0 ? 'primary' : 'secondary'} onClick={() => p.onLoad(l.slot)} data-autofocus={i === 0 ? '' : undefined}>
+                  {l.label}
+                </Button>
+              ))}
+              {p.fallen.canTitle ? (
+                <Button variant={p.fallen.loads.length === 0 ? 'primary' : 'quiet'} onClick={p.onTitle} data-autofocus={p.fallen.loads.length === 0 ? '' : undefined}>
+                  Return to title
+                </Button>
+              ) : null}
+            </div>
+          </section>
+        )}
+        <div className="combat__grid">
+          <div className="combat__main">
+            {p.fallen === null ? (
+              <>
+                <PlayerPanel player={p.player} guard={p.guard} flee={p.flee} itemCount={p.itemCount} canItem={p.canItem} onGuard={p.onGuard} onFlee={p.onFlee} onItems={p.onItems} />
+                {p.communion === null ? null : (
+                  <CommunionBar model={p.communion} buttons={p.communionButtons} showingAbilities={p.showAbilities} onAct={p.onAct} onToggleView={p.onToggleCommuneView} />
+                )}
+                {communing ? null : <AbilityBar tiles={p.tiles} targetName={p.targetName} onUse={p.onTile} />}
+                {p.companion === null ? null : <CompanionCard companion={p.companion} onStance={p.onStance} onCommand={p.onAct} />}
+              </>
+            ) : null}
+            <nav className="combat-menu" aria-label="Game menu">
+              {(Object.keys(MENU_LABELS) as CombatMenuId[])
+                .filter((id) => p.menu[id])
+                .map((id) => (
+                  <Button key={id} onClick={() => p.onMenu(id)} aria-keyshortcuts={id === 'help' ? '?' : undefined}>
+                    <Icon kind={MENU_ICONS[id]} size={18} />
+                    {MENU_LABELS[id]}
+                  </Button>
+                ))}
+            </nav>
+          </div>
+          <aside className="combat__side" aria-label="Combat log">
+            <CombatLog lines={p.log} expanded={p.logExpanded} onToggle={p.onToggleLog} listRef={p.logRef} />
+          </aside>
+        </div>
+      </section>
+    </RegionPalette>
+  );
+}
+
+/** The consumables sheet (DESIGN §4.1 `I`): each usable item, with one button per way to use it now. Pure. */
+export function ItemSheet({ items, onUse }: { items: readonly CombatItemModel[]; onUse: (action: Action) => void }): ReactNode {
+  if (items.length === 0) return <p className="panel-intro">You carry nothing you can use in a fight.</p>;
+  return (
+    <ul className="item-sheet">
+      {items.map((item, i) => (
+        <li key={item.uid} className="item-sheet__item">
+          <p className="item-sheet__name">
+            {item.name}
+            {item.qty > 1 ? ` × ${item.qty}` : ''}
+          </p>
+          {item.description === '' ? null : <p className="item-sheet__desc">{item.description}</p>}
+          <div className="button-row">
+            {item.uses.map((use, j) => (
+              <Button key={use.label} onClick={() => onUse(use.action)} aria-label={`${use.label}: ${item.name}`} data-autofocus={i === 0 && j === 0 ? '' : undefined}>
+                {use.label}
+              </Button>
+            ))}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The last hit each enemy took in one step's events (for the floating number). */
+export function hitsOf(events: readonly GameEvent[], after: GameState, nonce: number): Record<string, HitFlash> {
+  const out: Record<string, HitFlash> = {};
+  let crit = false;
+  for (const e of events) {
+    if (e.t === 'attackResolved') crit = e.crit;
+    if (e.t !== 'damageDealt') continue;
+    if (after.combat?.enemies.some((x) => x.uid === e.targetUid) !== true) continue;
+    const prev = out[e.targetUid];
+    out[e.targetUid] = { amount: (prev?.amount ?? 0) + e.amount, crit: (prev?.crit ?? false) || crit, nonce };
+    crit = false;
+  }
+  return out;
+}
+
+export function CombatScreen(): ReactNode {
+  const store = useStore();
+  const shell = useShell();
+  const content = useContent();
+  const state = useGame((s) => s);
+  const profile = useProfile((pr) => pr);
+  const legal = useLegal();
+  const reducedMotion = useReducedMotion();
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [itemsOpen, setItemsOpen] = useState(false);
+  const [allyFor, setAllyFor] = useState<AbilityTileModel | null>(null);
+  const [logExpanded, setLogExpanded] = useState(false);
+  const [showAbilities, setShowAbilities] = useState(false);
+  const [explained, setExplained] = useState<ReadonlyMap<string, string[]>>(() => new Map());
+  const [hits, setHits] = useState<Record<string, HitFlash>>({});
+  const before = useRef<GameState>(state);
+  const nonce = useRef(0);
+  const logRef = useRef<HTMLOListElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // ---- what each step did (explanations, floating numbers) ----
+  useGameEvents((events, after) => {
+    const from = before.current;
+    before.current = after;
+    if (after.combat === null) return;
+    const ex = explainHits(events, from, after, content);
+    if (ex.size > 0) setExplained((m) => new Map([...m, ...ex].slice(-EXPLAINED_CAP)));
+    nonce.current += 1;
+    setHits(hitsOf(events, after, nonce.current));
+  });
+
+  const combat = state.combat;
+  const target = effectiveTarget(combat, chosen);
+  const model = useMemo(() => {
+    const communion = communionModel(state, content, profile, legal);
+    const items = combatItems(state, content, legal, target);
+    return {
+      title: fightTitle(combat),
+      turns: turnOrder(combat),
+      banner: bannerModel(combat, content),
+      enemies: enemyCards(state, content, profile, legal, target),
+      player: playerPanel(state, content),
+      guard: guardModel(state, content, profile, legal),
+      flee: fleeModel(state, content, legal),
+      items,
+      tiles: abilityTiles(state, content, legal, target),
+      companion: companionCard(state, content, legal, target),
+      communion,
+      communionButtons: communionButtons(communion),
+      log: combatLogLines(combat, logExpanded ? COMBAT_LOG_EXPANDED : COMBAT_LOG_LINES, explained),
+    };
+  }, [state, content, profile, legal, combat, target, logExpanded, explained]);
+
+  const dispatch = (action: Action): void => void store.dispatch(action);
+  const communing = model.communion?.active === true && !showAbilities;
+  const targetName = model.enemies.find((e) => e.uid === target)?.name ?? null;
+  const canItem = model.items.length > 0;
+
+  const pressTile = (tile: AbilityTileModel): void => {
+    if (!tile.enabled) return;
+    if (tile.kind === 'attack') {
+      if (target === null) return;
+      setChosen(target);
+      dispatch({ type: 'attack', targetUid: target });
+      return;
+    }
+    if (tile.target === 'enemy') {
+      if (target === null) return;
+      setChosen(target);
+      dispatch({ type: 'ability', abilityId: tile.id, targetUid: target });
+      return;
+    }
+    if (tile.target === 'ally') {
+      const choices = allyChoices(state, legal, tile.id);
+      if (choices.length > 1) {
+        setAllyFor(tile);
+        return;
+      }
+      dispatch(choices[0]?.action ?? { type: 'ability', abilityId: tile.id });
+      return;
+    }
+    dispatch({ type: 'ability', abilityId: tile.id });
+  };
+  const guard = (): void => {
+    if (model.guard.enabled) dispatch({ type: 'guard' });
+  };
+  const flee = (): void => {
+    if (!model.flee.enabled) return;
+    if (!model.flee.leave) {
+      dispatch({ type: 'flee' });
+      return;
+    }
+    void shell.confirm('Leave the Tyrant? This loop ends here.', { yes: 'Leave' }).then((yes) => {
+      if (yes) dispatch({ type: 'flee' });
+    });
+  };
+  const command = (): void => {
+    const sig = model.companion?.signature;
+    if (sig?.enabled === true && sig.action !== null) dispatch(sig.action);
+  };
+  const act = (action: Action): void => {
+    if (store.isLegal(action)) dispatch(action);
+  };
+  const selectTarget = (uid: string): void => setChosen(uid);
+  const menu = (id: CombatMenuId): void => void shell.openPanel(id);
+
+  // ---- keys ----
+  const keys: HotkeyMap = {};
+  if (communing) {
+    for (const b of model.communionButtons) {
+      if (b.key !== null) keys[b.key] = { run: () => act(b.action), label: 'Answer by its number', group: 'action', when: () => b.enabled };
+    }
+  } else {
+    for (const tile of model.tiles) {
+      if (tile.key !== null) keys[tile.key] = { run: () => pressTile(tile), label: tile.kind === 'attack' ? 'Attack the target' : 'Use an ability by its number', group: 'action', when: () => tile.enabled };
+    }
+  }
+  keys.g = { run: guard, label: 'Guard', group: 'action', when: () => model.guard.enabled };
+  if (model.flee.shown) keys.f = { run: flee, label: model.flee.leave ? 'Leave' : 'Flee', group: 'action', when: () => model.flee.enabled };
+  keys.i = { run: () => setItemsOpen(true), label: 'Use an item', group: 'action', when: () => canItem };
+  if (model.companion?.signature != null) keys.c = { run: command, label: 'Command the companion', group: 'action', when: () => model.companion?.signature?.enabled === true };
+  const standing = model.enemies.filter((e) => e.alive).length;
+  keys.arrowleft = { run: () => setChosen(cycleTarget(combat, target, -1)), label: 'Change target', group: 'list', when: () => standing > 1 };
+  keys.arrowright = { run: () => setChosen(cycleTarget(combat, target, 1)), label: 'Change target', group: 'list', when: () => standing > 1 };
+  keys.space = { run: () => setLogExpanded((on) => !on), label: logExpanded ? 'Shorten the log' : 'Expand the log', group: 'system' };
+  useHotkeys(keys, { scope: 'Combat' });
+
+  // ---- focus and scroll ----
+  const phase = combat?.phase ?? null;
+  useLayoutEffect(() => {
+    if (phase === 'defeat') rootRef.current?.querySelector<HTMLElement>('.fallen [data-autofocus]')?.focus();
+  }, [phase]);
+  const communionActive = model.communion?.active === true;
+  useLayoutEffect(() => {
+    // the communion takes the bar (DESIGN §4.11): its first act takes focus when it opens or the view switches back
+    if (communionActive && !showAbilities) rootRef.current?.querySelector<HTMLElement>('.communion [data-autofocus]')?.focus();
+  }, [communionActive, showAbilities]);
+  useEffect(() => {
+    const list = logRef.current;
+    if (list !== null) list.scrollTop = list.scrollHeight;
+  }, [model.log]);
+
+  if (combat === null || model.player === null) {
+    return (
+      <section className="screen screen--combat" data-screen="combat" aria-labelledby="combat-heading">
+        <h1 id="combat-heading">The fight is over</h1>
+        <Button onClick={() => dispatch({ type: 'returnToTitle' })}>Return to title</Button>
+      </section>
+    );
+  }
+
+  const location = content.locations[combat.locationId];
+  const regionId = location?.regionId ?? '';
+  const fallen: FallenModel | null =
+    combat.phase === 'defeat'
+      ? {
+          loads: store.shell
+            .listSlots()
+            .filter((s) => s.status === 'ok')
+            .map((s) => ({ slot: s.slot, label: s.slot === 'auto' ? 'Load the autosave' : `Load slot ${s.slot}` })),
+          canTitle: store.isLegal({ type: 'returnToTitle' }),
+        }
+      : null;
+
+  return (
+    <div ref={rootRef} className="combat-root">
+      <CombatView
+        title={model.title}
+        regionId={regionId}
+        region={content.regions[regionId]}
+        round={combat.round}
+        turns={model.turns}
+        banner={model.banner}
+        enemies={model.enemies}
+        hits={hits}
+        reducedMotion={reducedMotion}
+        player={model.player}
+        guard={model.guard}
+        flee={model.flee}
+        itemCount={model.items.length}
+        canItem={canItem}
+        tiles={model.tiles}
+        targetName={targetName}
+        companion={model.companion}
+        communion={model.communion}
+        communionButtons={model.communionButtons}
+        showAbilities={showAbilities}
+        log={model.log}
+        logExpanded={logExpanded}
+        fallen={fallen}
+        menu={{ inventory: shell.canOpen('inventory'), bestiary: shell.canOpen('bestiary'), help: shell.canOpen('help'), settings: shell.canOpen('settings') }}
+        onSelectTarget={selectTarget}
+        onTile={pressTile}
+        onGuard={guard}
+        onFlee={flee}
+        onItems={() => setItemsOpen(true)}
+        onStance={(stance) => act({ type: 'setStance', stance })}
+        onAct={act}
+        onToggleCommuneView={() => setShowAbilities((on) => !on)}
+        onToggleLog={() => setLogExpanded((on) => !on)}
+        onMenu={menu}
+        onLoad={(slot) => {
+          const result = store.shell.load(slot);
+          if (!result.ok) store.notify(result.error, 'error');
+        }}
+        onTitle={() => dispatch({ type: 'returnToTitle' })}
+        logRef={logRef}
+      />
+      {itemsOpen ? (
+        <Modal title="Use an item" onClose={() => setItemsOpen(false)} className="item-sheet-dialog">
+          <ItemSheet
+            items={model.items}
+            onUse={(action) => {
+              setItemsOpen(false);
+              act(action);
+            }}
+          />
+        </Modal>
+      ) : null}
+      {allyFor === null ? null : (
+        <Modal title={`${allyFor.name}: on whom?`} onClose={() => setAllyFor(null)} className="ally-picker">
+          <div className="button-row">
+            {allyChoices(state, legal, allyFor.id).map((choice, i) => (
+              <Button
+                key={choice.uid}
+                onClick={() => {
+                  setAllyFor(null);
+                  act(choice.action);
+                }}
+                data-autofocus={i === 0 ? '' : undefined}
+              >
+                {choice.label}
+              </Button>
+            ))}
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}

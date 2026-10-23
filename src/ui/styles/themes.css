@@ -22,6 +22,13 @@
   --glyph-gold: #ffd77f;
   --glyph-echo: #bfe8ff;
   --glyph-corruption: #c4a6ff;
+  --glyph-physical: #ffffff;
+  --glyph-fire: #ffb27f;
+  --glyph-storm: #ffeb80;
+  --glyph-ley: #8ff0d2;
+  --glyph-void: #d2b8ff;
+  --glyph-chrono: #bcd3ff;
+  --glyph-buff: #a8f0bd;
 
   --fill-primary: #ffffff;
   --on-fill-primary: #000000;

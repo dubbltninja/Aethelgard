@@ -53,6 +53,8 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
 
   // ---- focus: a new screen takes focus, so screen readers announce it (sub-views use useViewFocus) ----
   useEffect(() => {
+    // a dialog that opened with the new screen (U65: the fight's summary) keeps focus; it returns focus when it closes
+    if (document.activeElement?.closest('[role="dialog"], [role="alertdialog"]') != null) return;
     focusView(mainRef.current);
   }, [mode]);
 

@@ -105,7 +105,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U65 | Combat screen: enemy cards, intent chips, ability bar, companion card, log, communion bar | Opus | ⏳ ready |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
 | U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ✅ 6824137 (resumed after the cutoff) — 6 quests, 23 scenes, 11 proofs; 3613 tests; D-113 |
-| U34f | Companion refusals of places (`refusesWhen`), Dask's Tyrant hooks, Named/Unbound Hand, the Keeper's Price tie (D-113) | Opus | ⏳ ready |
+| U34f | Companion refusals of places (`refusesWhen`), Dask's Tyrant hooks, Named/Unbound Hand, the Keeper's Price tie (D-113) — brief `briefs/u34f.md` | Opus | ▶ in progress (worktree, `wip/u34f`) |
+| U56 | Companion arcs: Mireya + Caelum (6 quests) + camp scenes — brief `briefs/u56.md` | ✦ Fable | ▶ in progress (worktree, `wip/u56`) |
 | U55 | Companion arcs: Nyx + Dask (6 quests) + camp scenes — brief `briefs/u55.md` | ✦ Fable | ✅ d32f4a1 (resumed after the cutoff) — 6 quests, 34 scenes, 11 proofs; 3573 tests; D-112 |
 | U38–U91 (excl. U40) | Implementation units — the ordered list with Opus/Sonnet/✦ Fable tags lives in **PLAN.md §9.2** (remaining after U35–U37, U40 — U38/U39/U41 copied above). Copy the next few here as they start. | — | ⏳ |
 

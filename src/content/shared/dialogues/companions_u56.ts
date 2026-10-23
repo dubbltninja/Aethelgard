@@ -370,7 +370,7 @@ export const dialogues = [
         id: 'leak',
         tags: ['written'],
         speaker: MIREYA,
-        text: 'I have thought about it since the Pool. The leak can be dammed. A piece of the Heartstone in the well, stable or dead, and the breath stops; the changed stop changing, and some of them sicken for it. Or we let it run, and the fen becomes whatever it is becoming.',
+        text: 'I have thought about it since the Pool. The leak can be dammed. A piece of the Heartstone in the well, stable or dead, and the breath stops; the changed stop changing, and some sicken for it. Or we let it run, and the fen becomes what it is becoming.',
         next: 'yours',
       },
       {

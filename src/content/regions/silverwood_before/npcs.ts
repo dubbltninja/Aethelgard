@@ -56,8 +56,14 @@ export const npcs = [
       { text: 'You were here yesterday. No one else remembers. Why do I?' },
     ],
     age: 16, // "~16" (WORLD §4, BIBLE §3.2)
-    // D-098: "loc_apprentices_garret (Day 1: loc_plaza_of_bells; Day 3 dusk: the Archive stair)" — buying bread at noon
+    // D-098: "loc_apprentices_garret (Day 1: loc_plaza_of_bells; Day 3 dusk: the Archive stair)" — buying bread at noon.
+    // U56 (STORY §11.4, §9.6; shared/dialogues/companions_u56.ts): crossed this loop he is in the present (the Nexus, the Apex)
+    // and "the stair at dusk has no boy on it"; while the errand runs he walks the Plaza with you; while the boy's quest runs
+    // he waits at the Gate for the door.
     schedule: [
+      { when: { quest: { id: 'q_a_boy_from_a_doomed_city', stage: 'crossed', status: 'completed' } }, at: ['loc_chronos_nexus', 'loc_temporal_breach_apex'] },
+      { when: { quest: { id: 'q_the_apprentices_errand', status: 'active' } }, at: ['loc_apprentices_garret', PLAZA] },
+      { when: { quest: { id: 'q_a_boy_from_a_doomed_city', status: 'active' } }, at: ['loc_apprentices_garret', 'loc_silver_gate'] },
       { when: { all: [LAST_BELL, { watch: 'dusk' }] }, at: ['loc_archives_of_danthe'] },
       { when: { all: [FIRST_BELL, NOON] }, at: [PLAZA] },
     ],

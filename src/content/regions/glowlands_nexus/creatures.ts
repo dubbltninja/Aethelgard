@@ -890,6 +890,13 @@ const unveiledTyrant = {
               { id: 'eye_of_masque', when: { echo: 'echo_eye_of_masque' }, resolve: 1, text: 'Your eye is still open on the orrery.' },
               // the perfect answer (+2); STORY §10.1: "It failed."
               { id: 'ritual_inevitable', when: { echo: 'echo_ritual_inevitable' }, resolve: 2, text: 'It failed.' },
+              // U56 (STORY §11.4 `q_his_masters_sin` stage 2): "Caelum answers Masque's question himself"
+              {
+                id: 'caelum_answers',
+                when: { all: [{ companion: { id: 'caelum', state: 'active' } }, { quest: { id: 'q_his_masters_sin', status: 'active' } }] },
+                resolve: 1,
+                text: "Caelum answers for you: 'The far side is a boy on a stair, Master Masque. You taught me to look. I looked.'",
+              },
             ],
           },
           {

@@ -40,11 +40,12 @@ import type { EncounterInput } from '@schema/encounter';
 import type { QuestInput } from '@schema/quest';
 import { quests as companionsU54 } from './companions_u54';
 import { quests as companionsU55 } from './companions_u55';
+import { quests as companionsU56 } from './companions_u56';
 import { encounters as factionEncounters, quests as factions } from './factions';
 import { quests as legacy } from './legacy';
 
-/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs. */
-export const quests: readonly QuestInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55];
+/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs. U56: Mireya's and Caelum's arcs. */
+export const quests: readonly QuestInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56];
 
 /** The fights a quest starts itself (`startCombat` from a stage or a wave's `onVictory`): U53's Horde-echo waves. */
 export const encounters: readonly EncounterInput[] = [...factionEncounters];

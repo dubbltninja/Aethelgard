@@ -25,6 +25,14 @@ export const npcs = [
       { text: "Sit down. Feverfew, then water, then you tell me where you've been." },
       { text: 'Rain by dusk. Bring the moss in before it drinks the light.' },
     ],
+    // U56 (D-102): she goes ahead to the Pool while her second quest runs and stands by it for the choice of her third
+    // (STORY §11.4; shared/dialogues/companions_u56.ts); at Lanternreed too, for the asks and the waiting lines
+    schedule: [
+      {
+        when: { any: [{ quest: { id: 'q_what_the_light_takes', status: 'active' } }, { quest: { id: 'q_preserve_or_heal', status: 'active' } }] },
+        at: ['loc_lanternreed', 'loc_breathing_pool'],
+      },
+    ],
     tags: ['companion_anchor', 'glowfen'],
   },
   {

@@ -104,6 +104,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U34e | Combat expressiveness: Heartstone effects, item custom passives, creature mechanics, scenario bug, hazards, anomalies — brief `briefs/u34e.md` | Opus | ✅ a8b7a3c (resumed after the cutoff) — all 7 items; creatures complete (73); 3532 tests; D-110 |
 | U65 | Combat screen — brief `briefs/u65.md` | Opus | ✅ ab31ebf (finished after a container restart) — e2e 12/12; 3709 tests; D-116 |
 | U66 | Dialogue screen + Journal + Codex + Bestiary panels — brief `briefs/u66.md` | Sonnet | ✅ 90991f5 (spot-reviewed) — e2e 43 total; 3775 tests; D-117 |
+| U67 | Inventory/Equipment, Abilities, Merchant, Forge, Camp panels — brief `briefs/u67.md` | Sonnet | ▶ in progress (worktree, `wip/u67`) |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
 | U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ✅ 6824137 (resumed after the cutoff) — 6 quests, 23 scenes, 11 proofs; 3613 tests; D-113 |
 | U34f | Companion refusals of places (`refusesWhen`), Dask's Tyrant hooks, Named/Unbound Hand, the Keeper's Price tie (D-113) — brief `briefs/u34f.md` | Opus | ✅ ef664e9 — refusals, traits, Dask's Tyrant hooks, Dray's hub; 3633 tests; D-114 |

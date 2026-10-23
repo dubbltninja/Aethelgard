@@ -159,6 +159,7 @@ const EVALUATORS: Evaluators = {
     if (!cs) return false;
     if (state === 'recruited') return true;
     if (state === 'ko') return cs.ko;
+    if (state === 'following') return env.s.companions.activeId !== c.id && cs.waitingAt === null;
     return env.s.companions.activeId === c.id;
   },
   loyalty: (l, env) => {
@@ -176,6 +177,7 @@ const EVALUATORS: Evaluators = {
   modifier: (id, { s }) => s.meta.modifiers.includes(id),
   infected: (_v, { s }) => standingInfected(s),
   diedHere: (_v, { s, p }) => p.lastDeathLocation !== undefined && p.lastDeathLocation === s.world.currentLocationId,
+  region: (id, { s, c }) => c.locations[s.world.currentLocationId]?.regionId === id, // U34f
 };
 
 /** U34e: `killed`'s count — this loop's (since the quest stage with `sinceStage`), or with `anyLoop` the profile's bestiary in every loop. */
@@ -239,6 +241,7 @@ const DESCRIBERS: Describers = {
   companion: (k, { c }) => {
     const name = nameIn(c.companions, k.id);
     const state = k.state ?? 'active';
+    if (state === 'following') return `${name} walking with you`;
     return state === 'active' ? `${name} in the party` : state === 'recruited' ? `${name} recruited` : `${name} knocked out`;
   },
   loyalty: (l, env) => {
@@ -254,6 +257,7 @@ const DESCRIBERS: Describers = {
   modifier: (id, { c }) => `Modifier: ${nameIn(c.modifiers, id)}`,
   infected: () => 'Here, where the Horde has reached',
   diedHere: () => 'Here, where you last fell',
+  region: (id, { c }) => `In ${nameIn(c.regions, id)}`,
 };
 
 function describe(cond: Condition, env: Env): string {

@@ -151,7 +151,13 @@ describe('the real pack (U41 tables)', () => {
     expect(theirs.filter((w) => w.rule === 'rule-18').map((w) => [w.id, w.message])).toEqual(
       open.map((c) => [c.id, 'pending — content not yet authored: the arc quests have fewer than two distinct terminal outcomes']),
     );
-    expect(theirs).toHaveLength(pendingRefs.length + open.length);
+    // U34f: an open companion's refusals may read its own arc quests, pending with them
+    const refusalRefs = theirs.filter((w) => w.rule === 'rule-02');
+    for (const w of refusalRefs) {
+      expect([w.id, w.path.startsWith('refusesWhen.'), w.message.startsWith('pending — content not yet authored (reference): condition quest')]).toEqual([w.id, true, true]);
+      expect(open.map((c) => c.id)).toContain(w.id);
+    }
+    expect(theirs).toHaveLength(pendingRefs.length + open.length + refusalRefs.length);
     expect(pendingRefs).toHaveLength(6 * open.length);
   });
 });
@@ -709,6 +715,8 @@ function stubTables(drop?: string): ContentTables {
     npcs: keep(stubNpcs),
     quests: keep(stubQuests),
     dialogues: keep(stubScenes),
+    // U34f: the refusals and traits name places, regions and quest stages this stub pack does not have
+    companions: contentTables.companions.map((c) => ({ ...c, refusesWhen: [], traits: [] })),
   };
 }
 
@@ -748,24 +756,34 @@ describe('the companions in the real pack (D-111)', () => {
     expect([dask.requiresTemporallyUnstable, dask.constraintText, dask.stats.evasion]).toEqual([true, 'Dask flickers and cannot follow.', 20]);
     expect(dask.banter.length + dask.campScenes.length).toBeGreaterThan(0);
 
-    // the real map: every location, every companion — only Dask is ever kept out, and only where the node is calm and uninfected
-    const s = newRun('u41', 'ranger', pack, freshProfile());
+    // the real map, Loop 2, nothing begun: Dask is kept out only where the node is calm and uninfected; the others only by
+    // their refusals that hold with nothing begun (U34f: Ilyra the Veil, Brak the Hollow Choir, Nyx the Emberforge, the Apex
+    // and the Before, Caelum the Library)
+    const profile = freshProfile();
+    const s = newRun('u41', 'ranger', pack, profile);
+    s.meta.loop = 2;
     expect(s.world.infected).toEqual([]);
     const locations = Object.values(pack.locations);
     const unstable = locations.filter((l) => l.temporallyUnstable === true);
     const calm = locations.filter((l) => l.temporallyUnstable !== true);
     expect(unstable.length).toBeGreaterThan(0);
     expect(calm.length).toBeGreaterThan(1);
+    const refused = (id: string, l: (typeof locations)[number]): boolean =>
+      (id === 'ilyra' && l.regionId === 'region_veil') ||
+      (id === 'brak' && l.id === 'loc_sanctum_of_threads') ||
+      (id === 'nyx' && (l.id === 'loc_emberforge' || l.id === 'loc_temporal_breach_apex' || l.regionId === 'region_silverwood_before')) ||
+      (id === 'caelum' && l.id === 'loc_shattered_library');
     for (const c of companions) {
       for (const l of locations) {
-        expect([c.id, l.id, companionAllowedAt(s, pack, c.id, l.id)]).toEqual([c.id, l.id, c.id !== 'dask' || l.temporallyUnstable === true]);
+        const allowed = (c.id !== 'dask' || l.temporallyUnstable === true) && !refused(c.id, l);
+        expect([c.id, l.id, companionAllowedAt(s, pack, profile, c.id, l.id)]).toEqual([c.id, l.id, allowed]);
       }
     }
     // a Horde-infected node counts while infected
     const [infected, other] = calm;
     s.world.infected = [infected?.id ?? ''];
-    expect(companionAllowedAt(s, pack, 'dask', infected?.id ?? '')).toBe(true);
-    expect(companionAllowedAt(s, pack, 'dask', other?.id ?? '')).toBe(false);
+    expect(companionAllowedAt(s, pack, profile, 'dask', infected?.id ?? '')).toBe(true);
+    expect(companionAllowedAt(s, pack, profile, 'dask', other?.id ?? '')).toBe(false);
   });
 });
 

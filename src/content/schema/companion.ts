@@ -5,12 +5,28 @@
 import { z } from 'zod';
 import { ConditionSchema } from './condition';
 import { dupes } from './creature';
-import { Base, CompanionId, DamageType, LocationId, NpcId, Pct, PId, QuestId, RegionId, Stance, StatusId, Text } from './primitives';
+import { Base, CompanionId, DamageType, Id, LocationId, NpcId, Pct, PId, QuestId, RegionId, Stance, StatusId, Text } from './primitives';
 
 const int = z.number().int();
 const custom = z.ZodIssueCode.custom;
 
 export const CompanionRole = z.enum(['bruiser', 'caster', 'support', 'skirmisher']);
+
+/**
+ * U34f (C1 addition, D-112/D-113; STORY §7 "Refusals"): a place or company the companion will not keep. It refuses a node
+ * when `when` holds there — read as if the Wayfinder stood on that node, so `{ location }` and `{ region }` name it. The
+ * engine's `companionAllowedAt` reads it beside Dask's rule: the companion stays behind (at the last node it could stand
+ * on, else its home), says `text`, and rejoins where it may stand again.
+ */
+export const CompanionRefusalSchema = z.object({ when: ConditionSchema, text: Text }).strict();
+
+/**
+ * U34f (C1 addition, D-113; STORY §7.2 *Named*): a trait the arc earns. While `when` holds, the signature resolves on
+ * `signatureTarget` instead of its own target (Named: Hold the Line's shield covers the Wayfinder too).
+ */
+export const CompanionTraitSchema = z
+  .object({ id: Id, name: Text, when: ConditionSchema, signatureTarget: z.enum(['party']).optional(), text: Text })
+  .strict();
 
 export const StanceRulesSchema = z
   .object({
@@ -57,6 +73,10 @@ export const CompanionSchema = Base.extend({
   requiresTemporallyUnstable: z.boolean().default(false),
   /** "Dask flickers and cannot follow." */
   constraintText: z.string().optional(),
+  /** U34f: the places (and company) it refuses, first match's line said (see CompanionRefusalSchema). */
+  refusesWhen: z.array(CompanionRefusalSchema).default([]),
+  /** U34f: traits its arc earns (see CompanionTraitSchema). */
+  traits: z.array(CompanionTraitSchema).default([]),
   deathRule: z.enum(['ko', 'permadeath_scripted']).default('ko'),
   /** ≥ 3 after content lands (validator warns < 3). */
   arcQuestIds: z.array(QuestId).min(1),
@@ -85,8 +105,11 @@ export const CompanionSchema = Base.extend({
       issue(['constraintText'], 'a location-restricted companion needs constraintText (shown when it cannot follow)');
     }
     dupes(c.arcQuestIds).forEach((i) => issue(['arcQuestIds', i], 'duplicate arc quest'));
+    dupes(c.traits.map((t) => t.id)).forEach((i) => issue(['traits', i, 'id'], 'duplicate trait'));
   });
 
 export type StanceRules = z.output<typeof StanceRulesSchema>;
+export type CompanionRefusal = z.output<typeof CompanionRefusalSchema>;
+export type CompanionTrait = z.output<typeof CompanionTraitSchema>;
 export type Companion = z.output<typeof CompanionSchema>;
 export type CompanionInput = z.input<typeof CompanionSchema>;

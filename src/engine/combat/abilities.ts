@@ -52,8 +52,10 @@
 // second player turn at once; the turn end in between is taken back (the fight's cooldown table +1 here, the status
 // countdown and turn count in buffHooks.ts), and that bonus turn's start ticks nothing — one turn, two actions.
 import type { Ability } from '@schema/ability';
+import type { CompanionTrait } from '@schema/companion';
 import type { CombatWhen } from '@schema/creature';
 import type { Item } from '@schema/item';
+import { evaluate } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
 import { derive } from '../derived';
 import { apply, applyAll, damageAmount } from '../effects';
@@ -814,7 +816,20 @@ export function useSignature(ops: CombatOps, ctx: StepCtx, combat: CombatState, 
   ctx.s.counters.abilitiesUsed[ability.id] = (ctx.s.counters.abilitiesUsed[ability.id] ?? 0) + 1;
   ctx.emit({ t: 'abilityUsed', uid: companion.uid, abilityId: ability.id });
   combatLog(combat, `${playerOf(combat).name} calls on ${companion.name}: ${ability.name}.`, 'info');
-  resolveAbility(ops, ctx, combat, companion, ability, pickTargets(combat, companion, ability, action.targetUid) as Picked, 0);
+  const trait = signatureTrait(ctx, companion);
+  const resolved = trait?.signatureTarget === undefined ? ability : { ...ability, target: trait.signatureTarget };
+  if (trait) combatLog(combat, `${trait.name}: ${trait.text}`, 'info');
+  const targetUid = resolved === ability ? action.targetUid : undefined;
+  resolveAbility(ops, ctx, combat, companion, resolved, pickTargets(combat, companion, resolved, targetUid) as Picked, 0);
+}
+
+/**
+ * U34f (D-113, STORY §7.2): the companion's first trait that holds now and changes its signature's target (Named: Hold the
+ * Line shields the party), or undefined.
+ */
+export function signatureTrait(ctx: StepCtx, companion: Combatant): CompanionTrait | undefined {
+  const traits = ctx.content.companions[companion.refId]?.traits ?? [];
+  return traits.find((t) => t.signatureTarget !== undefined && evaluate(t.when, ctx.s, ctx.profile, ctx.content));
 }
 
 // ---- combat items (DESIGN §7.9) ------------------------------------------------------------------------------------------

@@ -17,6 +17,7 @@ import {
   QuestId,
   QuestStatus,
   RangeSchema,
+  RegionId,
   StatName,
   Text,
   Watch,
@@ -55,8 +56,11 @@ export interface ConditionAtoms {
   class: z.infer<typeof ClassId>;
   /** Primaries only (D-044). */
   stat: { name: z.infer<typeof StatName> } & Bounds;
-  /** `state` default `active`. */
-  companion: { id: z.infer<typeof CompanionId>; state?: 'active' | 'recruited' | 'ko' };
+  /**
+   * `state` default `active`. U34f (C1 addition, STORY §7.2 "will not let Nyx walk behind him"): `following` = recruited,
+   * not the active one, and travelling with the party (waiting nowhere).
+   */
+  companion: { id: z.infer<typeof CompanionId>; state?: 'active' | 'recruited' | 'ko' | 'following' };
   loyalty: { companion: z.infer<typeof CompanionId> } & Bounds;
   corruption: Range;
   /** Current node. */
@@ -76,6 +80,8 @@ export interface ConditionAtoms {
   infected: true;
   /** U34e (C1 addition, D-091): the player's last death (profile `lastDeathLocation`) was at the current location. */
   diedHere: true;
+  /** U34f (C1 addition, D-113): the current node is in this region (a companion's refusal of the Veil, of the Before). */
+  region: `region_${string}`;
 }
 
 export type ConditionKey = keyof ConditionAtoms;
@@ -103,7 +109,7 @@ export const CONDITION_ATOMS: { readonly [K in ConditionKey]: z.ZodType<Conditio
   beforeResets: RangeSchema,
   class: ClassId,
   stat: z.object({ name: StatName, ...bounds }).strict().refine(ordered, 'min must be ≤ max'),
-  companion: z.object({ id: CompanionId, state: z.enum(['active', 'recruited', 'ko']).optional() }).strict(),
+  companion: z.object({ id: CompanionId, state: z.enum(['active', 'recruited', 'ko', 'following']).optional() }).strict(),
   loyalty: z.object({ companion: CompanionId, ...bounds }).strict().refine(ordered, 'min must be ≤ max'),
   corruption: RangeSchema,
   location: LocationId,
@@ -113,6 +119,7 @@ export const CONDITION_ATOMS: { readonly [K in ConditionKey]: z.ZodType<Conditio
   modifier: ModifierId,
   infected: z.literal(true),
   diedHere: z.literal(true),
+  region: RegionId,
 };
 
 export const CONDITION_KEYS = Object.keys(CONDITION_ATOMS) as ConditionKey[];

@@ -82,6 +82,7 @@ export function standInPack(): ContentPack {
       mod_glass: { name: 'Glass', rules: [{ kind: 'damage_mult' }] },
     },
     factions: { remnants: { name: 'The Remnants' }, weavers: { name: 'The Weavers' }, ironclad: { name: 'The Ironclad' } },
+    regions: { region_glowlands: { name: 'The Glowlands' } }, // U34f: the `region` atom's explain text
   } as unknown as ContentPack;
 }
 

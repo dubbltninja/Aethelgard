@@ -363,6 +363,11 @@ export const CommunionSpecSchema = z
     outcomes: z
       .array(z.object({ minResolve: ResolveSchema, when: ConditionSchema.optional(), choiceId: Id, effects: Effects }).strict())
       .min(1),
+    /**
+     * U34f (C1 addition, D-112; DESIGN §12.5 Dask +3 for sparing it): effects the moment it is spared (the end of Movement
+     * III with Resolve ≥ 3), before the Resolution's outcome. Its death's counterpart is the creature's `onDefeat`.
+     */
+    onSpared: Effects,
   })
   .strict()
   .superRefine((c, ctx) => {
@@ -385,6 +390,7 @@ export const CommunionSpecSchema = z
     dupes(c.outcomes.map((o) => o.choiceId)).forEach((k) => ctx.addIssue({ code: custom, path: ['outcomes', k, 'choiceId'], message: 'duplicate outcome choiceId' }));
     c.offers.forEach((o, i) => noCombatScope(o.effects, ['offers', i, 'effects'], ctx));
     c.outcomes.forEach((o, i) => noCombatScope(o.effects, ['outcomes', i, 'effects'], ctx));
+    noCombatScope(c.onSpared, ['onSpared'], ctx);
     c.movements.forEach((m, i) => noCombatScope(m.listen?.effects ?? [], ['movements', i, 'listen', 'effects'], ctx));
   });
 

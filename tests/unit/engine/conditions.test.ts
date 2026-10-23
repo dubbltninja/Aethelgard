@@ -134,6 +134,17 @@ const CASES: { [K in ConditionKey]: Case[] } = {
       t: [(s) => void (s.companions = { recruited: { brak: comp('brak', { ko: true }) }, activeId: 'brak' })],
       f: [none, (s) => void (s.companions = { recruited: { brak: comp('brak') }, activeId: 'brak' })],
     },
+    {
+      // U34f: recruited, not the active one, waiting nowhere (walking with the party)
+      cond: { companion: { id: 'brak', state: 'following' } },
+      t: [(s) => void (s.companions = { recruited: { brak: comp('brak') }, activeId: null })],
+      f: [
+        none,
+        (s) => void (s.companions = { recruited: { brak: comp('brak') }, activeId: 'brak' }),
+        (s) => void (s.companions = { recruited: { brak: comp('brak', { waitingAt: 'loc_whispering_ruins' }) }, activeId: null }),
+        (s) => void (s.companions = { recruited: { brak: comp('brak', { dead: true }) }, activeId: null }),
+      ],
+    },
   ],
   loyalty: [
     {
@@ -189,6 +200,14 @@ const CASES: { [K in ConditionKey]: Case[] } = {
       cond: { diedHere: true },
       t: [(s, p) => void (p.lastDeathLocation = s.world.currentLocationId)],
       f: [none, (_s, p) => void (p.lastDeathLocation = 'loc_temporal_breach_apex')],
+    },
+  ],
+  // U34f: the current node's region
+  region: [
+    {
+      cond: { region: 'region_glowlands' },
+      t: [(s) => void (s.world.currentLocationId = 'loc_heartstone_depths')],
+      f: [none, (s) => void (s.world.currentLocationId = 'loc_shattered_library'), (s) => void (s.world.currentLocationId = 'loc_nowhere')],
     },
   ],
 };
@@ -339,6 +358,9 @@ describe('explain', () => {
     expect(text({ companion: { id: 'mireya' } })).toEqual(['Mireya in the party']);
     expect(text({ companion: { id: 'brak', state: 'recruited' } })).toEqual(['Brak recruited']);
     expect(text({ companion: { id: 'nyx', state: 'ko' } })).toEqual(['nyx knocked out']);
+    expect(text({ companion: { id: 'brak', state: 'following' } })).toEqual(['Brak walking with you']);
+    expect(text({ region: 'region_glowlands' })).toEqual(['In The Glowlands']);
+    expect(text({ region: 'region_x' })).toEqual(['In region_x']);
     expect(text({ loyalty: { companion: 'mireya', min: 25 } })).toEqual(['Mireya loyalty ≥ 25']);
     expect(text({ corruption: { max: 5 } })).toEqual(['Corruption ≤ 5 (now 0)']);
     expect(text({ location: 'loc_heartstone_depths' })).toEqual(['At Heartstone Depths']);

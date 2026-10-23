@@ -791,11 +791,22 @@ const unveiledTyrant = {
       line: "'I hold,' it says. 'If I do not hold, you have seen what comes.'",
       // Gather → Chrono-Strike everyNth 3, otherwise the Phase 1 moves. The wind-up holds it two turns and the strike
       // lands on the third, so a Gather begins on the first third turn after the cycle resumes (every 6 turns).
-      pattern: everyNthAmong({ move: 'tyr_gather', target: 'player' }, 3, [
-        { move: 'tyr_time_lash', target: 'player' },
-        { move: 'tyr_grasp', target: 'player' },
-        { move: 'tyr_shear', target: 'all' },
-      ]),
+      // U34f (STORY §7.4, §11.4 `q_the_last_instant` A; D-112): with `echo_dask_rest` the chorus is one voice quieter —
+      // Shear, the cycled move that falls on everyone, drops out of the cycle.
+      pattern: [
+        {
+          if: { echo: 'echo_dask_rest' },
+          then: everyNthAmong({ move: 'tyr_gather', target: 'player' }, 3, [
+            { move: 'tyr_time_lash', target: 'player' },
+            { move: 'tyr_grasp', target: 'player' },
+          ]),
+          else: everyNthAmong({ move: 'tyr_gather', target: 'player' }, 3, [
+            { move: 'tyr_time_lash', target: 'player' },
+            { move: 'tyr_grasp', target: 'player' },
+            { move: 'tyr_shear', target: 'all' },
+          ]),
+        },
+      ],
     },
     {
       id: 'tyr_phase_4',
@@ -962,7 +973,12 @@ const unveiledTyrant = {
         effects: [{ grantEcho: 'echo_tyrant_consent' }, { ending: 'ending_mending' }],
       },
     ],
+    // U34f (DESIGN §12.5 "Dask: spare the Tyrant" +3; D-112): the moment it is spared; nothing if Dask is not recruited
+    onSpared: [{ loyalty: { companion: 'dask', delta: 3 } }],
   },
+  // U34f (DESIGN §12.5 "Dask: killing the Tyrant −30"; STORY §7.4; D-112): its death, with the loot; nothing if Dask is not
+  // recruited (the `loyalty` effect). Before the Horde's step, so the loop's bond check reads it.
+  onDefeat: [{ loyalty: { companion: 'dask', delta: -30 } }],
   // DESIGN §8.2: a Tyrant Shard per phase cleared (max 4); a kill takes it through all four phases (a fight resumed at
   // Phase 2 after a rejection clears three, which a loot row cannot tell). A kill triggers the Horde (D-060).
   loot: [

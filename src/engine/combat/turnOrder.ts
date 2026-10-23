@@ -21,6 +21,7 @@ import { evaluate } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { DAMAGE_TYPES, derive } from '../derived';
 import { modifierDamageMult } from '../runRules';
+import type { Profile } from '../types/profile';
 import type { Combatant, CombatState, DamageType, GameState, Resistance, SpawnedEncounter, StatusInstance } from '../types/state';
 import { round } from '../util/math';
 import { actsFirst, addTag, hasTag } from './buffs';
@@ -177,11 +178,37 @@ export const companionHpMax = (def: Pick<Companion, 'stats' | 'perLevel'>, level
 
 /**
  * D-059 / D-066 #12 / DESIGN §12.8: a location-restricted companion (Dask) may stand only where the location is
- * `temporallyUnstable` or Horde-infected; every other companion anywhere (U28, combat/companionAi.ts).
+ * `temporallyUnstable` or Horde-infected (U28, combat/companionAi.ts).
  */
-export function companionAllowedAt(s: GameState, content: ContentPack, companionId: string, locationId: string): boolean {
+function placeRuleHolds(s: GameState, content: ContentPack, companionId: string, locationId: string): boolean {
   if (!content.companions[companionId]?.requiresTemporallyUnstable) return true;
   return (content.locations[locationId]?.temporallyUnstable ?? false) || s.world.infected.includes(locationId);
+}
+
+/**
+ * U34f (D-112/D-113, STORY §7 "Refusals"): the line of the companion's first `refusesWhen` entry whose `when` holds at
+ * `locationId` — as if the Wayfinder stood there (the state's place swapped for `locationId`, nothing else) — or null.
+ */
+export function companionRefusal(s: GameState, content: ContentPack, profile: Readonly<Profile>, companionId: string, locationId: string): string | null {
+  const refusals = content.companions[companionId]?.refusesWhen ?? [];
+  if (refusals.length === 0) return null;
+  const there = locationId === s.world.currentLocationId ? s : { ...s, world: { ...s.world, currentLocationId: locationId } };
+  return refusals.find((r) => evaluate(r.when, there, profile, content))?.text ?? null;
+}
+
+/**
+ * Why the companion will not stand at `locationId`, or null: Dask's rule (its `constraintText`), then the record's
+ * refusals (U34f).
+ */
+export function companionBarredAt(s: GameState, content: ContentPack, profile: Readonly<Profile>, companionId: string, locationId: string): string | null {
+  const def = content.companions[companionId];
+  if (!placeRuleHolds(s, content, companionId, locationId)) return def?.constraintText ?? `${def?.name ?? companionId} cannot follow you here.`;
+  return companionRefusal(s, content, profile, companionId, locationId);
+}
+
+/** The companion may stand at `locationId`: Dask's rule (U28) and its refusals (U34f) both allow it. */
+export function companionAllowedAt(s: GameState, content: ContentPack, profile: Readonly<Profile>, companionId: string, locationId: string): boolean {
+  return companionBarredAt(s, content, profile, companionId, locationId) === null;
 }
 
 /**
@@ -194,7 +221,7 @@ function companionCombatant(ctx: StepCtx): Combatant | null {
   const run = id === null ? undefined : s.companions.recruited[id];
   const def = id === null ? undefined : content.companions[id];
   if (!run || !def || run.ko || run.dead || run.hp <= 0) return null;
-  if (!companionAllowedAt(s, content, def.id, s.world.currentLocationId)) return null;
+  if (!companionAllowedAt(s, content, ctx.profile, def.id, s.world.currentLocationId)) return null;
   const level = s.player.level;
   const steps = Math.floor(level / 4);
   const agi = def.stats.agi;

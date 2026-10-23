@@ -55,7 +55,7 @@ import { hasStatus, resolveHit, type HitSpec } from './damage';
 import { TAG_ALL } from './intents';
 import { setTimer, type CombatOps } from './specials';
 import { STATUS, blocksAction, statusImmunities } from './statuses';
-import { combatLog, companionAllowedAt, companionHpMax, isActive, playerOf } from './turnOrder';
+import { combatLog, companionAllowedAt, companionBarredAt, companionHpMax, isActive, playerOf } from './turnOrder';
 
 // ---- rules ------------------------------------------------------------------------------------------------------------------
 
@@ -437,34 +437,43 @@ export function changeStance(ctx: StepCtx, stance: Stance): void {
 export const stanceActions = (s: GameState): ActionOf<'setStance'>[] =>
   STANCES.filter((stance) => stanceProblem(s, stance) === null).map((stance) => ({ type: 'setStance', stance }));
 
-// ---- Dask's places, max HP by level (out of combat) ----------------------------------------------------------------------------
+// ---- Dask's places and the companions' refusals, max HP by level (out of combat) ----------------------------------------------
 
 const nameOf = (content: ContentPack, id: string): string => content.companions[id]?.name ?? id;
 
 /**
- * D-059 / D-068.2 / DESIGN §12.8 at the current location: an active companion who cannot stand here flickers out; a
- * flickered one rejoins where he can, if the active slot is still empty. Idempotent.
+ * D-059 / D-068.2 / DESIGN §12.8 at the current location, and U34f's refusals (STORY §7, D-112/D-113): an active companion
+ * who cannot or will not stand here steps out (`FLICKERED_FLAG`) with its line — Dask's `constraintText`, or the refusal's.
+ * Dask waits nowhere (between instants); any other companion waits at the previous node if it may stand there (the last
+ * node it walked with you), else at its home (a refusal of company, which holds everywhere). A stepped-out companion
+ * rejoins where it may stand again, if the active slot is still empty. Idempotent.
  */
 export function applyLocationRule(ctx: StepCtx): void {
-  const { s, content } = ctx;
+  const { s, content, profile } = ctx;
   const companions = s.companions;
   const here = s.world.currentLocationId;
   const activeId = companions.activeId;
   const active = activeId === null ? undefined : companions.recruited[activeId];
-  if (activeId !== null && active && !companionAllowedAt(s, content, activeId, here)) {
+  const why = activeId === null || !active ? null : companionBarredAt(s, content, profile, activeId, here);
+  if (activeId !== null && active && why !== null) {
     companions.activeId = null;
-    active.waitingAt = null;
+    const prev = s.world.previousLocationId;
+    const flickers = content.companions[activeId]?.requiresTemporallyUnstable === true;
+    const lastNode = prev !== null && prev !== here && companionAllowedAt(s, content, profile, activeId, prev) ? prev : homeOf(s, content, activeId);
+    active.waitingAt = flickers ? null : lastNode;
     active.arcFlags[FLICKERED_FLAG] = true;
     ctx.emit({ t: 'companionSwapped', activeId: null });
-    ctx.log(content.companions[activeId]?.constraintText ?? `${nameOf(content, activeId)} cannot follow you here.`, 'event');
+    ctx.log(why, 'event');
   }
   if (companions.activeId !== null) return;
-  const back = Object.values(companions.recruited).find((c) => c.arcFlags[FLICKERED_FLAG] === true && !c.dead && companionAllowedAt(s, content, c.id, here));
+  const back = Object.values(companions.recruited).find((c) => c.arcFlags[FLICKERED_FLAG] === true && !c.dead && companionAllowedAt(s, content, profile, c.id, here));
   if (!back) return;
   delete back.arcFlags[FLICKERED_FLAG];
+  back.waitingAt = null;
   companions.activeId = back.id;
   ctx.emit({ t: 'companionSwapped', activeId: back.id });
-  ctx.log(`${nameOf(content, back.id)} flickers back into step beside you.`, 'event');
+  const flickers = content.companions[back.id]?.requiresTemporallyUnstable === true;
+  ctx.log(`${nameOf(content, back.id)} ${flickers ? 'flickers' : 'falls'} back into step beside you.`, 'event');
 }
 
 /** ARRIVAL_HOOKS (reducers/explore.ts), first: Dask's rule before any encounter rolls. */
@@ -518,8 +527,7 @@ export function swapProblem(s: GameState, content: ContentPack, profile: Readonl
   if (c.ko) return `${nameOf(content, companionId)} is down`;
   const present = c.waitingAt === null || c.waitingAt === here;
   if (!present && !restHere(s, content, profile)) return `${nameOf(content, companionId)} is not here (swap at a rest, or where they wait)`;
-  if (!companionAllowedAt(s, content, companionId, here)) return content.companions[companionId]?.constraintText ?? `${nameOf(content, companionId)} cannot be here`;
-  return null;
+  return companionBarredAt(s, content, profile, companionId, here); // Dask's rule, then its refusals (U34f)
 }
 
 /** Swaps the active companion (the reducer checked `swapProblem`): the one leaving waits at home. */

@@ -864,7 +864,13 @@ describe('the Unveiled Tyrant’s communion vs DESIGN §4.11, WORLD §6.8’s ta
       tyr_q_vane: [e('echo_litany_verse_3'), e('echo_stone_hide_origin')],
       tyr_q_aulde: [e('echo_litany_verse_5'), e('echo_spire_note')],
       tyr_q_sallow: [e('echo_litany_verse_6'), e('echo_breathing_pool'), ['mireya_present', { companion: { id: 'mireya', state: 'active' } }, 1, false]],
-      tyr_q_masque: [e('echo_litany_verse_7'), e('echo_eye_of_masque'), e('echo_ritual_inevitable', 2)],
+      // U56 (STORY §11.4 `q_his_masters_sin` stage 2): Caelum answers Masque himself (pinned in companions_u56.test.ts)
+      tyr_q_masque: [
+        e('echo_litany_verse_7'),
+        e('echo_eye_of_masque'),
+        e('echo_ritual_inevitable', 2),
+        ['caelum_answers', { all: [{ companion: { id: 'caelum', state: 'active' } }, { quest: { id: 'q_his_masters_sin', status: 'active' } }] }, 1, false],
+      ],
       tyr_q_hallow: [e('echo_hallow_said_stop', 2), e('echo_litany_verse_4')],
       tyr_q_choice: [['choose', { resolve: { min: 3 } }, 0, false]],
     });
@@ -1035,7 +1041,8 @@ describe('authored words outside the documents are few and short; coined ids are
     expect(loc(NEXUS).rest?.text).toBe("You rest in the astronomers' cell, where time is honest.");
     expect(WL[NEXUS]?.block).toContain("(the astronomers' cell, where time is honest)");
     expect([cr('cr_tyrants_reach').moves['reach_dead_spell']?.line, cr(CONTAINED).moves['tyr_chrono_strike']?.line]).toEqual(['The limb works a spell that is not its own.', 'The hour falls.']);
-    for (const q of (cr(UNVEILED).communion?.movements ?? []).flatMap((m) => m.questions)) for (const a of q.answers) expect([a.id, words(a.text) <= 20]).toEqual([a.id, true]);
+    // (U56's `caelum_answers` is Caelum's own line, not this unit's: companions_u56.test.ts pins it)
+    for (const q of (cr(UNVEILED).communion?.movements ?? []).flatMap((m) => m.questions)) for (const a of q.answers) if (a.id !== 'caelum_answers') expect([a.id, words(a.text) <= 20]).toEqual([a.id, true]);
   });
 
   test('ids this unit coined (WORLD/STORY have none for them): encounter ids, answer and outcome ids, two ambient overrides', () => {

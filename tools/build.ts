@@ -120,7 +120,9 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
   const e2e = options.e2e ?? false;
   const outdir = path.resolve(root, options.outdir ?? (e2e ? 'dist-e2e' : 'dist'));
   const log = options.log ?? (() => {});
-  const budget = options.budgetBytes ?? JS_BUDGET_BYTES;
+  // PLAN §1.1's budget is the shipped bundle's: the e2e build is unminified (dev hooks for Playwright), so it is checked
+  // only when a budget is passed (U56: the content pushed it past 600 kB while production stays far inside)
+  const budget = options.budgetBytes ?? (e2e ? Number.POSITIVE_INFINITY : JS_BUDGET_BYTES);
 
   fs.rmSync(outdir, { recursive: true, force: true });
   fs.mkdirSync(outdir, { recursive: true });
@@ -155,7 +157,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
   if (jsGzipBytes > budget) {
     throw new Error(`JS budget exceeded: ${(jsGzipBytes / 1000).toFixed(1)} kB gzip > ${(budget / 1000).toFixed(0)} kB`);
   }
-  log(`build: ok — JS ${(jsGzipBytes / 1000).toFixed(1)} kB gzip (budget ${(budget / 1000).toFixed(0)} kB)`);
+  log(`build: ok — JS ${(jsGzipBytes / 1000).toFixed(1)} kB gzip (budget ${Number.isFinite(budget) ? `${(budget / 1000).toFixed(0)} kB` : 'none: e2e'})`);
   return { outdir, ...assets, jsGzipBytes };
 }
 

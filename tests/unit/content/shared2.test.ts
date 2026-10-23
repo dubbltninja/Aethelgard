@@ -5,8 +5,8 @@
 // U26/U26b combat fixture, the companion rows to the U28 fixture (both are cast through the engine in their own tests).
 //
 // The companions and their 24 abilities are registered since D-111 (they were authored first and held back by D-088): their six
-// NPCs are authored with the regions, while each companion's 3 arc quests and 3 camp scenes are pending references (D-090) until
-// its unit writes them (U54 Ilyra and Brak, U55 Nyx and Dask, U56 Mireya and Caelum; the pins below hold in any landing order).
+// NPCs are authored with the regions, and each companion's 3 arc quests and 3 camp scenes were pending references (D-090) until
+// its unit wrote them (U54 Ilyra and Brak, U55 Nyx and Dask, U56 Mireya and Caelum): all six are authored and nothing is pending.
 // A second pack of the real tables with stub NPC, quest, scene, region and location records (that exist only in this file)
 // proves the records are complete once every outside id exists.
 import fs from 'node:fs';
@@ -123,42 +123,22 @@ describe('the real pack (U41 tables)', () => {
     expect(pending - waiting).toBeLessThan(130);
   });
 
-  test('the companions\' open references: each companion is authored whole (its 3 arc quests and 3 camp scenes in the pack) or not at all (pending, D-090); their 6 NPCs point back', () => {
+  test('the companions\' references are all authored: the six records\' 3 arc quests and 3 camp scenes each are in the pack, nothing is pending (U54, U55, U56 landed); their 6 NPCs point back', () => {
     for (const c of companions) expect([c.id, c.npcId, pack.npcs[c.npcId]?.companionId]).toEqual([c.id, `npc_${c.id}`, c.id]);
     expect([companions.flatMap((c) => c.arcQuestIds).length, companions.flatMap((c) => c.campScenes).length]).toEqual([18, 18]);
-    // a companion whose unit has landed (U54: Ilyra and Brak; U55: Nyx and Dask; U56: Mireya and Caelum) has every reference in the pack
+    // every companion's unit has landed (U54: Ilyra and Brak; U55: Nyx and Dask; U56: Mireya and Caelum): every reference is in the pack
     const authored = (c: CompanionInput): boolean => c.arcQuestIds.every((q) => q in pack.quests) && (c.campScenes ?? []).every((d) => d in pack.dialogues);
-    const open = companions.filter((c) => !authored(c));
-    for (const c of open) {
-      for (const id of c.arcQuestIds) expect([c.id, id, id in pack.quests]).toEqual([c.id, id, false]);
-      for (const id of c.campScenes ?? []) expect([c.id, id, id in pack.dialogues]).toEqual([c.id, id, false]);
-    }
-    // the open set only shrinks: at most U56's two (Mireya, Caelum); Ilyra, Brak (U54), Nyx and Dask (U55) are authored
-    expect(open.every((c) => ['mireya', 'caelum'].includes(c.id))).toBe(true);
-    for (const id of ['ilyra', 'brak', 'nyx', 'dask']) expect([id, authored(companions.find((c) => c.id === id) as CompanionInput)]).toEqual([id, true]);
+    expect(companions.map((c) => [c.id, authored(c)])).toEqual(['ilyra', 'brak', 'nyx', 'dask', 'mireya', 'caelum'].map((id) => [id, true]));
+    expect(companions.filter((c) => !authored(c))).toEqual([]);
 
     expect(parseContentPack().report.errors).toEqual([]);
     const strict = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(strict.errors).toEqual([]);
+    // nothing pending on a companion or a companion ability: no arc quest or camp scene reference (rule 1), no refusal reading a
+    // missing quest (rule 2, U34f), no arc short of two terminal outcomes (rule 18)
     const theirs = strict.warnings.filter((w) => w.table === 'companions' || (w.table === 'abilities' && w.id.startsWith('comp_')));
-    // exactly the open companions' arc quests and camp scenes are pending references
-    const pendingRefs = open.flatMap((c) => [
-      ...c.arcQuestIds.map((q, i) => `${c.id}.arcQuestIds.${i}: pending — content not yet authored (reference): arc quest '${q}' not found in quests`),
-      ...(c.campScenes ?? []).map((d, i) => `${c.id}.campScenes.${i}: pending — content not yet authored (reference): camp scene '${d}' not found in dialogues`),
-    ]);
-    expect(theirs.filter((w) => w.rule === 'rule-01').map((w) => `${w.id}.${w.path}: ${w.message}`).sort()).toEqual([...pendingRefs].sort());
-    // rule 18 counts the arcs' terminal outcomes, which the missing arc quests cannot give yet: one pending line per open companion
-    expect(theirs.filter((w) => w.rule === 'rule-18').map((w) => [w.id, w.message])).toEqual(
-      open.map((c) => [c.id, 'pending — content not yet authored: the arc quests have fewer than two distinct terminal outcomes']),
-    );
-    // U34f: an open companion's refusals may read its own arc quests, pending with them
-    const refusalRefs = theirs.filter((w) => w.rule === 'rule-02');
-    for (const w of refusalRefs) {
-      expect([w.id, w.path.startsWith('refusesWhen.'), w.message.startsWith('pending — content not yet authored (reference): condition quest')]).toEqual([w.id, true, true]);
-      expect(open.map((c) => c.id)).toContain(w.id);
-    }
-    expect(theirs).toHaveLength(pendingRefs.length + open.length + refusalRefs.length);
-    expect(pendingRefs).toHaveLength(6 * open.length);
+    expect(theirs).toEqual([]);
+    expect(strict.warnings.filter((w) => w.message.includes('arc quest') || w.message.includes('camp scene'))).toEqual([]);
   });
 });
 

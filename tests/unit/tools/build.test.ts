@@ -64,6 +64,11 @@ describe('buildApp', () => {
 
   test('fails when the gzip budget is exceeded', async () => {
     await expect(buildApp({ root, entry: 'src/main.ts', budgetBytes: 10 })).rejects.toThrow('JS budget exceeded');
+    // the e2e build (unminified) is held to a budget only when one is passed
+    await expect(buildApp({ root, entry: 'src/main.ts', e2e: true, budgetBytes: 10 })).rejects.toThrow('JS budget exceeded');
+    const log: string[] = [];
+    await buildApp({ root, entry: 'src/main.ts', e2e: true, log: (line) => log.push(line) });
+    expect(log.at(-1)).toContain('(budget none: e2e)');
   });
 
   test('reads the version from package.json', () => {

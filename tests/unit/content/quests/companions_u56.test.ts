@@ -94,7 +94,6 @@ const S125 = DESIGN_SECTION('### 12.5 Loyalty', '### 12.6');
 
 const loyaltyOf = (effects: readonly Effect[]): Record<string, number> =>
   Object.fromEntries(effects.flatMap((e) => ('loyalty' in e ? [[e.loyalty.companion, e.loyalty.delta] as const] : [])));
-const has = (effects: readonly Effect[], effect: Effect): boolean => effects.some((e) => JSON.stringify(e) === JSON.stringify(effect));
 const words = (t: string): number => t.split(/\s+/).filter(Boolean).length;
 const last = (effects: readonly Effect[]): Effect | undefined => effects.at(-1);
 
@@ -121,7 +120,7 @@ const KNOWN = choice('scene_mireya_lantern_offer', 'three', 'known');
 
 describe('the six arc quests (STORY §11.1, §11.4; DESIGN §6.2)', () => {
   const table = STORY.slice(STORY.indexOf('### 11.1 Table'), STORY.indexOf('### 11.2'));
-  const row = (id: string): string[] => need(table.split('\n').find((l) => l.startsWith(`| \`${id}\``)), id).split('|').map((c) => c.trim());
+  const row = (id: string): string[] => need(table.split('\n').find((l) => l.startsWith(`| \`${id}\``)), id).split('|').map((c) => c.replace(/\*/g, '').trim());
 
   test('all six are registered as companion quests, in STORY order, with STORY’s names, givers and the companion; Loop 1 open for the first, 2+ for the rest', () => {
     expect(arcQuests.map((q) => q.id)).toEqual(QUEST_IDS);
@@ -273,7 +272,9 @@ describe('the six arc quests (STORY §11.1, §11.4; DESIGN §6.2)', () => {
     const masque = need(tyrant.movements[1]?.questions.find((q) => q.id === 'tyr_q_masque'), 'tyr_q_masque');
     const answer = need(masque.answers.find((a) => a.id === 'caelum_answers'), 'caelum_answers');
     expect([answer.when, answer.resolve, answer.lie]).toEqual([{ all: [{ companion: { id: 'caelum', state: 'active' } }, { quest: { id: 'q_his_masters_sin', status: 'active' } }] }, 1, false]);
-    expect(answer.text.startsWith('Caelum answers for you:')).toBe(true);
+    expect(answer.text).toBe("Caelum answers for you: 'The far side is a boy on a stair, Master Masque. You taught me to look. I looked.'");
+    expect(words(answer.text)).toBeLessThanOrEqual(25);
+    expect(storyBlock('q_his_masters_sin')).toContain("Caelum answers Masque's question himself");
   });
 
   test('rule 18 is met for every companion (two outcomes per arc) and rule 15/16 pending counts fell: the arcs’ Echoes are granted and read; the open-companion set is empty', () => {
@@ -806,7 +807,7 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect([loyalty(held.state, 'mireya'), xpOf(held.events), held.state.flags.flag_lanternreed_trusts]).toEqual([5 + 5 + 3 + 5, 150, true]);
     expect(nodesSeen(play(held.state, [talk('npc_mireya')], { content: pack, profile }).events)).toEqual(['fever']);
     const flinched = play(swept.state, [talk('npc_mireya'), go, go, pick('back'), go], { content: pack, profile });
-    expect([flinched.state.quests.q_lantern_in_the_reeds?.stage, loyalty(flinched.state, 'mireya'), nodesSeen(flinched.events).at(-1)]).toEqual(['tended', 5, 'flinch']); // 5 − 10 → 0, +5 +5
+    expect([flinched.state.quests.q_lantern_in_the_reeds?.stage, loyalty(flinched.state, 'mireya'), nodesSeen(flinched.events).at(-1)]).toEqual(['tended', 10, 'flinch']); // 5 − 10 → 0, +5 +5
     // without the moss she waits
     const short = at({ locationId: 'loc_lanternreed', quests: { q_lantern_in_the_reeds: 'tend' }, patch: withCompanion('mireya') }, 1);
     expect(nodesSeen(play(short.s, [talk('npc_mireya')], { content: pack, profile: short.profile }).events)).toEqual(['bring']);
@@ -826,14 +827,17 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     for (const id of ['echo_litany_verse_6', 'echo_breathing_pool']) expect(heard.state.echoesThisLoop).toContain(id);
     expect([loyalty(heard.state, 'mireya'), xpOf(heard.events)]).toEqual([40 + 5 + 3 + 5, 250]);
     // Loyal: the third quest's offer at Lanternreed; below 50 only her line about the Pool
-    const loyal = at({ locationId: 'loc_lanternreed', quests: { q_what_the_light_takes: { status: 'completed', stage: 'heard' } }, echoes: ['echo_breathing_pool'], patch: withCompanion('mireya', { loyalty: 55 }) });
+    const loyal = at({ locationId: 'loc_lanternreed', quests: { q_lantern_in_the_reeds: { status: 'completed', stage: 'tended' }, q_what_the_light_takes: { status: 'completed', stage: 'heard' } }, echoes: ['echo_breathing_pool'], patch: withCompanion('mireya', { loyalty: 55 }) });
     expect(play(loyal.s, [talk('npc_mireya')], { content: pack, profile: loyal.profile }).state.dialogue?.sceneId).toBe('scene_mireya_preserve_offer');
-    const notYet = at({ locationId: 'loc_lanternreed', quests: { q_what_the_light_takes: { status: 'completed', stage: 'heard' } }, echoes: ['echo_breathing_pool'], patch: withCompanion('mireya', { loyalty: 45 }) });
+    const notYet = at({ locationId: 'loc_lanternreed', quests: { q_lantern_in_the_reeds: { status: 'completed', stage: 'tended' }, q_what_the_light_takes: { status: 'completed', stage: 'heard' } }, echoes: ['echo_breathing_pool'], patch: withCompanion('mireya', { loyalty: 45 }) });
     expect(nodesSeen(play(notYet.s, [talk('npc_mireya')], { content: pack, profile: notYet.profile }).events)).toEqual(['breath']);
   });
 
   test('the choice at the Pool: Lanternreed asked +3; the dam greyed without a fragment, takes one and grants `echo_glowfen_dammed` (dark with the dead one); let run grants its Echo; 400 XP; she never says you chose right', () => {
-    const base = { locationId: 'loc_breathing_pool', quests: { q_preserve_or_heal: 'choose' }, patch: withCompanion('mireya', { loyalty: 60 }) };
+    const earlier = { q_lantern_in_the_reeds: { status: 'completed' as const, stage: 'tended' }, q_what_the_light_takes: { status: 'completed' as const, stage: 'heard' } };
+    const base = { locationId: 'loc_breathing_pool', quests: { ...earlier, q_preserve_or_heal: 'choose' }, patch: withCompanion('mireya', { loyalty: 60 }) };
+    // done, she goes home to Lanternreed (her schedule holds her at the Pool only while a quest runs)
+    const home: Action = { type: 'move', to: 'loc_lanternreed' };
     const bare = at(base);
     const asked = play(bare.s, [talk('npc_mireya'), go, pick('ask_them'), go], { content: pack, profile: bare.profile });
     expect([nodesSeen(asked.events), loyalty(asked.state, 'mireya')]).toEqual([['mat', 'fen', 'village', 'choice'], 63]);
@@ -841,7 +845,7 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     const ran = play(asked.state, [pick('run'), go, go], { content: pack, profile: bare.profile });
     expect(ran.state.quests.q_preserve_or_heal).toMatchObject({ status: 'completed', stage: 'let_run' });
     expect([ran.state.echoesThisLoop.includes('echo_glowfen_let_run'), xpOf(ran.events), loyalty(ran.state, 'mireya'), nodesSeen(ran.events).slice(-2)]).toEqual([true, 400, 63 + 5 + 5, ['runs', 'either_bright']]);
-    expect(nodesSeen(play(ran.state, [talk('npc_mireya')], { content: pack, profile: bare.profile }).events)).toEqual(['brighter']);
+    expect(nodesSeen(play(ran.state, [home, talk('npc_mireya')], { content: pack, profile: bare.profile }).events)).toEqual(['brighter']);
     // with both fragments: the stable one dams, the dead one is left; the dead one dams dark
     const stocked = at({ ...base, items: ['item_heartstone_fragment_stable', 'item_heartstone_fragment_dead'] });
     const dammed = play(stocked.s, [talk('npc_mireya'), go, pick('mine'), pick('dam'), go, go], { content: pack, profile: stocked.profile });
@@ -851,14 +855,15 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     const dark = play(stocked.s, [talk('npc_mireya'), go, pick('mine'), pick('dam_dead'), go, go], { content: pack, profile: stocked.profile });
     expect(dark.state.quests.q_preserve_or_heal).toMatchObject({ status: 'completed', stage: 'dammed_dark' });
     expect([carries(dark.state, 'item_heartstone_fragment_dead'), nodesSeen(dark.events).slice(-2)]).toEqual([0, ['dark', 'either_sicken']]);
-    expect(nodesSeen(play(dark.state, [talk('npc_mireya')], { content: pack, profile: stocked.profile }).events)).toEqual(['went_dark']);
+    expect(nodesSeen(play(dark.state, [home, talk('npc_mireya')], { content: pack, profile: stocked.profile }).events)).toEqual(['went_dark']);
     // the two Echoes are exclusive in a loop (STORY §12)
     expect(dark.state.echoesThisLoop).not.toContain('echo_glowfen_let_run');
     for (const r of [ran, dammed, dark]) expect(/right/.test(lastSaid(r.events)?.text ?? '')).toBe(true);
   });
 
   test('Last Bell at noon at the Garret: the errand; the Plaza reaches the Yard; the verse, the honest answer +3, he joins and the outcome pays him 5; a lie costs 10; elsewhen he only hints', () => {
-    const garret = at({ locationId: 'loc_apprentices_garret', patch: inBefore(3, 1) });
+    const ROUTE = ['echo_before_route'];
+    const garret = at({ locationId: 'loc_apprentices_garret', patch: inBefore(3, 1) }, 2, ROUTE);
     const asked = play(garret.s, [talk('npc_caelum'), pick('yes'), go], { content: pack, profile: garret.profile });
     expect([asked.state.dialogue, nodesSeen(asked.events), asked.state.quests.q_the_apprentices_errand?.stage]).toEqual([null, ['message', 'walk'], 'cross']);
     expect(nodesSeen(play(asked.state, [talk('npc_caelum')], { content: pack, profile: garret.profile }).events)).toEqual(['terrace']);
@@ -867,11 +872,14 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     const joined = play(plaza.state, [talk('npc_caelum'), go, go, pick('honest'), go, pick('walk'), go], { content: pack, profile: garret.profile });
     expect(joined.state.quests.q_the_apprentices_errand).toMatchObject({ status: 'completed', stage: 'joined' });
     expect(nodesSeen(joined.events)).toEqual(['read', 'verse', 'begin', 'fails', 'until_dusk', 'joined']);
-    expect([joined.state.companions.activeId, loyalty(joined.state, 'caelum'), xpOf(joined.events)]).toEqual(['caelum', 5, 150]); // +3 before he joined is lost; the outcome's +5 is his
+    expect([joined.state.companions.activeId, loyalty(joined.state, 'caelum'), xpOf(joined.events)]).toEqual(['caelum', 5 + 5, 150]); // +3 before he joined is lost; the last stage's exit and the outcome pay him 5 each
     const lied = play(plaza.state, [talk('npc_caelum'), go, go, pick('lie'), go, pick('later'), go], { content: pack, profile: garret.profile });
     expect([lied.state.companions.activeId, nodesSeen(lied.events).slice(2), lied.state.quests.q_the_apprentices_errand?.status]).toEqual([null, ['begin', 'joke', 'until_dusk', 'later'], 'completed']);
-    // sent away or turned down, he asks again at the Garret
-    expect(nodesSeen(play(lied.state, [{ type: 'move', to: 'loc_apprentices_garret' }, talk('npc_caelum')], { content: pack, profile: garret.profile }).events)).toEqual(['nobodys']);
+    // sent away or turned down: at the Garret his second quest's ask comes first (the offer band), then he asks to come again
+    const back = play(lied.state, [{ type: 'move', to: 'loc_apprentices_garret' }, talk('npc_caelum')], { content: pack, profile: garret.profile });
+    expect([back.state.dialogue?.sceneId, nodesSeen(back.events)]).toEqual(['scene_caelum_boy_offer', ['door']]);
+    const again = play(back.state, [pick('show'), go, talk('npc_caelum'), pick('come'), go], { content: pack, profile: garret.profile });
+    expect([nodesSeen(again.events), again.state.companions.activeId, again.state.quests.q_a_boy_from_a_doomed_city?.stage]).toEqual([['after_dusk', 'nobodys', 'good'], 'caelum', 'door']);
     // Second Bell, or Last Bell at dawn: no errand yet
     const early = at({ locationId: 'loc_apprentices_garret', patch: inBefore(2, 1) });
     expect(nodesSeen(play(early.s, [talk('npc_caelum')], { content: pack, profile: early.profile }).events)).toEqual(['holding']);
@@ -882,29 +890,39 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
   });
 
   test('the crossing: what you know at the Garret; the Gate on Last Bell after dusk with him opens the door; the Library seen +3; come → his Echo, 250 XP, he walks out with you; stay → his other Echo, he leaves the party', () => {
-    const base = { quests: { q_the_apprentices_errand: { status: 'completed' as const, stage: 'joined' } }, patch: both(inBefore(3, 2), withCompanion('caelum', { loyalty: 20 })) };
+    // Last Bell at noon at the Garret (at dusk his schedule takes him up the Archive stair)
+    const base = { quests: { q_the_apprentices_errand: { status: 'completed' as const, stage: 'joined' } }, patch: both(inBefore(3, 1), withCompanion('caelum', { loyalty: 20 })) };
     const garret = at({ ...base, locationId: 'loc_apprentices_garret' });
     const shown = play(garret.s, [talk('npc_caelum'), pick('show'), go], { content: pack, profile: garret.profile });
     expect([nodesSeen(shown.events), shown.state.quests.q_a_boy_from_a_doomed_city?.stage, loyalty(shown.state, 'caelum')]).toEqual([['door', 'after_dusk'], 'door', 25]);
-    const gate = play(shown.state, [{ type: 'move', to: 'loc_outer_walks' }, { type: 'move', to: 'loc_silver_gate' }], { content: pack, profile: garret.profile });
+    // a short rest on the Garret's cot passes the echo's hour to dusk (before.ts); then the Walks and the Gate
+    const dusk = play(shown.state, [{ type: 'rest', kind: 'short' }], { content: pack, profile: garret.profile });
+    expect([dusk.state.before?.day, dusk.state.quests.q_a_boy_from_a_doomed_city?.stage]).toEqual([3, 'door']);
+    const gate = play(dusk.state, [{ type: 'move', to: 'loc_outer_walks' }, { type: 'move', to: 'loc_silver_gate' }], { content: pack, profile: garret.profile });
     expect(gate.state.quests.q_a_boy_from_a_doomed_city?.stage).toBe('glimpse');
-    const came = play(gate.state, [talk('npc_caelum'), pick('five_hundred'), go, go, pick('come'), go], { content: pack, profile: garret.profile });
+    const came = play(gate.state, [talk('npc_caelum'), go, pick('five_hundred'), go, go, pick('come'), go], { content: pack, profile: garret.profile });
     expect(came.state.quests.q_a_boy_from_a_doomed_city).toMatchObject({ status: 'completed', stage: 'crossed' });
     expect(nodesSeen(came.events)).toEqual(['library', 'carrel', 'city', 'nobody', 'come', 'through']);
     expect([came.state.echoesThisLoop.includes('echo_caelum_unanchored'), loyalty(came.state, 'caelum'), xpOf(came.events), came.state.companions.activeId]).toEqual([true, 25 + 5 + 3 + 5 + 5, 250, 'caelum']);
     // out through the door: the present, with him; he stands at the Nexus now and nowhere in the Before
     const out = play(came.state, [{ type: 'move', to: 'loc_chronos_nexus' }], { content: pack, profile: garret.profile });
     expect([out.state.before, out.state.companions.activeId, npcsAt(out.state, pack, garret.profile, 'loc_chronos_nexus').includes('npc_caelum')]).toEqual([null, 'caelum', true]);
-    const stayed = play(gate.state, [talk('npc_caelum'), pick('five_hundred'), go, go, pick('stay'), go], { content: pack, profile: garret.profile });
+    const stayed = play(gate.state, [talk('npc_caelum'), go, pick('five_hundred'), go, go, pick('stay'), go], { content: pack, profile: garret.profile });
     expect(stayed.state.quests.q_a_boy_from_a_doomed_city).toMatchObject({ status: 'completed', stage: 'stayed' });
     expect([stayed.state.echoesThisLoop.includes('echo_caelum_stayed'), stayed.state.companions.recruited.caelum, nodesSeen(stayed.events).at(-1)]).toEqual([true, undefined, 'it_is']);
-    expect(nodesSeen(play(stayed.state, [talk('npc_caelum')], { content: pack, profile: garret.profile }).events)).toEqual(['staying']);
+    // stayed, he keeps his dusk on the Archive stair (his schedule), and says so
+    expect([npcsAt(stayed.state, pack, garret.profile, 'loc_silver_gate').includes('npc_caelum'), npcsAt(stayed.state, pack, garret.profile, 'loc_archives_of_danthe').includes('npc_caelum')]).toEqual([false, true]);
+    const stair = at({ locationId: 'loc_archives_of_danthe', quests: { ...base.quests, q_a_boy_from_a_doomed_city: { status: 'completed', stage: 'stayed' } }, patch: inBefore(3, 2) });
+    expect(nodesSeen(play(stair.s, [talk('npc_caelum')], { content: pack, profile: stair.profile }).events)).toEqual(['staying']);
     // by day the door waits, and he says so
     const day = at({ ...base, locationId: 'loc_silver_gate', quests: { ...base.quests, q_a_boy_from_a_doomed_city: 'door' }, patch: both(inBefore(3, 1), withCompanion('caelum')) });
     expect(nodesSeen(play(day.s, [{ type: 'examine', target: { kind: 'location' } }, talk('npc_caelum')], { content: pack, profile: day.profile }).events)).toEqual(['gate']);
     expect(day.s.quests.q_a_boy_from_a_doomed_city?.stage).toBe('door');
     // the Mending running without the pin set: not offered (STORY: the pin is set before he crosses)
-    const mending = at({ ...base, locationId: 'loc_apprentices_garret', quests: { ...base.quests, q_the_mending: { status: 'active', stage: 'anchor_the_conflux' } } });
+    // (q_the_mending is U58's and not in the pack yet: its state is written by hand)
+    const mending = at({ ...base, locationId: 'loc_apprentices_garret', patch: both(base.patch, (s) => {
+      s.quests['q_the_mending'] = { status: 'active', stage: 'anchor_the_conflux', startedDay: 1, endedDay: null, counters: {}, objectivesDone: [] };
+    }) });
     expect(play(mending.s, [talk('npc_caelum')], { content: pack, profile: mending.profile }).state.dialogue?.sceneId).toBe('scene_caelum_garret');
   });
 
@@ -946,16 +964,16 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect([done.state.mode, nodesSeen(done.events)]).toEqual(['explore', ['hurts']]);
     expect(play(done.state, [rest], { content: pack, profile: first.profile }).state.mode).toBe('explore');
     const second = at({ locationId: 'loc_lanternreed', flags: { flag_scene_done_scene_mireya_camp_1: true }, patch: withCompanion('mireya', { loyalty: 30 }) });
-    const two = play(second.s, [rest, pick('eaten'), go], { content: pack, profile: second.profile });
+    const two = play(second.s, [rest, pick('eaten')], { content: pack, profile: second.profile });
     expect([two.state.dialogue?.sceneId, nodesSeen(two.events)]).toEqual(['scene_mireya_camp_2', ['preserve', 'slowly']]);
     const unheard = at({ locationId: 'loc_lanternreed', flags: { flag_scene_done_scene_mireya_camp_1: true, flag_scene_done_scene_mireya_camp_2: true }, patch: withCompanion('mireya', { loyalty: 60 }) });
     expect(play(unheard.s, [rest], { content: pack, profile: unheard.profile }).state.mode).toBe('explore');
     const heard = at({ locationId: 'loc_lanternreed', flags: { flag_scene_done_scene_mireya_camp_1: true, flag_scene_done_scene_mireya_camp_2: true }, quests: { q_what_the_light_takes: { status: 'completed', stage: 'heard' } }, patch: withCompanion('mireya', { loyalty: 60 }) });
-    const three = play(heard.s, [rest, pick('stop'), go], { content: pack, profile: heard.profile });
+    const three = play(heard.s, [rest, pick('stop')], { content: pack, profile: heard.profile });
     expect([three.state.dialogue?.sceneId, nodesSeen(three.events)]).toEqual(['scene_mireya_camp_3', ['person', 'leaks']]);
     // Caelum under the eaves: the Garret's night brings the next Bell and his first conversation
     const cot = at({ locationId: 'loc_apprentices_garret', patch: both(inBefore(1, 0), withCompanion('caelum')) });
-    const night = play(cot.s, [rest, pick('ask'), go], { content: pack, profile: cot.profile });
+    const night = play(cot.s, [rest, pick('ask')], { content: pack, profile: cot.profile });
     expect([night.state.dialogue?.sceneId, nodesSeen(night.events), night.state.before?.day, loyalty(night.state, 'caelum')]).toEqual(['scene_caelum_camp_1', ['cot', 'goes_well'], 2, 2]);
     const held = at({ locationId: 'loc_apprentices_garret', flags: { flag_scene_done_scene_caelum_camp_1: true }, patch: both(inBefore(1, 0), withCompanion('caelum', { loyalty: 25 })) });
     expect(nodesSeen(play(held.s, [rest, pick('back'), go], { content: pack, profile: held.profile }).events)).toEqual(['pack', 'buckle']);

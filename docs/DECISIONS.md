@@ -1955,3 +1955,23 @@ owning unit (PLAN §9.1).
 - **Deviations:** ←/→ cycle targets instead of Tab, because Tab stays the browser's focus key (D-035). Victory and flight
   show as a dialog over Explore, because the engine leaves combat in the same step (`CombatAftermath`).
 - **Patterns:** `CombatAftermath` sits beside a screen in App. The Shell keeps focus on a dialog opened by a mode change.
+
+### D-117 · U66 details — Dialogue, Journal, Codex, Bestiary, 2026-10-23
+- **U66 (90991f5, Sonnet; spot-reviewed):**
+  - The Dialogue screen: an `NpcSigil` bust, numbered choices, greyed reasons, companion reactions and a back-log.
+  - The Journal: quests, objectives, rewards, reputation tiers and loyalty.
+  - The Codex: each voice set in its own type (RA a serif with a drop cap, IT slab, WF italic and dashed, WN monospace on
+    ruled paper). Locked entries are silhouettes with a hint that spoils nothing.
+  - The Bestiary.
+  - Lore on the Title screen, and gold quest rings on map nodes.
+  - New shared pieces: `Tabs`, `MasterDetail` and `useListNav`.
+  - Tests: 66 unit; `dialogue.spec.ts` 12/12 across desktop and mobile, and the full e2e run passes 43. Production
+    bundle 461.7 kB gzip.
+- **Rulings:**
+  - Echo-locked answers grey out in real content, through `echoLocked()`'s `disabledWhen`. The fixture's `it_spoke`
+    hides, because it has none.
+  - Codex read state lives in its own localStorage key per profile, as a per-viewer UI convenience; it is not saved in the
+    Profile.
+  - Dialogue has no Esc, because the engine has no "leave" action.
+  - The Journal, Codex and Bestiary buttons on Explore are stopgaps until U69's tab bar.
+  - The only engine change is exporting `APEX_PROMPT_TEXT`.

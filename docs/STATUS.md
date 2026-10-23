@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except quests/dialogue (28 of 44 quests: legacy, factions, all six companion arcs) and codex (42 of 87); UI: foundation, Title, Class Select, Explore + map — 3,668 tests. Next: U65 (Opus), then ✦ U57–U59, U61, U62 when Fable allows. Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-115), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-116), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -102,7 +102,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U53 | Faction chain quests + dialogue — brief `briefs/u53.md` | ✦ Fable | ✅ c60c778 (resumed after the usage cutoff) — 4 quests, 19 scenes, 8 proofs; 3445 tests; D-109 |
 | U64 | Explore screen + node map + bars + HUD + `?scenario=` hook — brief `briefs/u64.md` | Opus | ✅ 937c84c — playable exploring in the browser; 3389 tests; e2e explore 8/8; D-107 |
 | U34e | Combat expressiveness: Heartstone effects, item custom passives, creature mechanics, scenario bug, hazards, anomalies — brief `briefs/u34e.md` | Opus | ✅ a8b7a3c (resumed after the cutoff) — all 7 items; creatures complete (73); 3532 tests; D-110 |
-| U65 | Combat screen: enemy cards, intent chips, ability bar, companion card, log, communion bar — brief `briefs/u65.md` | Opus | ▶ in progress (worktree, `wip/u65`) |
+| U65 | Combat screen — brief `briefs/u65.md` | Opus | ✅ ab31ebf (finished after a container restart) — e2e 12/12; 3709 tests; D-116 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
 | U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ✅ 6824137 (resumed after the cutoff) — 6 quests, 23 scenes, 11 proofs; 3613 tests; D-113 |
 | U34f | Companion refusals of places (`refusesWhen`), Dask's Tyrant hooks, Named/Unbound Hand, the Keeper's Price tie (D-113) — brief `briefs/u34f.md` | Opus | ✅ ef664e9 — refusals, traits, Dask's Tyrant hooks, Dray's hub; 3633 tests; D-114 |

@@ -1935,3 +1935,23 @@ owning unit (PLAN §9.1).
   every unit. The unminified e2e build (609 kB) is now exempt from the budget (`tools/build.ts`).
   - **Watch:** the remaining quests (22), codex (45) and UI screens may push production past 600 kB. If they do, load the
     content pack lazily or split it per region, rather than raising the budget.
+
+### D-116 · U65 details — the Combat screen, 2026-10-23
+- **U65 (6114016 by the first Opus agent; tests snapshot ab31ebf after a container restart, verified unchanged by a second
+  agent):**
+  - Enemy cards: sigil, HP split at phase thresholds, statuses, resistances once known, the intent chip with its damage
+    range, `?` for a hidden intent, "then …" for a wind-up, and the foreseen next-next move.
+  - Turn order, and banners for phase changes and boss `hpLines`.
+  - The player panel shows what each incoming hit would do after Guard, and the flee odds. Fleeing the Tyrant asks for
+    confirmation first.
+  - The ability bar (1–9, costs, cooldowns, why a tile is off), targeting by tap or by ←/→, and an ally picker.
+  - The companion card, with stance, Command and Hold.
+  - The communion bar: Resolve as 8 pips, answers greyed with what they need.
+  - A combat log that explains each hit, and summary dialogs.
+  - `CreatureSigil`, plus 6 damage-type and 15 status icons (DESIGN §17.5).
+- **Tests:** 41 UI unit tests; `combat.spec.ts` passes 12/12 on desktop and mobile (first_fight won by keyboard and by tap,
+  the Bell-Warden's phase change, a communion Listen). 3,709 tests in all. Production bundle 447.8 kB gzip of 600 (D-115
+  watch).
+- **Deviations:** ←/→ cycle targets instead of Tab, because Tab stays the browser's focus key (D-035). Victory and flight
+  show as a dialog over Explore, because the engine leaves combat in the same step (`CombatAftermath`).
+- **Patterns:** `CombatAftermath` sits beside a screen in App. The Shell keeps focus on a dialog opened by a mode change.

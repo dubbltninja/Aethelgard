@@ -1975,3 +1975,22 @@ owning unit (PLAN §9.1).
   - Dialogue has no Esc, because the engine has no "leave" action.
   - The Journal, Codex and Bestiary buttons on Explore are stopgaps until U69's tab bar.
   - The only engine change is exporting `APEX_PROMPT_TEXT`.
+
+### D-118 · U67 details — Inventory, Abilities, Merchant, Forge, Camp, 2026-10-23
+- **U67 (0691eab, Sonnet; spot-reviewed):** five panels.
+  - Inventory and Equipment: slots, the satchel, item cards and the stat change a swap would make.
+  - Abilities: three branches by tier, unlock, respec, stat points.
+  - Merchant: prices with the reputation modifier shown, refusals, quantity.
+  - Forge: craft, upgrade with the affix choice, salvage.
+  - Camp: rests and their time cost, camp conversations, *Let go* behind a confirmation.
+  - `ItemIcon` shows rarity as a frame pattern, the word and a colour token; affixes are diamonds.
+  - Shared pieces: `panelAction`/`useRunAction`, `ItemCard`, `QtyStepper` and `NeedList`.
+  - Tests: `inventory.spec.ts` passes 9 tests on both desktop and mobile; 3,870 tests in all. Production bundle 484.4 kB
+    gzip of 600 (D-115 watch).
+- **Rulings:**
+  - Abilities open with `k`, because WASD move on the map.
+  - Camp opens from an ActionBar row ("Camp", or "The inn" at an inn).
+  - The Explore rest rows stay as shortcuts.
+  - Two real-pack-only scenarios were added: `loop1_respite` and `loop1_emberforge`.
+- **Open → balance unit:** upgrading Common → Uncommon adds no affix slot, while a rolled Uncommon may carry one (DESIGN
+  §7.3: "50% chance of one affix"). Decide whether the tier-up should offer the affix choice (§8.3).

@@ -1914,3 +1914,24 @@ owning unit (PLAN §9.1).
   - Mireya refuses to leave the Glowfen while `q_lantern_in_the_reeds` is active.
   - Mireya's "will not fight Mirelings" is not modelled, because it is not a place.
 - 42 of 42 quest proofs pass, and 3,633 tests.
+
+### D-115 · U56 details — the last companions; bundle size watch, 2026-10-22
+- **U56 (59967d5, 13209f5 by ✦ Fable; finished as 23d837b by Opus):** Fable hit its model-specific usage limit while
+  writing the tests, after the content and proofs were committed. Opus finished the tests without changing any prose.
+  - Mireya's quests: `q_lantern_in_the_reeds`, `q_what_the_light_takes`, `q_preserve_or_heal` (dammed, dammed_dark or
+    let_run).
+  - Caelum's quests: `q_the_apprentices_errand`, `q_a_boy_from_a_doomed_city` (crossed or stayed), `q_his_masters_sin`
+    (forgiven or cannot).
+  - 28 scenes, 6 of them camp conversations. Caelum's answer to the Tyrant's Masque question is now in the communion.
+  - Written words: 99 nodes, 2,644 words.
+  - **All six companions are fully authored**: rule 18 is now 0. All 52 quest proofs and 3,668 tests pass.
+- **Readings:**
+  - "Bitterroot" is `item_antidote_root`.
+  - The errand is offered at the Garret.
+  - Mireya refuses places while her first quest runs (U34f).
+  - "Elder Wen Hostile" and Lanternreed Bloom's Haste have no data form.
+  - Without the bond Echo, neither companion reaches loyalty 25 in one loop → the balance unit, together with D-113.
+- **Bundle:** production is 430.5 kB gzip against the 600 kB budget, up from 357 kB at U64, because content grows with
+  every unit. The unminified e2e build (609 kB) is now exempt from the budget (`tools/build.ts`).
+  - **Watch:** the remaining quests (22), codex (45) and UI screens may push production past 600 kB. If they do, load the
+    content pack lazily or split it per region, rather than raising the budget.

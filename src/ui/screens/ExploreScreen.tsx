@@ -53,7 +53,7 @@ export const DOCK_MAP_QUERY = '(min-width: 1100px)';
 /** Lines of the run's log the screen shows (the engine keeps the last 100). */
 export const LOG_LINES = 40;
 
-export type ExploreMenuId = 'map' | 'journal' | 'codex' | 'bestiary' | 'saves' | 'settings' | 'help' | 'title';
+export type ExploreMenuId = 'inventory' | 'abilities' | 'map' | 'journal' | 'codex' | 'bestiary' | 'saves' | 'settings' | 'help' | 'title';
 
 export interface ExploreViewProps {
   place: PlaceModel;
@@ -81,6 +81,9 @@ export interface ExploreViewProps {
     canJournal?: boolean;
     canCodex?: boolean;
     canBestiary?: boolean;
+    /** U67: the pack and the ability tree. */
+    canInventory?: boolean;
+    canAbilities?: boolean;
   };
   onTravel: (to: string) => void;
   onInspectExit: (to: string) => void;
@@ -171,6 +174,18 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
             <ExitBar exits={p.exits} onTravel={p.onTravel} onInspect={p.onInspectExit} />
             <ActionBar actions={p.actions} onRun={p.onAction} />
             <nav className="explore-menu" aria-label="Game menu">
+              {p.menu.canInventory === true ? (
+                <Button onClick={() => p.onMenu('inventory')}>
+                  <Icon kind="item" size={18} />
+                  Inventory
+                </Button>
+              ) : null}
+              {p.menu.canAbilities === true ? (
+                <Button onClick={() => p.onMenu('abilities')}>
+                  <Icon kind="ability" size={18} />
+                  Abilities
+                </Button>
+              ) : null}
               {p.menu.canMap ? (
                 <Button onClick={() => p.onMenu('map')}>
                   <Icon kind="map" size={18} />
@@ -384,6 +399,8 @@ export function ExploreScreen(): ReactNode {
           canJournal: shell.canOpen('journal'),
           canCodex: shell.canOpen('codex'),
           canBestiary: shell.canOpen('bestiary'),
+          canInventory: shell.canOpen('inventory'),
+          canAbilities: shell.canOpen('abilities'),
         }}
         onTravel={travel}
         onInspectExit={inspectExit}

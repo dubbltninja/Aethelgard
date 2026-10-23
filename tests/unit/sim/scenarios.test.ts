@@ -69,6 +69,9 @@ const EXPECTED_IDS: readonly ScenarioId[] = [
   'expiry_minus_1',
 ];
 
+/** U67: the item panels' places. They name real places (Kaelen's wagon, the Emberforge), so only the real pack plays them. */
+const REAL_ONLY: readonly ScenarioId[] = ['loop1_respite', 'loop1_emberforge'];
+
 const PACKS = {
   mini: fixturePack,
   combat: () => combatPack(),
@@ -134,8 +137,8 @@ const play = (b: Built, action: Action, pack: PackName = 'beforeEconomy') => ste
 // ---- every cell -------------------------------------------------------------------------------------------------------------------
 
 describe('registry', () => {
-  test('the thirteen scenarios, each described', () => {
-    expect([...SCENARIO_IDS].sort()).toEqual([...EXPECTED_IDS].sort());
+  test('the thirteen scenarios and the two real-pack places, each described', () => {
+    expect([...SCENARIO_IDS].sort()).toEqual([...EXPECTED_IDS, ...REAL_ONLY].sort());
     for (const id of SCENARIO_IDS) {
       const def = SCENARIOS[id];
       expect(def.summary.length).toBeGreaterThan(10);
@@ -550,6 +553,45 @@ async function bundle(mode: 'production' | 'e2e', source: string): Promise<strin
   });
   return out.outputFiles[0]?.text ?? '';
 }
+
+describe('U67 places (real pack): Kaelen\'s wagon and the Emberforge', () => {
+  const pack = buildContentPack();
+
+  test('loop1_respite: at the Respite, Level 3, points unspent, gold, a trader, gear to wear and to sell', () => {
+    const { state, profile } = loadScenario('loop1_respite', pack);
+    expect(state.mode).toBe('explore');
+    expect(state.meta.loop).toBe(1);
+    expect(state.world.currentLocationId).toBe('loc_wayfarers_respite');
+    expect(state.player.level).toBeGreaterThanOrEqual(3);
+    expect(state.player.statPoints).toBeGreaterThanOrEqual(2);
+    expect(state.player.apHalf).toBeGreaterThanOrEqual(6);
+    expect(state.player.gold).toBeGreaterThanOrEqual(600);
+    expect(state.player.hp).toBe(state.player.hpMax);
+    const legal = legalActions(state, pack, profile);
+    expect(legal.some((a) => a.type === 'allocateStat')).toBe(true);
+    expect(legal.some((a) => a.type === 'unlockAbility')).toBe(true);
+    expect(legal.some((a) => a.type === 'equip')).toBe(true);
+    expect(legal.some((a) => a.type === 'buy')).toBe(true);
+    expect(legal.some((a) => a.type === 'sell')).toBe(true);
+    expect(state.player.inventory.some((i) => i.itemId === 'mat_wildling_hide' && i.qty >= 2)).toBe(true);
+  }, 60_000);
+
+  test('loop1_emberforge: at the forge, Level 5, gold and Ember Ore; an upgrade and a full rest are offered', () => {
+    const { state, profile } = loadScenario('loop1_emberforge', pack);
+    expect(state.mode).toBe('explore');
+    expect(state.world.currentLocationId).toBe('loc_emberforge');
+    expect(state.player.level).toBeGreaterThanOrEqual(5); // the walk's fights may add a level
+    expect(state.player.gold).toBeGreaterThanOrEqual(600);
+    expect(state.player.inventory.find((i) => i.itemId === 'mat_ember_ore')?.qty).toBeGreaterThanOrEqual(5);
+    const legal = legalActions(state, pack, profile);
+    expect(legal.some((a) => a.type === 'upgrade')).toBe(true);
+    expect(legal.some((a) => a.type === 'rest' && a.kind === 'full')).toBe(true);
+  }, 60_000);
+
+  test('both are unavailable on a pack without those places', () => {
+    for (const id of REAL_ONLY) expect(() => loadScenario(id, fixturePack())).toThrow(ScenarioUnavailable);
+  });
+});
 
 describe('dev gate (PLAN §4.13: dev and e2e builds only)', () => {
   const MARKER = 'pre_tyrant_l13_ranger'; // a string only the scenario registry contains

@@ -29,6 +29,11 @@
   --glyph-void: #d2b8ff;
   --glyph-chrono: #bcd3ff;
   --glyph-buff: #a8f0bd;
+  --glyph-rarity-common: #e6e6e6;
+  --glyph-rarity-uncommon: #a8f0bd;
+  --glyph-rarity-rare: #9cc4ff;
+  --glyph-rarity-epic: #d8bcff;
+  --glyph-rarity-legendary: #ffd27f;
 
   --fill-primary: #ffffff;
   --on-fill-primary: #000000;

@@ -76,7 +76,9 @@ export type ScenarioId =
   | 'ending_b_ready'
   | 'before_day_3'
   | 'combat_bell_warden_p2'
-  | 'expiry_minus_1';
+  | 'expiry_minus_1'
+  | 'loop1_respite'
+  | 'loop1_emberforge';
 
 export interface ScenarioOptions {
   /** Default: `ranger` if the pack has it, else the first class by id. */
@@ -1192,6 +1194,60 @@ function startBossFight(run: Run, creatureId: string): void {
   if (run.s.mode !== 'combat') throw run.fail('the constructed fight did not start');
 }
 
+// ---- U67: the item panels' places (real pack only) ----------------------------------------------------------------------------
+
+/** Kaelen's trading post and the Emberforge (WORLD §9.1): where the Merchant, Forge and Camp panels are played. */
+const RESPITE_ID = 'loc_wayfarers_respite';
+const EMBERFORGE_ID = 'loc_emberforge';
+
+/** Gold in hand for the item panels' scenarios (constructed). */
+const PANEL_GOLD = 600;
+
+/**
+ * Loop 1 at the Wayfarer's Respite (Kaelen's wagon, a safe place with an inn): Level 3 with its stat and ability points still
+ * UNSPENT, 600 gold, a few potions, the band's best Common gear lying in the pack unworn (something to put on and something
+ * to sell) and two Wildling Hides to sell. The walk there is played.
+ */
+const loop1Respite: Builder = (content, seed, opts) => {
+  const id = 'loop1_respite';
+  if (content.locations[RESPITE_ID]?.merchantId === undefined) throw new ScenarioUnavailable(id, "the pack has no Wayfarer's Respite with a trader");
+  const run = startLoop1(id, content, seed, opts);
+  const level = opts.level ?? 3;
+  run.edit((w) => {
+    setLevel(w, content, level);
+    const potion = bestPotion(content, level);
+    if (potion !== undefined) grantItem(w, content, potion, KIT_HEALS);
+  });
+  run.walkTo(RESPITE_ID);
+  const pick = bestGear(content, run.s.player.classId, level);
+  run.edit((w) => {
+    const worn = (itemId: string): boolean => Object.values(w.s.player.equipment).some((i) => i?.itemId === itemId);
+    for (const itemId of [pick.weapon, pick.armor, ...pick.trinkets]) if (itemId !== undefined && !worn(itemId)) grantItem(w, content, itemId);
+    grantItem(w, content, 'mat_wildling_hide', 2);
+    w.s.player.gold = Math.max(w.s.player.gold, PANEL_GOLD);
+  });
+  restock(run);
+  return run;
+};
+
+/**
+ * Loop 1 at the Emberforge (Borin's forge, a free camp): Level 5 in the band's best Common gear (worn), points spent, 600 gold,
+ * five Ember Ore and a few potions. The walk there is played.
+ */
+const loop1Emberforge: Builder = (content, seed, opts) => {
+  const id = 'loop1_emberforge';
+  if (content.locations[EMBERFORGE_ID]?.craftingStation !== 'forge') throw new ScenarioUnavailable(id, 'the pack has no Emberforge');
+  const run = startLoop1(id, content, seed, opts);
+  buildCharacter(run, opts.level ?? 5, opts, true);
+  run.walkTo(EMBERFORGE_ID);
+  run.edit((w) => {
+    grantItem(w, content, 'mat_ember_ore', 5);
+    w.s.player.gold = Math.max(w.s.player.gold, PANEL_GOLD);
+  });
+  restock(run);
+  return run;
+};
+
 // ---- the registry ----------------------------------------------------------------------------------------------------------------------
 
 export const SCENARIOS: Record<ScenarioId, ScenarioInfo & { build: Builder }> = {
@@ -1272,6 +1328,18 @@ export const SCENARIOS: Record<ScenarioId, ScenarioInfo & { build: Builder }> = 
     route: 'played',
     constructed: '',
     build: expiryMinus1,
+  },
+  loop1_respite: {
+    summary: "Loop 1 at the Wayfarer's Respite (Kaelen's wagon): Level 3, points unspent, 600 gold, spare gear to wear and sell.",
+    route: 'mixed',
+    constructed: "the level (its stat and ability points left unspent), potions, 600 gold, the band's best Common gear in the pack unworn and two Wildling Hides; the walk is played",
+    build: loop1Respite,
+  },
+  loop1_emberforge: {
+    summary: "Loop 1 at Borin's Emberforge (forge and free camp): Level 5 in Common gear, 600 gold, five Ember Ore.",
+    route: 'mixed',
+    constructed: "the level, potions, the band's best Common gear (granted, then worn by legal equips), points spent by play, 600 gold and five Ember Ore; the walk is played",
+    build: loop1Emberforge,
   },
 };
 

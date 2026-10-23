@@ -403,7 +403,7 @@ export interface ActionRow {
   /** The engine action this button dispatches; absent for panel buttons. */
   action?: Action;
   /** A panel this button opens instead (merchant, forge) — offered only when it exists. */
-  panel?: 'merchant' | 'crafting';
+  panel?: 'merchant' | 'crafting' | 'camp';
   /** Ask first: the button ends the loop or cannot be undone. */
   confirm?: string;
   danger?: boolean;
@@ -412,8 +412,8 @@ export interface ActionRow {
 export interface ActionInput {
   /** `examine` the location (listed by legalActions only on request). */
   canLook: boolean;
-  /** `shell.canOpen` for the merchant and forge panels (U67). */
-  canOpenPanel: (id: 'merchant' | 'crafting') => boolean;
+  /** `shell.canOpen` for the merchant, forge and camp panels (U67). */
+  canOpenPanel: (id: 'merchant' | 'crafting' | 'camp') => boolean;
 }
 
 /** Every location-level explore action that is legal now, in a fixed order (PLAN §6.3 ActionBar). */
@@ -478,6 +478,9 @@ export function actionRows(s: GameState, content: ContentPack, legal: readonly A
   }
   if (loc.craftingStation !== undefined && input.canOpenPanel('crafting')) {
     rows.push({ id: 'forge', label: loc.craftingStation === 'forge' ? 'Use the forge' : 'Craft', detail: null, icon: 'forge', panel: 'crafting' });
+  }
+  if (rest !== undefined && input.canOpenPanel('camp')) {
+    rows.push({ id: 'camp', label: rest.kind === 'inn' ? 'The inn' : 'Camp', detail: 'Rest, company, your path', icon: 'rest', panel: 'camp' });
   }
   if (isLegal({ type: 'enterPortal' })) {
     rows.push({ id: 'portal', label: 'Step through the portal', detail: 'Leave this loop', icon: 'portal', action: { type: 'enterPortal' }, confirm: 'Step through the portal? This loop ends.' });

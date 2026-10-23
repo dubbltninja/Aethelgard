@@ -186,6 +186,6 @@ describe('panels', () => {
     call(byName(tree, 'button', 'Dismiss: Storage is full.'), 'onClick');
     expect(dismissed).toEqual([2]);
     expect(noticeLifetime(notices[1]!)).toBeGreaterThan(noticeLifetime(notices[0]!));
-    expect(renderToStaticMarkup(<PanelHost id="inventory" onClose={() => undefined} />)).toBe('');
+    expect(renderToStaticMarkup(<PanelHost id="companion" onClose={() => undefined} />)).toBe('');
   });
 });

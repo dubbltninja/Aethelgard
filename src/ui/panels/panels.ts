@@ -16,6 +16,7 @@ export type PanelId =
   | 'saves'
   | 'merchant'
   | 'crafting'
+  | 'camp'
   | 'companion'
   | 'map'
   | 'help';
@@ -32,6 +33,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   saves: 'Saves',
   merchant: 'Merchant',
   crafting: 'Forge',
+  camp: 'Camp',
   companion: 'Companion',
   map: 'Map',
   help: 'Keys',
@@ -40,6 +42,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
 /** DESIGN §16.4 panel letters; in a fight they need Shift (D-066 #13, enforced by the resolver's `panel` group). */
 export const PANEL_KEYS: Partial<Record<PanelId, string>> = {
   inventory: 'i',
+  abilities: 'k', // WASD move on the map, so 'a' is taken (D-104: a letter that is free)
   journal: 'q',
   codex: 'c',
   bestiary: 'b',

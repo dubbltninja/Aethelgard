@@ -89,7 +89,7 @@ export interface Need {
   count: number;
   keep?: number;
 }
-interface Bill {
+export interface Bill {
   fixed: Need[];
   anyOf: Need[][];
 }
@@ -306,7 +306,7 @@ function findPiece(s: GameState, uid: string): ItemInstance | undefined {
 }
 
 /** DESIGN §8.3 materials for reaching `target`. */
-function upgradeBill(def: Item, target: Rarity): Bill {
+export function upgradeBill(def: Item, target: Rarity): Bill {
   const ore = (count: number): Need => ({ itemId: EMBER_ORE, count });
   switch (target) {
     case 'rare':

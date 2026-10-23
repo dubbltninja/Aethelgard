@@ -2,11 +2,16 @@
 // Later units register their panel component here; until then a panel id without a component cannot be opened.
 import type { ReactNode } from 'react';
 import { Modal } from '../components/Modal';
+import { AbilitiesPanel } from './AbilitiesPanel';
 import { BestiaryPanel } from './BestiaryPanel';
+import { CampPanel } from './CampPanel';
 import { CodexPanel } from './CodexPanel';
+import { ForgePanel } from './ForgePanel';
 import { HelpPanel } from './HelpPanel';
+import { InventoryPanel } from './InventoryPanel';
 import { JournalPanel } from './JournalPanel';
 import { MapPanel } from './MapPanel';
+import { MerchantPanel } from './MerchantPanel';
 import { PANEL_TITLES, type PanelId } from './panels';
 import { SavesPanel } from './SavesPanel';
 import { SettingsPanel } from './SettingsPanel';
@@ -19,6 +24,12 @@ export const PANEL_COMPONENTS: Partial<Record<PanelId, () => ReactNode>> = {
   journal: JournalPanel, // U66
   codex: CodexPanel, // U66
   bestiary: BestiaryPanel, // U66
+  inventory: InventoryPanel, // U67
+  equipment: InventoryPanel, // U67: the same panel; the paper doll is its first group
+  abilities: AbilitiesPanel, // U67
+  merchant: MerchantPanel, // U67
+  crafting: ForgePanel, // U67
+  camp: CampPanel, // U67
 };
 
 export function PanelHost({ id, onClose }: { id: PanelId; onClose: () => void }): ReactNode {

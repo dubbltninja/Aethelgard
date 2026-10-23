@@ -40,6 +40,12 @@
   --glyph-void: #a77bf3;
   --glyph-chrono: #8fb3ff;
   --glyph-buff: #6fd38f;
+  /* item rarity (DESIGN §7.3, §17.4; U67): the frame's colour, always with its pattern and the rarity written in words */
+  --glyph-rarity-common: #a7adbd;
+  --glyph-rarity-uncommon: #6fd38f;
+  --glyph-rarity-rare: #6aa8ff;
+  --glyph-rarity-epic: #b58cf5;
+  --glyph-rarity-legendary: #f2b45a;
 
   /* filled controls */
   --fill-primary: #9fd8ff;

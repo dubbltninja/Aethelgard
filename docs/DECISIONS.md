@@ -1892,3 +1892,25 @@ owning unit (PLAN §9.1).
   - Dask's −30 for killing the Tyrant and +3 for sparing it need a hook in the Tyrant's data.
   - "Named" and "Unbound Hand" have no engine effect.
   - A refused Ledger offer hides the Keeper's Price, because U53's offer wins Dray's tie.
+
+### D-114 · U34f details — companions refuse places; Dask and the Tyrant, 2026-10-22
+- **U34f (ef664e9), C1 additions:**
+  - companion `refusesWhen: [{when, text}]` and `traits: [{id, name, when, signatureTarget?, text}]`;
+  - condition atom `region`, and companion `state: 'following'`;
+  - communion `onSpared`.
+- **Behaviour:**
+  - `companionAllowedAt` takes the profile. A companion who refuses a place steps out with a line and waits at the
+    previous node, or at home. They rejoin at the next node where they may stand, and are never fielded or swapped in where
+    they refuse.
+  - Dask loses 30 loyalty when the Tyrant is killed (its `onDefeat`) and gains 3 when it is spared (`onSpared`), whenever
+    he is recruited.
+  - With `echo_dask_rest`, Phase 3's Shear drops out of the cycle.
+  - Named, from Blood and Salt's `spoke` stage, makes Hold the Line shield the party.
+  - Unbound Hand is ruled flavour: no portal cost exists in the data to lower.
+  - Dray's offers moved into `scene_dray_offers`, so a refused Ledger no longer hides the Keeper's Price.
+- **Refusals written:** 12 lines (Ilyra 2, Brak 3, Nyx 3, Dask 1, Mireya 1, Caelum 2); five quote STORY verbatim.
+  - Nyx refuses the Apex until `q_what_she_would_undo` is done.
+  - Caelum refuses the Library until `q_a_boy_from_a_doomed_city` starts, and the Depths while the Heartbeat is active.
+  - Mireya refuses to leave the Glowfen while `q_lantern_in_the_reeds` is active.
+  - Mireya's "will not fight Mirelings" is not modelled, because it is not a place.
+- 42 of 42 quest proofs pass, and 3,633 tests.

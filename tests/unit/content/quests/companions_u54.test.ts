@@ -48,6 +48,7 @@ const SCENE_IDS = [
   'scene_ilyra_voices_ask',
   'scene_ilyra_danthe_line_waiting',
   'scene_the_first_drowned',
+  'scene_dray_offers',
   'scene_dray_keepers_price',
   'scene_ilyra_camp_1',
   'scene_ilyra_camp_2',
@@ -603,6 +604,8 @@ const WRITTEN = {
     'You hold the Amulet to the water, and the verse comes up through it in her voice.',
     'It fits. Of course it fits. Then I am hers, and I will carry it where she cannot.',
     'No. She can keep her ring and her claim. I hold a pen the way I hold it; nobody taught me, and nobody owns it.',
+    // U34f: Dray's hub while both of his offers stand (D-113 "Dray's tie")
+    'Two pages open on my table tonight: the empty line in the Ledger, and what Ilyra should hear from me. Which first?',
     'Sit, both of you. Ilyra, you will tear the Library open one day; every strong Ley-hand in my book did. I know what it costs. You do not.',
     'Let her hear it from me, Wayfinder, before she learns it from her hands. Will you?',
     'Every Ley-hand who tore that portal is in my book: the year she tore it, the year she died. Each one costs years she will not get back.',
@@ -671,6 +674,9 @@ const WRITTEN = {
     "Speak plain, after this: the void-forged work is yours without the clan's say. That's my oath, not theirs. Don't make me regret it.",
   ],
   choices: [
+    'The empty line.', // U34f: scene_dray_offers
+    'What Ilyra should hear.',
+    'Neither, tonight.',
     "I'll tell you. All of it.",
     'Not here. Not yet.',
     "Ilyra, I've done this before.",

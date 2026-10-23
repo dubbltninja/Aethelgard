@@ -38,9 +38,10 @@
 // is written (tag `written`, listed in the U55 reply and pinned by tests/unit/content/quests/companions_u55.test.ts).
 //
 // Not here, by design: Nyx's refusals (the Emberforge, the Apex before her arc resolves, Silverwood Before) and Dask's
-// silence toward Nyx (STORY §7.3, §7.4) have no companion-refusal atom (DESIGN §12.8 restricts Dask only); the Tyrant's
-// "one voice quieter" with `echo_dask_rest` is the Tyrant's data (U45's creature); DESIGN §12.5's Dask −30 on the Tyrant's
-// death and +3 on sparing it have no hook outside the fight (U58/U62); the ending scenes' Dask lines are U58's.
+// silence toward Nyx (STORY §7.3, §7.4) are their records' `refusesWhen` (U34f, shared/companions.ts); the Tyrant's
+// "one voice quieter" with `echo_dask_rest` and DESIGN §12.5's Dask −30 on the Tyrant's death (`onDefeat`) and +3 on
+// sparing it (`communion.onSpared`) are the Tyrant's data (U34f, regions/glowlands_nexus/creatures.ts); the ending scenes'
+// Dask lines are U58's.
 import type { Condition } from '@schema/condition';
 import type { DialogueSceneInput } from '@schema/dialogue';
 import type { Effect } from '@schema/effect';

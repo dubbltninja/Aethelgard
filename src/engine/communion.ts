@@ -42,7 +42,8 @@
 // or the player may leave: `flee` becomes legal, closing the loop as `closer_fall` / `rejected` with
 // `echo_tyrant_rejected` (reducers/combat.ts `finishLeft`).
 // End of Movement III with Resolve ≥ 3: the creature is spared — `flag_tyrant_spared`, `world.tyrant` 'spared', the
-// bestiary's `recordSpared` (no bestiary event, D-079), `tyrantResolved` — and the fight holds on the player's turn for
+// bestiary's `recordSpared` (no bestiary event, D-079), `tyrantResolved`, the spec's `onSpared` (U34f: Dask's +3, DESIGN
+// §12.5; the kill's −30 is the creature's `onDefeat`) — and the fight holds on the player's turn for
 // the Resolution: Speak now takes an outcome `choiceId` whose `minResolve` and `when` hold (F ≥ 3, A ≥ 6, B = 8 with
 // D-054's requirements are data). Its effects apply while the communion is still readable (so `{ resolve }` in an
 // ending's requirements holds when its `ending` effect fires); then the fight closes (reducers/combat.ts `finishSpared`).
@@ -326,6 +327,7 @@ function spare(ctx: StepCtx, combat: CombatState, boss: Combatant, spec: Communi
   recordSpared(ctx, boss.refId); // the bestiary's spared count; no bestiary event (D-079)
   ctx.emit({ t: 'tyrantResolved', outcome: 'spared' });
   combatLog(combat, `${boss.name} is spared. It waits for your answer.`, 'phase');
+  applyAll(spec.onSpared, ctx, { source: `spared:${boss.refId}` }); // U34f: the spec's hook (Dask's +3, DESIGN §12.5)
   return eligibleOutcomes(s, ctx.profile, ctx.content, spec, combat.communion as CommunionState).length > 0 ? 'hold' : 'chosen';
 }
 

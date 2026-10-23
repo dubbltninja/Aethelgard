@@ -321,13 +321,17 @@ const FLAG_HORDE_ACTIVE = 'flag_horde_active';
 
 // ---- The tree walk: rules 2 and 11 (combat scope), and the facts rules 9, 15, 16, 17 read -------------------------------
 
-/** Property names whose value is a Condition (or, for `opensWith`, a list of them). */
+/**
+ * Property names whose value is a Condition (or, for `opensWith`, a list of them). A companion's `refusesWhen` (U34f) is a
+ * list of records whose `when` is the condition, so the walk descends into it instead (`isConditionField`).
+ */
 const CONDITION_FIELDS = new Set([
   'when', 'failWhen', 'startWhen', 'availableWhen', 'advanceWhen', 'unlockWhen', 'skipWhen', 'optionalWhen', 'disabledWhen',
   'refusesWhen', 'gate', 'requires', 'opensWith', 'if', 'apexGate',
 ]);
+const isConditionField = (key: string, path: Path): boolean => CONDITION_FIELDS.has(key) && !(key === 'refusesWhen' && path[0] === 'companions');
 /** Property names whose value is an Effect list. */
-const EFFECT_FIELDS = new Set(['effects', 'onEnter', 'onExit', 'onFail', 'onVictory', 'onDefeat', 'onFleeEffects', 'onUse', 'onGrant', 'onEnd', 'outOfCombat', 'onTake']);
+const EFFECT_FIELDS = new Set(['effects', 'onEnter', 'onExit', 'onFail', 'onVictory', 'onDefeat', 'onSpared', 'onFleeEffects', 'onUse', 'onGrant', 'onEnd', 'outOfCombat', 'onTake']);
 /** Free-form payloads that are never walked. */
 const OPAQUE_FIELDS = new Set(['patch', 'params']);
 
@@ -415,6 +419,9 @@ function runScan(v: Validation): Scan {
         break;
       case 'location':
         ref(at, 'locations', value, 'condition location');
+        break;
+      case 'region':
+        ref(at, 'regions', value, 'condition region');
         break;
       case 'killed':
         if (isObj(value)) ref([...at, 'id'], 'creatures', value.id, 'condition killed');
@@ -567,7 +574,7 @@ function runScan(v: Validation): Scan {
       const at = [...path, key];
       if (OPAQUE_FIELDS.has(key)) continue;
       const endingRequirements = key === 'requirements' && path[0] === 'endings' && path.length === 2;
-      if (CONDITION_FIELDS.has(key) || endingRequirements) {
+      if (isConditionField(key, path) || endingRequirements) {
         if (Array.isArray(value)) value.forEach((c, i) => visitCondition(c, [...at, i]));
         else visitCondition(value, at);
         // a condition list or tree has no nested records, so there is nothing else to walk

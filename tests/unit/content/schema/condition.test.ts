@@ -31,7 +31,7 @@ const VALID: { [K in ConditionKey]: Condition[] } = {
   beforeResets: [{ beforeResets: { min: 3 } }],
   class: [{ class: 'shadow_weaver' }],
   stat: [{ stat: { name: 'magic', min: 12 } }],
-  companion: [{ companion: { id: 'mireya' } }, { companion: { id: 'brak', state: 'ko' } }],
+  companion: [{ companion: { id: 'mireya' } }, { companion: { id: 'brak', state: 'ko' } }, { companion: { id: 'nyx', state: 'following' } }],
   loyalty: [{ loyalty: { companion: 'mireya', min: 25 } }],
   corruption: [{ corruption: { min: 3 } }],
   location: [{ location: 'loc_cistern_gardens' }],
@@ -41,6 +41,7 @@ const VALID: { [K in ConditionKey]: Condition[] } = {
   modifier: [{ modifier: 'mod_frayed_clock' }],
   infected: [{ infected: true }, { all: [{ flag: 'flag_horde_active' }, { infected: true }] }],
   diedHere: [{ diedHere: true }, { all: [{ loop: { min: 4 } }, { diedHere: true }] }],
+  region: [{ region: 'region_veil' }, { not: { region: 'region_glowfen' } }],
 };
 
 /** Invalid samples per atom, with a fragment of the expected message. */
@@ -77,15 +78,16 @@ const INVALID: { [K in ConditionKey]: [unknown, string][] } = {
   modifier: [[{ modifier: 'frayed_clock' }, 'modifier: expected an id with prefix mod_']],
   infected: [[{ infected: false }, 'infected: Invalid literal value'], [{ infected: 'loc_x' }, 'infected: Invalid literal value']],
   diedHere: [[{ diedHere: false }, 'diedHere: Invalid literal value']],
+  region: [[{ region: 'veil' }, 'region: expected an id with prefix region_']],
 };
 
 describe('ConditionSchema', () => {
-  test('the atom set is exactly DESIGN §13.3’s 25 atoms, U34d’s `infected` and U34e’s `diedHere`', () => {
+  test('the atom set is exactly DESIGN §13.3’s 25 atoms, U34d’s `infected`, U34e’s `diedHere` and U34f’s `region`', () => {
     expect([...CONDITION_KEYS].sort()).toEqual(
       [
         'all', 'any', 'not', 'flag', 'echo', 'quest', 'item', 'rep', 'loop', 'day', 'level', 'watch', 'clock', 'beforeDay',
         'beforeResets', 'class', 'stat', 'companion', 'loyalty', 'corruption', 'location', 'killed', 'counter', 'resolve',
-        'modifier', 'infected', 'diedHere',
+        'modifier', 'infected', 'diedHere', 'region',
       ].sort(),
     );
   });

@@ -383,11 +383,11 @@ const dantheLine = (choiceId: 'take' | 'leave', stage: string): ScriptStep[] => 
 /** Loop 3: she joins, the Voices, the scroll, the Door of Pages: Loyal (50) by the Keeper's table. */
 const ilyraLoyalLoop3: ScriptStep[] = [...ilyraJoinsLoop3, ...voicesHeard, ...scrollToIlyra, ...dantheLine('take', 'taken'), holds({ loyalty: { companion: 'ilyra', min: 50 } }, 'Ilyra is not Loyal')];
 
-/** The Keeper's table: the Ledger accepted first (it wins the tie), then the telling and `choiceId`. */
+/** The Keeper's table: the Ledger accepted first (from Dray's hub while both offers stand, U34f), then the telling and `choiceId`. */
 const keepersPrice = (choiceId: 'keeper' | 'never', stage: string): ScriptStep[] => [
   ...ilyraLoyalLoop3,
   { goto: 'loc_shattered_library' },
-  { talk: 'npc_ansel_dray', pick: ['yes'] }, // q_keepers_ledger: its offer wins the tie
+  { talk: 'npc_ansel_dray', pick: ['ledger', 'yes'] }, // scene_dray_offers → q_keepers_ledger's offer
   { talk: 'npc_ansel_dray', pick: ['yes', choiceId] },
   done('q_the_keepers_price', stage),
 ];

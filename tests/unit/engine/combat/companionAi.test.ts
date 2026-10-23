@@ -575,10 +575,10 @@ describe("Dask: only where the location is temporally unstable or infected", () 
 
   test('the rule: flagged or Horde-infected locations only, for Dask alone', () => {
     const s = atNexus();
-    expect([NEXUS, GLOWLANDS, RUINS].map((l) => companionAllowedAt(s, content, 'dask', l))).toEqual([true, false, false]);
-    expect(companionAllowedAt(s, content, 'brak', GLOWLANDS)).toBe(true);
+    expect([NEXUS, GLOWLANDS, RUINS].map((l) => companionAllowedAt(s, content, profile, 'dask', l))).toEqual([true, false, false]);
+    expect(companionAllowedAt(s, content, profile, 'brak', GLOWLANDS)).toBe(true);
     const infected = atNexus({ patch: (st) => void (st.world.infected = [GLOWLANDS]) });
-    expect(companionAllowedAt(infected, content, 'dask', GLOWLANDS)).toBe(true);
+    expect(companionAllowedAt(infected, content, profile, 'dask', GLOWLANDS)).toBe(true);
   });
 
   test('he flickers out on the Glowlands and rejoins at the Nexus — before its encounter rolls, so he fights there', () => {

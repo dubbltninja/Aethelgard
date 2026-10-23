@@ -36,7 +36,8 @@
 // their +2 from the engine (reducers/dialogue.ts CAMP_LOYALTY), so no camp scene carries a loyalty effect of its own.
 //
 // Not here, by design: Ilyra's and Brak's refusals of places (the Veil; the Hollow Choir, Nyx behind him, the Apex after an
-// Exploit) have no engine form beyond Dask's rule (shared/companions.ts says what would carry them); Brak's is a camp line;
+// Exploit) are their records' `refusesWhen` (U34f, shared/companions.ts), and Brak's *Named* a trait there; Brak's Apex
+// refusal is also a camp line;
 // Ilyra leaving after an Exploit is the Heartstone scene's `onEnd` (legacy.ts); the Horde's lines and the portal are U62's;
 // `scene_ilyra_portal`'s `flag_ilyra_told` variant is U62's; Nyx's and Dask's side of anything is U55's.
 import type { Condition } from '@schema/condition';
@@ -388,6 +389,45 @@ export const dialogues = [
   },
 
   // ==== Keeper Dray · q_the_keepers_price ====================================================================================
+
+  // U34f (D-113 "Dray's tie"): while both of Dray's offers stand — U53's Ledger (`scene_dray_keepers_ledger_offer`, the
+  // `offer` band, first in content order) and Ilyra's table below — a refused Ledger would win every talk and hide the
+  // Keeper's Price. So, while both stand, this hub (the `report` band, as Blood and Salt's Peaks-refuser offer) lets the
+  // player pick either; each opens its own scene, and a refusal in either brings the hub back on the next talk.
+  {
+    id: 'scene_dray_offers',
+    npcId: 'npc_ansel_dray',
+    title: 'Two pages',
+    when: {
+      all: [
+        NOT_IN_HORDE,
+        FROM_LOOP_2,
+        // scene_dray_keepers_ledger_offer's own `when` (dialogues/factions.ts)
+        REMNANTS_TRUSTED,
+        { not: { quest: { id: 'q_keepers_ledger' } } },
+        // scene_dray_keepers_price's (below)
+        { loyalty: { companion: 'ilyra', min: 50 } },
+        ILYRA_IN_PARTY,
+        { echo: 'echo_ilyra_cost' },
+        { not: { quest: { id: 'q_the_keepers_price' } } },
+      ],
+    },
+    priority: SCENE_PRIORITY.report,
+    entry: 'pages',
+    nodes: [
+      {
+        id: 'pages',
+        tags: ['written'],
+        speaker: 'npc_ansel_dray',
+        text: 'Two pages open on my table tonight: the empty line in the Ledger, and what Ilyra should hear from me. Which first?',
+        choices: [
+          { id: 'ledger', text: 'The empty line.', effects: [{ startDialogue: 'scene_dray_keepers_ledger_offer' }], next: 'end' },
+          { id: 'ilyra', text: 'What Ilyra should hear.', effects: [{ startDialogue: 'scene_dray_keepers_price' }], next: 'end' },
+          { id: 'neither', text: 'Neither, tonight.', next: 'end' },
+        ],
+      },
+    ],
+  },
 
   // STORY §11.4: the ask, the telling and Ilyra's choice at one table (Ilyra Loyal and in the party; the cost known or the
   // Ledger done). Keeper: Remnants +15, the Keeper's Echo at Trusted (checked after the +15). Never again: the oath, read

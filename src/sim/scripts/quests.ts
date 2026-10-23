@@ -3,7 +3,8 @@
 // on the real pack. `npm run sim -- quest [<questId>…] [--pack real] [--verbose]` runs them; tests/unit/sim/questScripts.test.ts
 // runs them in CI. The quest units U53–U59 append theirs to `QUEST_SCRIPTS` (U53: the four faction chains, two outcomes
 // each, on constructed Loop 2+ profiles that hold the standing Echo opening the chain; U55: Nyx's and Dask's arcs, every
-// outcome, with the companion recruited on the way — the bond Echo starts them at 25).
+// outcome, with the companion recruited on the way — the bond Echo starts them at 25; U56: Mireya's and Caelum's alike,
+// Caelum's inside the Before by the Nexus door).
 //
 // A script starts at the title screen (or a scenario) with a fresh profile, or with `profile`: a constructed profile for a
 // Loop 2+ proof (the loop counter and the Echoes an earlier loop would have earned) — the proof is about the quest, not the
@@ -505,8 +506,8 @@ const nyxPlanAnswered = (answer: 'agreed' | 'truth' | 'refused', stage: string):
   holds({ echo: 'echo_what_she_would_undo' }, 'her plan was not heard'),
 ];
 
-/** Loop 2's road east: the Crystal, the scroll (Ilyra asks first from Loop 2: given), the heartbeat, the Heartstone stabilized. */
-const loop2RoadEast: ScriptStep[] = [
+/** Loop 2's road east: the Crystal, the scroll (Ilyra asks first from Loop 2: given), the heartbeat, the Heartstone `choiceId` (U56: either fragment for Mireya's dam). */
+const loop2RoadEastBy = (choiceId: 'stabilize' | 'exploit' | 'destroy', stage: string): ScriptStep[] => [
   ...crystalGiven(),
   ...scrollFetched,
   { goto: 'loc_whispering_ruins' },
@@ -516,9 +517,11 @@ const loop2RoadEast: ScriptStep[] = [
   { goto: 'loc_sunken_archives' },
   { type: 'move', to: 'loc_heartstone_depths' },
   holds({ quest: { id: 'q_echoing_heartbeat', stage: 'choose' } }, 'the Depths did not open the choice'),
-  choose('stabilize'),
-  done('q_echoing_heartbeat', 'done_stabilize'),
+  choose(choiceId),
+  done('q_echoing_heartbeat', stage),
 ];
+/** Loop 2's road east with the Heartstone stabilized. */
+const loop2RoadEast: ScriptStep[] = loop2RoadEastBy('stabilize', 'done_stabilize');
 
 /**
  * Loop 2: the Highlands by the Depths (the legacy road east); Dask met at the Pass — recruited, his first quest taken — his
@@ -590,6 +593,135 @@ const daskAtTheApex: ScriptStep[] = [
   { until: { not: { quest: { id: 'q_the_last_instant', stage: 'ask_it' } } }, do: communing('pass_into_before'), maxSteps: 4 },
   holds({ quest: { id: 'q_the_last_instant', stage: 'gathered' } }, 'the communion did not carry the ask'),
 ];
+
+// ---- U56: Mireya's and Caelum's arcs (Loop 2+; the bond Echo starts the companion at 25, DESIGN §12.5) ---------------------------
+
+const MIREYA_RECRUITED: Condition = { companion: { id: 'mireya', state: 'recruited' } };
+const CAELUM_RECRUITED: Condition = { companion: { id: 'caelum', state: 'recruited' } };
+/** The echo's own hour inside the Before (D-102): a short rest at the Garret passes one watch. */
+const shortRest: Action = { type: 'rest', kind: 'short' };
+
+/**
+ * Loop 2: the road east (the Heartstone stabilized), the Glowfen by the Glowlands (fights fled where they can be); Mireya's first quest from her stall — the elders' telling,
+ * her ask (she joins), the moss and the root from Fennick, the tending with steady hands.
+ */
+const mireyaTended: ScriptStep[] = [
+  ...loop2RoadEast,
+  { fight: 'flee' },
+  { goto: 'loc_lanternreed' },
+  { talk: 'npc_mireya', pick: ['yes', 'come'] }, // scene_mireya_lantern_offer: the elders; she comes
+  holds({ all: [MIREYA_RECRUITED, { quest: { id: 'q_lantern_in_the_reeds', stage: 'gather' } }, { echo: 'echo_glowlands_leak' }] }, 'Mireya was not recruited after stage 1, or the elders did not speak'),
+  { until: { item: { id: 'item_glow_moss', count: 3 } }, do: buyer('item_glow_moss'), maxSteps: 12 },
+  { until: { item: { id: 'item_antidote_root', count: 2 } }, do: buyer('item_antidote_root'), maxSteps: 12 },
+  { until: { quest: { id: 'q_lantern_in_the_reeds', stage: 'tend' } }, do: waiter, maxSteps: 2 },
+  settle('loc_lanternreed'),
+  { talk: 'npc_mireya', pick: ['hold'] }, // scene_mireya_tending
+  done('q_lantern_in_the_reeds', 'tended'),
+  holds({ all: [{ flag: 'flag_lanternreed_trusts' }, { item: { id: 'item_fenlight_salve', count: 3 } }] }, 'Lanternreed does not trust you, or the salve was not paid'),
+];
+
+/** Then her second quest (Loop 2, loyalty 25 with the bond): the Maze, the Pool, the Listen, her name. */
+const mireyaHeard: ScriptStep[] = [
+  ...mireyaTended,
+  holds({ loyalty: { companion: 'mireya', min: 25 } }, 'Mireya is not at 25 after her first quest'),
+  settle('loc_lanternreed'),
+  { talk: 'npc_mireya', pick: ['yes'] }, // scene_mireya_light_offer
+  holds({ quest: { id: 'q_what_the_light_takes', stage: 'forbidden' } }, 'q_what_the_light_takes did not start'),
+  { goto: 'loc_sporelight_shallows' },
+  holds({ quest: { id: 'q_what_the_light_takes', stage: 'pool' } }, 'the Reed Maze did not count'),
+  { goto: 'loc_breathing_pool' },
+  holds({ quest: { id: 'q_what_the_light_takes', stage: 'listen' } }, 'the Pool was not reached'),
+  settle('loc_breathing_pool'),
+  { talk: 'npc_mireya', pick: ['listen', 'sallow'] }, // scene_mireya_breathing_pool
+  done('q_what_the_light_takes', 'heard'),
+  holds({ all: [{ echo: 'echo_breathing_pool' }, { echo: 'echo_litany_verse_6' }] }, 'the Pool did not grant its Echoes'),
+];
+
+/** Her third (Loyal after the Pool): the ask at Lanternreed, the village asked, the choice at the Pool (`road`: the Heartstone's fragments, D-052). */
+const mireyaChose = (choiceId: 'dam' | 'dam_dead' | 'run', stage: string, road: ScriptStep[] = loop2RoadEast): ScriptStep[] => [
+  ...road,
+  ...mireyaHeard.slice(loop2RoadEast.length),
+  holds({ loyalty: { companion: 'mireya', min: 50 } }, 'Mireya is not Loyal after her second quest'),
+  { goto: 'loc_lanternreed' },
+  { talk: 'npc_mireya', pick: ['yes'] }, // scene_mireya_preserve_offer
+  holds({ quest: { id: 'q_preserve_or_heal', stage: 'dam_or_run' } }, 'q_preserve_or_heal did not start'),
+  { goto: 'loc_breathing_pool' },
+  holds({ quest: { id: 'q_preserve_or_heal', stage: 'choose' } }, 'the Pool did not open the choice'),
+  settle('loc_breathing_pool'),
+  { talk: 'npc_mireya', pick: ['ask_them', choiceId] }, // scene_mireya_preserve_or_heal
+  done('q_preserve_or_heal', stage),
+];
+
+/**
+ * Loop 2's road east, then into the Before by the Nexus door (the Lens from the orrery, verse I held), to the Garret: Last Bell at noon (two
+ * nights, one doze), the noon message taken, the Plaza at noon (Aulde's laugh on arrival), the honest answer, he joins.
+ */
+const caelumJoined: ScriptStep[] = [
+  ...loop2RoadEast,
+  { fight: 'flee' },
+  { goto: 'loc_chronos_nexus' },
+  takeAll,
+  holds({ item: { id: 'item_chronos_lens' } }, 'the Lens was not at the Nexus'),
+  { type: 'move', to: 'loc_silver_gate' },
+  holds({ all: [{ beforeDay: 1 }, { echo: 'echo_before_route' }] }, 'the Breach-door did not open First Bell'),
+  // the Before is never walked through by a `goto` (bots/shared.ts `routes`): one edge at a time, each a `goto` so a fight
+  // fled back the way you came (the early hound, the Circle's hounds) is walked up to again
+  { goto: 'loc_outer_walks' },
+  { goto: 'loc_apprentices_garret' },
+  { rest: 2 },
+  holds({ beforeDay: 3 }, 'two nights at the Garret did not bring Last Bell'),
+  shortRest,
+  holds({ watch: 'day' }, 'a doze at the Garret did not bring noon'),
+  { talk: 'npc_caelum', pick: ['yes'] }, // scene_caelum_errand_offer
+  holds({ quest: { id: 'q_the_apprentices_errand', stage: 'cross' } }, 'q_the_apprentices_errand did not start'),
+  { goto: 'loc_plaza_of_bells' },
+  holds({ all: [{ quest: { id: 'q_the_apprentices_errand', stage: 'spire_yard' } }, { echo: 'echo_litany_verse_5' }] }, 'the Plaza at noon did not reach the Yard, or Aulde did not laugh'),
+  { talk: 'npc_caelum', pick: ['honest', 'walk'] }, // scene_caelum_spire_yard
+  done('q_the_apprentices_errand', 'joined'),
+  holds(CAELUM_RECRUITED, 'Caelum did not join'),
+];
+
+/** Then the boy's quest: what you know; dusk at the Garret; the Gate; the crossing, `choiceId`. */
+const caelumAtTheDoor = (choiceId: 'come' | 'stay', stage: string): ScriptStep[] => [
+  ...caelumJoined,
+  { goto: 'loc_apprentices_garret' },
+  { talk: 'npc_caelum', pick: ['show'] }, // scene_caelum_boy_offer
+  holds({ quest: { id: 'q_a_boy_from_a_doomed_city', stage: 'door' } }, 'q_a_boy_from_a_doomed_city did not start'),
+  shortRest,
+  holds({ watch: 'dusk' }, 'a second doze did not bring dusk'),
+  { goto: 'loc_outer_walks' },
+  { goto: 'loc_silver_gate' },
+  holds({ quest: { id: 'q_a_boy_from_a_doomed_city', stage: 'glimpse' } }, 'the Gate after dusk did not open the door'),
+  { talk: 'npc_caelum', pick: ['five_hundred', choiceId] }, // scene_caelum_crossing
+  done('q_a_boy_from_a_doomed_city', stage),
+];
+
+/**
+ * Loop 3 with the bond and the verses: crossed (Loyal: 25 + the stages + the beats), out through the door to the Nexus, his
+ * third quest taken there, Support stance, the Apex, the communion carried through with him beside you (Masque's question
+ * his), the tear left open, then the one thing at the Apex.
+ */
+const caelumAtTheApex: ScriptStep[] = [
+  ...caelumAtTheDoor('come', 'crossed'),
+  { type: 'move', to: 'loc_chronos_nexus' },
+  holds({ all: [CAELUM_RECRUITED, { echo: 'echo_caelum_unanchored' }, { not: { beforeDay: 3 } }] }, 'Caelum did not come through the door'),
+  holds({ loyalty: { companion: 'caelum', min: 50 } }, 'Caelum is not Loyal after crossing'),
+  settle('loc_chronos_nexus'),
+  { talk: 'npc_caelum', pick: ['yes'] }, // scene_caelum_sin_offer
+  holds({ quest: { id: 'q_his_masters_sin', stage: 'let_him' } }, 'q_his_masters_sin did not start'),
+  settle('loc_chronos_nexus'),
+  { type: 'setStance', stance: 'support' },
+  { rest: 1 },
+  settle('loc_chronos_nexus'), // the camp conversation the rest opened
+  // the step onto the Apex is an exact move: the Unveiled Tyrant's fight opens on arrival, and a `goto` would play it
+  { type: 'move', to: 'loc_temporal_breach_apex' },
+  { until: { flag: 'flag_tyrant_spared' }, do: communing('pass_into_before'), maxSteps: 120 },
+  { until: { not: { quest: { id: 'q_his_masters_sin', stage: 'let_him' } } }, do: communing('pass_into_before'), maxSteps: 4 },
+  holds({ quest: { id: 'q_his_masters_sin', stage: 'sorry' } }, 'the communion did not carry him to the one thing'),
+];
+
+/** U56: the communion's answers for `q_his_masters_sin` (U55's list, verse V the Yard's and verse VI the Pool's held too), with verse I for the door and the bond. */
+const SIN_ECHOES: readonly `echo_${string}`[] = ['echo_litany_verse_1', 'echo_caelum_bond', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_tyrant_jailer', 'echo_thirtieth_dawn', 'echo_seven_wayfinders', 'echo_tyrant_never_struck', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4', 'echo_litany_verse_6', 'echo_litany_verse_7', 'echo_hallow_said_stop', 'echo_ritual_inevitable'];
 
 // ---- The proofs -------------------------------------------------------------------------------------------------------------
 
@@ -1042,6 +1174,106 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
       done('q_the_last_instant', 'stays'),
       holds({ all: [{ flag: 'flag_dask_anchor' }, { companion: { id: 'dask' } }] }, 'Dask did not stay'),
     ],
+  },
+  // ---- U56 · q_lantern_in_the_reeds (Loop 2: the Glowfen; the elders; Mireya joins; the moss, the root, the child) ----
+  {
+    questId: 'q_lantern_in_the_reeds',
+    outcome: 'tended',
+    name: 'Loop 2: Mireya recruited after stage 1; the sick tended with steady hands',
+    classId: CLASS,
+    seed: 'quest:lantern',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: mireyaTended,
+  },
+  // ---- U56 · q_what_the_light_takes (Loop 2 with the bond: Mireya at 25; the Maze, the Pool, Sallow's name) ----
+  {
+    questId: 'q_what_the_light_takes',
+    outcome: 'heard',
+    name: "Loop 2: the Breathing Pool by the Reed Maze; Sallow's verse; her name brought back",
+    classId: CLASS,
+    seed: 'quest:light',
+    profile: { loop: 2, echoes: ['echo_mireya_bond'], bestLevel: 17 },
+    steps: mireyaHeard,
+  },
+  // ---- U56 · q_preserve_or_heal (Loop 2, Mireya Loyal; a fragment from the Heartstone; the village asked; the choice) ----
+  {
+    questId: 'q_preserve_or_heal',
+    outcome: 'dammed',
+    name: 'Loop 2: the Heartstone stabilized; the leak dammed with the stable fragment',
+    classId: CLASS,
+    seed: 'quest:preserve:dam',
+    profile: { loop: 2, echoes: ['echo_mireya_bond'], bestLevel: 17 },
+    steps: [...mireyaChose('dam', 'dammed'), holds({ all: [{ echo: 'echo_glowfen_dammed' }, { item: { id: 'item_heartstone_fragment_stable' } }] }, 'the dam took no Echo, or both fragments')],
+  },
+  {
+    questId: 'q_preserve_or_heal',
+    outcome: 'dammed_dark',
+    name: 'Loop 2: the Heartstone destroyed; the leak dammed with the dead fragment, the fen dark',
+    classId: CLASS,
+    seed: 'quest:preserve:dark',
+    profile: { loop: 2, echoes: ['echo_mireya_bond'], bestLevel: 17 },
+    steps: [...mireyaChose('dam_dead', 'dammed_dark', loop2RoadEastBy('destroy', 'done_destroy')), holds({ echo: 'echo_glowfen_dammed' }, 'the dark dam took no Echo')],
+  },
+  {
+    questId: 'q_preserve_or_heal',
+    outcome: 'let_run',
+    name: 'Loop 2: the leak let run',
+    classId: CLASS,
+    seed: 'quest:preserve:run',
+    profile: { loop: 2, echoes: ['echo_mireya_bond'], bestLevel: 17 },
+    steps: [...mireyaChose('run', 'let_run'), holds({ echo: 'echo_glowfen_let_run' }, 'letting it run took no Echo')],
+  },
+  // ---- U56 · q_the_apprentices_errand (Loop 2 by the Nexus door: Last Bell at noon; the Yard; he joins) ----
+  {
+    questId: 'q_the_apprentices_errand',
+    outcome: 'joined',
+    name: "Loop 2: the noon message walked to the Spire Yard on Last Bell; Aulde's verse; Caelum joins",
+    classId: CLASS,
+    seed: 'quest:errand',
+    profile: { loop: 2, echoes: ['echo_litany_verse_1'], bestLevel: 17 },
+    steps: caelumJoined,
+  },
+  // ---- U56 · q_a_boy_from_a_doomed_city (after the errand: the Gate after dusk; he comes, or stays) ----
+  {
+    questId: 'q_a_boy_from_a_doomed_city',
+    outcome: 'crossed',
+    name: 'Loop 2: the Breach-door from the Before side; he comes, and walks out beside you to the Nexus',
+    classId: CLASS,
+    seed: 'quest:boy:come',
+    profile: { loop: 2, echoes: ['echo_litany_verse_1'], bestLevel: 17 },
+    steps: [
+      ...caelumAtTheDoor('come', 'crossed'),
+      { type: 'move', to: 'loc_chronos_nexus' },
+      holds({ all: [CAELUM_RECRUITED, { echo: 'echo_caelum_unanchored' }, { location: 'loc_chronos_nexus' }] }, 'Caelum did not come through the door'),
+    ],
+  },
+  {
+    questId: 'q_a_boy_from_a_doomed_city',
+    outcome: 'stayed',
+    name: 'Loop 2: the Breach-door from the Before side; he stays with his city',
+    classId: CLASS,
+    seed: 'quest:boy:stay',
+    profile: { loop: 2, echoes: ['echo_litany_verse_1'], bestLevel: 17 },
+    steps: [...caelumAtTheDoor('stay', 'stayed'), holds({ all: [{ echo: 'echo_caelum_stayed' }, { not: CAELUM_RECRUITED }] }, 'Caelum did not stay')],
+  },
+  // ---- U56 · q_his_masters_sin (Loop 3: crossed and Loyal; the communion with him beside you; the one thing) ----
+  {
+    questId: 'q_his_masters_sin',
+    outcome: 'forgiven',
+    name: 'Loop 3: Caelum crossed, Loyal; the communion carried through; he forgives',
+    classId: CLASS,
+    seed: 'quest:sin:forgive',
+    profile: { loop: 3, echoes: SIN_ECHOES, bestLevel: 17 },
+    steps: [...caelumAtTheApex, { talk: 'npc_caelum', pick: ['forgive'] }, done('q_his_masters_sin', 'forgiven'), holds({ echo: 'echo_caelum_forgives' }, 'he did not forgive')],
+  },
+  {
+    questId: 'q_his_masters_sin',
+    outcome: 'cannot',
+    name: 'Loop 3: Caelum crossed, Loyal; the communion carried through; he cannot forgive',
+    classId: CLASS,
+    seed: 'quest:sin:cannot',
+    profile: { loop: 3, echoes: SIN_ECHOES, bestLevel: 17 },
+    steps: [...caelumAtTheApex, { talk: 'npc_caelum', pick: ['cannot'] }, done('q_his_masters_sin', 'cannot'), holds({ echo: 'echo_caelum_cannot' }, 'he did not say it')],
   },
 ];
 

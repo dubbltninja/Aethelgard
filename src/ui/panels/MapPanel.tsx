@@ -111,6 +111,7 @@ export function MapView({ model, selected, preview, route, docked = false, onNod
                     `map-node--${node.state}`,
                     node.infected && 'map-node--infected',
                     node.escape && 'map-node--escape',
+                    node.quests.length > 0 && 'map-node--quest',
                     node.id === selected && 'map-node--selected',
                   )}
                   data-node={node.id}
@@ -131,6 +132,7 @@ export function MapView({ model, selected, preview, route, docked = false, onNod
                   <span className="map-node__marks" aria-hidden="true">
                     {node.boss ? <Icon kind="crown" size={12} /> : node.danger !== null ? <Icon kind="danger" size={12} /> : node.cleared ? <Icon kind="check" size={12} /> : null}
                     {node.npc ? <Icon kind="npc" size={12} /> : null}
+                    {node.quests.length > 0 ? <Icon kind="quest" size={12} className="map-node__quest" /> : null}
                     {node.unstable ? <Icon kind="hourglass" size={12} /> : null}
                     {node.infected ? <Icon kind="infected" size={12} /> : null}
                   </span>
@@ -220,6 +222,9 @@ function MapLegend(): ReactNode {
         </li>
         <li>
           <Icon kind="npc" size={14} /> Someone is there · <Icon kind="lock" size={14} /> a locked way
+        </li>
+        <li>
+          <Icon kind="quest" size={14} /> A quest points here (gold dashed ring)
         </li>
         <li>
           <Icon kind="infected" size={14} /> The Horde has reached it · <Icon kind="door" size={14} /> the way out

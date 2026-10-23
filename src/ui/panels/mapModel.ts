@@ -9,8 +9,9 @@
 //   remembered  in the profile's map memory but not visited this loop (D-011): grey, named, with its rest / trader
 //   adjacent    a neighbour of a visited node, not yet known: a "?" ghost, unnamed (the legacy minimap's discovery rule)
 // Overlays: `infected` (drawn even under fog, hatched, a red label), `escape` (the Library while the Horde runs: always
-// drawn), `npc` (someone is there), `unstable` (temporally unstable while Dask travels with you). The Fall forecast hatch
-// and the Threshold inset are U70's layer (PLAN §9.2); quest-ready rings come with the journal (U66).
+// drawn), `npc` (someone is there), `unstable` (temporally unstable while Dask travels with you), `quests` (U66, D-107: a
+// ring round a place that an active quest's open objective names with `hintLocationId`). The Fall forecast hatch and the
+// Threshold inset are U70's layer (PLAN §9.2).
 //
 // Coordinates are WORLD's grid units (x step 8, y step 2); `GRID` turns them into pixels.
 import {
@@ -19,6 +20,7 @@ import {
   exitState,
   lockedReason,
   npcsAt,
+  questJournal,
   type ContentPack,
   type GameState,
   type Profile,
@@ -52,6 +54,8 @@ export interface MapNode {
   danger: string | null;
   boss: boolean;
   unstable: boolean;
+  /** Names of the active quests with an open objective that points at this place (D-107's quest rings). */
+  quests: string[];
   rest: string | null;
   merchant: boolean;
   /** A neighbour of the current node: the exit's direction. */
@@ -138,6 +142,20 @@ function encounterMarks(s: GameState, content: ContentPack, profile: Pr, loc: Lo
   return { cleared: standing.length === 0, danger: standing.length > 0 ? bandText : null, boss };
 }
 
+/** Place id → names of the active quests whose open objectives point at it (the journal's read model, D-107). */
+export function questHints(s: GameState, content: ContentPack): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const entry of questJournal(s, content)) {
+    if (entry.status !== 'active') continue;
+    for (const o of entry.objectives) {
+      if (o.done || o.hintLocationId === undefined) continue;
+      const names = out.get(o.hintLocationId) ?? [];
+      if (!names.includes(entry.name)) out.set(o.hintLocationId, [...names, entry.name]);
+    }
+  }
+  return out;
+}
+
 /** The drawn map (see the header). */
 export function buildMap(s: GameState, content: ContentPack, profile: Pr): MapModel {
   const here = s.world.currentLocationId;
@@ -176,6 +194,7 @@ export function buildMap(s: GameState, content: ContentPack, profile: Pr): MapMo
   const currentExits = new Map<string, Dir>();
   for (const { exit } of seenExits(s, content, profile, here)) if (!currentExits.has(exit.to)) currentExits.set(exit.to, exit.dir);
   const dask = s.companions.activeId === 'dask';
+  const hinted = questHints(s, content);
 
   const nodes: MapNode[] = drawn.map((loc) => {
     const state = states.get(loc.id) as NodeState;
@@ -195,6 +214,7 @@ export function buildMap(s: GameState, content: ContentPack, profile: Pr): MapMo
       npc: (state === 'current' || state === 'visited') && npcsAt(s, content, profile, loc.id).length > 0,
       ...marks,
       unstable: dask && loc.temporallyUnstable,
+      quests: hinted.get(loc.id) ?? [],
       rest: known && loc.rest !== undefined ? loc.rest.kind : null,
       merchant: known && loc.merchantId !== undefined,
       dir: currentExits.get(loc.id) ?? null,
@@ -414,6 +434,7 @@ export function nodeLabel(node: MapNode, preview?: { cost: string | null } | nul
   if (node.rest !== null) parts.push(node.rest);
   if (node.merchant) parts.push('trader');
   if (node.unstable) parts.push('time is loose here');
+  if (node.quests.length > 0) parts.push(`quest: ${node.quests.join(' and ')}`);
   if (preview?.cost) parts.push(preview.cost);
   return parts.join(', ');
 }

@@ -45,7 +45,7 @@ export const APEX_PROMPT_SCENE = 'scene_apex_prompt';
 export const APEX_PROMPT_NODE = 'apex_prompt';
 export const APEX_FACE_IT = 'face_it';
 export const APEX_NOT_YET = 'not_yet';
-const APEX_PROMPT_TEXT = 'The Amulet of Echoes burns against your throat. Whatever holds the Breach has not moved. Face it, or not yet?';
+export const APEX_PROMPT_TEXT = 'The Amulet of Echoes burns against your throat. Whatever holds the Breach has not moved. Face it, or not yet?';
 
 type Pr = Readonly<Profile>;
 

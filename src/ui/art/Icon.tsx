@@ -22,7 +22,7 @@ export const ICON_KINDS = [
   'rest', 'rest_full', 'talk', 'take', 'gather', 'wait', 'look', 'interact', 'retreat', 'leave', 'vigil', 'ability',
   'merchant', 'forge', 'map', 'menu', 'keys', 'save', 'settings', 'title', 'center',
   // map states
-  'lock', 'danger', 'check', 'crown', 'npc', 'unknown', 'hourglass', 'door', 'infected', 'item',
+  'lock', 'danger', 'check', 'crown', 'npc', 'unknown', 'hourglass', 'door', 'infected', 'item', 'quest', 'journal', 'codex', 'bestiary',
 ] as const;
 export type IconKind = (typeof ICON_KINDS)[number];
 
@@ -247,6 +247,16 @@ const GLYPHS: Record<IconKind, ReactNode> = {
     </>
   ),
   item: <path d="M6 9 L18 9 L19.5 20 L4.5 20 Z M9 9 L9 6.5 C 9 4.5, 15 4.5, 15 6.5 L15 9" />,
+  // U66: a quest (a banner on a pole), and the three reading panels
+  quest: <path d="M7 21 L7 3 M7 4.5 L18.5 4.5 L15.5 9 L18.5 13.5 L7 13.5" />,
+  journal: <path d="M6 3.5 L18 3.5 L18 20.5 L6 20.5 Z M9.5 8 L14.5 8 M9.5 12 L14.5 12 M9.5 16 L12.5 16" />,
+  codex: <path d="M4 5 C 7.5 4, 10.5 4.5, 12 6.5 C 13.5 4.5, 16.5 4, 20 5 L20 19 C 16.5 18, 13.5 18.5, 12 20.5 C 10.5 18.5, 7.5 18, 4 19 Z M12 6.5 L12 20.5" />,
+  bestiary: (
+    <>
+      <path d="M12 3.5 L20 8 L20 16 L12 20.5 L4 16 L4 8 Z" />
+      <circle cx={12} cy={12} r={2.4} />
+    </>
+  ),
 };
 
 export interface IconProps {

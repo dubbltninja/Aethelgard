@@ -53,6 +53,8 @@ export const DOCK_MAP_QUERY = '(min-width: 1100px)';
 /** Lines of the run's log the screen shows (the engine keeps the last 100). */
 export const LOG_LINES = 40;
 
+export type ExploreMenuId = 'map' | 'journal' | 'codex' | 'bestiary' | 'saves' | 'settings' | 'help' | 'title';
+
 export interface ExploreViewProps {
   place: PlaceModel;
   location: Pick<Location, 'id' | 'name' | 'regionId' | 'art'>;
@@ -69,13 +71,23 @@ export interface ExploreViewProps {
   log: readonly LogLine[];
   /** The docked map (wide desktops), rendered by the container. */
   dockedMap?: ReactNode;
-  menu: { canMap: boolean; canSaves: boolean; canSettings: boolean; canHelp: boolean; canLeave: boolean };
+  menu: {
+    canMap: boolean;
+    canSaves: boolean;
+    canSettings: boolean;
+    canHelp: boolean;
+    canLeave: boolean;
+    /** U66: the reading panels (Quest journal, Codex, Bestiary), once they are registered. */
+    canJournal?: boolean;
+    canCodex?: boolean;
+    canBestiary?: boolean;
+  };
   onTravel: (to: string) => void;
   onInspectExit: (to: string) => void;
   onAction: (row: ActionRow) => void;
   onTalk: (npcId: string) => void;
   onTake: (uid: string) => void;
-  onMenu: (id: 'map' | 'saves' | 'settings' | 'help' | 'title') => void;
+  onMenu: (id: ExploreMenuId) => void;
   logRef?: RefObject<HTMLOListElement | null>;
 }
 
@@ -163,6 +175,24 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
                 <Button onClick={() => p.onMenu('map')}>
                   <Icon kind="map" size={18} />
                   Map
+                </Button>
+              ) : null}
+              {p.menu.canJournal === true ? (
+                <Button onClick={() => p.onMenu('journal')}>
+                  <Icon kind="journal" size={18} />
+                  Journal
+                </Button>
+              ) : null}
+              {p.menu.canCodex === true ? (
+                <Button onClick={() => p.onMenu('codex')}>
+                  <Icon kind="codex" size={18} />
+                  Codex
+                </Button>
+              ) : null}
+              {p.menu.canBestiary === true ? (
+                <Button onClick={() => p.onMenu('bestiary')}>
+                  <Icon kind="bestiary" size={18} />
+                  Bestiary
                 </Button>
               ) : null}
               {p.menu.canSaves ? (
@@ -271,7 +301,7 @@ export function ExploreScreen(): ReactNode {
     const action = { type: 'examine', target: { kind: 'exit', to } } as const;
     if (store.isLegal(action)) dispatch(action);
   };
-  const menu = (id: 'map' | 'saves' | 'settings' | 'help' | 'title'): void => {
+  const menu = (id: ExploreMenuId): void => {
     if (id === 'title') dispatch({ type: 'returnToTitle' });
     else shell.openPanel(id);
   };
@@ -351,6 +381,9 @@ export function ExploreScreen(): ReactNode {
           canSettings: shell.canOpen('settings'),
           canHelp: shell.canOpen('help'),
           canLeave: isLegal({ type: 'returnToTitle' }),
+          canJournal: shell.canOpen('journal'),
+          canCodex: shell.canOpen('codex'),
+          canBestiary: shell.canOpen('bestiary'),
         }}
         onTravel={travel}
         onInspectExit={inspectExit}

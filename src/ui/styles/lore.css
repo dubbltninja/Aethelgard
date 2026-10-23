@@ -1,0 +1,681 @@
+/*
+ * The reading panels: the Quest journal, the Codex and the Bestiary (U66; DESIGN §16.1, §16.3, §16.7, §17.6; PLAN §6.7–6.8),
+ * and the quest rings on the map (D-107). One layout for all three: a list and the chosen thing's detail side by side from
+ * 760 px; under it one at a time, the list first and a Back button on the detail. Text uses the contrast-checked tokens;
+ * a voice's colour appears as a rule and a tag beside its name in words, never as the only cue. Every control is at least
+ * 44 px. Nothing moves except the meters' width, which the reduced-motion rules cut.
+ */
+
+.modal.panel--journal,
+.modal.panel--codex,
+.modal.panel--bestiary {
+  width: min(64rem, 100%);
+  max-height: min(94dvh, 56rem);
+}
+
+.lore-panel {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* ---- tabs ---- */
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--target-min);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--hover-wash);
+}
+
+.tab--active {
+  border-bottom-color: var(--text-accent);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tab__count {
+  min-width: 1.5em;
+  padding: 0 0.4em;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* ---- list and detail ---- */
+.lore {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.lore--single {
+  display: block;
+}
+
+@media (min-width: 760px) {
+  .lore:not(.lore--single) {
+    grid-template-columns: minmax(14rem, 19rem) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .lore__list {
+    max-height: min(62dvh, 36rem);
+    overflow: auto;
+    padding-right: var(--space-2);
+    overscroll-behavior: contain;
+  }
+
+  .lore__back {
+    display: none;
+  }
+}
+
+@media (max-width: 759.98px) {
+  .lore[data-view="detail"] > .lore__list,
+  .lore[data-view="list"] > .lore__detail {
+    display: none;
+  }
+
+  .lore__back {
+    justify-self: start;
+    margin-bottom: var(--space-3);
+  }
+}
+
+.lore__detail {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+}
+
+.lore__empty {
+  padding: var(--space-4) 0;
+  color: var(--text-muted);
+}
+
+.lore-list {
+  display: grid;
+  gap: var(--space-1);
+  list-style: none;
+}
+
+.lore-group + .lore-group {
+  margin-top: var(--space-4);
+}
+
+.lore-group__heading {
+  margin-bottom: var(--space-2);
+  font-size: var(--type-small);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.lore-group__count {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.lore-item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--target-min);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-left: 3px solid var(--line-soft);
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lore-item:hover {
+  background: var(--hover-wash);
+}
+
+.lore-item--chosen {
+  border-color: var(--line-soft);
+  border-left-color: var(--text-accent);
+  background: var(--surface-panel);
+}
+
+.lore-item__name {
+  line-height: 1.3;
+}
+
+.lore-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.lore-item--locked {
+  border-left-style: dashed;
+  color: var(--text-muted);
+}
+
+.new-mark {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--text-gold);
+  border-radius: 999px;
+  color: var(--text-gold);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+/* ---- voices (D-020): one colour, one typeface, one rule each ---- */
+[data-voice] {
+  --voice: var(--line-strong);
+}
+
+[data-voice="remnant_archive"] { --voice: var(--glyph-echo); }
+[data-voice="ironclad_telling"] { --voice: var(--glyph-fire); }
+[data-voice="weaver_fragment"] { --voice: var(--glyph-void); }
+[data-voice="wayfinder_notes"] { --voice: var(--glyph-gold); }
+
+.voice-tag {
+  display: inline-block;
+  min-width: 2.2em;
+  padding: 0 0.4em;
+  border: 1px solid var(--voice);
+  border-radius: var(--radius-s);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.codex-count {
+  color: var(--text-muted);
+  font-size: var(--type-small);
+}
+
+.codex-filters {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 560px) {
+  .codex-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.codex-entry,
+.creature-card__summary {
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line-soft);
+  border-left: 4px solid var(--voice);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+}
+
+.codex-entry {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.codex-entry__voice,
+.creature-card__voice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.codex-entry__date {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.codex-entry__title {
+  font-size: var(--type-h2);
+}
+
+.codex-entry__body {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--measure);
+  line-height: 1.65;
+}
+
+.codex-entry__body p {
+  max-width: none;
+  white-space: pre-line;
+}
+
+.codex-entry__source {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.codex-entry__see {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.codex-entry__related ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  list-style: none;
+}
+
+.codex-entry__locked-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* The Remnant Archive: ruled, dated, set in the display serif with a dropped first letter. */
+.codex-entry[data-voice="remnant_archive"] .codex-entry__body,
+.creature-card__summary[data-voice="remnant_archive"] {
+  font-family: var(--font-display);
+}
+
+.codex-entry[data-voice="remnant_archive"] .codex-entry__date {
+  font-family: var(--font-display);
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+.codex-entry[data-voice="remnant_archive"] .codex-entry__body > p:first-child::first-letter {
+  float: left;
+  padding: 0.05em 0.12em 0 0;
+  font-size: 3.1em;
+  line-height: 0.85;
+  color: var(--voice);
+}
+
+/* The Ironclad Telling: said aloud, plain and heavy, a thick rule down the side. */
+.codex-entry[data-voice="ironclad_telling"] {
+  border-left-width: 8px;
+  font-family: Rockwell, "Roboto Slab", "Courier New", Georgia, serif;
+}
+
+.codex-entry[data-voice="ironclad_telling"] .codex-entry__title {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.codex-entry[data-voice="ironclad_telling"] .codex-entry__body {
+  line-height: 1.75;
+}
+
+.creature-card__summary[data-voice="ironclad_telling"] {
+  border-left-width: 8px;
+  font-family: Rockwell, "Roboto Slab", "Courier New", Georgia, serif;
+}
+
+/* The Weaver Fragments: slanted, spaced, every line set in from a broken rule. */
+.codex-entry[data-voice="weaver_fragment"],
+.creature-card__summary[data-voice="weaver_fragment"] {
+  border-left-style: dotted;
+  font-family: var(--font-display);
+  font-style: italic;
+  letter-spacing: 0.03em;
+}
+
+.codex-entry[data-voice="weaver_fragment"] .codex-entry__body p {
+  padding-left: var(--space-3);
+  border-left: 1px dashed var(--voice);
+}
+
+.codex-entry[data-voice="weaver_fragment"] .codex-entry__body p:nth-child(even) {
+  margin-left: var(--space-5);
+}
+
+.codex-entry[data-voice="weaver_fragment"] .codex-entry__title::before {
+  content: "…";
+  margin-right: 0.25em;
+  color: var(--voice);
+}
+
+/* The Wayfinder's Notes: typed on ruled paper, a margin line down the left. */
+.codex-entry[data-voice="wayfinder_notes"],
+.creature-card__summary[data-voice="wayfinder_notes"] {
+  border-left: 4px double var(--glyph-hp);
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.codex-entry[data-voice="wayfinder_notes"] .codex-entry__body {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.7em - 1px), color-mix(in srgb, var(--voice) 18%, transparent) calc(1.7em - 1px), color-mix(in srgb, var(--voice) 18%, transparent) 1.7em);
+}
+
+.codex-entry[data-voice="wayfinder_notes"] .codex-entry__title {
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: var(--type-h3);
+}
+
+:root[data-theme="high-contrast"] .codex-entry[data-voice="wayfinder_notes"] .codex-entry__body {
+  background-image: none;
+}
+
+/* A locked entry: the shape of a page with nothing on it. */
+.codex-entry--locked {
+  border-left-style: dashed;
+  background: transparent;
+}
+
+.codex-entry--locked .codex-entry__title {
+  color: var(--text-muted);
+}
+
+.silhouette {
+  display: grid;
+  gap: var(--space-2);
+  max-width: var(--measure);
+}
+
+.silhouette__bar {
+  display: block;
+  height: 0.75rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+}
+
+.silhouette__bar--long { width: 100%; }
+.silhouette__bar--short { width: 40%; }
+.silhouette__bar:not(.silhouette__bar--long):not(.silhouette__bar--short) { width: 72%; }
+
+.codex-entry__hint {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* ---- the journal ---- */
+.quest {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.quest__name {
+  font-size: var(--type-h2);
+}
+
+.quest__meta {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.quest__heading {
+  margin-bottom: var(--space-1);
+  font-size: var(--type-small);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.quest__now {
+  padding: var(--space-3) var(--space-4);
+  border-left: 4px solid var(--text-accent);
+  background: var(--surface-panel);
+}
+
+.quest[data-status="completed"] .quest__now {
+  border-left-color: var(--glyph-buff);
+}
+
+.quest[data-status="failed"] .quest__now {
+  border-left-color: var(--glyph-hp);
+}
+
+.objectives,
+.quest__rewards {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.objective {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.objective .icon {
+  flex: none;
+  margin-top: 0.2em;
+}
+
+.objective--done .objective__text {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.objective__note,
+.objective__where {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.quest__rewards li::before {
+  content: "◆";
+  margin-right: var(--space-2);
+  color: var(--text-gold);
+  font-size: 0.7em;
+}
+
+.quest__history ol {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-left: var(--space-5);
+  color: var(--text-muted);
+}
+
+.standings {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.standing-list {
+  display: grid;
+  gap: var(--space-4);
+  list-style: none;
+}
+
+.standing {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+}
+
+.standing__name {
+  font-size: var(--type-lead);
+}
+
+.standing__state {
+  margin-left: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.standing__next {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.standing-meter {
+  display: grid;
+  grid-template-columns: minmax(6rem, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--type-small);
+}
+
+.standing-meter__value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- the bestiary ---- */
+.creature-card {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.creature-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.creature-card__head .creature-sigil {
+  flex: none;
+}
+
+.creature-card__id {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.creature-card__name {
+  font-size: var(--type-h2);
+}
+
+.creature-card__meta,
+.creature-card__knowledge,
+.creature-card__next {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.creature-card__knowledge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.creature-card__present {
+  color: var(--text-gold);
+}
+
+.creature-card__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+
+.creature-card__counts dt {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.creature-card__counts dd {
+  font-size: var(--type-lead);
+  font-variant-numeric: tabular-nums;
+}
+
+.creature-card__summary {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.creature-card__summary p {
+  max-width: none;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.chip {
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: var(--type-small);
+  line-height: 1.8;
+}
+
+.move-list {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.move {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.move__name {
+  font-weight: 600;
+}
+
+.move__type {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+}
+
+.move__line {
+  flex-basis: 100%;
+  font-size: var(--type-small);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.unknown {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ---- quest rings on the map (D-107): a dashed gold ring round a place an open objective points at ---- */
+.map-node--quest .map-node__sigil {
+  outline: 2px dashed var(--text-gold);
+  outline-offset: 4px;
+}
+
+.map-node__quest {
+  color: var(--text-gold);
+}

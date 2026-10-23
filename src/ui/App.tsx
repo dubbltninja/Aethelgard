@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import type { Mode } from '@engine/index';
 import { CombatAftermath } from './components/combat/CombatSummary';
 import { CombatScreen } from './screens/CombatScreen';
+import { DialogueScreen } from './screens/DialogueScreen';
 import { ExploreScreen } from './screens/ExploreScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { TitleScreen } from './screens/TitleScreen';
@@ -22,7 +23,7 @@ export function ScreenFor({ mode }: { mode: Mode }): ReactNode {
     case 'combat':
       return <CombatScreen />;
     case 'dialogue':
-      return <PlaceholderScreen key="dialogue" mode="dialogue" />; // U66: <DialogueScreen />
+      return <DialogueScreen />;
     case 'threshold':
       return <PlaceholderScreen key="threshold" mode="threshold" />; // U68: <ThresholdScreen />
     case 'ending':

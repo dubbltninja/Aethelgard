@@ -37,8 +37,9 @@ import {
 } from '@engine/index';
 import { stateHash } from '@engine/util/hash';
 import { createEmitter } from './eventBus';
-import { saveProfile, saveSettingsMirror, storageProblem } from './persistence';
+import { previewRunImport, readSlotText, saveProfile, saveSettingsMirror, storageProblem, writeRunToSlot, type RunPreview, type SlotText } from './persistence';
 import { freshProfile, newProfileId, patchSettings } from './profile';
+import { mergeProfiles } from './profileMerge';
 
 export type Result = { ok: true } | { ok: false; error: string };
 
@@ -47,6 +48,9 @@ export type SlotInfo =
   | { slot: SaveSlot; status: 'ok'; summary: SaveSummary; savedAt: string }
   /** DESIGN §14.4: shown as Corrupted with Restore `.bak` (when `hasBackup`), Export raw text and Delete. */
   | { slot: SaveSlot; status: 'corrupted'; error: string; hasBackup: boolean };
+
+/** How an imported profile file meets the current one (DESIGN §14.3): `merge` is the default, `replace` the second option. */
+export type ProfileImportMode = 'merge' | 'replace';
 
 export type NoticeTone = 'info' | 'success' | 'error';
 export interface Notice {
@@ -88,9 +92,17 @@ export interface GameStore {
     restoreSlot(slot: SaveSlot): Result;
     exportSave(): string;
     importSave(json: string): Result;
+    /** A slot's stored text ready to download (DESIGN §14.3–14.4: a damaged slot gives its raw text), or null if empty. */
+    exportSlot(slot: SaveSlot): SlotText | null;
+    /** The import preview card: validates a run file and says what it holds, or why it is refused. */
+    previewImport(json: string): { ok: true; preview: RunPreview } | { ok: false; error: string };
+    /** Writes a run file into `slot` (never into the running game) once it validates; the slot is untouched on failure. */
+    importToSlot(json: string, slot: SaveSlot): Result;
     exportProfile(): string;
-    /** Replaces the profile (U69 adds DESIGN §14.3's merge on top). */
-    importProfile(json: string): Result;
+    /** DESIGN §14.3: `merge` (the default) folds the file into the profile, `replace` swaps the whole file in, settings included; a merge keeps this browser's settings. */
+    importProfile(json: string, mode?: ProfileImportMode): Result;
+    /** The ISO stamp export file names are built from (the store's clock). */
+    timestamp(): string;
     /** A fresh profile that keeps the settings; the game returns to the title. */
     resetProfile(): void;
     /** Writes profile.settings at once and mirrors them (settings are not gameplay, so not an engine action). */
@@ -315,10 +327,22 @@ export function createGameStore(content: ContentPack, initialProfile: Profile, o
         return loadFile(imported.file);
       },
       exportProfile: () => profileText(profile),
-      importProfile(json) {
+      exportSlot: (slot) => (storage === null ? null : readSlotText(storage, slot, content)),
+      previewImport: (json) => previewRunImport(json, content),
+      importToSlot(json, slot) {
+        if (storage === null) return { ok: false, error: 'This browser gives the game no storage, so the file cannot be kept in a slot.' };
+        const checked = previewRunImport(json, content);
+        if (!checked.ok) return { ok: false, error: checked.error };
+        const written = writeRunToSlot(storage, slot, json, content);
+        slotsVersion += 1;
+        changed.emit();
+        return written.ok ? { ok: true } : { ok: false, error: storageProblem(written.error) };
+      },
+      timestamp: now,
+      importProfile(json, mode = 'replace') {
         const imported = parseProfileText(json);
         if ('error' in imported) return { ok: false, error: imported.error };
-        profile = imported.profile;
+        profile = mode === 'merge' ? mergeProfiles(profile, imported.profile) : imported.profile;
         persistProfile();
         if (storage !== null) saveSettingsMirror(storage, profile.settings);
         changed.emit();

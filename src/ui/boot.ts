@@ -4,7 +4,7 @@
 import { buildContentPack, contentTables, type ContentPack } from '@content/index';
 import type { GameState, Profile, StoragePort } from '@engine/index';
 import { createGameStore, type GameStore } from './store/gameStore';
-import { browserStorage, loadProfile, saveProfile } from './store/persistence';
+import { browserStorage, loadProfile, recoverInterrupted, saveProfile } from './store/persistence';
 
 export interface Booted {
   store: GameStore;
@@ -25,6 +25,8 @@ export interface BootOptions {
 export function bootGame(opts: BootOptions = {}): Booted {
   const content = opts.content ?? buildContentPack(contentTables, __DEV__ ? {} : { validate: false });
   const storage = opts.storage === undefined ? browserStorage() : opts.storage;
+  // a page closed mid-write leaves `.tmp` keys behind (DESIGN §14.4): settle them before anything reads storage
+  const recovered = storage === null ? null : recoverInterrupted(storage, content);
   const loaded = loadProfile(storage);
   const start = opts.start?.(content);
   const store =
@@ -34,6 +36,7 @@ export function bootGame(opts: BootOptions = {}): Booted {
   // A first visit writes its profile at once, so the profile id (the seed of every later loop) sticks.
   if (storage !== null && loaded.fresh) saveProfile(storage, loaded.profile);
   if (loaded.problem !== null) store.notify(loaded.problem, 'error');
+  if (recovered !== null && recovered.promoted.length > 0) store.notify('A save that was being written when the page closed was recovered.', 'info');
   if (storage === null) store.notify('This browser keeps no data for this page, so you can play but nothing will be saved.', 'info');
   return { store, content };
 }

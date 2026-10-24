@@ -67,3 +67,18 @@ export function focusView(root: HTMLElement | null): void {
   if (target === heading && heading !== null && !heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
   target?.focus({ preventScroll: false });
 }
+
+/**
+ * Where focus goes when the element that opened a panel is gone (it was inside another panel that closed with it): the tab
+ * bar's Menu tab when there is one, else the screen's first heading. Does nothing when focus is already somewhere real.
+ */
+export function focusFallback(doc: Document = document): void {
+  const active = doc.activeElement;
+  if (active !== null && active !== doc.body && active.isConnected) return;
+  const menu = doc.querySelector<HTMLElement>('.tab-bar [data-tab="menu"]:not([disabled])');
+  const heading = doc.querySelector<HTMLElement>('#main h1, #main h2');
+  const target = menu ?? heading;
+  if (target === null) return;
+  if (target === heading && !target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+  target.focus();
+}

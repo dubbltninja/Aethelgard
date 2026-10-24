@@ -23,6 +23,7 @@ export function TabBarView({ tabs, onChoose }: TabBarViewProps): ReactNode {
             <button
               type="button"
               className={cx('tab-bar__tab', tab.current && 'tab-bar__tab--current')}
+              data-tab={tab.id}
               aria-current={tab.current ? 'page' : undefined}
               disabled={tab.disabled}
               onClick={() => onChoose(tab)}

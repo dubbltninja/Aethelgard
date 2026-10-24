@@ -10,14 +10,19 @@
 //   adjacent    a neighbour of a visited node, not yet known: a "?" ghost, unnamed (the legacy minimap's discovery rule)
 // Overlays: `infected` (drawn even under fog, hatched, a red label), `escape` (the Library while the Horde runs: always
 // drawn), `npc` (someone is there), `unstable` (temporally unstable while Dask travels with you), `quests` (U66, D-107: a
-// ring round a place that an active quest's open objective names with `hintLocationId`). The Fall forecast hatch and the
-// Threshold inset are U70's layer (PLAN §9.2).
+// ring round a place that an active quest's open objective names with `hintLocationId`), `forecast` (U70: from 5 dawns
+// before the limit, the places the expiry Horde will reach, one step per day from the Apex — drawn as a lighter hatch on the
+// places already on the map, DESIGN §10.1 and §16.6). The Threshold inset is not drawn (explore never stands there).
 //
 // Coordinates are WORLD's grid units (x step 8, y step 2); `GRID` turns them into pixels.
 import {
+  HORDE_EDGE_DELAYS,
+  HORDE_SOURCE_ID,
   PORTAL_LOCATION_ID,
+  dawnsLeft,
   evaluate,
   exitState,
+  hordeNeighbours,
   lockedReason,
   npcsAt,
   questJournal,
@@ -47,6 +52,8 @@ export interface MapNode {
   py: number;
   state: NodeState;
   infected: boolean;
+  /** U70: the expiry Horde is forecast to reach it (null = no forecast, or not on its path). */
+  forecast: number | null;
   escape: boolean;
   npc: boolean;
   cleared: boolean;
@@ -73,6 +80,8 @@ export interface MapEdge {
   state: EdgeState;
   kind: 'walk' | 'road' | 'portal';
   infected: boolean;
+  /** Both ends are forecast to be infected. */
+  forecast: boolean;
   /** The lock's reason, when `locked`. */
   reason: string | null;
 }
@@ -91,6 +100,46 @@ export interface MapModel {
   width: number;
   height: number;
   currentId: string;
+  /** U70: the Fall forecast, while it applies (5 dawns or fewer before the limit, the Horde not yet loose). */
+  forecast: ForecastSummary | null;
+}
+
+/** DESIGN §10.1: the forecast starts at this many dawns before the limit. */
+export const FORECAST_DAWNS = 5;
+
+export interface ForecastSummary {
+  dawnsLeft: number;
+  /** How many steps from the Apex the Horde is forecast to have spread by the limit's dawn. */
+  reach: number;
+  /** Names of the places on the map that the forecast covers. */
+  places: string[];
+}
+
+/**
+ * The expiry Horde's forecast (DESIGN §16.6: "from 5 dawns before the limit … one node per day from the Apex"): the places
+ * within `5 − dawnsLeft` steps of the Apex over the Horde's own spread rules (`hordeNeighbours`, with WORLD's slow edges), as
+ * step counts. Null when it does not apply: more than 5 dawns left, the limit reached, or a Horde already running.
+ */
+export function forecastReach(s: GameState, content: ContentPack, profile: Pr): Map<string, number> | null {
+  if (s.world.hordeActive || s.clock.expired) return null;
+  const dawns = dawnsLeft(s.clock);
+  if (dawns > FORECAST_DAWNS || dawns < 1) return null;
+  const reach = FORECAST_DAWNS - dawns;
+  const cost = new Map<string, number>([[HORDE_SOURCE_ID, 0]]);
+  const open = [HORDE_SOURCE_ID];
+  while (open.length > 0) {
+    open.sort((a, b) => (cost.get(a) as number) - (cost.get(b) as number));
+    const at = open.shift() as string;
+    const here = cost.get(at) as number;
+    for (const next of hordeNeighbours(s, content, profile, at)) {
+      const c = here + 1 + (HORDE_EDGE_DELAYS[`${at}->${next}`] ?? 0);
+      if (c <= reach && c < (cost.get(next) ?? Infinity)) {
+        cost.set(next, c);
+        open.push(next);
+      }
+    }
+  }
+  return cost;
 }
 
 /** WORLD §11.4 label anchors (grid units, on odd rows at x ≡ 4 mod 8, where no node or edge lies). */
@@ -176,6 +225,7 @@ export function buildMap(s: GameState, content: ContentPack, profile: Pr): MapMo
     }
   }
   const infected = new Set(s.world.infected);
+  const forecastSteps = forecastReach(s, content, profile);
   const escapeId = s.world.hordeActive ? PORTAL_LOCATION_ID : null;
   for (const id of infected) if (!states.has(id) && content.locations[id] !== undefined && isMain(content.locations[id] as Location)) states.set(id, 'adjacent');
   if (escapeId !== null && !states.has(escapeId) && content.locations[escapeId] !== undefined) states.set(escapeId, 'adjacent');
@@ -210,6 +260,7 @@ export function buildMap(s: GameState, content: ContentPack, profile: Pr): MapMo
       py: py(loc.map.y),
       state,
       infected: isInfected,
+      forecast: forecastSteps?.get(loc.id) ?? null,
       escape: isEscape,
       npc: (state === 'current' || state === 'visited') && npcsAt(s, content, profile, loc.id).length > 0,
       ...marks,
@@ -241,7 +292,8 @@ export function buildMap(s: GameState, content: ContentPack, profile: Pr): MapMo
     const prev = edges.get(key);
     // A lock seen from one end wins over the open way back from the other (the lock is what stops the traveller).
     if (prev !== undefined && !(state === 'locked' && prev.state !== 'locked')) return;
-    edges.set(key, { key, a, b, state, kind, infected: infected.has(a) && infected.has(b), reason });
+    const both = (set: { has(id: string): boolean }): boolean => set.has(a) && set.has(b);
+    edges.set(key, { key, a, b, state, kind, infected: both(infected), forecast: forecastSteps !== null && both(forecastSteps), reason });
   };
   for (const node of nodes) {
     if (node.state === 'current' || node.state === 'visited') {
@@ -283,6 +335,14 @@ export function buildMap(s: GameState, content: ContentPack, profile: Pr): MapMo
     width,
     height,
     currentId: here,
+    forecast:
+      forecastSteps === null
+        ? null
+        : {
+            dawnsLeft: dawnsLeft(s.clock),
+            reach: FORECAST_DAWNS - dawnsLeft(s.clock),
+            places: nodes.filter((n) => n.forecast !== null && n.name !== null).map((n) => n.name as string),
+          },
   };
 }
 
@@ -427,6 +487,7 @@ export function nodeLabel(node: MapNode, preview?: { cost: string | null } | nul
   if (node.dir !== null && node.state !== 'current') parts.push(node.dir);
   if (node.escape) parts.push('the way out');
   if (node.infected) parts.push('infected');
+  else if (node.forecast !== null) parts.push('the Horde will reach it');
   if (node.boss) parts.push('a boss waits');
   else if (node.danger !== null) parts.push(`danger, ${node.danger}`);
   else if (node.cleared) parts.push('cleared');

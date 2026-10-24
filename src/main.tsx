@@ -14,6 +14,7 @@ import './ui/styles/dialogue.css';
 import './ui/styles/lore.css';
 import './ui/styles/inventory.css';
 import './ui/styles/threshold.css';
+import './ui/styles/onboarding.css';
 import { StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SCENARIO_IDS, loadScenario, type ScenarioId } from '@sim/scenarios';

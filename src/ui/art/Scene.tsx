@@ -66,6 +66,8 @@ export interface SceneState {
   loop: number;
   /** The Horde has reached this node (the violet-black hatch, DESIGN §16.6). */
   infected?: boolean;
+  /** DESIGN §17.2 `breachOverlay` (0..1), from `breachOverlay()` in ./breachOverlay.ts; when absent the Horde flags decide. */
+  breachOverlay?: number;
 }
 
 export interface SceneProps {
@@ -402,7 +404,7 @@ export function Scene({ location, region, art: artIn, state, reducedMotion, seed
     dur: rng.range(7, 14),
   }));
   const wash = TIME_WASH[state.watch];
-  const breach = state.infected === true ? 0.55 : state.horde ? 0.22 : 0;
+  const breach = state.breachOverlay ?? (state.infected === true ? 0.55 : state.horde ? 0.22 : 0);
   const ceiling = spec.ceiling === true;
   const ceilingPath = ceiling
     ? (() => {

@@ -706,6 +706,12 @@
   stroke-dasharray: 4 4;
 }
 
+.map-edge--forecast {
+  stroke: var(--glyph-corruption);
+  stroke-width: 3;
+  stroke-dasharray: 2 7;
+}
+
 .map-edge--route {
   stroke: var(--text-accent);
   stroke-width: 5;
@@ -852,6 +858,32 @@
   color: #ffffff;
 }
 
+.map-node--forecast .map-node__sigil {
+  border-color: var(--glyph-corruption);
+  border-style: dashed;
+  background: repeating-linear-gradient(45deg, rgb(123 63 228 / 0.45) 0 3px, transparent 3px 9px), var(--surface-panel);
+}
+
+.map-node--forecast .map-node__name {
+  color: var(--text-warn);
+}
+
+.map-node__forecast {
+  color: var(--glyph-corruption);
+  opacity: 0.8;
+}
+
+.map__forecast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--glyph-corruption);
+  border-radius: var(--radius-s);
+  color: var(--text-warn);
+  font-size: var(--type-small);
+}
+
 .map-node--infected .map-node__name {
   color: var(--text-danger);
 }
@@ -944,6 +976,12 @@
   border-style: dashed;
 }
 
+.legend-swatch--forecast {
+  border-color: var(--glyph-corruption);
+  border-style: dashed;
+  background: repeating-linear-gradient(45deg, rgb(123 63 228 / 0.55) 0 2px, transparent 2px 5px);
+}
+
 /* ---- high contrast: solid fills, no region tints, no translucency ---- */
 :root[data-theme="high-contrast"] .screen--explore {
   background: var(--surface-base);
@@ -962,4 +1000,16 @@
 :root[data-theme="high-contrast"] .exit,
 :root[data-theme="high-contrast"] .hud {
   border-color: var(--line-strong);
+}
+
+/* the Horde's hatch survives high contrast, in solid colours (infection is never colour alone, DESIGN §16.7) */
+:root[data-theme="high-contrast"] .map-node--infected .map-node__sigil {
+  background: repeating-linear-gradient(45deg, #c4a6ff 0 4px, #000000 4px 9px);
+  border-color: var(--glyph-corruption);
+}
+
+:root[data-theme="high-contrast"] .map-node--forecast .map-node__sigil {
+  background: repeating-linear-gradient(45deg, #c4a6ff 0 2px, #000000 2px 9px);
+  border-color: var(--glyph-corruption);
+  border-style: dashed;
 }

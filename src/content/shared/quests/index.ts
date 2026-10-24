@@ -43,10 +43,11 @@ import { quests as companionsU55 } from './companions_u55';
 import { quests as companionsU56 } from './companions_u56';
 import { encounters as factionEncounters, quests as factions } from './factions';
 import { quests as legacy } from './legacy';
+import { quests as loop } from './loop';
 import { encounters as regionalEncounters, quests as regional } from './regional';
 
-/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs. U56: Mireya's and Caelum's arcs. U57: the six regional quests (the Heartbeat is legacy's). */
-export const quests: readonly QuestInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56, ...regional];
+/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs. U56: Mireya's and Caelum's arcs. U57: the six regional quests (the Heartbeat is legacy's). U58: the four loop-only quests. */
+export const quests: readonly QuestInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56, ...regional, ...loop];
 
 /** The fights a quest starts itself (`startCombat` from a stage, a wave's `onVictory` or a scene): U53's Horde-echo waves; U57's cairn-ambushes and the Bell Vault's drowned. */
 export const encounters: readonly EncounterInput[] = [...factionEncounters, ...regionalEncounters];

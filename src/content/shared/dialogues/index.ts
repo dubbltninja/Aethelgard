@@ -39,7 +39,8 @@ import { dialogues as companionsU55 } from './companions_u55';
 import { dialogues as companionsU56 } from './companions_u56';
 import { dialogues as factions } from './factions';
 import { dialogues as legacy } from './legacy';
+import { dialogues as loop } from './loop';
 import { dialogues as regional } from './regional';
 
-/** Every shared scene. U52: the legacy quests' scenes. U53: the faction chain quests' scenes. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs and camps. U56: Mireya's and Caelum's arcs and camps. U57: the regional quests' scenes. */
-export const dialogues: readonly DialogueSceneInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56, ...regional];
+/** Every shared scene. U52: the legacy quests' scenes. U53: the faction chain quests' scenes. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs and camps. U56: Mireya's and Caelum's arcs and camps. U57: the regional quests' scenes. U58: the loop-only quests' scenes. */
+export const dialogues: readonly DialogueSceneInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56, ...regional, ...loop];

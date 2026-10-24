@@ -328,6 +328,26 @@ export const locations = [
         when: { all: [{ quest: { id: 'q_the_danthe_line', stage: 'carrel' } }, { companion: { id: 'ilyra' } }] },
         effects: [{ startDialogue: 'scene_the_first_drowned' }],
       },
+      // U58 (STORY §11.5 `q_the_first_drowned`): from Loop 2 with `echo_oriel_drowned`, while the scroll is still hers, the carrel
+      // can be approached without drawing (an interact; the fight is already optional with the Echo). Not while Ilyra's own
+      // carrel scene (above) is due.
+      {
+        id: 'ev_archives_oriel_carrel',
+        trigger: 'interact',
+        label: 'Approach the carrel',
+        text: 'In the carrel under the east stair the Archivist is reading. You know her name now.',
+        once: false,
+        when: {
+          all: [
+            { loop: { min: 2 } },
+            { echo: 'echo_oriel_drowned' },
+            { quest: { id: 'q_lost_scroll', status: 'active' } },
+            { not: { item: { id: 'item_scholars_lost_scroll' } } },
+            { not: { quest: { id: 'q_the_danthe_line', stage: 'carrel' } } },
+          ],
+        },
+        effects: [{ startDialogue: 'scene_oriel_carrel_again' }],
+      },
     ],
     // WORLD's particles are "slow rising bubbles with ley-green light under the waterline"; motes is the nearest preset.
     art: { template: 'archive', horizon: 0.6, silhouettes: ['submerged_shelves', 'vault_arch', 'stair_head'], particles: 'motes', timeOfDay: 'timeless' },
@@ -388,6 +408,16 @@ export const locations = [
         when: { flag: 'flag_conflux_anchored' },
       },
       // the legacy choice prompt: fires on every entry while the quest is open and opens the choice scene (STORY §4.1 beat 9)
+      // U58 (STORY §11.5 `q_the_thirtieth_dawn` stage 2): count the Heartstone's beats for one watch (an interact while the stage runs)
+      {
+        id: 'ev_depths_count_beats',
+        trigger: 'interact',
+        label: 'Count the beats',
+        text: "The Heartstone beats slow and uneven. One watch of standing still would give a number.",
+        once: false,
+        when: { quest: { id: 'q_the_thirtieth_dawn', stage: 'count' } },
+        effects: [{ startDialogue: 'scene_depths_count_beats' }],
+      },
       {
         id: 'ev_depths_choice',
         text: 'The relic throbs with unstable power. You sense three paths: soothe it, seize it, or shatter it.',

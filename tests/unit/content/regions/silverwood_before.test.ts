@@ -555,7 +555,8 @@ describe('the ten locations vs WORLD §3.11 blocks', () => {
     expect(one(PB, 'ev_plaza_spire_yard')).toEqual([true, { all: [bell(3), { watch: 'day' }, { quest: { id: 'q_the_apprentices_errand', status: 'active' } }] }, [{ grantEcho: 'echo_litany_verse_5' }]]);
     expect(one(NH, 'ev_hall_veyran')).toEqual([true, bell(1), [{ grantEcho: 'echo_tyrant_name' }]]);
     expect(one(NH, 'ev_hall_study_draft')).toEqual([true, bell(2, 3), [{ grantEcho: 'echo_litany_verse_9' }]]);
-    expect(one(NH, 'ev_hall_masque_roof')).toEqual([true, bell(3), []]); // the quest grants `echo_ritual_inevitable` (STORY §12)
+    // U58: on the fourth failure the quest's scene follows (it grants `echo_ritual_inevitable`, STORY §12)
+    expect(one(NH, 'ev_hall_masque_roof')).toEqual([true, bell(3), [{ onlyIf: { when: { quest: { id: 'q_stop_the_ritual', stage: 'masque' } }, effects: [{ startDialogue: 'scene_masque_roof' }] } }]]);
     expect(STORY).toContain('| `echo_ritual_inevitable` | Always Going to Fail | `q_stop_the_ritual` attempt 4 |');
     expect(one(AG, 'ev_garret_litany')).toEqual([true, undefined, [{ grantEcho: 'echo_litany_verse_2' }]]);
     expect(one(CG, 'ev_gardens_wheels')).toEqual([true, bell(2), []]);
@@ -567,9 +568,13 @@ describe('the ten locations vs WORLD §3.11 blocks', () => {
     expect(pack.locations[APEX]?.events.find((e) => e.id === 'ev_apex_names')?.when).toEqual({ flag: 'flag_visited_before' });
     // the two options: the Library's "Loop 3+ option" and the Plaza's drawn weapon
     const options = parsedLocations.flatMap((l) => l.events.filter((e) => e.trigger === 'interact').map((e) => [l.id, e.id, e.label, e.once, e.when, e.effects]));
+    const attempt = (scene: string) => ({ all: [{ quest: { id: 'q_stop_the_ritual', stage: 'try' } }, { not: { flag: `flag_scene_done_${scene}` } }] });
     expect(options).toEqual([
       [GL, 'ev_library_cradle_seed', 'Tell it what it will hear', true, { loop: { min: 3 } }, [{ grantEcho: 'echo_crystal_seeded' }]],
       [PB, 'ev_plaza_blade', 'Draw your weapon', false, undefined, [{ startCombat: 'enc_bells_watch' }]],
+      // U58: `q_stop_the_ritual`'s third and fourth attempts (STORY §9.4), once a loop each
+      [AD, 'ev_archives_fair_copy', 'Take the fair copy', false, attempt('scene_ritual_steal_record'), [{ startDialogue: 'scene_ritual_steal_record' }]],
+      [CX, 'ev_conflux_cradle', 'Break the cradle', false, attempt('scene_ritual_break_cradle'), [{ startDialogue: 'scene_ritual_break_cradle' }]],
     ]);
     expect(WL[GL]?.block).toContain('— once; Loop 3+ option grants `echo_crystal_seeded`');
     expect(WL[PB]?.block).toContain('drawing a weapon here summons cr_city_watch_halberdier ×2 (non-lethal arrest)');
@@ -1441,10 +1446,11 @@ describe('authored words outside the documents are few and short; coined ids are
       'enc_conflux_warden', 'enc_conflux_pillars',
     ]);
     const wordedEvents = new Set(Object.values(WL).flatMap((w) => Object.keys(w.events)));
-    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_library_cradle_seed', 'ev_plaza_blade']);
+    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_library_cradle_seed', 'ev_plaza_blade', 'ev_archives_fair_copy', 'ev_conflux_cradle']);
     const flags = ids(JSON.stringify(locations), 'flag').sort();
-    expect(flags).toEqual(['flag_before_gate_whole', 'flag_entered_before_via_apex', 'flag_entered_before_via_nexus', 'flag_visited_before', 'flag_wanted_in_silverwood']);
-    expect(flags.filter((f) => !WORLD.includes(f))).toEqual(['flag_before_gate_whole']);
+    // the two `flag_scene_done_*` are C-58's engine-written scene flags (U58's attempts, once a loop each)
+    expect(flags).toEqual(['flag_before_gate_whole', 'flag_entered_before_via_apex', 'flag_entered_before_via_nexus', 'flag_scene_done_scene_ritual_break_cradle', 'flag_scene_done_scene_ritual_steal_record', 'flag_visited_before', 'flag_wanted_in_silverwood']);
+    expect(flags.filter((f) => !WORLD.includes(f))).toEqual(['flag_before_gate_whole', 'flag_scene_done_scene_ritual_break_cradle', 'flag_scene_done_scene_ritual_steal_record']);
     expect(cr(WARDEN).phases.map((p) => p.id)).toEqual(['uw_keep_the_line', 'uw_without_fear', 'uw_the_last_order']);
     for (const c of parsedCreatures) for (const id of Object.keys(c.moves)) expect([c.id, id, WORLD.includes(`\`${id}\``)]).toEqual([c.id, id, true]);
     expect(parsedLocations.map((l) => l.art.silhouettes.length)).toEqual([3, 3, 3, 3, 3, 3, 3, 3, 4, 4]);

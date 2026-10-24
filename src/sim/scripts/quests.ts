@@ -909,6 +909,54 @@ const stillShore = (choiceId: 'look_back' | 'step', stage: string): ScriptStep[]
   holds({ echo: 'echo_threshold' }, 'the Shore did not pay its Echo'),
 ];
 
+
+// ---- U58: the loop-only quests (Loop 2+; the Amulet's, the Before's and the Archives' hooks are the regions' events) ----------------
+
+/** Loop 2: Dray's count — the ask at the Library, one watch at the Depths, the number against the water. */
+const thirtiethDawn: ScriptStep[] = [
+  { goto: 'loc_shattered_library' },
+  { talk: 'npc_ansel_dray', pick: ['yes'] },
+  holds({ quest: { id: 'q_the_thirtieth_dawn', stage: 'drift' } }, 'q_the_thirtieth_dawn did not start'),
+  { goto: 'loc_heartstone_depths' },
+  holds({ quest: { id: 'q_the_thirtieth_dawn', stage: 'count' } }, 'the Depths did not open the count'),
+  interact('ev_depths_count_beats'),
+  goOn,
+  holds({ quest: { id: 'q_the_thirtieth_dawn', stage: 'compare' } }, 'the watch of counting did not pass'),
+  { goto: 'loc_shattered_library' },
+  { talk: 'npc_ansel_dray', pick: [] },
+  done('q_the_thirtieth_dawn', 'done'),
+  holds({ echo: 'echo_breach_clock' }, 'the Breach Clock was not made explicit'),
+];
+
+/** Loop 2 with the Nine Voices: the Crystal kept (the Amulet starts the quest), then to the lip and the Echo line; the Crystal route of the unmasking. */
+const crystalHeard = (choiceId: 'safe' | 'choir'): ScriptStep[] => [
+  ...crystalToIlyra(true),
+  { talk: 'npc_ilyra', pick: ['keep', 'leave'] },
+  done('q_echo_crystal', 'kept'),
+  holds({ quest: { id: 'q_what_the_crystal_heard', stage: 'nine_voices' } }, 'the Amulet did not start q_what_the_crystal_heard'),
+  { goto: 'loc_chasm_of_whispers' },
+  holds({ quest: { id: 'q_what_the_crystal_heard', stage: 'listen' } }, 'the Chasm with the Crystal did not count'),
+  { talk: 'npc_nyx', pick: ['i_know', 'nine', 'tyrant', choiceId] }, // the déjà vu's Echo line opens scene_nyx_unmasking's Crystal entry
+  done('q_what_the_crystal_heard', 'heard'),
+  holds({ all: [{ echo: 'echo_nyx_is_of_the_nine' }, { echo: 'echo_ninth_verse_unfinished' }, { echo: 'echo_litany_verse_8' }] }, 'the unmasking or the unfinished verse was not granted'),
+];
+
+/** Loop 2 with the First Drowned met: the Crystal given, the scroll asked for, the carrel approached without drawing; `choiceId` is the ring or the Amulet. */
+const firstDrowned = (choiceId: 'listen' | 'ring'): ScriptStep[] => [
+  ...crystalGiven(true),
+  { talk: 'npc_ilyra', pick: ['yes'] }, // the scroll offer wins the tie
+  holds({ quest: { id: 'q_lost_scroll', stage: 'descend' } }, 'q_lost_scroll did not start'),
+  { goto: 'loc_sunken_archives' },
+  holds({ all: [{ quest: { id: 'q_lost_scroll', stage: 'recover' } }, { not: { killed: { id: 'cr_drowned_archivist' } } }] }, 'the Archivist fought, or the scroll stage did not open'),
+  interact('ev_archives_oriel_carrel'),
+  choose('approach'),
+  holds({ quest: { id: 'q_the_first_drowned', stage: 'carrel' } }, 'the carrel did not start q_the_first_drowned'),
+  choose(choiceId),
+  ...(choiceId === 'listen' ? [goOn, goOn] : []), // her voice, the verse, then the scroll
+  done('q_the_first_drowned', 'given'),
+  holds({ all: [{ item: { id: 'item_scholars_lost_scroll' } }, { echo: 'echo_litany_verse_1' }, { quest: { id: 'q_lost_scroll', stage: 'deliver' } }] }, 'the scroll or the verse was not given'),
+];
+
 export const QUEST_SCRIPTS: readonly QuestScript[] = [
   // ---- q_echo_crystal ----
   { questId: 'q_echo_crystal', outcome: 'given', name: 'the Crystal given (Loop 1), verse I next talk', classId: CLASS, seed: 'quest:crystal:give', steps: crystalGiven() },
@@ -1553,6 +1601,45 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     seed: 'quest:shore:step',
     profile: { loop: 2, bestLevel: 17 },
     steps: [...stillShore('step', 'done'), holds({ not: { echo: 'echo_six_in_the_mass' } }, 'the figure was seen without looking')],
+  },
+  // ---- U58 · q_the_thirtieth_dawn (Loop 2: Dray's count against the water) ----
+  {
+    questId: 'q_the_thirtieth_dawn',
+    outcome: 'done',
+    name: "Loop 2: Dray's ask, one watch at the Depths, the number against the water-clock",
+    classId: CLASS,
+    seed: 'quest:dawn',
+    profile: { loop: 2, echoes: ['echo_heartstone_path'], bestLevel: 10 }, // the Depths' passage opens to the Echo
+    steps: thirtiethDawn,
+  },
+  // ---- U58 · q_what_the_crystal_heard (Loop 2 with the Nine Voices; the Crystal kept; the Crystal route of the unmasking) ----
+  {
+    questId: 'q_what_the_crystal_heard',
+    outcome: 'heard',
+    name: 'Loop 2: the Crystal kept, the Echo line at the lip, the eighth voice in her own; her secret kept (Loyal)',
+    classId: CLASS,
+    seed: 'quest:crystal_heard:safe',
+    profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nine_voices'], bestLevel: 10 },
+    steps: [...crystalHeard('safe'), holds({ not: { flag: 'flag_nyx_hostile' } }, 'Nyx turned Hostile')],
+  },
+  {
+    questId: 'q_what_the_crystal_heard',
+    outcome: 'heard',
+    name: 'Loop 2: the same, the Choir told',
+    classId: CLASS,
+    seed: 'quest:crystal_heard:choir',
+    profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nine_voices'], bestLevel: 10 },
+    steps: [...crystalHeard('choir'), holds({ flag: 'flag_nyx_hostile' }, 'Nyx did not turn Hostile')],
+  },
+  // ---- U58 · q_the_first_drowned (Loop 2 with the First Drowned met: the carrel without drawing) ----
+  {
+    questId: 'q_the_first_drowned',
+    outcome: 'given',
+    name: 'Loop 2: the scroll asked for, the carrel approached without drawing, the Amulet held up; verse I in her voice',
+    classId: CLASS,
+    seed: 'quest:drowned:listen',
+    profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_oriel_drowned'], bestLevel: 10 },
+    steps: firstDrowned('listen'),
   },
 ];
 

@@ -44,15 +44,20 @@ export function goTo(at: At, area: ThresholdArea): At {
 /** A closer's ending screen (Loop 2's *Let go*), on its first slide. */
 export const closerEndingAt = (): At => act(scenario('loop2_day1'), { type: 'letGo' });
 
-/** Ending A's screen, on its first slide: the communion's last answer given. */
+/** Ending A's screen (else the first ending the last answers reach), on its first slide: the communion's last answer given. */
 export function trueEndingAt(): At {
   const at = scenario('ending_a_ready');
+  let any: At | null = null;
   for (const action of legalActions(at.state, pack, at.profile)) {
     if (action.type !== 'commune' || action.act !== 'speak') continue;
     const out = step(at.state, action, pack, at.profile);
-    if (out.state.mode === 'ending') return { state: out.state, profile: out.profile };
+    if (out.state.mode !== 'ending') continue;
+    const reached = { state: out.state, profile: out.profile };
+    if (out.state.pendingEnding?.outcome === 'ending_wardens_vigil') return reached;
+    any ??= reached;
   }
-  throw new Error('no answer ended the game');
+  if (any === null) throw new Error('no answer ended the game');
+  return any;
 }
 
 /** A loop under way (Loop 2 Day 1), for the Timeline's "in progress" row. */

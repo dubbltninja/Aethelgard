@@ -402,7 +402,7 @@ export function FarLightView({ model, onRun }: FarLightViewProps): ReactNode {
         <h2 id="light-carry" className="threshold__h">
           What you carry into Loop {model.nextLoop}
         </h2>
-        <dl className="summary__facts">
+        <dl className="summary__facts" aria-label="Carried into the next loop">
           <div className="summary__fact">
             <dt>Attunements</dt>
             <dd>{model.carried.length === 0 ? (model.ironLoop && model.idle.length > 0 ? 'None: Iron Loop keeps them on the loom' : 'None woven in') : model.carried.join(', ')}</dd>

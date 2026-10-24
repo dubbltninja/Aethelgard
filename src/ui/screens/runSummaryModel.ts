@@ -15,8 +15,9 @@ import {
 
 export const cap = (s: string): string => (s === '' ? s : s.charAt(0).toUpperCase() + s.slice(1));
 export const plural = (n: number, one: string, many = `${one}s`): string => `${n} ${n === 1 ? one : many}`;
-/** "fam_wildling_kin" → "Wildling kin". */
-export const idWords = (id: string): string => cap(id.replace(/^[a-z]+_/, '').replace(/_/g, ' '));
+const ID_PREFIX = /^(fam|ending|closer|att|mod|echo|ach|q|item|mat|cr|loc|npc|region|status|scene|ev|flag)_/;
+/** "fam_wildling_kin" → "Wildling kin"; an id with no known prefix is just spaced out. */
+export const idWords = (id: string): string => cap(id.replace(ID_PREFIX, '').replace(/_/g, ' '));
 
 const FALL_WORDS: Readonly<Record<string, string>> = {
   death: 'Fell in the Breach',

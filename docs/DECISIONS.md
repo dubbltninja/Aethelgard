@@ -1994,3 +1994,17 @@ owning unit (PLAN §9.1).
   - Two real-pack-only scenarios were added: `loop1_respite` and `loop1_emberforge`.
 - **Open → balance unit:** upgrading Common → Uncommon adds no affix slot, while a rolled Uncommon may carry one (DESIGN
   §7.3: "50% chance of one affix"). Decide whether the tier-up should offer the affix choice (§8.3).
+
+### D-119 · U68 details — Threshold, Ending, Run Summary, Timeline, Achievements, 2026-10-24
+- **U68 (4f20f02, b0006b6, 72c4619; Sonnet, spot-reviewed):**
+  - The Threshold screen covers the engine's four places (Still Shore, Gallery, Loom, Far Light). DESIGN's "Archive"
+    is a section inside the Gallery: Echoes held, by kind.
+  - The Ending screen plays the slides and epilogues, then goes on to the Threshold or New Game+.
+  - The Run Summary is a UI step after the last ending slide, because the engine leaves ending mode on the last
+    acknowledge. It can be reopened from the Shore.
+  - Loop Timeline and Achievements panels (hidden achievements show as "???"). Achievements is on the Title menu.
+  - Tests: 73 unit; `threshold.spec.ts` passes 11 (+1 keyboard-only test skipped on mobile); 3,943 tests in all. Production
+    bundle **496.9 kB** gzip of 600 (D-115 watch: about 100 kB of headroom left).
+- **Gap → the achievement engine (balance / polish unit):** no engine code awards achievements yet. The panel reads
+  `profile.achievements`, and the 13 `tally_*` counters (D-100) still need writing.
+- **Reading:** at `loop2_end`, `meta.loop` is already 3 while the summary names "Loop 2" (the loop just ended). Correct.

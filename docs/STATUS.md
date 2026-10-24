@@ -3,7 +3,7 @@
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
 **Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except quests/dialogue (28 of 44 quests: legacy, factions, all six companion arcs) and codex (42 of 87); UI: foundation, Title, Class Select, Explore + map — 3,668 tests. Next: U65 (Opus), then ✦ U57–U59, U61, U62 when Fable allows. Unit list: PLAN §9.2.
 
-This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-118), then
+This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-119), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
 
 ---
@@ -105,7 +105,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U65 | Combat screen — brief `briefs/u65.md` | Opus | ✅ ab31ebf (finished after a container restart) — e2e 12/12; 3709 tests; D-116 |
 | U66 | Dialogue screen + Journal + Codex + Bestiary panels — brief `briefs/u66.md` | Sonnet | ✅ 90991f5 (spot-reviewed) — e2e 43 total; 3775 tests; D-117 |
 | U67 | Inventory/Equipment, Abilities, Merchant, Forge, Camp panels — brief `briefs/u67.md` | Sonnet | ✅ 0691eab (spot-reviewed) — 3870 tests; bundle 484 kB; D-118 |
-| U68 | Threshold (4 places), Ending, Run Summary, Loop Timeline, Achievements — brief `briefs/u68.md` | Sonnet | ▶ in progress (worktree, `wip/u68`) |
+| U68 | Threshold (4 places), Ending, Run Summary, Loop Timeline, Achievements — brief `briefs/u68.md` | Sonnet | ✅ 72c4619 (spot-reviewed) — 3943 tests; bundle 497 kB; D-119 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
 | U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ✅ 6824137 (resumed after the cutoff) — 6 quests, 23 scenes, 11 proofs; 3613 tests; D-113 |
 | U34f | Companion refusals of places (`refusesWhen`), Dask's Tyrant hooks, Named/Unbound Hand, the Keeper's Price tie (D-113) — brief `briefs/u34f.md` | Opus | ✅ ef664e9 — refusals, traits, Dask's Tyrant hooks, Dray's hub; 3633 tests; D-114 |

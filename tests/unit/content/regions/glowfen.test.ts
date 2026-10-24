@@ -388,11 +388,12 @@ describe('the eight locations vs WORLD §3.9 blocks', () => {
   });
 
   test('events: every WORLD event, its text verbatim, ids as WORLD spells them; once unless the cleansing (every qualifying rest); WORLD’s conditions and grants', () => {
-    const coined = ['ev_mangrove_answer_plain', 'ev_pool_cleanse_free'];
+    // U57 hooked `q_the_drowned_lantern`'s boat on an interact at the Shallows (tests/unit/content/quests/regional.test.ts pins it)
+    const coined = ['ev_mangrove_answer_plain', 'ev_pool_cleanse_free', 'ev_shallows_lantern_boat'];
     for (const l of parsedLocations) {
       const got = Object.fromEntries(l.events.filter((e) => !coined.includes(e.id)).map((e) => [e.id, e.text]));
       expect([l.id, got]).toEqual([l.id, WL[l.id]?.events]);
-      for (const e of l.events) if (!e.id.startsWith('ev_pool_cleanse')) expect([e.id, e.trigger, e.once]).toEqual([e.id, 'enter', true]);
+      for (const e of l.events) if (!e.id.startsWith('ev_pool_cleanse') && e.id !== 'ev_shallows_lantern_boat') expect([e.id, e.trigger, e.once]).toEqual([e.id, 'enter', true]);
     }
     const ev = (l: string, id: string) => byId(loc(l).events, id);
     // "once; grants echo_glowlands_leak with Mireya active": two events with complementary `when`s
@@ -1162,7 +1163,7 @@ describe('authored words outside the documents are few and short; coined ids are
       'enc_hall_matron',
     ]);
     const wordedEvents = new Set(Object.values(WL).flatMap((w) => Object.keys(w.events)));
-    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_mangrove_answer_plain', 'ev_pool_cleanse_free']);
+    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_shallows_lantern_boat', 'ev_mangrove_answer_plain', 'ev_pool_cleanse_free']); // the first is U57's hook
     expect(cr(MATRON).phases.map((p) => p.id)).toEqual(['matron_lullaby', 'matron_counting_the_names', 'matron_she_wants_more']);
     // every move id is WORLD's: the creatures use WORLD's intent ids only
     for (const c of parsedCreatures) for (const id of Object.keys(c.moves)) expect([c.id, id, WORLD.includes(`\`${id}\``)]).toEqual([c.id, id, true]);

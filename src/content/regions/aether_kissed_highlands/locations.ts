@@ -201,6 +201,17 @@ export const locations = [
     events: [
       { id: 'ev_plateau_gale', text: 'The wind murmurs in broken syllables, as if the sky itself is speaking.' },
       { id: 'ev_plateau_view', text: 'From here you can see the Apex. It is not where it was yesterday.', when: { loop: { min: 2 } } },
+      // U57 (STORY §11.3 `q_high_mark`, "discovery (the Windward Stair above the Plateau)"; Loop 1 open): the stair in the wind,
+      // until the quest is in the journal; the scene says the line (shared/dialogues/regional.ts)
+      {
+        id: 'ev_plateau_stair',
+        trigger: 'interact',
+        label: 'Look up the stair in the wind',
+        text: 'Above the plateau the markers point up. The Nomads say the sky can be seen from its edge.',
+        once: false,
+        when: { not: { quest: { id: 'q_high_mark' } } },
+        effects: [{ startDialogue: 'scene_plateau_stair' }],
+      },
     ],
     // WORLD's particles are "fast horizontal wind streaks"; ash is the nearest preset (the streaks are the UI unit's)
     art: { template: 'sky', horizon: 0.35, silhouettes: ['standing_markers', 'shelf_edge', 'apex_seams'], particles: 'ash', timeOfDay: 'dusk' },

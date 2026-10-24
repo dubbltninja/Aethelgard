@@ -725,6 +725,190 @@ const SIN_ECHOES: readonly `echo_${string}`[] = ['echo_litany_verse_1', 'echo_ca
 
 // ---- The proofs -------------------------------------------------------------------------------------------------------------
 
+
+// ---- U57: the regional quests (Loop 2 unless the quest is Loop 1 open; the hooks are the regions' events) ----------------------
+
+/** An interact event's button (a place's `trigger: 'interact'` event the quest asks for). */
+const interact = (eventId: `ev_${string}`): Action => ({ type: 'interact', eventId });
+const goOn: Action = { type: 'continue' };
+
+/**
+ * Loop 2 with the Door of Pages known and the Warden of Waters' name (`echo_rhune_choice`: the Deep's boss gives up the key
+ * without a fight): Ilyra's lantern from the Archives, the flooded stair's bell (the discovery: follow the ringing down), the
+ * Reach's dry room, the Scriptorium's guard, the Deep.
+ */
+const bellVaultReached: ScriptStep[] = [
+  { goto: 'loc_sunken_archives' },
+  takeAll, // Ilyra's lantern: the Reach's dark gate
+  { goto: 'loc_drowned_stair' },
+  interact('ev_stair_bell'),
+  choose('follow'),
+  holds({ quest: { id: 'q_bell_vault', stage: 'flooded_stair' } }, 'the flooded stair did not start q_bell_vault'),
+  { goto: 'loc_lamplighters_rest' },
+  { rest: 1 },
+  { fight: 'flee' }, // the Scriptorium's guard scatters when fled (D-110: the Reach at a carry-over start); the Deep's Warden is bypassed
+  { goto: 'loc_bell_wardens_deep' },
+  holds({ quest: { id: 'q_bell_vault', stage: 'ring_bells' } }, 'the Deep was not reached'),
+  interact('ev_deep_bells'),
+];
+
+/** The bells rung in Silverwood's order by `picks` (the puzzle, or an Echo's line): the water drops, the Vault's rewards. */
+const bellsRung = (picks: readonly string[]): ScriptStep[] => [
+  ...bellVaultReached,
+  ...picks.map(choose),
+  done('q_bell_vault', 'water_drops'),
+  holds({ all: [{ echo: 'echo_bell_vault' }, { echo: 'echo_archive_door' }, { item: { id: 'item_bell_vault_key' } }, { item: { id: 'item_glyphbound_lantern', count: 2 } }] }, 'the Vault did not pay'),
+];
+
+/**
+ * Loop 2 with the scouts' words and the trail-signs (the Peaks and the Scorched Gate open): the Camp, the Peaks, the Outpost (its Golems), Hearthring;
+ * Hadda's ask; then (`withMark`) back to the Emberforge for Borin's mark; the Orchard (the first ambush on arrival), the Cairns
+ * (the second), the ember-bowl there, Hadda's waystones.
+ */
+const boneRoad = (withMark: boolean): ScriptStep[] => [
+  { fight: 'flee' }, // the road's fights fled where they can be (the Flats at a carry-over start, D-110); the ambushes hold and are fought
+  { goto: 'loc_ironclad_camp' },
+  { rest: 1 },
+  { goto: 'loc_blighted_outpost' }, // the Golems
+  { goto: 'loc_emberforge' }, // the camp next door: whole for the Steppe
+  { rest: 1 },
+  { goto: 'loc_hearthring' },
+  { talk: 'npc_hadda_ironvow', pick: ['yes'] }, // scene_hadda_bone_road_offer
+  holds({ quest: { id: 'q_bone_road', stage: 'ride_ahead' } }, 'q_bone_road did not start'),
+  ...(withMark
+    ? [
+        { goto: 'loc_emberforge' },
+        { talk: 'npc_borin_stonefist', pick: [] }, // scene_borin_forge_mark
+        holds({ item: { id: 'item_borins_forge_mark' } }, 'Borin did not hand over the mark'),
+        { rest: 1 },
+      ]
+    : [{ rest: 1 }]),
+  { goto: 'loc_bone_orchard' }, // the first ambush: the stage starts it on arrival
+  holds({ all: [{ quest: { id: 'q_bone_road', stage: 'storm_cairn' } }, { killed: { id: 'cr_wildling_brute', count: 2 } }] }, 'the Brutes did not fall at the Orchard'),
+  { goto: 'loc_hearthring' },
+  { rest: 1 },
+  { goto: 'loc_stormgate_cairns' }, // the second
+  holds({ all: [{ quest: { id: 'q_bone_road', stage: 'read_inscription' } }, { killed: { id: 'cr_void_touched_stalker', count: 2 } }] }, 'the Stalkers did not fall at the Cairns'),
+  interact('ev_hallows_ember_bowl'),
+  goOn, // the bowl, the verse, the ember
+  goOn,
+  holds(
+    {
+      all: [
+        { quest: { id: 'q_bone_road', stage: 'return' } },
+        { echo: 'echo_litany_verse_4' },
+        { echo: 'echo_hallows_ember' },
+        withMark ? { echo: 'echo_iron_that_does_not_wish' } : { not: { echo: 'echo_iron_that_does_not_wish' } },
+      ],
+    },
+    'the inscription was not read as it should be',
+  ),
+  { goto: 'loc_hearthring' },
+  { talk: 'npc_hadda_ironvow', pick: [] }, // scene_hadda_bone_road_report
+  done('q_bone_road', 'done'),
+  holds({ all: [{ echo: 'echo_steppe_waystones' }, { item: { id: 'item_salt_wind_cloak' } }] }, 'Hadda did not pay'),
+];
+
+/**
+ * Loop 2 with the Hollow's path (the bridge opens without Nyx's pact): the Hollow's Stalkers, the seam in the curtain (the
+ * discovery: put the light out and go down), the Mouth, the Stair, the Choir; Ysmay after.
+ */
+const lightlessStair: ScriptStep[] = [
+  { goto: 'loc_chasm_of_whispers' },
+  { rest: 1 }, // the cold camp on the lip
+  { goto: 'loc_voidscar_hollow' },
+  interact('ev_hollow_curtain_stair'),
+  goOn,
+  choose('go_down'),
+  holds({ quest: { id: 'q_lightless_stair', stage: 'descend' } }, "the Hollow's curtain did not start q_lightless_stair"),
+  { fight: 'flee' }, // the Veil's groups scatter when fled; Blind sits on the first turn here
+  { goto: 'loc_stair_of_unmaking' },
+  holds({ quest: { id: 'q_lightless_stair', stage: 'halfway' } }, 'the Stair was not reached'),
+  { goto: 'loc_sanctum_of_threads' },
+  done('q_lightless_stair', 'choir'),
+  holds({ echo: 'echo_lightless_stair' }, 'the Choir did not light the stair'),
+  { fight: 'melee' },
+  { talk: 'npc_ysmay', pick: [] }, // scene_ysmay_lightless_stair
+  holds({ flag: 'flag_scene_done_scene_ysmay_lightless_stair' }, 'Ysmay did not speak'),
+];
+
+/**
+ * Loop 2 (an elf: two Glow Moss in the kit) with the Heartstone's path: the Depths, the Highlands, the Glowlands (its moss), the
+ * Glowfen; Wen's ask at Lanternreed, the Shallows' boat raised, the report.
+ */
+const drownedLantern: ScriptStep[] = [
+  { fight: 'flee' },
+  { goto: 'loc_veridian_glowlands' },
+  takeAll, // the legacy Glow Moss
+  { goto: 'loc_lanternreed' },
+  { talk: 'npc_elder_wen', pick: ['yes'] }, // scene_wen_drowned_lantern_offer
+  holds({ quest: { id: 'q_the_drowned_lantern', stage: 'reed_maze' } }, 'q_the_drowned_lantern did not start'),
+  { rest: 1 },
+  { goto: 'loc_sporelight_shallows' },
+  holds({ quest: { id: 'q_the_drowned_lantern', stage: 'raise_boat' } }, 'the Reed Maze was not reached'),
+  holds({ item: { id: 'item_glow_moss' } }, 'no Glow Moss for the wick'),
+  interact('ev_shallows_lantern_boat'),
+  choose('raise'),
+  holds({ quest: { id: 'q_the_drowned_lantern', stage: 'return' } }, 'the boat was not raised'),
+  { goto: 'loc_lanternreed' },
+  { talk: 'npc_elder_wen', pick: [] }, // scene_wen_drowned_lantern_report
+  done('q_the_drowned_lantern', 'done'),
+  holds({ all: [{ flag: 'flag_lanternreed_trusts' }, { item: { id: 'item_stiltwalkers_boots' } }] }, 'Wen did not pay, or Lanternreed does not trust you'),
+];
+
+/** The Plateau's stair (the discovery), the Sentinel, the climb, the look east. */
+const highMarkClimbed: ScriptStep[] = [
+  { goto: 'loc_sky_whisper_plateau' },
+  { fight: 'melee' },
+  takeAll, // the Talisman: the thin air
+  interact('ev_plateau_stair'),
+  goOn,
+  choose('climb'),
+  holds({ quest: { id: 'q_high_mark', stage: 'markers' } }, 'the stair in the wind did not start q_high_mark'),
+  { rest: 1 }, // the wind-shelter
+  { fight: 'flee' }, // the Stair's Gale Kites (band 12) scatter when fled, at 10 % HP
+  { goto: 'loc_windward_stair' },
+  holds({ quest: { id: 'q_high_mark', stage: 'look_east' } }, 'the Stair was not climbed'),
+  interact('ev_stair_look_east'),
+  goOn,
+  done('q_high_mark', 'seen'),
+  holds({ all: [{ echo: 'echo_breach_clock' }, { echo: 'echo_high_mark' }, { item: { id: 'item_sky_whisper_cloak' } }] }, 'the High Mark did not pay'),
+];
+
+/** Loop 2 with the Heartstone's path: the Depths, the Pass (Dask's introduction, then his High Mark), the Plateau, the Stair. */
+const highMarkByDask: ScriptStep[] = [
+  { fight: 'melee' },
+  { goto: 'loc_shimmering_pass' },
+  { talk: 'npc_dask', pick: ['who', 'what_do_i_do', 'come', 'later'] }, // scene_dask_introduction: he joins
+  { talk: 'npc_dask', pick: ['yes'] }, // scene_dask_high_mark
+  holds({ quest: { id: 'q_high_mark', stage: 'markers' } }, 'Dask did not start q_high_mark'),
+  { goto: 'loc_sky_whisper_plateau' },
+  takeAll,
+  { rest: 1 },
+  { fight: 'flee' },
+  { goto: 'loc_windward_stair' },
+  holds({ quest: { id: 'q_high_mark', stage: 'look_east' } }, 'the Stair was not climbed'),
+  interact('ev_stair_look_east'),
+  goOn,
+  done('q_high_mark', 'seen'),
+  holds({ all: [{ echo: 'echo_breach_clock' }, { echo: 'echo_high_mark' }] }, 'the High Mark did not pay'),
+];
+
+/** Loop 2's first Fall: the Shore starts the quest; the Gallery, the Loom, the Far Light's scene, `choiceId` there. */
+const stillShore = (choiceId: 'look_back' | 'step', stage: string): ScriptStep[] => [
+  { loopEnd: 'portal' },
+  holds({ quest: { id: 'q_the_still_shore', stage: 'walk' } }, 'the Shore did not start q_the_still_shore'),
+  { type: 'thresholdGo', to: 'gallery' },
+  holds({ quest: { id: 'q_the_still_shore', stage: 'gallery' } }, 'the Gallery did not count'),
+  { type: 'thresholdGo', to: 'loom' },
+  holds({ quest: { id: 'q_the_still_shore', stage: 'loom' } }, 'the Loom did not count'),
+  { type: 'thresholdGo', to: 'far_light' },
+  choose(choiceId),
+  ...(choiceId === 'look_back' ? [goOn] : []), // the figure, then the six
+  done('q_the_still_shore', stage),
+  holds({ echo: 'echo_threshold' }, 'the Shore did not pay its Echo'),
+];
+
 export const QUEST_SCRIPTS: readonly QuestScript[] = [
   // ---- q_echo_crystal ----
   { questId: 'q_echo_crystal', outcome: 'given', name: 'the Crystal given (Loop 1), verse I next talk', classId: CLASS, seed: 'quest:crystal:give', steps: crystalGiven() },
@@ -1274,6 +1458,101 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     seed: 'quest:sin:cannot',
     profile: { loop: 3, echoes: SIN_ECHOES, bestLevel: 17 },
     steps: [...caelumAtTheApex, { talk: 'npc_caelum', pick: ['cannot'] }, done('q_his_masters_sin', 'cannot'), holds({ echo: 'echo_caelum_cannot' }, 'he did not say it')],
+  },
+  // ---- U57 · q_bell_vault (Loop 2: the Door of Pages known, the Warden's name; the puzzle, or the fountain's order) ----
+  {
+    questId: 'q_bell_vault',
+    outcome: 'water_drops',
+    name: 'Loop 2: the flooded stair, the Deep by the Warden of Waters\' name, the bells rung Plaza, Gate, Archive',
+    classId: CLASS,
+    seed: 'quest:bells',
+    profile: { loop: 2, echoes: ['echo_archive_door', 'echo_rhune_choice'], bestLevel: 17 },
+    steps: bellsRung(['first_plaza', 'then_gate']),
+  },
+  {
+    questId: 'q_bell_vault',
+    outcome: 'water_drops',
+    name: 'Loop 2: the same, with the Plaza fountain\'s order known (echo_bells_of_silverwood)',
+    classId: CLASS,
+    seed: 'quest:bells:fountain',
+    profile: { loop: 2, echoes: ['echo_archive_door', 'echo_rhune_choice', 'echo_bells_of_silverwood'], bestLevel: 17 },
+    steps: bellsRung(['fountain_order']),
+  },
+  // ---- U57 · q_bone_road (Loop 2 with the trail-signs: Hearthring, Borin's mark, the two ambushes, the ember-bowl) ----
+  {
+    questId: 'q_bone_road',
+    outcome: 'done',
+    name: 'Loop 2: Hadda\'s ask, Borin\'s mark, the Cairns and the Pan cleared, verse IV and the iron that does not wish, the waystones',
+    classId: CLASS,
+    seed: 'quest:bone:mark:1', // a seed that wins: two Stalkers at the Cairns beat a carry-over L10 ranger about half the time (the balance unit)
+    profile: { loop: 2, echoes: ['echo_ironclad_passwords', 'echo_nomad_signs'], bestLevel: 17 },
+    steps: boneRoad(true),
+  },
+  {
+    questId: 'q_bone_road',
+    outcome: 'done',
+    name: 'Loop 2: the same without Borin\'s mark (the ember, verse IV; not the iron)',
+    classId: CLASS,
+    seed: 'quest:bone:plain',
+    profile: { loop: 2, echoes: ['echo_ironclad_passwords', 'echo_nomad_signs'], bestLevel: 17 },
+    steps: boneRoad(false),
+  },
+  // ---- U57 · q_lightless_stair (Loop 2 with the Hollow's path: the curtain, the dark, the Choir) ----
+  {
+    questId: 'q_lightless_stair',
+    outcome: 'choir',
+    name: 'Loop 2: the curtain\'s stair taken without a light, the Mouth and the Stair fled, the Choir reached; Ysmay',
+    classId: CLASS,
+    seed: 'quest:lightless',
+    profile: { loop: 2, echoes: ['echo_hollow_path'], bestLevel: 17 },
+    steps: lightlessStair,
+  },
+  // ---- U57 · q_the_drowned_lantern (Loop 2, an elf: the Glowfen by the Depths and the Highlands; the boat raised) ----
+  {
+    questId: 'q_the_drowned_lantern',
+    outcome: 'done',
+    name: 'Loop 2: Wen\'s ask, the Reed Maze, the boat raised and lit with Glow Moss, Lanternreed\'s trust',
+    classId: 'elf',
+    seed: 'quest:drowned_lantern',
+    profile: { loop: 2, echoes: ['echo_heartstone_path'], bestLevel: 17 },
+    steps: drownedLantern,
+  },
+  // ---- U57 · q_high_mark (Loop 1 open: the legacy route to the Outpost, then the Plateau's stair; Loop 2: Dask gives it) ----
+  {
+    questId: 'q_high_mark',
+    outcome: 'seen',
+    name: 'Loop 1: the legacy route through the Outpost, the stair in the wind found on the Plateau, the Breach\'s edge seen',
+    classId: CLASS,
+    seed: 'quest:highmark',
+    steps: [...routeToOutpost, { rest: 1 }, ...highMarkClimbed],
+  },
+  {
+    questId: 'q_high_mark',
+    outcome: 'seen',
+    name: 'Loop 2: Dask at the Pass gives the High Mark; the climb with him; the edge seen',
+    classId: CLASS,
+    seed: 'quest:highmark:dask',
+    profile: { loop: 2, echoes: ['echo_heartstone_path'], bestLevel: 17 },
+    steps: highMarkByDask,
+  },
+  // ---- U57 · q_the_still_shore (Loop 2's first Fall: the four places; look back, or step through) ----
+  {
+    questId: 'q_the_still_shore',
+    outcome: 'done_looked',
+    name: 'Loop 2 → the Shore: the Gallery, the Loom, the Far Light; looking back at the water (the figure, the six)',
+    classId: CLASS,
+    seed: 'quest:shore:look',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: [...stillShore('look_back', 'done_looked'), holds({ echo: 'echo_six_in_the_mass' }, 'the figure was not seen')],
+  },
+  {
+    questId: 'q_the_still_shore',
+    outcome: 'done',
+    name: 'Loop 2 → the Shore: the same, stepping into the light without looking back',
+    classId: CLASS,
+    seed: 'quest:shore:step',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: [...stillShore('step', 'done'), holds({ not: { echo: 'echo_six_in_the_mass' } }, 'the figure was seen without looking')],
   },
 ];
 

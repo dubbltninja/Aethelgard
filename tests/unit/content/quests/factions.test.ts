@@ -231,7 +231,7 @@ describe('the four faction chain quests (STORY §11.1–§11.2)', () => {
 
   test('the Horde-echo: three table encounters of one Husk, story gates that hold, chained by onVictory; the stage starts the first (WORLD §6.8)', () => {
     expect(RAW_ENCOUNTERS.map((e) => e.id)).toEqual(WAVES);
-    expect(Object.keys(pack.encounters)).toEqual(WAVES);
+    expect(Object.keys(pack.encounters).slice(0, 3)).toEqual(WAVES); // U57's cairn-ambushes and the Vault's drowned follow
     WAVES.forEach((id, i) => {
       const enc = need(pack.encounters[id], id);
       expect([id, enc.groups, enc.fleeable, enc.onFlee, enc.intro]).toEqual([id, [{ creatureId: 'cr_horde_husk', count: 1 }], false, 'hold', WAVE_INTROS[i]]);
@@ -569,8 +569,9 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
       const one = at({ locationId }, 1);
       const opened = play(one.s, [talk(npcId)], { content: pack, profile: one.profile });
       expect([npcId, nodesSeen(opened.events)]).toEqual([npcId, ['come_back']]);
+      // U57: from Loop 2 Hadda offers the Bone Road at any standing (its offer, and its after line, outrank her idle line)
       const two = at({ locationId, reputation: { weavers: -20 } }, 2);
-      expect([npcId, nodesSeen(play(two.s, [talk(npcId)], { content: pack, profile: two.profile }).events)]).toEqual([npcId, ['later']]);
+      expect([npcId, nodesSeen(play(two.s, [talk(npcId)], { content: pack, profile: two.profile }).events)]).toEqual([npcId, [npcId === 'npc_hadda_ironvow' ? 'wind' : 'later']]);
     }
   });
 
@@ -631,7 +632,8 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
   });
 
   test('Hadda: the Telling, Yes starts the quest at the Nexus objective; the waiting line; the return offers the truth greyed without the Jailer', () => {
-    const { s, profile } = at({ locationId: 'loc_hearthring', reputation: { ironclad: 20 } });
+    // the Bone Road done (U57): its offer would outrank the Telling's waiting line on the next talk
+    const { s, profile } = at({ locationId: 'loc_hearthring', reputation: { ironclad: 20 }, quests: { q_bone_road: { stage: 'done', status: 'completed' } } });
     const opened = play(s, [talk('npc_hadda_ironvow'), go, go], { content: pack, profile });
     expect(opened.state.dialogue?.sceneId).toBe('scene_hadda_day_of_teeth_offer');
     const started = play(opened.state, [pick('yes'), go], { content: pack, profile });
@@ -646,7 +648,8 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
   });
 
   test('a monster: Ironclad +25 (−8 to the others), the clock limit −8 watches, the axe kept, 400 XP; the truth (with the Jailer): +25, echo_day_of_teeth, no clock', () => {
-    const base = { locationId: 'loc_hearthring', items: ['item_blackreeds_axe'], quests: { q_day_of_teeth: 'return' } } as const;
+    // the Bone Road done (U57): its offer would outrank the after lines
+    const base = { locationId: 'loc_hearthring', items: ['item_blackreeds_axe'], quests: { q_day_of_teeth: 'return', q_bone_road: { stage: 'done', status: 'completed' } } } as const;
     const { s, profile } = at(base);
     const limit = s.clock.limitTicks;
     const monster = play(s, [talk('npc_hadda_ironvow'), go, pick('monster'), go, go], { content: pack, profile });

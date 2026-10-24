@@ -199,10 +199,12 @@ describe('the four locations vs WORLD §3.12 blocks', () => {
   });
 
   test('events: every WORLD event, its text verbatim; the loop numbers as WORLD writes them, read in the next loop’s count (D-082) with Loop 1 skipping the Threshold (D-049)', () => {
+    // U57 hooked `q_the_still_shore` on one event per place (tests/unit/content/quests/regional.test.ts pins them)
+    const U57_HOOKS = ['ev_shore_between', 'ev_gallery_first_loop', 'ev_loom_one_thread', 'ev_far_light_look_back'];
     for (const l of parsedLocations) {
-      expect([l.id, Object.fromEntries(l.events.map((e) => [e.id, e.text]))]).toEqual([l.id, WL[l.id]?.events]);
+      expect([l.id, Object.fromEntries(l.events.filter((e) => !U57_HOOKS.includes(e.id)).map((e) => [e.id, e.text]))]).toEqual([l.id, WL[l.id]?.events]);
       // U55 hooked `q_seven_marks`'s Gallery stage on the marks event (tests/unit/content/quests/companions_u55.test.ts pins it); the rest carry no effects
-      for (const e of l.events) expect([e.id, e.trigger, e.once, e.id === 'ev_gallery_marks' ? e.effects.length : e.effects]).toEqual([e.id, 'enter', true, e.id === 'ev_gallery_marks' ? 2 : []]);
+      for (const e of l.events) if (!U57_HOOKS.includes(e.id)) expect([e.id, e.trigger, e.once, e.id === 'ev_gallery_marks' ? e.effects.length : e.effects]).toEqual([e.id, 'enter', true, e.id === 'ev_gallery_marks' ? 2 : []]);
     }
     // "once, Loop 1→2 only": the first crossing, whose state is already Loop 3's
     expect(ev(TS, 'ev_shore_first').when).toEqual({ loop: { max: 3 } });
@@ -376,7 +378,7 @@ describe('the real pack with the region registered (D-090)', () => {
 
   test('the words are WORLD’s: every event id and line is in §3.12; the coined ids are the art keys only', () => {
     const worded = new Set(Object.values(WL).flatMap((w) => Object.keys(w.events)));
-    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !worded.has(id))).toEqual([]);
+    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !worded.has(id))).toEqual(['ev_shore_between', 'ev_gallery_first_loop', 'ev_loom_one_thread', 'ev_far_light_look_back']); // U57's hooks
     expect(ids(JSON.stringify(locations), 'flag')).toEqual([]);
     expect(parsedLocations.flatMap((l) => [...l.art.silhouettes, ...l.art.variants.map((v) => v.patch.focal ?? '')])).toEqual([
       'flat_shore', 'own_shadow', 'far_light', 'tyrant_silhouette', 'nine_shards', 'receding_colonnade', 'framed_panels', 'epilogue_paintings', 'loom_frame', 'light_threads',
@@ -460,10 +462,11 @@ describe('the Threshold in the engine (reducers/threshold.ts on the real pack)',
   test('D-098 (U34d, was a pinned gap): every arrival fires the place’s events — the Shore from the ending, then each walk; `once` holds for the visit', () => {
     const shore = arrive();
     // the Shore from the ending: `ev_shore_first` (Loop 3, the first crossing), after the shore's own lines
-    expect(ofType(shore.last, 'eventFired').map((e) => e.eventId)).toEqual(['ev_shore_first']);
+    expect(ofType(shore.last, 'eventFired').map((e) => e.eventId)).toEqual(['ev_shore_first', 'ev_shore_between']); // U57's hook starts q_the_still_shore
     const logs = ofType(shore.last, 'log').map((e) => e.text);
     expect(logs.indexOf(THRESHOLD_TEXT.shore)).toBeLessThan(logs.indexOf(ev(TS, 'ev_shore_first').text));
-    const fired = { loom: ['ev_loom_first_thread'], far_light: ['ev_far_light_step'], gallery: [] } as const;
+    // from the Shore, the quest U57's hook started is at its first stage: the Gallery's hook fires, the Loom's and the Far Light's wait
+    const fired = { loom: ['ev_loom_first_thread'], far_light: ['ev_far_light_step'], gallery: ['ev_gallery_first_loop'] } as const;
     for (const area of ['loom', 'far_light', 'gallery'] as const) {
       const there = act(shore, go(area));
       expect([area, ofType(there.last, 'eventFired').map((e) => e.eventId)]).toEqual([area, [...fired[area]]]);

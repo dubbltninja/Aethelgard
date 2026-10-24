@@ -59,6 +59,9 @@ export const locations = [
       { id: 'ev_shore_first', text: 'You are standing on a shore. You were in a library. You were falling. You are standing on a shore.', when: { loop: { max: 3 } } },
       { id: 'ev_shore_silhouette', text: 'Far out, under the water, something very large holds very still.', when: { loop: { min: 5 } } },
       { id: 'ev_shore_shards', text: 'Nearer now. Around the stillness, eight smaller stillnesses. One of them has her eyes.', when: { loop: { min: 7 } } },
+      // U57 (STORY §11.3 `q_the_still_shore`, "automatic on first arrival"): the Shore starts it; once per profile, so later
+      // arrivals start nothing (the engine's `questStart` is silent then)
+      { id: 'ev_shore_between', text: 'The sand takes no print. Four places, and no hour to be late for in any of them.', effects: [{ questStart: 'q_the_still_shore' }] },
     ],
     // WORLD §2.12: "Loop 5 the Tyrant's silhouette in the water; Loop 7 the Nine's shards visible"
     art: {
@@ -97,6 +100,13 @@ export const locations = [
         when: { all: [{ loop: { min: 3 } }, { quest: { id: 'q_seven_marks', status: 'active' } }] },
         effects: [{ grantEcho: 'echo_seven_wayfinders' }, { questAdvance: { quest: 'q_seven_marks', stage: 'marks_seen' } }],
       },
+      // U57 (STORY §11.3 `q_the_still_shore` stage 2, "see Loop 1 recorded"): the first frame moves the quest on
+      {
+        id: 'ev_gallery_first_loop',
+        text: 'The first frame is the smallest. A library, a cold fire, a stranger with your face. Beneath it, a number of days, and a cause.',
+        when: { quest: { id: 'q_the_still_shore', stage: 'walk' } },
+        effects: [{ questAdvance: { quest: 'q_the_still_shore', stage: 'gallery' } }],
+      },
     ],
     // "after any true ending the Gallery shows the epilogue slides as paintings" (WORLD §2.12)
     art: {
@@ -121,7 +131,16 @@ export const locations = [
     description:
       'A loom of driftwood strung with threads of light. Each thread is something you learned. Pull them taut and they stay taut when you wake. There is a chair in front of it and five coats on hooks behind.',
     exits: [{ dir: 'west', to: 'loc_still_shore', travelWatches: 0 }],
-    events: [{ id: 'ev_loom_first_thread', text: 'You pull a thread. It hums the first note of the Litany.' }],
+    events: [
+      { id: 'ev_loom_first_thread', text: 'You pull a thread. It hums the first note of the Litany.' },
+      // U57 (STORY §11.3 `q_the_still_shore` stage 3, the Loom): on arrival; "spend one Resonance" has no condition atom
+      {
+        id: 'ev_loom_one_thread',
+        text: 'One thread hangs slack where the others are taut. It is the one you have not pulled yet.',
+        when: { quest: { id: 'q_the_still_shore', stage: 'gallery' } },
+        effects: [{ questAdvance: { quest: 'q_the_still_shore', stage: 'loom' } }],
+      },
+    ],
     // "thread-glints": motes
     art: { template: 'threshold', horizon: 0.6, silhouettes: ['loom_frame', 'light_threads', 'five_coats'], particles: 'motes', timeOfDay: 'timeless' },
     // "Attunement vendor (not a merchant; spends Resonance, D-011)"
@@ -141,7 +160,17 @@ export const locations = [
       'You walk toward the light across the water and the water holds you. The light is a door, and the door is a morning, and the morning smells of ozone and decay.',
     exits: [{ dir: 'north', to: 'loc_still_shore', travelWatches: 0 }],
     // "every loop": the schema's `once` is per loop
-    events: [{ id: 'ev_far_light_step', text: 'You step. Somewhere a woman in faded robes looks up from a cold fire and sees a stranger, again.' }],
+    events: [
+      { id: 'ev_far_light_step', text: 'You step. Somewhere a woman in faded robes looks up from a cold fire and sees a stranger, again.' },
+      // U57 (STORY §11.3 `q_the_still_shore` stage 4, "before stepping through, look back at the water"): the scene says the
+      // line and decides (shared/dialogues/regional.ts)
+      {
+        id: 'ev_far_light_look_back',
+        text: 'The light is a door, and the door is a morning. Behind you the water has not moved, and it is waiting to be looked at.',
+        when: { quest: { id: 'q_the_still_shore', stage: 'loom' } },
+        effects: [{ startDialogue: 'scene_far_light_look_back' }],
+      },
+    ],
     // "light motes converging": motes
     art: { template: 'threshold', horizon: 0.5, silhouettes: ['light_path', 'doorway'], particles: 'motes', timeOfDay: 'timeless' },
     safe: true,

@@ -2056,3 +2056,32 @@ owning unit (PLAN §9.1).
 - **Gap → balance/polish unit:** DESIGN §16.8 forces the first Shade's intents (Wail, then Rake so Guard visibly halves it).
   No engine or creature data does this; the Shade runs Rake → Wail → Fade/Rake and the callouts show on whatever comes. Needs a
   first-fight `forcedIntents` hook (creature data or an encounter flag).
+
+### D-122 · U57 details — the six regional quests, 2026-10-24
+- **U57 (… 101f508; ✦ Fable, spot-reviewed):**
+  - `q_bell_vault`, `q_bone_road`, `q_lightless_stair`, `q_the_drowned_lantern`, `q_high_mark`, `q_the_still_shore` in
+    `quests/regional.ts` (+ 3 encounters) and `dialogues/regional.ts` (23 scenes); `q_echoing_heartbeat` stays U52's. 34 of 44
+    quests authored.
+  - Region hooks: Drowned Reach, Ashen Steppe, Voidscar, the Veil (a Blind hazard `lightless` on the Mouth and the Stair),
+    Glowfen, Aether-Kissed Highlands, Skyreach, the Threshold (the Shore starts the quest; Gallery, Loom and Far Light events).
+  - Written: 52 node texts, 23 choices, 20 journals, ~2,000 words, all pinned in `WRITTEN`; STORY lines verbatim (verse IV, the
+    figure on the water §10.7, the six first journals).
+  - Echoes granted: `echo_bell_vault` + `echo_archive_door`, `echo_steppe_waystones`, `echo_litany_verse_4` + `echo_hallows_ember`
+    (+ `echo_iron_that_does_not_wish` with the mark), `echo_lightless_stair`, `echo_breach_clock` + `echo_high_mark`,
+    **`echo_threshold`** (D-112's open grant, settled here) and `echo_six_in_the_mass` on looking back.
+  - Tests: 27 unit; 10 new proofs (62/62 on the real pack); 4,101 tests in all. Pending: rule 16 38 → 28, rule 1 151 → 145,
+    rule 2 12 → 6.
+- **Rulings:**
+  - Discoveries are interacts, not arrival scenes (an arrival scene would skip the place's fixed fight).
+  - Bone Road ambushes: Bone Orchard (Brutes ×2) and Stormgate Cairns (Stalkers ×2); a Pan ambush was unwinnable under the salt
+    glare. Borin hands over the mark at the Emberforge while the Road runs (WORLD §3.7), optional.
+  - Dask offers the High Mark only before his Flickering Man is in the journal (keeps U55's pins).
+  - The Still Shore is started by the Shore's event (a `startWhen` cannot tell the Threshold from the Ruins, D-082). Its Loom
+    stage completes on arrival ("spend one Resonance" has no condition atom). Once per profile, `countsForApex: false`. The first
+    walk to the Far Light now plays the "look back" scene (the Threshold e2e steps past it).
+  - Hadda's Bone Road offer outranks her idle lines from Loop 2 (factions pins updated).
+- **Gaps:** Phase negating the Stair's Blind has no data form (Nyx in the party and `echo_lightless_stair` do); the Lantern of
+  Lanternreed is not an item (the boat is relit with one Glow Moss); Dray's Bell Vault offer loses its tie to an unaccepted Ledger
+  offer (D-113's tie rule; the stair discovery covers it).
+- **Balance → the balance unit:** two Stalkers at the Cairns beat a carried-over L10 Ranger about 1 in 2 (seed pinned
+  `quest:bone:mark:1`); the Scriptorium guard and the Windward Stair's kites (band 12) kill L7–10 (the proofs flee them).

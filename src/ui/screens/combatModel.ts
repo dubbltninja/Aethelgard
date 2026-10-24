@@ -192,18 +192,20 @@ export function intentChip(r: Read, combat: CombatState, enemy: Combatant, inten
       label: `Intent: hidden${typeWord}. It shows itself before it lands.`,
     };
   }
-  const range = damaging ? rangeText(intent.projected) : '—';
+  // Settings → "Show exact intent damage": off hides every number but keeps the words (type, target, tags)
+  const numbers = r.profile.settings.showIntentNumbers;
+  const range = damaging ? (numbers ? rangeText(intent.projected) : 'damage') : '—';
   // the communion's press ignores Guard (D-081): no preview for the communing creature's beats
   const communing = combat.communion !== null && creature?.communion !== undefined;
   const hitsPlayer = damaging && !communing && (kind === 'player' || kind === 'all');
-  const guarded = hitsPlayer ? rangeText(projectIntent(r, combat, enemy, intent, { guard: true })) : null;
+  const guarded = hitsPlayer && numbers ? rangeText(projectIntent(r, combat, enemy, intent, { guard: true })) : null;
   const then = move?.windUp?.then;
   const thenMove = then === undefined ? undefined : creature?.moves[then];
   const windUpThen = then === undefined ? null : thenMove?.hidden === true ? '?' : (thenMove?.name ?? then);
   const name = question ? 'Question' : (move?.name ?? intent.moveId);
   const parts = [`Intent: ${name}`];
   if (typed) parts.push(DAMAGE_TYPE_NAMES[type].toLowerCase());
-  if (damaging) parts.push(`${spokenRange(intent.projected)} damage`);
+  if (damaging) parts.push(numbers ? `${spokenRange(intent.projected)} damage` : 'damage');
   parts.push(kind === 'all' ? 'targeting everyone' : kind === 'self' ? 'on itself' : `targeting ${target}`);
   if (tags.length > 0) parts.push(tags.join(', '));
   if (windUpThen !== null) parts.push(`then ${windUpThen === '?' ? 'something hidden' : windUpThen}`);

@@ -50,8 +50,6 @@ import type { SceneState } from '../art/Scene';
 
 /** PLAN §6.3: the map docks in the side column from this width. */
 export const DOCK_MAP_QUERY = '(min-width: 1100px)';
-/** Lines of the run's log the screen shows (the engine keeps the last 100). */
-export const LOG_LINES = 40;
 
 export type ExploreMenuId = 'inventory' | 'abilities' | 'map' | 'journal' | 'codex' | 'bestiary' | 'saves' | 'settings' | 'help' | 'title';
 
@@ -291,7 +289,7 @@ export function ExploreScreen(): ReactNode {
       items: itemRows(state, content, legal),
       exits: exitRows(state, content, profile, legal),
       actions: actionRows(state, content, legal, { canLook, canOpenPanel: (id) => shell.canOpen(id) }),
-      log: logLines(state, LOG_LINES),
+      log: logLines(state, profile.settings.logLength),
     };
   }, [state, content, profile, legal, store, shell]);
 

@@ -168,13 +168,11 @@ describe('ExploreView', () => {
     exits: exitRows(state, content, profile, legal),
     actions: actionRows(state, content, legal, { canLook: true, canOpenPanel: () => false }),
     log: [{ key: '0:0', text: 'A low hum.', kind: 'event' }],
-    menu: { canMap: true, canSaves: true, canSettings: true, canHelp: true, canLeave: true },
     onTravel: (to) => calls.push(`travel ${to}`),
     onInspectExit: (to) => calls.push(`inspect ${to}`),
     onAction: (row) => calls.push(`action ${row.id}`),
     onTalk: (id) => calls.push(`talk ${id}`),
     onTake: (uid) => calls.push(`take ${uid}`),
-    onMenu: (id) => calls.push(`menu ${id}`),
   };
 
   test('landmarks and names: one h1 (the place), the scene as a named image, sections by heading', () => {
@@ -197,24 +195,22 @@ describe('ExploreView', () => {
     call(byName(tree, 'button', 'Talk to Ilyra'), 'onClick');
     call(byName(tree, 'button', 'Take Amulet of Echoes'), 'onClick');
     call(byName(tree, 'button', /^1: Look around/), 'onClick');
-    for (const name of ['Map', 'Saves', 'Settings', 'Keys', 'Return to title']) call(byName(tree, 'button', name), 'onClick');
     expect(calls[0]).toBe('travel loc_shattered_library');
     expect(calls[1]).toBe('talk npc_ilyra');
     expect(calls[2]).toMatch(/^take i\d+$/);
-    expect(calls.slice(3)).toEqual(['action look', 'menu map', 'menu saves', 'menu settings', 'menu help', 'menu title']);
+    expect(calls.slice(3)).toEqual(['action look']);
   });
 
-  test('menu items the Shell cannot open are left out; a full pack says so; notes and docked map render', () => {
+  test('the game menu belongs to the tab bar, not the screen; a full pack says so; notes and docked map render', () => {
     const tree = expand(
       <ExploreView
         {...props}
-        menu={{ canMap: false, canSaves: false, canSettings: false, canHelp: false, canLeave: false }}
         items={[{ uid: 'i9', name: 'Glow Moss', qty: 3, rarity: 'uncommon', canTake: false }]}
         npcs={[]}
         dockedMap={<p>docked</p>}
       />,
     );
-    expect(all(tree, 'nav').find((n) => n.props['aria-label'] === 'Game menu')?.children).toEqual([]);
+    expect(all(tree, 'nav').find((n) => n.props['aria-label'] === 'Game menu')).toBeUndefined();
     const html = renderToStaticMarkup(<ExploreView {...props} items={[{ uid: 'i9', name: 'Glow Moss', qty: 3, rarity: 'uncommon', canTake: false }]} dockedMap={<p>docked</p>} />);
     expect(html).toContain('Glow Moss × 3');
     expect(html).toContain('Your pack is full');

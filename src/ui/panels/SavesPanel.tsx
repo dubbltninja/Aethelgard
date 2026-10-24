@@ -154,7 +154,9 @@ export function SavesPanel(): ReactNode {
   const mode = useGame((s) => s.mode);
   const slots = useSyncExternalStore(store.subscribe, store.shell.listSlots, store.shell.listSlots);
   const [draft, setDraft] = useState<ImportDraft>({ status: 'none' });
-  const [target, setTarget] = useState<SaveSlot>(() => defaultImportSlot(store.shell.listSlots()));
+  // until the player picks one, the file is offered the first empty manual slot as the slots stand now
+  const [chosen, setTarget] = useState<SaveSlot | null>(null);
+  const target = chosen ?? defaultImportSlot(slots);
   const className = (classId: string): string => content.classes[classId]?.name ?? classId;
   const report = (result: Result): boolean => {
     if (!result.ok) store.notify(result.error, 'error');

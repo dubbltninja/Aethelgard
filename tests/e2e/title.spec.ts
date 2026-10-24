@@ -77,7 +77,8 @@ test.describe('title and class select', () => {
     await expect(page).toHaveTitle(`${START} · Echoes of Aethelgard`);
     expect(await gameState(page)).toMatchObject({ mode: 'explore', player: { classId: 'elf', name: 'Ann' } });
 
-    await page.getByRole('button', { name: 'Return to title' }).click();
+    await page.getByRole('navigation', { name: 'Game menu' }).getByRole('button', { name: 'Menu' }).click();
+    await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: /^Return to title/ }).click();
     const resume = page.getByRole('button', { name: /^Continue/ });
     await expect(resume).toBeEnabled();
     await expect(resume).toContainText(`Loop 1 · Day 1 · ${START}`);
@@ -149,7 +150,7 @@ test.describe('title and class select', () => {
     if (!info.project.name.startsWith('mobile')) {
       // Tab walks the enabled menu items in visual order, each with a visible ring of at least 2 px.
       const walk: { name: string; outline: number }[] = [];
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 4; i++) {
         await page.keyboard.press('Tab');
         walk.push(
           await page.evaluate(() => {
@@ -158,7 +159,7 @@ test.describe('title and class select', () => {
           }),
         );
       }
-      expect(walk.map((w) => w.name)).toEqual(['Settings', 'Lore', 'Credits']);
+      expect(walk.map((w) => w.name)).toEqual(['Settings', 'Achievements', 'Lore', 'Credits']);
       expect(walk.every((w) => w.outline >= 2)).toBe(true);
     }
 

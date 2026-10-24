@@ -1,8 +1,8 @@
 // The pieces the Journal, Codex and Bestiary share (U66): Tabs (ARIA tabs, roving focus, ←/→/Home/End), MasterDetail, the
-// list-navigation helper, the focus helper's query; the quest rings on the map (D-107) and the new Explore menu buttons.
+// list-navigation helper, the focus helper's query; and the quest rings on the map (D-107).
 import { describe, expect, mock, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { legalActions, type GameState } from '@engine/index';
+import type { GameState } from '@engine/index';
 import { Icon, type IconKind } from '@ui/art/Icon';
 import { MasterDetail } from '@ui/components/lore/MasterDetail';
 import { Tabs, tabId, tabKeyTarget, tabPanelId } from '@ui/components/lore/Tabs';
@@ -10,8 +10,6 @@ import { NARROW_QUERY } from '@ui/components/lore/useLoreFocus';
 import { neighbour } from '@ui/hooks/useListNav';
 import { MapView } from '@ui/panels/MapPanel';
 import { buildMap, nodeLabel, questHints } from '@ui/panels/mapModel';
-import { ExploreView, type ExploreViewProps } from '@ui/screens/ExploreScreen';
-import { actionRows, exitRows, hudModel, itemRows, npcRows, placeModel } from '@ui/screens/exploreModel';
 import { createGameStore } from '@ui/store/gameStore';
 import { freshProfile } from '@ui/store/profile';
 import { fixturePack } from '@tests/fixtures/miniContent';
@@ -141,47 +139,5 @@ describe('quest rings (D-107)', () => {
     expect(html).toContain('map-node--quest');
     expect(html).toContain('A quest points here');
     expect(map.nodes.filter((n) => n.quests.length > 0)).toHaveLength(1);
-  });
-});
-
-describe('the Explore menu', () => {
-  const store = createGameStore(content, freshProfile('m'), { storage: null });
-  store.shell.newGame('Ann', 'ranger', 'menu');
-  const state = store.getState();
-  const profile = store.getProfile();
-  const legal = legalActions(state, content, profile);
-  const location = content.locations[state.world.currentLocationId]!;
-  const calls: string[] = [];
-  const props: ExploreViewProps = {
-    place: placeModel(state, content, profile)!,
-    location,
-    region: content.regions[location.regionId],
-    scene: { horde: false, heartstone: 'intact', watch: 0, loop: 1 },
-    seed: location.id,
-    reducedMotion: true,
-    hud: hudModel(state, content),
-    hudDetail: false,
-    npcs: npcRows(state, content, profile, legal),
-    items: itemRows(state, content, legal),
-    exits: exitRows(state, content, profile, legal),
-    actions: actionRows(state, content, legal, { canLook: true, canOpenPanel: () => false }),
-    log: [],
-    menu: { canMap: true, canSaves: true, canSettings: true, canHelp: true, canLeave: true, canJournal: true, canCodex: true, canBestiary: true },
-    onTravel: () => undefined,
-    onInspectExit: () => undefined,
-    onAction: () => undefined,
-    onTalk: () => undefined,
-    onTake: () => undefined,
-    onMenu: (id) => calls.push(id),
-  };
-
-  test('Journal, Codex and Bestiary buttons open their panels; each is left out when the Shell cannot open it', () => {
-    const tree = expand(<ExploreView {...props} />);
-    for (const name of ['Journal', 'Codex', 'Bestiary']) call(byName(tree, 'button', name), 'onClick');
-    expect(calls).toEqual(['journal', 'codex', 'bestiary']);
-    const without = expand(<ExploreView {...props} menu={{ ...props.menu, canJournal: false, canCodex: undefined, canBestiary: false }} />);
-    expect(all(without, 'button').map(nameOf)).not.toContain('Journal');
-    expect(all(without, 'button').map(nameOf)).not.toContain('Codex');
-    expect(all(without, 'button').map(nameOf)).not.toContain('Bestiary');
   });
 });

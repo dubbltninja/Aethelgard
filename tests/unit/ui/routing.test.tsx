@@ -41,10 +41,10 @@ describe('App', () => {
     expect(html.match(/<main/g)).toHaveLength(1);
   });
 
-  test('explore names the place, the loop and the day, and offers the way back to the title (U64)', () => {
+  test('explore names the place, the loop and the day, and carries the tab bar whose Menu leads back to the title (U64, U69)', () => {
     const html = renderIn('explore');
     expect(html).toContain(content.locations[content.config.startLocationId]!.name);
-    expect(html).toContain('Return to title');
+    expect(html).toContain('aria-label="Game menu"');
     expect(html).toContain('Loop 1');
     expect(html).toContain('Day 1, dawn.');
   });

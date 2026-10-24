@@ -349,6 +349,17 @@ export const locations = [
         text: "One cairn stands apart, older than the rest and capped with a hammer-head instead of a spike. Under the ash the iron is still warm. Hallow's Cairn: the smith died here with the ember still lit, after crossing the Peaks north.",
         when: { not: { item: { id: 'item_borins_forge_mark' } } },
       },
+      // U57 (STORY §11.3 `q_bone_road` stage 3): read the ember-bowl inscription, while the quest asks it; the scene reads verse IV
+      // and grants the Echoes (shared/dialogues/regional.ts)
+      {
+        id: 'ev_hallows_ember_bowl',
+        trigger: 'interact',
+        label: 'Read the ember-bowl inscription',
+        text: "The ember-bowl on Hallow's Cairn is iron, and warm, and the hand's width of ash in it has not gone cold in five hundred years. Around the rim, cut deep, the fourth verse.",
+        once: false,
+        when: { quest: { id: 'q_bone_road', stage: 'read_inscription' } },
+        effects: [{ startDialogue: 'scene_hallows_cairn_inscription' }],
+      },
     ],
     art: { template: 'steppe', horizon: 0.48, silhouettes: ['cairns_with_spikes', 'lightning_fork', 'low_cloud'], particles: 'shards', timeOfDay: 'dusk' },
     levelBand: { min: 9, max: 10 },

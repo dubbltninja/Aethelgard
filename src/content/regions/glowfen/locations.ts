@@ -167,7 +167,20 @@ export const locations = [
         intro: 'Two shapes stand up out of the knee-deep water, glowing from the throat down.',
       },
     ],
-    events: [{ id: 'ev_shallows_sweet', text: 'The air is sweet. You hold your breath too late and the shallows tilt.' }],
+    events: [
+      { id: 'ev_shallows_sweet', text: 'The air is sweet. You hold your breath too late and the shallows tilt.' },
+      // U57 (STORY §11.3 `q_the_drowned_lantern` stage 3; the Reed Maze is this place, BIBLE §7): raise the boat, while the quest
+      // asks it; the scene relights the lantern (shared/dialogues/regional.ts)
+      {
+        id: 'ev_shallows_lantern_boat',
+        trigger: 'interact',
+        label: 'Raise the lantern-boat',
+        text: 'Where the glow pulses stop, a bow-post stands out of the mud with a ring of lantern-glass still on it. Two Mirelings stand up in the shallows, lit from the throat down. They watch the glass. They do not come closer.',
+        once: false,
+        when: { quest: { id: 'q_the_drowned_lantern', stage: 'raise_boat' } },
+        effects: [{ startDialogue: 'scene_lantern_boat' }],
+      },
+    ],
     art: { template: 'swamp', horizon: 0.62, silhouettes: ['stumps_with_fungal_shelves', 'mist_layer'], particles: 'spores', timeOfDay: 'dusk' },
     levelBand: { min: 9, max: 9 },
     // U34e (D-096)

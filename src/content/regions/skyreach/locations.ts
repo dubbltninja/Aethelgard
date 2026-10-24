@@ -117,6 +117,17 @@ export const locations = [
         text: 'You breathe when the Talisman says. You step when the wind says. For eleven steps you are not falling.',
         effects: [{ grantEcho: 'echo_high_mark' }],
       },
+      // U57 (STORY §11.3 `q_high_mark` stage 3: "At the High Mark, look east"): while the quest asks it; the scene shows the
+      // Breach's edge (shared/dialogues/regional.ts)
+      {
+        id: 'ev_stair_look_east',
+        trigger: 'interact',
+        label: 'Look east',
+        text: 'East, past the Glowlands and the broken dome, the sky has an edge. It is a line, and it is not where it was when you started counting. It creeps.',
+        once: false,
+        when: { quest: { id: 'q_high_mark', stage: 'look_east' } },
+        effects: [{ startDialogue: 'scene_high_mark_look_east' }],
+      },
     ],
     // WORLD's particles are "fast wind lines"; ash is the nearest preset, U44's reading of the Plateau's wind streaks
     art: { template: 'sky', horizon: 0.3, silhouettes: ['stair_outline_in_wind_streaks', 'plateau_far_below'], particles: 'ash', timeOfDay: 'day' },

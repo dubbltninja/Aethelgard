@@ -65,6 +65,16 @@ const LOOP_4: Condition = { loop: { min: 4 } };
 // Focus's Blind immunity keeps it off).
 const UNMAKING: Omit<HazardInput, 'id'> = { on: 'watch', hpPctMax: 0.05, restoreOnLeave: true };
 const GALLERY_BLIND: Omit<HazardInput, 'id'> = { on: 'ambush', status: { id: 'status_blind', duration: 1, to: 'player' } };
+// U57 (STORY §11.3 `q_lightless_stair` stage 2: "Descend without a light source (lanterns are extinguished; Blind applies;
+// `Phase` or Nyx's signature negates)"): on the Mouth and the Stair while the quest runs, Blind at a fight's opening, unless
+// Nyx is in the party or the Choir already lights the stair (`echo_lightless_stair`). `Phase` is a status that lives in fights
+// only, so it has no form here (the U57 reply).
+const LIGHTLESS: Omit<HazardInput, 'id'> = {
+  on: 'fight',
+  when: { all: [{ quest: { id: 'q_lightless_stair', status: 'active' } }, { not: { companion: { id: 'nyx' } } }, { not: { echo: 'echo_lightless_stair' } }] },
+  status: { id: 'status_blind', duration: 1, to: 'player' },
+  text: 'You came down without a light, and the dark is in your eyes.',
+};
 
 export const locations = [
   // ---- The Veil Mouth — the curtain of dark; the two sentries who count you in (WORLD §3.8, §12.1) ---------------------------
@@ -105,6 +115,7 @@ export const locations = [
     ],
     art: { template: 'void', horizon: 0.5, silhouettes: ['parted_curtain_of_dark', 'two_thread_wrapped_figures', 'glass_ground'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 10, max: 10 },
+    hazards: [{ id: 'lightless', ...LIGHTLESS }], // U57
     map: { x: 32, y: 0 },
     tags: ['entrance', 'weavers'],
   },
@@ -145,6 +156,7 @@ export const locations = [
     events: [{ id: 'ev_stair_thread', text: 'The thread along the wall is warm. Someone is holding the other end.' }],
     art: { template: 'void', horizon: 0.6, silhouettes: ['descending_steps_fading_to_nothing', 'wall_thread'], particles: 'static', timeOfDay: 'timeless' },
     levelBand: { min: 10, max: 11 },
+    hazards: [{ id: 'lightless', ...LIGHTLESS }], // U57
     map: { x: 40, y: 0 },
     tags: ['stair', 'weavers'],
   },

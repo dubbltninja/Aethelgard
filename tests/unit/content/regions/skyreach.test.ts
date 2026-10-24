@@ -452,7 +452,7 @@ describe('the five locations vs WORLD §3.10 blocks', () => {
     for (const l of parsedLocations) {
       const got = Object.fromEntries(l.events.filter((e) => e.trigger === 'enter').map((e) => [e.id, e.text]));
       expect([l.id, got]).toEqual([l.id, WL[l.id]?.events]);
-      for (const e of l.events) expect([e.id, e.once]).toEqual([e.id, true]);
+      for (const e of l.events) if (e.id !== 'ev_stair_look_east') expect([e.id, e.once]).toEqual([e.id, true]); // U57's interact hook repeats
     }
     const ev = (l: string, id: string) => byId(loc(l).events, id);
     const grant = (l: string, id: string) => [ev(l, id).when, ev(l, id).effects];
@@ -1206,7 +1206,8 @@ describe('authored words outside the documents are few and short; coined ids are
     expect(intros).toHaveLength(9);
     for (const t of intros) expect([t, t !== undefined && words(t) <= 20]).toEqual([t, true]);
     expect(loc(AE).rest?.text).toBe("You rest in the workshop's inner room, where there is no wind.");
-    expect(parsedLocations.flatMap((l) => l.events.filter((e) => e.trigger === 'interact'))).toEqual([]);
+    // U57 hooked `q_high_mark`'s "look east" on an interact at the Stair (tests/unit/content/quests/regional.test.ts pins it)
+    expect(parsedLocations.flatMap((l) => l.events.filter((e) => e.trigger === 'interact')).map((e) => e.id)).toEqual(['ev_stair_look_east']);
     for (const c of parsedCreatures) expect([c.id, words(c.description) <= 30]).toEqual([c.id, true]);
     // every move line is WORLD's (no telegraph written here)
     for (const c of parsedCreatures) for (const [id, m] of Object.entries(c.moves)) expect([c.id, id, m.line]).toEqual([c.id, id, worldCreature(c.id).intents[id]]);
@@ -1221,7 +1222,7 @@ describe('authored words outside the documents are few and short; coined ids are
       'enc_perch_stormcrown',
     ]);
     const wordedEvents = new Set(Object.values(WL).flatMap((w) => Object.keys(w.events)));
-    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual([]);
+    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_stair_look_east']); // U57's hook
     expect(JSON.stringify(locations).match(/flag_[a-z_]+/g)?.filter((f) => f !== 'flag_heartstone_destroyed').filter((f, i, a) => a.indexOf(f) === i) ?? []).toEqual([]);
     expect(cr(CROWN).phases.map((p) => p.id)).toEqual(['crown_the_watch', 'crown_the_storm_comes_down', 'crown_seven_struck']);
     for (const c of parsedCreatures) for (const id of Object.keys(c.moves)) expect([c.id, id, WORLD.includes(`\`${id}\``)]).toEqual([c.id, id, true]);

@@ -168,6 +168,17 @@ export const locations = [
         id: 'ev_hollow_curtain',
         text: "The curtain of dark at the hollow's edge has a seam. Two figures in grey thread stand either side of it and do not look at you.",
       },
+      // U57 (STORY §11.3 `q_lightless_stair`, "discovery at the Hollow's curtain", Loop 2+): the seam, until the quest is in the
+      // journal (an interact, so an arrival's fixed fight still starts); the scene says the line (shared/dialogues/regional.ts)
+      {
+        id: 'ev_hollow_curtain_stair',
+        trigger: 'interact',
+        label: 'Go to the seam in the curtain',
+        text: 'A stair goes down from the Hollow into the Veil. Nothing lit survives it.',
+        once: false,
+        when: { all: [{ loop: { min: 2 } }, { not: { quest: { id: 'q_lightless_stair' } } }] },
+        effects: [{ startDialogue: 'scene_hollow_curtain_stair' }],
+      },
     ],
     // WORLD's particles are "smoke wisps peeling off edges"; ash is the nearest preset. Heartstone exploited: "the Hollow's
     // crystal glows brighter" (WORLD §2.3): a patch of glints, the glow itself the UI unit's.

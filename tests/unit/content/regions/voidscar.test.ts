@@ -299,11 +299,13 @@ describe('the two locations vs WORLD §3.3 blocks', () => {
   });
 
   test('events: every WORLD event, its text verbatim, legacy ids with the ev_ prefix, once; WORLD’s conditions', () => {
+    // U57 hooked `q_lightless_stair`'s discovery on an interact at the curtain (tests/unit/content/quests/regional.test.ts pins it)
+    const U57_HOOKS = ['ev_hollow_curtain_stair'];
     for (const l of parsedLocations) {
-      const got = Object.fromEntries(l.events.map((e) => [e.id, e.text]));
+      const got = Object.fromEntries(l.events.filter((e) => !U57_HOOKS.includes(e.id)).map((e) => [e.id, e.text]));
       const expected = Object.fromEntries(Object.entries(WL[l.id]?.events ?? {}).map(([id, text]) => [id.startsWith('ev_') ? id : `ev_${id}`, text]));
       expect([l.id, got]).toEqual([l.id, expected]);
-      for (const e of l.events) expect([e.id, e.trigger, e.once]).toEqual([e.id, 'enter', true]);
+      for (const e of l.events) if (!U57_HOOKS.includes(e.id)) expect([e.id, e.trigger, e.once]).toEqual([e.id, 'enter', true]);
     }
     const ev = (l: string, id: string) => byId(loc(l).events, id);
     // "once, Loop 2+, requires echo_nine_voices"

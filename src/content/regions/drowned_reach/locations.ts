@@ -63,7 +63,21 @@ export const locations = [
         intro: 'Two pale shapes uncoil from the lamp-posts under the water.',
       },
     ],
-    events: [{ id: 'ev_stair_lamps', text: 'The lamps under the water do not flicker. Someone tends them.' }],
+    events: [
+      { id: 'ev_stair_lamps', text: 'The lamps under the water do not flicker. Someone tends them.' },
+      // U57 (STORY §11.3 `q_bell_vault`, "discovery (the flooded stair below the Sunken Archives)"): the bell on the hour, until
+      // the quest is in the journal (an interact, so an arrival's fight still starts); the scene says the line
+      // (shared/dialogues/regional.ts)
+      {
+        id: 'ev_stair_bell',
+        trigger: 'interact',
+        label: 'Listen for the bell',
+        text: 'Under the ninth lamp the stair goes on down, and from under the water a bell speaks one low note. It is the hour. Something down there is keeping it.',
+        once: false,
+        when: { all: [{ any: [{ echo: 'echo_archive_door' }, { quest: { id: 'q_lost_scroll', status: 'completed' } }] }, { not: { quest: { id: 'q_bell_vault' } } }] },
+        effects: [{ startDialogue: 'scene_bell_vault_discovery' }],
+      },
+    ],
     art: { template: 'undercity', horizon: 0.7, silhouettes: ['descending_stair', 'lamp_posts_under_waterline', 'vaulted_ceiling'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 4, max: 4 },
     hazards: [{ id: 'reach_soaked', ...SOAKED_ON_ENTRY }], // U34e (D-097)
@@ -375,7 +389,19 @@ export const locations = [
       },
     ],
     safe: true,
-    events: [{ id: 'ev_deep_hour', text: "The Warden lifts its head. 'Is it the hour?' it asks, in the voice of a city." }],
+    events: [
+      { id: 'ev_deep_hour', text: "The Warden lifts its head. 'Is it the hour?' it asks, in the voice of a city." },
+      // U57 (STORY §11.3 `q_bell_vault` stage 2; BIBLE §7: the three sunken bells hang here): ring them, while the quest asks it
+      {
+        id: 'ev_deep_bells',
+        trigger: 'interact',
+        label: 'Ring the sunken bells',
+        text: 'Three bells hang in the well under the water, each the size of a cart, and a rope runs up from each. Their lips are cut with names: PLAZA. GATE. ARCHIVE.',
+        once: false,
+        when: { quest: { id: 'q_bell_vault', stage: 'ring_bells' } },
+        effects: [{ startDialogue: 'scene_bell_vault_bells' }],
+      },
+    ],
     art: { template: 'cavern', horizon: 0.45, silhouettes: ['well', 'seated_giant_with_clapper', 'hanging_chains'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 8, max: 8 },
     hazards: [{ id: 'reach_soaked', ...SOAKED_ON_ENTRY }], // U34e (D-097)

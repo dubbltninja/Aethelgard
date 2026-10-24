@@ -437,10 +437,12 @@ describe('the nine locations vs WORLD §3.7 blocks', () => {
   });
 
   test('events: every WORLD event, its text verbatim, ids as WORLD spells them, once; WORLD’s grants and conditions', () => {
+    // U57 hooked `q_bone_road`'s inscription on an interact at the Cairns (tests/unit/content/quests/regional.test.ts pins it)
+    const U57_HOOKS = ['ev_hallows_ember_bowl'];
     for (const l of parsedLocations) {
-      const got = Object.fromEntries(l.events.filter((e) => !e.id.endsWith('_plain')).map((e) => [e.id, e.text]));
+      const got = Object.fromEntries(l.events.filter((e) => !e.id.endsWith('_plain') && !U57_HOOKS.includes(e.id)).map((e) => [e.id, e.text]));
       expect([l.id, got]).toEqual([l.id, WL[l.id]?.events]);
-      for (const e of l.events) expect([e.id, e.trigger, e.once]).toEqual([e.id, 'enter', true]);
+      for (const e of l.events) if (!U57_HOOKS.includes(e.id)) expect([e.id, e.trigger, e.once]).toEqual([e.id, 'enter', true]);
     }
     const ev = (l: string, id: string) => byId(loc(l).events, id);
     expect(ev(BN, 'ev_orchard_brand').effects).toEqual([{ grantEcho: 'echo_dreyl_brand' }]);
@@ -470,7 +472,7 @@ describe('the nine locations vs WORLD §3.7 blocks', () => {
         expect([itemId, carrying, fires]).toEqual([itemId, carrying, carrying.includes(itemId) ? [true, false] : [false, true]]);
       }
     }
-    expect(loc(SC).events.map((x) => x.id)).toEqual(['ev_cairns_strike', 'ev_cairns_strike_plain', 'ev_hallows_cairn', 'ev_hallows_cairn_plain']);
+    expect(loc(SC).events.map((x) => x.id)).toEqual(['ev_cairns_strike', 'ev_cairns_strike_plain', 'ev_hallows_cairn', 'ev_hallows_cairn_plain', 'ev_hallows_ember_bowl']); // the last is U57's
   });
 
   test('NPC placement: Ferrin at the Gate, Hadda, Oma, Tessaly and Ketch at Hearthring, nowhere else', () => {
@@ -1260,7 +1262,7 @@ describe('authored words outside the documents are few and short; coined ids are
       'enc_grave_ashmaw',
     ]);
     const wordedEvents = new Set(Object.values(WL).flatMap((w) => Object.keys(w.events)));
-    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_cairns_strike_plain', 'ev_hallows_cairn_plain']);
+    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_cairns_strike_plain', 'ev_hallows_cairn_plain', 'ev_hallows_ember_bowl']); // the last is U57's hook
     expect(cr(ASHMAW).phases.map((p) => p.id)).toEqual(['ashmaw_the_herd_sleeps', 'ashmaw_the_herd_wakes', 'ashmaw_one_animal']);
     // every move id is WORLD's: the creatures use WORLD's intent ids only
     for (const c of parsedCreatures) for (const id of Object.keys(c.moves)) expect([c.id, id, WORLD.includes(`\`${id}\``)]).toEqual([c.id, id, true]);

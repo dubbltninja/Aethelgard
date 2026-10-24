@@ -2008,3 +2008,28 @@ owning unit (PLAN §9.1).
 - **Gap → the achievement engine (balance / polish unit):** no engine code awards achievements yet. The panel reads
   `profile.achievements`, and the 13 `tally_*` counters (D-100) still need writing.
 - **Reading:** at `loop2_end`, `meta.loop` is already 3 while the summary names "Loop 2" (the loop just ended). Correct.
+
+### D-120 · U69 details — Saves, Settings, persistence, the mobile tab bar; the e2e gap, 2026-10-24
+- **U69 (8bac922, 7f56bcd, a0a2d53; Sonnet, spot-reviewed):**
+  - Persistence per DESIGN §14: `recoverInterrupted` at boot (`.tmp` leftovers), `.bak` restore of damaged slots, export /
+    import (refused cleanly when invalid), `mergeProfiles` (§14.3; Resonance sums, capped at the summed earned total; a
+    profile merged into itself counts once). Pure over a `StoragePort`.
+  - Saves panel (empty / occupied / damaged slots, in-panel confirms); Settings panel (every field `Settings` has, applied
+    live and persisted; volumes stored, labelled "no audio yet"; profile export/import/delete).
+  - Tests: 56 unit + `persistence.spec.ts` (9, both viewports); 3,998 tests in all; full e2e 90 passed, 2 skipped.
+    Production bundle **502.0 kB** gzip of 600 (D-115 watch: ~98 kB left).
+- **Ruling — the mobile tab bar is DESIGN §16.1's** (Explore · Journal · Pack · Map · Menu), closing D-107. PLAN §6.8's
+  Scene · Actions · Log · Map · Menu only switched regions of Explore and gave the panels no entry point. The bar shows in
+  Explore only (Combat, Dialogue and the Threshold have their own layouts); bottom bar under 760 px, the same nav above the
+  key legend wider. It replaces the Explore menu nav and the D-117 stopgaps. A new **Menu** panel lists Abilities, Codex,
+  Bestiary, Timeline, Achievements, Saves, Settings, Keys and Return to title.
+- **Rulings:** every non-Tyrant Flee now asks first by default (the `confirmFlee` setting); the Explore log shows
+  `settings.logLength` lines (default 100, was a fixed 40); new `store.shell` extras `importProfile`, `exportSlot`,
+  `previewImport`, `importToSlot`, `timestamp`.
+- **Not built (C1 freeze):** keybinding remaps and screen-reader verbosity — `Settings` has no fields for them.
+- **Open → U70/polish:** opening one panel from the Menu loses focus return, because `useFocusTrap` ignores a disconnected
+  opener.
+- **Process — the e2e gap:** `npm run check` runs only the `@smoke` e2e subset, so U68's Title-menu change broke the full
+  suite's focus-order test (`title.spec.ts`) unnoticed until CI (fixed e988ae8). From now on the lead runs the full suite
+  (`bun tools/build.ts --e2e && npx playwright test --grep-invert @screens`) after merging any UI unit, and briefs ask agents
+  to run it too.

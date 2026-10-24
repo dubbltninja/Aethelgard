@@ -1,7 +1,7 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except quests/dialogue (28 of 44 quests: legacy, factions, all six companion arcs) and codex (42 of 87); UI: foundation, Title, Class Select, Explore + map — 3,668 tests. Next: U65 (Opus), then ✦ U57–U59, U61, U62 when Fable allows. Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except quests/dialogue (28 of 44 quests: legacy, factions, all six companion arcs) and codex (42 of 87); UI U63–U69 done (every screen and panel, saves/settings, mobile tab bar) — 3,998 tests, bundle 502 kB of 600. Next: U70 (Sonnet), U71/U72 (art), then ✦ U57–U59, U61, U62 when Fable allows. Unit list: PLAN §9.2.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-119), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
@@ -106,7 +106,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U66 | Dialogue screen + Journal + Codex + Bestiary panels — brief `briefs/u66.md` | Sonnet | ✅ 90991f5 (spot-reviewed) — e2e 43 total; 3775 tests; D-117 |
 | U67 | Inventory/Equipment, Abilities, Merchant, Forge, Camp panels — brief `briefs/u67.md` | Sonnet | ✅ 0691eab (spot-reviewed) — 3870 tests; bundle 484 kB; D-118 |
 | U68 | Threshold (4 places), Ending, Run Summary, Loop Timeline, Achievements — brief `briefs/u68.md` | Sonnet | ✅ 72c4619 (spot-reviewed) — 3943 tests; bundle 497 kB; D-119 |
-| U69 | Saves + Settings panels, persistence (slots, `.tmp`/`.bak`, export/import), mobile layout + tab bar — brief `briefs/u69.md` | Sonnet | 🔄 running |
+| U69 | Saves + Settings panels, persistence (slots, `.tmp`/`.bak`, export/import), mobile layout + tab bar — brief `briefs/u69.md` | Sonnet | ✅ a0a2d53 (spot-reviewed) — tab bar per DESIGN §16.1; 3998 tests; full e2e 90 ✓; bundle 502 kB; D-120 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
 | U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ✅ 6824137 (resumed after the cutoff) — 6 quests, 23 scenes, 11 proofs; 3613 tests; D-113 |
 | U34f | Companion refusals of places (`refusesWhen`), Dask's Tyrant hooks, Named/Unbound Hand, the Keeper's Price tie (D-113) — brief `briefs/u34f.md` | Opus | ✅ ef664e9 — refusals, traits, Dask's Tyrant hooks, Dray's hub; 3633 tests; D-114 |
@@ -221,12 +221,15 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. **U56** (✦ Fable; Mireya + Caelum arcs — the last companions) · **U61** (✦ Fable; Codex II + the 103 Echo codex lines) ·
-   **U65** (Opus; Combat screen) · **U34f** (Opus, small; companion refusals, Dask's Tyrant hooks, D-113). Independent;
-   worktrees + `wip/` backups. Fable units: tell agents to commit early (two cutoffs so far hit uncommitted work).
-2. Then U57–U59, U62 (✦), U66+ (UI screens).
-3. The balance + bot unit (Opus): bots stop guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain
-   (D-109); Tyrant numbers (D-101); Warden vs bosses (D-089); Ilyra's loyalty arithmetic for ending E (D-113).
+1. **U70** (Sonnet; onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable**;
+   also fix the Menu → panel focus return, D-120).
+2. **U71 / U72** (art system, scene data). After every UI merge the lead runs the **full** e2e suite (D-120).
+3. ✦ Fable units: **U57** regional quests · **U58** loop/ending quests + communion + Tyrant lines · **U59** class quests ·
+   **U61** Codex II + the 103 Echo codex lines · **U62** scenes and endings. Tell agents to commit early.
+4. The balance + bot unit (Opus): bots stop guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain
+   (D-109); Tyrant numbers (D-101); Warden vs bosses (D-089); Ilyra's loyalty arithmetic for ending E (D-113); affix on
+   Uncommon upgrade (D-118); the achievement engine + 13 `tally_*` counters (D-119).
+5. Then audio, Playwright screen runs, fun reviews, the audit, and the deliverables (README, REPORT.md, Pages, PR).
 
 ## 4b. Dev quickstart
 

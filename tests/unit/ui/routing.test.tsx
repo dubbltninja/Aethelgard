@@ -67,7 +67,7 @@ describe('panels by mode (PLAN §6.3)', () => {
   test('combat, dialogue and title allow only their sets', () => {
     expect(legalPanels('combat')).toEqual(['inventory', 'bestiary', 'help', 'settings']);
     expect(legalPanels('dialogue')).toEqual(['help', 'settings']);
-    expect(legalPanels('title')).toEqual(['settings', 'saves', 'codex', 'help']);
+    expect(legalPanels('title')).toEqual(['settings', 'saves', 'codex', 'achievements', 'help']);
     expect(legalPanels('explore')).toContain('map');
     expect(legalPanels('threshold')).toContain('timeline');
     expect(legalPanels('ending')).toEqual(['settings', 'help']);

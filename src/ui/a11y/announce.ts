@@ -3,6 +3,9 @@
 // full phrasing (combat announcements such as "You hit the Corrupted Shade for 12. It readies a claw strike…").
 import { WATCH_NAMES, dayOf, watchOf, type ContentPack, type GameEvent, type GameState } from '@engine/index';
 
+/** The four places, as the live region says them (the Threshold screen's tabs use short forms). */
+const THRESHOLD_PLACE_NAMES = { still_shore: 'The Still Shore', gallery: 'The Gallery of Loops', loom: 'The Loom', far_light: 'The Far Light' } as const;
+
 const NARRATED: ReadonlySet<string> = new Set(['narration', 'event', 'system', 'dialogue', 'combat']);
 
 export function announceStep(events: readonly GameEvent[], state: GameState, content: ContentPack): string | null {
@@ -16,6 +19,19 @@ export function announceStep(events: readonly GameEvent[], state: GameState, con
       }
       case 'log':
         if (NARRATED.has(event.kind)) parts.push(event.text);
+        break;
+      case 'endingSlide':
+        parts.push(event.text);
+        break;
+      case 'attunementEquipped':
+        parts.push(`${content.attunements[event.attunementId]?.name ?? 'Attunement'} ${event.on ? 'equipped' : 'unequipped'}.`);
+        break;
+      case 'modifierToggled':
+        parts.push(`${content.modifiers[event.modifierId]?.name ?? 'Modifier'} ${event.on ? 'on' : 'off'}.`);
+        break;
+      case 'thresholdEntered':
+        // the Still Shore's arrival lines are logged (and so spoken) by the engine; the other places say their name
+        if (event.area !== 'still_shore') parts.push(`${THRESHOLD_PLACE_NAMES[event.area]}.`);
         break;
       case 'saveLoaded':
         parts.push('Save loaded.');

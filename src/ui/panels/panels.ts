@@ -12,6 +12,7 @@ export type PanelId =
   | 'codex'
   | 'bestiary'
   | 'timeline'
+  | 'achievements'
   | 'settings'
   | 'saves'
   | 'merchant'
@@ -29,6 +30,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   codex: 'Codex',
   bestiary: 'Bestiary',
   timeline: 'Loop timeline',
+  achievements: 'Achievements',
   settings: 'Settings',
   saves: 'Saves',
   merchant: 'Merchant',
@@ -60,13 +62,13 @@ const ALL: readonly PanelId[] = Object.keys(PANEL_TITLES) as PanelId[];
 export function legalPanels(mode: Mode): readonly PanelId[] {
   switch (mode) {
     case 'title':
-      return ['settings', 'saves', 'codex', 'help'];
+      return ['settings', 'saves', 'codex', 'achievements', 'help'];
     case 'combat':
       return ['inventory', 'bestiary', 'help', 'settings'];
     case 'dialogue':
       return ['help', 'settings'];
     case 'threshold':
-      return ['codex', 'bestiary', 'timeline', 'journal', 'settings', 'saves', 'help'];
+      return ['codex', 'bestiary', 'timeline', 'achievements', 'journal', 'settings', 'saves', 'help'];
     case 'ending':
       return ['settings', 'help'];
     case 'explore':

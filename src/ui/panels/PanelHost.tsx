@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Modal } from '../components/Modal';
 import { AbilitiesPanel } from './AbilitiesPanel';
+import { AchievementsPanel } from './AchievementsPanel';
 import { BestiaryPanel } from './BestiaryPanel';
 import { CampPanel } from './CampPanel';
 import { CodexPanel } from './CodexPanel';
@@ -15,6 +16,7 @@ import { MerchantPanel } from './MerchantPanel';
 import { PANEL_TITLES, type PanelId } from './panels';
 import { SavesPanel } from './SavesPanel';
 import { SettingsPanel } from './SettingsPanel';
+import { TimelinePanel } from './TimelinePanel';
 
 export const PANEL_COMPONENTS: Partial<Record<PanelId, () => ReactNode>> = {
   help: HelpPanel,
@@ -30,6 +32,8 @@ export const PANEL_COMPONENTS: Partial<Record<PanelId, () => ReactNode>> = {
   merchant: MerchantPanel, // U67
   crafting: ForgePanel, // U67
   camp: CampPanel, // U67
+  timeline: TimelinePanel, // U68
+  achievements: AchievementsPanel, // U68
 };
 
 export function PanelHost({ id, onClose }: { id: PanelId; onClose: () => void }): ReactNode {

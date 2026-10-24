@@ -28,7 +28,7 @@ const autosave: SlotInfo = {
 describe('menu model', () => {
   test('a first visit: Continue and Load are off and say why; New game is where focus lands', () => {
     const items = titleMenu({ continueSlot: null, anySaved: false, canPersist: true });
-    expect(items.map((i) => i.label)).toEqual(['Continue', 'New game', 'Load', 'Settings', 'Lore', 'Credits']);
+    expect(items.map((i) => i.label)).toEqual(['Continue', 'New game', 'Load', 'Settings', 'Achievements', 'Lore', 'Credits']);
     expect(items[0]).toMatchObject({ disabled: true, detail: 'No autosave yet' });
     expect(items[2]).toMatchObject({ disabled: true, detail: 'No saves yet' });
     expect(firstEnabled(items)).toBe('new');
@@ -53,7 +53,7 @@ describe('TitleMenuView', () => {
   test('renders a named nav of real buttons; off items are disabled and described', () => {
     const html = renderToStaticMarkup(<TitleMenuView items={items} onChoose={() => undefined} version="2.0.0" />);
     expect(html).toContain('<nav class="title-menu" aria-label="Main menu">');
-    expect(html.match(/<button type="button"/g)).toHaveLength(6);
+    expect(html.match(/<button type="button"/g)).toHaveLength(7);
     expect(html).toContain('disabled=""');
     expect(html).toContain('aria-describedby="title-menu-continue-detail"');
     expect(html).toContain('Version 2.0.0');
@@ -65,8 +65,8 @@ describe('TitleMenuView', () => {
   test('choosing an item reports its id', () => {
     const chose = mock((_id: string) => undefined);
     const tree = expand(<TitleMenuView items={items} onChoose={chose} version="2" />);
-    for (const label of ['New game', 'Settings', 'Lore', 'Credits']) call(byName(tree, 'button', label), 'onClick');
-    expect(chose.mock.calls.map((c) => c[0])).toEqual(['new', 'settings', 'lore', 'credits']);
+    for (const label of ['New game', 'Settings', 'Achievements', 'Lore', 'Credits']) call(byName(tree, 'button', label), 'onClick');
+    expect(chose.mock.calls.map((c) => c[0])).toEqual(['new', 'settings', 'achievements', 'lore', 'credits']);
   });
 
   test('the wordmark reads as the full title; its after-images are hidden from assistive tech', () => {

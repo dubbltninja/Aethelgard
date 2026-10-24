@@ -12,7 +12,7 @@ import { GAME_TITLE } from '../theme';
 import { ClassSelectScreen } from './ClassSelectScreen';
 import { TitleArt } from './TitleArt';
 
-export type TitleMenuId = 'continue' | 'new' | 'load' | 'settings' | 'lore' | 'credits';
+export type TitleMenuId = 'continue' | 'new' | 'load' | 'settings' | 'achievements' | 'lore' | 'credits';
 
 export interface TitleMenuItem {
   id: TitleMenuId;
@@ -40,6 +40,8 @@ export function titleMenu({ continueSlot, anySaved, canPersist }: TitleMenuInput
     { id: 'new', label: 'New game' },
     anySaved ? { id: 'load', label: 'Load' } : { id: 'load', label: 'Load', detail: 'No saves yet', disabled: true },
     { id: 'settings', label: 'Settings' },
+    // DESIGN §16.3: the forty badges, read-only (U68)
+    { id: 'achievements', label: 'Achievements' },
     // DESIGN §16.3 (D-104 ruling 2): Lore opens the Codex over the title, with whatever this profile has found
     { id: 'lore', label: 'Lore' },
     { id: 'credits', label: 'Credits' },
@@ -162,6 +164,7 @@ export function TitleScreen({ version = __VERSION__ }: { version?: string }): Re
     } else if (id === 'new') setView('class');
     else if (id === 'load') shell.openPanel('saves');
     else if (id === 'settings') shell.openPanel('settings');
+    else if (id === 'achievements') shell.openPanel('achievements');
     else if (id === 'lore') shell.openPanel('codex');
     else setView('credits');
   };

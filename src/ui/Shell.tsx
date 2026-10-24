@@ -14,10 +14,14 @@ import { focusView, isTextEntry, nativeKeysOf } from './a11y/focus';
 import { LiveRegion, type Announcement } from './a11y/LiveRegion';
 import { SkipLink } from './a11y/SkipLink';
 import { Button } from './components/Button';
+import { Callouts } from './components/Callouts';
 import { KeyLegend } from './components/KeyLegend';
 import { Modal } from './components/Modal';
 import { TabBar } from './components/TabBar';
 import { Toasts, noticeLifetime } from './components/Toasts';
+import { toastsFor } from './components/toastModel';
+import { EMPTY_QUEUE, dismiss as dismissToast, enqueue, expire, nextExpiry } from './components/toastQueue';
+import { useReducedMotion } from './hooks/useMediaQuery';
 import { resolveHotkey, type HotkeyMap } from './hooks/hotkeys';
 import { HotkeyRegistryContext, createHotkeyRegistry, useHotkeyLayers, useHotkeys, type HotkeyRegistry } from './hooks/useHotkeys';
 import { PANEL_COMPONENTS, PanelHost } from './panels/PanelHost';
@@ -43,6 +47,8 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [pending, setPending] = useState<PendingConfirm | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
+  const [toastQueue, setToastQueue] = useState(EMPTY_QUEUE);
+  const reducedMotion = useReducedMotion();
   const mainRef = useRef<HTMLElement>(null);
 
   // ---- document ----
@@ -113,9 +119,21 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
 
   // ---- live region and toasts ----
   useGameEvents((events, state) => {
-    const text = announceStep(events, state, store.getContent());
+    const text = announceStep(events, state, store.getContent(), { intentNumbers: store.getProfile().settings.showIntentNumbers });
     if (text !== null) setAnnouncement((prev) => ({ text, nonce: (prev?.nonce ?? 0) + 1 }));
+    // the events that earn a toast (U70): a repeat merges into the one already showing (toastQueue.ts)
+    const specs = toastsFor(events, store.getContent(), state.meta.loop);
+    if (specs.length > 0) {
+      const now = Date.now();
+      setToastQueue((queue) => specs.reduce((acc, spec) => enqueue(acc, spec, now), queue));
+    }
   });
+  useEffect(() => {
+    const at = nextExpiry(toastQueue);
+    if (at === null) return undefined;
+    const timer = setTimeout(() => setToastQueue((queue) => expire(queue, Date.now())), Math.max(0, at - Date.now()) + 20);
+    return () => clearTimeout(timer);
+  }, [toastQueue]);
   useEffect(() => {
     const timers = notices.map((n) => setTimeout(() => store.dismissNotice(n.id), noticeLifetime(n)));
     return () => timers.forEach(clearTimeout);
@@ -131,13 +149,20 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
             {children}
           </main>
           <div className="dock">
+            <Callouts />
             {mode === 'explore' ? <TabBar /> : null}
             <footer className="legend-bar">
               <LegendFromRegistry />
             </footer>
           </div>
         </div>
-        <Toasts notices={notices} onDismiss={(id) => store.dismissNotice(id)} />
+        <Toasts
+          notices={notices}
+          onDismiss={(id) => store.dismissNotice(id)}
+          items={toastQueue.items}
+          onDismissItem={(id) => setToastQueue((queue) => dismissToast(queue, id))}
+          reducedMotion={reducedMotion}
+        />
         <LiveRegion announcement={announcement} />
         {panel !== null ? <PanelHost id={panel} onClose={() => setPanel(null)} /> : null}
         {pending !== null ? (

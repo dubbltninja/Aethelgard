@@ -67,3 +67,27 @@ export function focusView(root: HTMLElement | null): void {
   if (target === heading && heading !== null && !heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
   target?.focus({ preventScroll: false });
 }
+
+/** The parts of a Document `focusFallback` reads (so the rule is unit-tested without a DOM). */
+export interface FocusDoc {
+  activeElement: (FocusTarget & { isConnected: boolean }) | null;
+  body: unknown;
+  querySelector(selector: string): (FocusTarget & { focus(): void; hasAttribute(name: string): boolean; setAttribute(name: string, value: string): void }) | null;
+}
+
+/**
+ * Where focus goes when a panel closes and the element that opened it cannot take focus back: `vanished` says it was there
+ * but is gone (it sat inside another panel that closed with it, D-120's open item), so the tab bar's Menu tab is the nearest
+ * place; with no opener at all (a key pressed with nothing focused) the screen's heading is. Each falls back to the other.
+ * Does nothing when focus is already somewhere real — not on the page, not inside the panel that is `closing`.
+ */
+export function focusFallback(vanished: boolean, doc: FocusDoc = document as unknown as FocusDoc, closing?: { contains(node: unknown): boolean }): void {
+  const active = doc.activeElement;
+  if (active !== null && active !== doc.body && active.isConnected && closing?.contains(active) !== true) return;
+  const menu = doc.querySelector('.tab-bar [data-tab="menu"]:not([disabled])');
+  const heading = doc.querySelector('#main h1, #main h2');
+  const target = vanished ? (menu ?? heading) : (heading ?? menu);
+  if (target === null) return;
+  if (target === heading && !target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+  target.focus();
+}

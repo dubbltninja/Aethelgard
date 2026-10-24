@@ -12,6 +12,7 @@
 // is in a dialog or on the map (the traveller is still choosing there).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Icon } from '../art/Icon';
+import { breachOverlay } from '../art/breachOverlay';
 import { RegionPalette } from '../art/RegionPalette';
 import { Scene } from '../art/Scene';
 import { ActionBar, actionKey } from '../components/ActionBar';
@@ -295,6 +296,7 @@ export function ExploreScreen(): ReactNode {
           watch: watchNow(state),
           loop: state.meta.loop,
           infected: model.place.infected,
+          breachOverlay: breachOverlay({ clock: state.clock, hordeActive: state.world.hordeActive, infected: model.place.infected }),
         }}
         seed={location.id}
         reducedMotion={reducedMotion}

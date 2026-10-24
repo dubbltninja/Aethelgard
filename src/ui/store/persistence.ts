@@ -206,3 +206,47 @@ export function writeRunToSlot(port: StoragePort, slot: SaveSlot, text: string, 
   if ('error' in read) return { ok: false, error: read.error };
   return writeTwoPhase(port, slotKey(slot), JSON.stringify(read.file));
 }
+
+// ---- UI-only preferences: tutorials (U70) -----------------------------------------------------------------------------------
+// `Settings` is frozen (D-073), so "Tutorials: off" and the callouts already seen live beside it in their own small keys:
+// the switch once per browser (like the settings mirror), what was seen per profile id (a reading habit, like the codex marks).
+
+export const TUTORIALS_OFF_KEY = 'aethelgard.tutorials.off';
+export const TUTORIALS_SEEN_KEY = 'aethelgard.tutorials.seen';
+
+/** Whether the player turned the tutorial callouts off. A missing or unreadable key means on. */
+export function loadTutorialsOff(port: StoragePort | null): boolean {
+  try {
+    return port?.getItem(TUTORIALS_OFF_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function saveTutorialsOff(port: StoragePort | null, off: boolean): void {
+  try {
+    if (off) port?.setItem(TUTORIALS_OFF_KEY, '1');
+    else port?.removeItem(TUTORIALS_OFF_KEY);
+  } catch {
+    // storage is full or blocked: the switch lasts for this session
+  }
+}
+
+/** The callout ids already shown under `profileId`. */
+export function loadTutorialsSeen(port: StoragePort | null, profileId: string): Set<string> {
+  try {
+    const text = port?.getItem(`${TUTORIALS_SEEN_KEY}.${profileId}`) ?? null;
+    const parsed: unknown = text === null ? [] : JSON.parse(text);
+    return new Set(Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function saveTutorialsSeen(port: StoragePort | null, profileId: string, seen: ReadonlySet<string>): void {
+  try {
+    port?.setItem(`${TUTORIALS_SEEN_KEY}.${profileId}`, JSON.stringify([...seen].sort()));
+  } catch {
+    // storage is full or blocked: the marks last for this session
+  }
+}

@@ -1,0 +1,104 @@
+/*
+ * Onboarding (DESIGN §16.8, U70): the callout in the dock, and the glow on the thing it points at. The Callouts container
+ * sets `data-callout="intent|guard|rest|clock|status"` on `.app` while a hint shows. A glow is a dashed outline plus a
+ * label-free pulse: the outline is the cue (never colour alone), the pulse stops under reduced motion (themes.css).
+ */
+.callouts {
+  min-width: 0;
+}
+
+.callouts:empty {
+  display: none;
+}
+
+.callout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-2) var(--gutter) 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-left: 4px solid var(--glyph-echo);
+  border-radius: var(--radius-s);
+  background: var(--surface-panel);
+  animation: callout-in var(--dur-panel) var(--ease);
+}
+
+.callout__icon {
+  color: var(--glyph-echo);
+}
+
+.callout__title {
+  color: var(--text-accent);
+  font-size: var(--type-small);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.callout__text {
+  font-size: var(--type-body);
+}
+
+.callout__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1) var(--space-2);
+}
+
+@media (max-width: 759.98px) {
+  .callout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .callout__icon {
+    display: none;
+  }
+
+  .callout__actions {
+    justify-content: flex-start;
+  }
+}
+
+@keyframes callout-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* ---- what a hint points at ---- */
+.app[data-callout="guard"] [data-action="guard"],
+.app[data-callout="intent"] .enemy-card .intent:not(.intent--next),
+.app[data-callout="rest"] [data-action-id="camp"],
+.app[data-callout="rest"] [data-action-id="rest-full"],
+.app[data-callout="clock"] .clock-chip,
+.app[data-callout="status"] .status-chips {
+  outline: 3px dashed var(--glyph-gold);
+  outline-offset: 3px;
+  animation: callout-glow 1.4s var(--ease) infinite alternate;
+}
+
+@keyframes callout-glow {
+  from {
+    outline-color: var(--glyph-gold);
+  }
+
+  to {
+    outline-color: transparent;
+  }
+}
+
+/* ---- toast tones (U70): a gain is gold-edged, a warning amber; the words carry the meaning, the edge only adds to it ---- */
+.toast--gain {
+  border-left-color: var(--glyph-gold);
+}
+
+.toast--warn {
+  border-left-color: var(--text-warn);
+}
+
+.toasts[data-motion="reduced"] .toast {
+  animation: none;
+}

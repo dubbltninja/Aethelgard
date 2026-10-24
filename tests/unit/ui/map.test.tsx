@@ -53,7 +53,7 @@ describe('buildMap', () => {
     ]);
     const ghost = node(map.nodes, 'loc_shattered_library');
     expect(ghost).toMatchObject({ name: null, glyph: '?', dir: 'north' });
-    expect(map.edges).toEqual([{ key: 'loc_shattered_library|loc_whispering_ruins', a: 'loc_shattered_library', b: 'loc_whispering_ruins', state: 'ghost', kind: 'walk', infected: false, reason: null }]);
+    expect(map.edges).toEqual([{ key: 'loc_shattered_library|loc_whispering_ruins', a: 'loc_shattered_library', b: 'loc_whispering_ruins', state: 'ghost', kind: 'walk', infected: false, forecast: false, reason: null }]);
     const here = node(map.nodes, 'loc_whispering_ruins');
     expect(here).toMatchObject({ name: 'Whispering Ruins', glyph: 'WR', npc: true, rest: 'camp', cleared: false, danger: null });
   });

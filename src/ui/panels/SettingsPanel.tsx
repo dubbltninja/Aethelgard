@@ -4,12 +4,13 @@
 // and say so. Keybinds and a screen-reader verbosity are not in `Settings` (C1 freeze, D-073), so they wait for a unit
 // that may reshape it. The profile block exports, imports (merge or replace) and deletes the profile file.
 // Pattern: container (store, files, confirms) → pure `SettingsForm` / `ProfileSection`.
-import { useState, type ChangeEvent, type ReactNode } from 'react';
+import { useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from 'react';
 import { importProfile as parseProfile, exportFileName, type Settings } from '@engine/index';
 import { Button } from '../components/Button';
 import { useShell } from '../shellContext';
 import type { ProfileImportMode } from '../store/gameStore';
 import { TEXT_SCALES } from '../store/profile';
+import { sharedTutorialStore } from '../store/tutorials';
 import { useProfile, useStore } from '../store/useGame';
 import { downloadText, readFileText } from '../util/files';
 import { DELETE_PROFILE_ASKS, LOG_LENGTHS, VOLUMES, profileSummary, volumeFromPercent, volumePercent, type ProfileDraft } from './settingsModel';
@@ -26,9 +27,19 @@ export interface ProfileSectionProps {
   onDelete: () => void;
 }
 
+/** The tutorial callouts' switch (DESIGN §16.8 "Tutorials: off"); not a `Settings` field (frozen, D-073), so it comes beside them. */
+export interface TutorialsProps {
+  on: boolean;
+  onToggle: () => void;
+  /** Forget which hints were seen, so they show again. */
+  onReset: () => void;
+}
+
 export interface SettingsFormProps {
   settings: Settings;
   onChange: (patch: Partial<Settings>) => void;
+  /** The tutorials switch; the form shows it only when given. */
+  tutorials?: TutorialsProps;
   /** The profile block; the form shows it only when given (a bare form is what the unit tests render). */
   profile?: ProfileSectionProps;
 }
@@ -40,7 +51,7 @@ const MOTION: { value: Settings['reducedMotion']; label: string }[] = [
 ];
 
 /** Pure form (no hooks), so tests can render it and call its handlers. */
-export function SettingsForm({ settings, onChange, profile }: SettingsFormProps): ReactNode {
+export function SettingsForm({ settings, onChange, tutorials, profile }: SettingsFormProps): ReactNode {
   return (
     <form className="settings-form" onSubmit={(e) => e.preventDefault()}>
       <fieldset className="field-group">
@@ -97,6 +108,21 @@ export function SettingsForm({ settings, onChange, profile }: SettingsFormProps)
           </label>
         </div>
       </fieldset>
+      {tutorials === undefined ? null : (
+        <fieldset className="field-group">
+          <legend>Tutorials</legend>
+          <div className="choice-row">
+            <label className="choice">
+              <input type="checkbox" name="tutorials" checked={tutorials.on} onChange={tutorials.onToggle} />
+              <span>Show tutorial hints</span>
+            </label>
+          </div>
+          <p className="field__hint">One-time hints for the first fight, the first camp and the Breach Clock. They never appear after Loop 1 except the Breach Clock one.</p>
+          <div className="button-row">
+            <Button onClick={tutorials.onReset}>Show the hints again</Button>
+          </div>
+        </fieldset>
+      )}
       <fieldset className="field-group">
         <legend>Log length</legend>
         <div className="choice-row">
@@ -205,6 +231,9 @@ export function SettingsPanel(): ReactNode {
   const store = useStore();
   const shell = useShell();
   const settings = useProfile((p) => p.settings);
+  const profileId = useProfile((p) => p.profileId);
+  const tutorialStore = sharedTutorialStore();
+  const tutorialsOff = useSyncExternalStore(tutorialStore.subscribe, tutorialStore.off, tutorialStore.off);
   const [draft, setDraft] = useState<ProfileDraft>({ status: 'none' });
   const [mode, setMode] = useState<ProfileImportMode>('merge');
 
@@ -260,6 +289,15 @@ export function SettingsPanel(): ReactNode {
     <SettingsForm
       settings={settings}
       onChange={(patch) => store.shell.updateSettings(patch)}
+      tutorials={{
+        on: !tutorialsOff,
+        onToggle: () => tutorialStore.setOff(!tutorialsOff),
+        onReset: () => {
+          tutorialStore.reset(profileId);
+          tutorialStore.setOff(false);
+          store.notify('The hints will show again.', 'info');
+        },
+      }}
       profile={{
         draft,
         mode,

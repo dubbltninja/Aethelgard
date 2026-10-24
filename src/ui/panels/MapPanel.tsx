@@ -68,6 +68,7 @@ export function MapView({ model, selected, preview, route, docked = false, onNod
           Center on me
         </Button>
       </div>
+      {model.forecast === null ? null : <ForecastNote forecast={model.forecast} docked={docked} />}
       <div className="map__viewport" ref={viewportRef}>
         <div className="map__canvas" style={{ width: model.width, height: model.height }}>
           <svg className="map__edges" width={model.width} height={model.height} aria-hidden="true" focusable="false">
@@ -79,7 +80,7 @@ export function MapView({ model, selected, preview, route, docked = false, onNod
                 <path
                   key={edge.key}
                   d={edgePath(edge, a, b)}
-                  className={cx('map-edge', `map-edge--${edge.state}`, `map-edge--${edge.kind}`, edge.infected && 'map-edge--infected', onRoute(route, edge) && 'map-edge--route')}
+                  className={cx('map-edge', `map-edge--${edge.state}`, `map-edge--${edge.kind}`, edge.infected && 'map-edge--infected', edge.forecast && !edge.infected && 'map-edge--forecast', onRoute(route, edge) && 'map-edge--route')}
                 />
               );
             })}
@@ -110,6 +111,7 @@ export function MapView({ model, selected, preview, route, docked = false, onNod
                     'map-node',
                     `map-node--${node.state}`,
                     node.infected && 'map-node--infected',
+                    node.forecast !== null && !node.infected && 'map-node--forecast',
                     node.escape && 'map-node--escape',
                     node.quests.length > 0 && 'map-node--quest',
                     node.id === selected && 'map-node--selected',
@@ -134,7 +136,7 @@ export function MapView({ model, selected, preview, route, docked = false, onNod
                     {node.npc ? <Icon kind="npc" size={12} /> : null}
                     {node.quests.length > 0 ? <Icon kind="quest" size={12} className="map-node__quest" /> : null}
                     {node.unstable ? <Icon kind="hourglass" size={12} /> : null}
-                    {node.infected ? <Icon kind="infected" size={12} /> : null}
+                    {node.infected ? <Icon kind="infected" size={12} /> : node.forecast !== null ? <Icon kind="infected" size={12} className="map-node__forecast" /> : null}
                   </span>
                 </button>
               </li>
@@ -151,6 +153,20 @@ export function MapView({ model, selected, preview, route, docked = false, onNod
       </div>
       {docked ? null : <MapLegend />}
     </div>
+  );
+}
+
+/** The Fall forecast's words (DESIGN §16.6): what the hatched places mean and how many dawns are left. */
+export function ForecastNote({ forecast, docked }: { forecast: NonNullable<MapModel['forecast']>; docked: boolean }): ReactNode {
+  const dawns = forecast.dawnsLeft === 1 ? 'one dawn' : `${forecast.dawnsLeft} dawns`;
+  return (
+    <p className="map__forecast" data-forecast={forecast.dawnsLeft}>
+      <Icon kind="infected" size={16} />
+      <span>
+        {docked ? `The Breach tears open in ${dawns}.` : `The Breach tears open in ${dawns}. Hatched places are where the Horde will spread first.`}
+        {forecast.places.length > 0 && !docked ? ` On your map: ${forecast.places.join(', ')}.` : ''}
+      </span>
+    </p>
   );
 }
 
@@ -228,6 +244,9 @@ function MapLegend(): ReactNode {
         </li>
         <li>
           <Icon kind="infected" size={14} /> The Horde has reached it · <Icon kind="door" size={14} /> the way out
+        </li>
+        <li>
+          <span className="legend-swatch legend-swatch--forecast" aria-hidden="true" /> Light hatch: the Horde is forecast to reach it (from five dawns before the limit)
         </li>
       </ul>
     </details>

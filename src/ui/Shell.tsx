@@ -1,5 +1,6 @@
 // The Shell (PLAN §6.2): the frame every screen renders inside. It owns
-//   - the layout and landmarks: skip link, `<main id="main">` for the active screen, the key legend footer;
+//   - the layout and landmarks: skip link, `<main id="main">` for the active screen, the dock (U69: the tab bar on the
+//     Explore screen, then the key legend footer);
 //   - the document: theme, motion and text-size attributes on <html>, and a page title that follows mode and place;
 //   - the one keydown listener (hotkeys.ts / useHotkeys.ts) and the global keys: `?` keys, Ctrl+S, Ctrl+L;
 //   - overlays: the active panel (PanelHost), the confirm dialog, toasts, and the polite live region that reads one
@@ -15,6 +16,7 @@ import { SkipLink } from './a11y/SkipLink';
 import { Button } from './components/Button';
 import { KeyLegend } from './components/KeyLegend';
 import { Modal } from './components/Modal';
+import { TabBar } from './components/TabBar';
 import { Toasts, noticeLifetime } from './components/Toasts';
 import { resolveHotkey, type HotkeyMap } from './hooks/hotkeys';
 import { HotkeyRegistryContext, createHotkeyRegistry, useHotkeyLayers, useHotkeys, type HotkeyRegistry } from './hooks/useHotkeys';
@@ -128,9 +130,12 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
           <main id="main" ref={mainRef} className="screen-host" tabIndex={-1}>
             {children}
           </main>
-          <footer className="legend-bar">
-            <LegendFromRegistry />
-          </footer>
+          <div className="dock">
+            {mode === 'explore' ? <TabBar /> : null}
+            <footer className="legend-bar">
+              <LegendFromRegistry />
+            </footer>
+          </div>
         </div>
         <Toasts notices={notices} onDismiss={(id) => store.dismissNotice(id)} />
         <LiveRegion announcement={announcement} />

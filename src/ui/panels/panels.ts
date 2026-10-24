@@ -20,6 +20,7 @@ export type PanelId =
   | 'camp'
   | 'companion'
   | 'map'
+  | 'menu'
   | 'help';
 
 export const PANEL_TITLES: Record<PanelId, string> = {
@@ -38,6 +39,7 @@ export const PANEL_TITLES: Record<PanelId, string> = {
   camp: 'Camp',
   companion: 'Companion',
   map: 'Map',
+  menu: 'Menu',
   help: 'Keys',
 };
 

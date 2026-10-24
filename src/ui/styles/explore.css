@@ -19,6 +19,8 @@
 
 .explore {
   display: grid;
+  /* one column that may shrink to the viewport: the HUD's rem-sized minimums must not widen the whole screen at 150 % text */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   max-width: 92rem;
   margin: 0 auto;
@@ -85,7 +87,7 @@
 .hud__who {
   display: grid;
   gap: var(--space-1);
-  min-width: 12rem;
+  min-width: min(12rem, 100%);
 }
 
 .hud__name {
@@ -102,8 +104,8 @@
 .hud__vitals {
   display: grid;
   gap: var(--space-1);
-  min-width: 13rem;
-  flex: 1 1 13rem;
+  min-width: min(13rem, 100%);
+  flex: 1 1 min(13rem, 100%);
 }
 
 .hud__chips {
@@ -114,7 +116,7 @@
 }
 
 .hud__companion {
-  min-width: 12rem;
+  min-width: min(12rem, 100%);
 }
 
 .hud__detail {
@@ -581,15 +583,6 @@
 
 .action--danger .icon {
   color: var(--text-danger);
-}
-
-/* ---- the game menu ---- */
-.explore-menu {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--line-soft);
 }
 
 /* ---- the event log ---- */

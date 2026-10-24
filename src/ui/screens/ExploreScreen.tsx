@@ -50,10 +50,6 @@ import type { SceneState } from '../art/Scene';
 
 /** PLAN §6.3: the map docks in the side column from this width. */
 export const DOCK_MAP_QUERY = '(min-width: 1100px)';
-/** Lines of the run's log the screen shows (the engine keeps the last 100). */
-export const LOG_LINES = 40;
-
-export type ExploreMenuId = 'inventory' | 'abilities' | 'map' | 'journal' | 'codex' | 'bestiary' | 'saves' | 'settings' | 'help' | 'title';
 
 export interface ExploreViewProps {
   place: PlaceModel;
@@ -71,26 +67,11 @@ export interface ExploreViewProps {
   log: readonly LogLine[];
   /** The docked map (wide desktops), rendered by the container. */
   dockedMap?: ReactNode;
-  menu: {
-    canMap: boolean;
-    canSaves: boolean;
-    canSettings: boolean;
-    canHelp: boolean;
-    canLeave: boolean;
-    /** U66: the reading panels (Quest journal, Codex, Bestiary), once they are registered. */
-    canJournal?: boolean;
-    canCodex?: boolean;
-    canBestiary?: boolean;
-    /** U67: the pack and the ability tree. */
-    canInventory?: boolean;
-    canAbilities?: boolean;
-  };
   onTravel: (to: string) => void;
   onInspectExit: (to: string) => void;
   onAction: (row: ActionRow) => void;
   onTalk: (npcId: string) => void;
   onTake: (uid: string) => void;
-  onMenu: (id: ExploreMenuId) => void;
   logRef?: RefObject<HTMLOListElement | null>;
 }
 
@@ -173,67 +154,6 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
             )}
             <ExitBar exits={p.exits} onTravel={p.onTravel} onInspect={p.onInspectExit} />
             <ActionBar actions={p.actions} onRun={p.onAction} />
-            <nav className="explore-menu" aria-label="Game menu">
-              {p.menu.canInventory === true ? (
-                <Button onClick={() => p.onMenu('inventory')}>
-                  <Icon kind="item" size={18} />
-                  Inventory
-                </Button>
-              ) : null}
-              {p.menu.canAbilities === true ? (
-                <Button onClick={() => p.onMenu('abilities')}>
-                  <Icon kind="ability" size={18} />
-                  Abilities
-                </Button>
-              ) : null}
-              {p.menu.canMap ? (
-                <Button onClick={() => p.onMenu('map')}>
-                  <Icon kind="map" size={18} />
-                  Map
-                </Button>
-              ) : null}
-              {p.menu.canJournal === true ? (
-                <Button onClick={() => p.onMenu('journal')}>
-                  <Icon kind="journal" size={18} />
-                  Journal
-                </Button>
-              ) : null}
-              {p.menu.canCodex === true ? (
-                <Button onClick={() => p.onMenu('codex')}>
-                  <Icon kind="codex" size={18} />
-                  Codex
-                </Button>
-              ) : null}
-              {p.menu.canBestiary === true ? (
-                <Button onClick={() => p.onMenu('bestiary')}>
-                  <Icon kind="bestiary" size={18} />
-                  Bestiary
-                </Button>
-              ) : null}
-              {p.menu.canSaves ? (
-                <Button onClick={() => p.onMenu('saves')}>
-                  <Icon kind="save" size={18} />
-                  Saves
-                </Button>
-              ) : null}
-              {p.menu.canSettings ? (
-                <Button onClick={() => p.onMenu('settings')}>
-                  <Icon kind="settings" size={18} />
-                  Settings
-                </Button>
-              ) : null}
-              {p.menu.canHelp ? (
-                <Button onClick={() => p.onMenu('help')}>
-                  <Icon kind="keys" size={18} />
-                  Keys
-                </Button>
-              ) : null}
-              {p.menu.canLeave ? (
-                <Button variant="quiet" onClick={() => p.onMenu('title')}>
-                  Return to title
-                </Button>
-              ) : null}
-            </nav>
           </div>
           <aside className="explore__side" aria-label="Map and log">
             {p.dockedMap === undefined || p.dockedMap === null ? null : <div className="explore__map">{p.dockedMap}</div>}
@@ -291,7 +211,7 @@ export function ExploreScreen(): ReactNode {
       items: itemRows(state, content, legal),
       exits: exitRows(state, content, profile, legal),
       actions: actionRows(state, content, legal, { canLook, canOpenPanel: (id) => shell.canOpen(id) }),
-      log: logLines(state, LOG_LINES),
+      log: logLines(state, profile.settings.logLength),
     };
   }, [state, content, profile, legal, store, shell]);
 
@@ -315,10 +235,6 @@ export function ExploreScreen(): ReactNode {
   const inspectExit = (to: string): void => {
     const action = { type: 'examine', target: { kind: 'exit', to } } as const;
     if (store.isLegal(action)) dispatch(action);
-  };
-  const menu = (id: ExploreMenuId): void => {
-    if (id === 'title') dispatch({ type: 'returnToTitle' });
-    else shell.openPanel(id);
   };
 
   // ---- keys ----
@@ -390,24 +306,11 @@ export function ExploreScreen(): ReactNode {
         actions={model.actions}
         log={model.log}
         dockedMap={wide && shell.activePanel !== 'map' ? <MapPanel docked /> : null}
-        menu={{
-          canMap: shell.canOpen('map'),
-          canSaves: shell.canOpen('saves'),
-          canSettings: shell.canOpen('settings'),
-          canHelp: shell.canOpen('help'),
-          canLeave: isLegal({ type: 'returnToTitle' }),
-          canJournal: shell.canOpen('journal'),
-          canCodex: shell.canOpen('codex'),
-          canBestiary: shell.canOpen('bestiary'),
-          canInventory: shell.canOpen('inventory'),
-          canAbilities: shell.canOpen('abilities'),
-        }}
         onTravel={travel}
         onInspectExit={inspectExit}
         onAction={run}
         onTalk={(npcId) => dispatch({ type: 'talk', npcId })}
         onTake={(uid) => dispatch({ type: 'take', uid })}
-        onMenu={menu}
         logRef={logRef}
       />
     </div>

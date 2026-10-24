@@ -1,7 +1,7 @@
 /*
  * Layout (PLAN §6.8, DESIGN §16.1): the Shell frame. 760 px is the one breakpoint: under it every screen is a single
- * column with a 16 px gutter. Screens own their inner grids (screens.css); U64/U69 add the desktop columns and the
- * bottom tab bar here.
+ * column with a 16 px gutter. Screens own their inner grids (screens.css). U69 adds the dock: the tab bar (Explore ·
+ * Journal · Pack · Map · Menu, DESIGN §16.1) above the key legend, both stuck to the bottom of the viewport.
  */
 .app {
   display: grid;
@@ -23,10 +23,15 @@
   min-height: 100%;
 }
 
-.legend-bar {
+.dock {
   position: sticky;
   bottom: 0;
   z-index: 5;
+  min-width: 0;
+  background: var(--surface-base);
+}
+
+.legend-bar {
   padding: var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line-soft);
   background: var(--surface-base);
@@ -76,4 +81,118 @@
     place-items: end stretch;
     padding: 0;
   }
+}
+
+/* ---- the tab bar (U69) ---- */
+.tab-bar {
+  border-top: 1px solid var(--line-strong);
+  background: var(--surface-panel);
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+}
+
+.tab-bar__list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0 auto;
+  max-width: 40rem;
+  list-style: none;
+}
+
+.tab-bar__cell {
+  min-width: 0;
+}
+
+.tab-bar__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 3.5rem;
+  padding: var(--space-1) var(--space-1);
+  border: 0;
+  border-top: 3px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.tab-bar__tab:hover:not(:disabled) {
+  background: var(--hover-wash);
+  color: var(--text-primary);
+}
+
+.tab-bar__tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* the current tab: a bar above it and brighter text, so colour is not the only cue */
+.tab-bar__tab--current {
+  border-top-color: var(--fill-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tab-bar__label {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 759.98px) {
+  /* under the breakpoint the bar clears the home indicator, and toasts rise above it */
+  .tab-bar {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .app[data-mode="explore"] ~ .toasts {
+    bottom: calc(var(--space-4) + 4.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* ---- the Menu panel (U69) ---- */
+.menu-list {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.menu-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "icon label" "icon hint";
+  align-items: center;
+  gap: 0 var(--space-3);
+  width: 100%;
+  min-height: var(--target-min);
+  padding: var(--space-3) var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: start;
+  cursor: pointer;
+}
+
+.menu-row:hover {
+  background: var(--hover-wash);
+}
+
+.menu-row .icon {
+  grid-area: icon;
+  color: var(--text-accent);
+}
+
+.menu-row__label {
+  grid-area: label;
+  font-weight: 600;
+}
+
+.menu-row__hint {
+  grid-area: hint;
+  color: var(--text-muted);
+  font-size: var(--type-small);
 }

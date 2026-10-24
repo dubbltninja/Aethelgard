@@ -12,6 +12,7 @@ import { HelpPanel } from './HelpPanel';
 import { InventoryPanel } from './InventoryPanel';
 import { JournalPanel } from './JournalPanel';
 import { MapPanel } from './MapPanel';
+import { MenuPanel } from './MenuPanel';
 import { MerchantPanel } from './MerchantPanel';
 import { PANEL_TITLES, type PanelId } from './panels';
 import { SavesPanel } from './SavesPanel';
@@ -34,6 +35,7 @@ export const PANEL_COMPONENTS: Partial<Record<PanelId, () => ReactNode>> = {
   camp: CampPanel, // U67
   timeline: TimelinePanel, // U68
   achievements: AchievementsPanel, // U68
+  menu: MenuPanel, // U69: what the tab bar's Menu tab opens
 };
 
 export function PanelHost({ id, onClose }: { id: PanelId; onClose: () => void }): ReactNode {

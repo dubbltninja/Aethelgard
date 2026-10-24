@@ -6,6 +6,7 @@ import { memoryStorage } from '@engine/index';
 import { CreditsView, TitleMenuView, Wordmark, firstEnabled, titleMenu } from '@ui/screens/TitleScreen';
 import { SettingsForm } from '@ui/panels/SettingsPanel';
 import { SlotList, savedAtText, slotName } from '@ui/panels/SavesPanel';
+import { slotCards } from '@ui/panels/savesModel';
 import { HelpList } from '@ui/panels/HelpPanel';
 import type { HotkeyLayer } from '@ui/hooks/hotkeys';
 import { PanelHost } from '@ui/panels/PanelHost';
@@ -108,7 +109,7 @@ describe('panels', () => {
     const tree = expand(<SettingsForm settings={DEFAULT_SETTINGS} onChange={(p) => changes.push(p)} />);
     const inputs = all(tree, 'input');
     expect(inputs.every((i) => nameOf(i) !== '')).toBe(true);
-    expect(all(tree, 'legend').map((l) => l.text)).toEqual(['Text size', 'Motion', 'Display and saving']);
+    expect(all(tree, 'legend').map((l) => l.text)).toEqual(['Text size', 'Motion', 'Display and saving', 'Play', 'Log length', 'Sound']);
     call(byName(tree, 'input', '150%'), 'onChange');
     call(byName(tree, 'input', 'Reduce motion'), 'onChange');
     call(byName(tree, 'input', 'High contrast'), 'onChange');
@@ -130,12 +131,11 @@ describe('panels', () => {
     const done: string[] = [];
     const tree = expand(
       <SlotList
-        slots={slots}
-        canLoad
-        canSave={(slot) => slot === 1}
+        cards={slotCards(slots, { canLoad: true, canSave: (slot) => slot === 1, className: (id) => id })}
         onLoad={(s) => done.push(`load ${s}`)}
         onSave={(s) => done.push(`save ${s}`)}
         onRestore={(s) => done.push(`restore ${s}`)}
+        onExport={(s) => done.push(`export ${s}`)}
         onDelete={(s) => done.push(`delete ${s}`)}
       />,
     );
@@ -145,7 +145,9 @@ describe('panels', () => {
     call(byName(tree, 'button', 'Load autosave'), 'onClick');
     expect(done).toEqual(['save 1', 'restore 2', 'delete 3', 'load auto']);
     expect(all(tree, 'button').map(nameOf)).not.toContain('Restore the backup of slot 3');
-    expect(renderToStaticMarkup(<SlotList slots={slots} canLoad={false} canSave={() => false} onLoad={() => undefined} onSave={() => undefined} onRestore={() => undefined} onDelete={() => undefined} />)).not.toContain('>Load<');
+    const none = (): void => undefined;
+    const cannot = slotCards(slots, { canLoad: false, canSave: () => false, className: (id) => id });
+    expect(renderToStaticMarkup(<SlotList cards={cannot} onLoad={none} onSave={none} onRestore={none} onExport={none} onDelete={none} />)).not.toContain('>Load<');
     expect(slotName('auto')).toBe('Autosave');
     expect(savedAtText('2026-10-07T09:05:00.000Z')).toBe('7 Oct 2026, 09:05');
     expect(savedAtText('whenever')).toBe('whenever');

@@ -20,6 +20,12 @@ async function press(target: Locator, info: TestInfo): Promise<void> {
   else await target.click();
 }
 
+/** The Menu tab, then one of its rows (U69: Abilities, Codex, Bestiary and the rest live behind the tab bar's Menu). */
+async function openFromMenu(page: Page, row: string, info: TestInfo): Promise<void> {
+  await press(page.getByRole('navigation', { name: 'Game menu' }).getByRole('button', { name: 'Menu' }), info);
+  await press(page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: new RegExp(`^${row}`) }), info);
+}
+
 function watch(page: Page): string[] {
   const problems: string[] = [];
   page.on('console', (m) => {
@@ -127,7 +133,7 @@ test.describe('dialogue', () => {
     await expect(page.locator('[data-screen="explore"]')).toBeVisible();
     expect((await gameState(page)).quests.q_echo_crystal?.status ?? 'inactive').toBe('inactive');
     // nothing started: the journal says so
-    await press(page.getByRole('button', { name: 'Journal' }), info);
+    await press(page.getByRole('navigation', { name: 'Game menu' }).getByRole('button', { name: 'Journal' }), info);
     await expect(page.getByRole('dialog', { name: 'Quest journal' }).getByText(/No quest is under way/)).toBeVisible();
   });
 
@@ -154,7 +160,7 @@ test.describe('codex', () => {
   test('an entry opens and is read; a locked one stays a silhouette with a hint', async ({ page }, info) => {
     const problems = watch(page);
     await boot(page, 'loop1_day1', 'explore');
-    await press(page.getByRole('button', { name: 'Codex' }), info);
+    await openFromMenu(page, 'Codex', info);
     const codex = page.getByRole('dialog', { name: 'Codex' });
     await expect(codex).toBeVisible();
     await expect(codex.getByText(/entries found/)).toBeVisible();
@@ -221,7 +227,7 @@ test.describe('bestiary', () => {
     await press(victory(page).getByRole('button', { name: 'Continue' }), info);
     await expect(page.locator('[data-screen="explore"]')).toBeVisible();
 
-    await press(page.getByRole('button', { name: 'Bestiary' }), info);
+    await openFromMenu(page, 'Bestiary', info);
     await expect(bestiary).toBeVisible();
     const shade = bestiary.getByRole('button', { name: /^Corrupted Shade, level 2, defeated 1/ });
     await expect(shade).toBeVisible();

@@ -41,6 +41,12 @@ async function press(target: Locator, info: TestInfo): Promise<void> {
   else await target.click();
 }
 
+/** The Menu tab, then one of its rows (U69: Abilities, Codex, Bestiary and the rest live behind the tab bar's Menu). */
+async function openFromMenu(page: Page, row: string, info: TestInfo): Promise<void> {
+  await press(page.getByRole('navigation', { name: 'Game menu' }).getByRole('button', { name: 'Menu' }), info);
+  await press(page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: new RegExp(`^${row}`) }), info);
+}
+
 function watch(page: Page): string[] {
   const problems: string[] = [];
   page.on('console', (m) => {
@@ -106,7 +112,7 @@ test.describe('inventory and the other management panels', () => {
     const before = await player(page);
     const spare = before.inventory.find((i) => i.itemId === 'item_scribes_robe') ?? before.inventory.find((i) => i.itemId !== 'mat_wildling_hide' && i.rarity === 'common');
     expect(spare, 'the scenario leaves unworn gear in the pack').toBeDefined();
-    if (mobile(info)) await press(page.getByRole('button', { name: 'Inventory', exact: true }), info);
+    if (mobile(info)) await press(page.getByRole('navigation', { name: 'Game menu' }).getByRole('button', { name: 'Pack' }), info);
     else await page.keyboard.press('i');
     const panel = dialog(page, 'Inventory');
     await expect(panel).toBeVisible();
@@ -132,7 +138,7 @@ test.describe('inventory and the other management panels', () => {
 
   test('drop asks first when it matters, and Esc closes the panel', async ({ page }, info) => {
     await boot(page, 'loop1_respite');
-    if (mobile(info)) await press(page.getByRole('button', { name: 'Inventory', exact: true }), info);
+    if (mobile(info)) await press(page.getByRole('navigation', { name: 'Game menu' }).getByRole('button', { name: 'Pack' }), info);
     else await page.keyboard.press('i');
     const panel = dialog(page, 'Inventory');
     const before = await player(page);
@@ -152,7 +158,7 @@ test.describe('inventory and the other management panels', () => {
   test('spend a stat point on the Character tab and unlock an ability on its branch', async ({ page }, info) => {
     const problems = watch(page);
     await boot(page, 'loop1_respite');
-    await press(page.getByRole('button', { name: 'Abilities', exact: true }), info);
+    await openFromMenu(page, 'Abilities', info);
     const panel = dialog(page, 'Abilities');
     await expect(panel).toBeVisible();
     await expect(panel.getByText(/AP to spend/)).toBeVisible();
@@ -309,7 +315,7 @@ test.describe('inventory and the other management panels', () => {
   test('reduced motion and high contrast keep every panel readable', async ({ page }, info) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await boot(page, 'loop1_respite');
-    await press(page.getByRole('button', { name: 'Abilities', exact: true }), info);
+    await openFromMenu(page, 'Abilities', info);
     await expect(dialog(page, 'Abilities')).toBeVisible();
     const moving = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>('[role="dialog"] *')].filter((el) => {

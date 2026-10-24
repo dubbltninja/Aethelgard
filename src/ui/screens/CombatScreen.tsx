@@ -332,7 +332,14 @@ export function CombatScreen(): ReactNode {
   const flee = (): void => {
     if (!model.flee.enabled) return;
     if (!model.flee.leave) {
-      dispatch({ type: 'flee' });
+      // Settings → "Ask before fleeing"
+      if (!profile.settings.confirmFlee) {
+        dispatch({ type: 'flee' });
+        return;
+      }
+      void shell.confirm(`Flee this fight? You have a ${model.flee.chance}% chance to get away.`, { yes: 'Flee', no: 'Keep fighting' }).then((yes) => {
+        if (yes) dispatch({ type: 'flee' });
+      });
       return;
     }
     void shell.confirm('Leave the Tyrant? This loop ends here.', { yes: 'Leave' }).then((yes) => {

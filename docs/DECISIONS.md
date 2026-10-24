@@ -2033,3 +2033,26 @@ owning unit (PLAN §9.1).
   suite's focus-order test (`title.spec.ts`) unnoticed until CI (fixed e988ae8). From now on the lead runs the full suite
   (`bun tools/build.ts --e2e && npx playwright test --grep-invert @screens`) after merging any UI unit, and briefs ask agents
   to run it too.
+
+### D-121 · U70 details — onboarding, toasts, the Breach forecast; C4 playable, 2026-10-24
+- **U70 (… 3394440; Sonnet, spot-reviewed):**
+  - Callouts (DESIGN §16.8; once-only, skippable): intent, Guard (button lit), status, branching (Wildling Brute), camp (rest
+    row lit), clock chip; Loop 2+: the Breach Clock and the Echo glyph only. The level-1 AP toast.
+  - Toasts: rep delta/tier, Resonance "+n ◇", Echo gained, level-up, quest start/advance/complete/fail, item taken/given,
+    achievement, Loop 2+ clock warnings. Repeats merge ("×n" or summed); 5 s (warning 10 s, error 12 s).
+  - Map: a lighter forecast hatch from 5 dawns before the limit (nodes, edges, legend, note) over the Horde's spread rules;
+    `breachOverlay()` feeds `SceneState.breachOverlay` for U71.
+  - Focus: a fallback when the opener vanished (the Menu tab, else the heading) and a fix for focus left on a closed dialog
+    (closes D-120's open item; the reported miss did not reproduce in Chromium).
+  - Tests: +66 unit (4,064 in all); `onboarding.spec.ts` 9 on both viewports; full e2e 109 passed, 3 skipped. Production
+    bundle **508.0 kB** gzip of 600 (D-115 watch: ~92 kB left).
+- **C4 playable — reached.** The e2e plays a fresh Loop 1 from the Title through the UI alone to the Horde, the Fall, the
+  closer and Loop 2's Breach Clock hint.
+- **Rulings:**
+  - "Tutorials: off" lives in UI persistence (`aethelgard.tutorials.off`; seen hints per profile), because `Settings` has no
+    field for it (C1 freeze).
+  - The Echo glyph callout fires in Loop 2+ (DESIGN §16.8 contradicts itself; Echo-tagged answers only exist from Loop 2).
+  - With no status tooltip component, the first-status hint is a callout.
+- **Gap → balance/polish unit:** DESIGN §16.8 forces the first Shade's intents (Wail, then Rake so Guard visibly halves it).
+  No engine or creature data does this; the Shade runs Rake → Wail → Fade/Rake and the callouts show on whatever comes. Needs a
+  first-fight `forcedIntents` hook (creature data or an encounter flag).

@@ -55,6 +55,13 @@ async function goTo(page: Page, name: string, heading: string, info: TestInfo): 
   await expect(place(page, name)).toHaveAttribute('aria-selected', 'true');
 }
 
+/** U57: the first walk Shore → Gallery → Loom → Far Light plays `q_the_still_shore`'s "look back" scene; step past it. */
+async function stepPastLookBack(page: Page, info: TestInfo): Promise<void> {
+  await expect(page.getByRole('heading', { level: 1, name: 'Before you step through' })).toBeVisible();
+  await press(page.getByRole('button', { name: /Step into the light\.$/ }), info);
+  await expect(page.getByRole('heading', { level: 1, name: 'The Far Light' })).toBeVisible();
+}
+
 /** Visible controls smaller than 44 × 44 CSS px (PLAN §6.7) inside `root`. */
 async function smallTargets(page: Page, root: string): Promise<string[]> {
   return page.evaluate((r) => {
@@ -246,7 +253,8 @@ test.describe('the loop’s end and the Threshold', () => {
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('heading', { level: 1, name: 'The Loom' })).toBeVisible();
     await page.keyboard.press('ArrowRight');
-    await expect(page.getByRole('heading', { level: 1, name: 'The Far Light' })).toBeVisible();
+    await stepPastLookBack(page, info);
+    await place(page, 'Far Light').focus();
     // the row wraps, as every tab row does
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('heading', { level: 1, name: 'The Still Shore' })).toBeVisible();
@@ -309,7 +317,12 @@ test.describe('the loop’s end and the Threshold', () => {
       ['Loom', 'The Loom'],
       ['Far Light', 'The Far Light'],
     ] as const) {
-      await goTo(page, tab, heading, info);
+      if (tab === 'Far Light') {
+        await press(place(page, tab), info);
+        await stepPastLookBack(page, info);
+      } else {
+        await goTo(page, tab, heading, info);
+      }
       await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
       await expect(page.getByRole('tablist', { name: 'The four places' })).toBeVisible();
       await checkScreen(page, '[data-screen="threshold"]', heading);

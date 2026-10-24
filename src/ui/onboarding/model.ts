@@ -103,6 +103,8 @@ export interface OnboardingSnapshot {
   firstFightDone: boolean;
   /** Dialogue: the node on screen offers an Echo-tagged answer (usable or greyed). */
   echoChoice: boolean;
+  /** Unspent ability points, in half-points (1 AP = 2). */
+  apHalf: number;
 }
 
 export interface CombatSnapshot {
@@ -119,7 +121,7 @@ export interface CombatSnapshot {
 }
 
 /** The empty snapshot (a title screen): nothing to teach. */
-export const NOTHING: OnboardingSnapshot = { mode: 'title', loop: 1, day: 1, combat: null, atCamp: false, firstFightDone: false, echoChoice: false };
+export const NOTHING: OnboardingSnapshot = { mode: 'title', loop: 1, day: 1, combat: null, atCamp: false, firstFightDone: false, echoChoice: false, apHalf: 0 };
 
 /** From Loop 2 the only callouts left (DESIGN §16.8: "never appear in Loop 2+ except the Breach Clock one"; the Echo glyph cannot exist before Loop 2). */
 export const LOOP_2_PLUS: ReadonlySet<CalloutId> = new Set<CalloutId>(['breach_clock', 'echo_glyph']);
@@ -179,4 +181,13 @@ export function pickCallout(snapshot: OnboardingSnapshot, seen: ReadonlySet<stri
  */
 export function stillApplies(def: CalloutDef, snapshot: OnboardingSnapshot, seen: ReadonlySet<string>): boolean {
   return due(def.id, snapshot, seen) && allowedInLoop(def.id, snapshot.loop);
+}
+
+/** The level-1 AP toast (DESIGN §16.8: "the level-1 AP toast explains tiers"). A toast, not a callout: it rides the notices. */
+export const AP_TOAST = { id: 'ap_toast', text: 'You have an ability point to spend. Abilities open in tiers: more open at levels 4, 8, 12 and 16.' } as const;
+
+/** The AP toast's text when it is due: Loop 1, on the map, with a point to spend, tutorials on, not yet shown. */
+export function pickApToast(snapshot: OnboardingSnapshot, seen: ReadonlySet<string>, off: boolean): string | null {
+  if (off || seen.has(AP_TOAST.id) || snapshot.loop > 1 || snapshot.mode !== 'explore' || snapshot.apHalf <= 0) return null;
+  return AP_TOAST.text;
 }

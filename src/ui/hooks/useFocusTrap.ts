@@ -42,7 +42,7 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active = true):
       if (at >= 0) openTraps.splice(at, 1);
       // the opener, or — when it is gone, or there was none — the Menu tab / the screen heading (a trap still open keeps focus)
       if (opener !== null && opener.isConnected) opener.focus();
-      else if (openTraps.length === 0) focusFallback();
+      else if (openTraps.length === 0) focusFallback(opener !== null, document, root);
     };
   }, [ref, active]);
 }

@@ -4,10 +4,10 @@
 // `data-callout="<target>"` while one shows, which the stylesheet uses to light the Guard button, the intent chip, the
 // rest row or the clock chip.
 import { useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from 'react';
-import { pickCallout, type CalloutDef } from '../onboarding/model';
+import { AP_TOAST, pickApToast, pickCallout, type CalloutDef } from '../onboarding/model';
 import { onboardingSnapshot } from '../onboarding/snapshot';
 import { sharedTutorialStore, type TutorialStore } from '../store/tutorials';
-import { useContent, useGame, useGameEvents, useLegal, useProfile } from '../store/useGame';
+import { useContent, useGame, useGameEvents, useLegal, useProfile, useStore } from '../store/useGame';
 import { CalloutRegion, CalloutView } from './Callout';
 
 /** The callout the game calls for right now (null when none), with the tutorial state it was picked under. */
@@ -20,7 +20,17 @@ export function useCallout(tutorials: TutorialStore = sharedTutorialStore()): { 
   const seen = useSyncExternalStore(tutorials.subscribe, () => tutorials.seen(profileId), () => tutorials.seen(profileId));
   const off = useSyncExternalStore(tutorials.subscribe, tutorials.off, tutorials.off);
 
-  const callout = useMemo(() => pickCallout(onboardingSnapshot(state, content, profile, legal), seen, off), [state, content, profile, legal, seen, off]);
+  const snapshot = useMemo(() => onboardingSnapshot(state, content, profile, legal), [state, content, profile, legal]);
+  const callout = useMemo(() => pickCallout(snapshot, seen, off), [snapshot, seen, off]);
+
+  // the level-1 AP toast rides the store's notices, once
+  const store = useStore();
+  const apText = pickApToast(snapshot, seen, off);
+  useEffect(() => {
+    if (apText === null || tutorials.seen(profileId).has(AP_TOAST.id)) return; // (StrictMode runs an effect twice)
+    tutorials.markSeen(profileId, AP_TOAST.id);
+    store.notify(apText, 'info');
+  }, [apText, tutorials, profileId, store]);
 
   // the next action reads the hint (a rejected one does not)
   const current = useRef(callout);

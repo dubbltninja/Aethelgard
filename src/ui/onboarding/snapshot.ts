@@ -48,6 +48,7 @@ export function onboardingSnapshot(state: GameState, content: ContentPack, profi
     combat: state.mode === 'combat' ? combatSnapshot(state, content, isLegal) : null,
     atCamp: state.mode === 'explore' && isLegal({ type: 'rest', kind: 'full' }),
     firstFightDone: fixedFightDone(state),
+    apHalf: state.player.apHalf,
     echoChoice: state.mode === 'dialogue' && (dialogueModel(state, content, profile, legal)?.choices.some((c) => c.tags.some((t) => t.id === 'echo')) ?? false),
   };
 }

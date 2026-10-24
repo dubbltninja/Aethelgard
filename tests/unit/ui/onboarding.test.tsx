@@ -7,9 +7,11 @@ import { legalActions, memoryStorage, step, type Action } from '@engine/index';
 import { loadScenario } from '@sim/scenarios';
 import { CalloutRegion, CalloutView } from '@ui/components/Callout';
 import {
+  AP_TOAST,
   CALLOUTS,
   NOTHING,
   allowedInLoop,
+  pickApToast,
   pickCallout,
   stillApplies,
   type CombatSnapshot,
@@ -172,6 +174,27 @@ describe('onboardingSnapshot from real states', () => {
     expect(changesPlansBelowHalf(pack.creatures.cr_wildling_brute)).toBe(true);
     expect(changesPlansBelowHalf(pack.creatures.cr_corrupted_shade)).toBe(false);
     expect(changesPlansBelowHalf(undefined)).toBe(false);
+  });
+});
+
+describe('the level-1 AP toast', () => {
+  const explore = snap({ mode: 'explore', apHalf: 2 });
+
+  test('once, in Loop 1, on the map, with a point to spend; it explains the tiers', () => {
+    expect(pickApToast(explore, none, false)).toBe(AP_TOAST.text);
+    expect(AP_TOAST.text).toContain('levels 4, 8, 12 and 16');
+    expect(pickApToast(explore, seen('ap_toast'), false)).toBeNull();
+    expect(pickApToast(snap({ mode: 'explore', apHalf: 0 }), none, false)).toBeNull();
+    expect(pickApToast(snap({ mode: 'combat', apHalf: 2 }), none, false)).toBeNull();
+    expect(pickApToast({ ...explore, loop: 2 }, none, false)).toBeNull();
+    expect(pickApToast(explore, none, true)).toBeNull();
+  });
+
+  test('a real new game has the point', () => {
+    const at = loadScenario('loop1_day1', pack);
+    const s = onboardingSnapshot(at.state, pack, at.profile, []);
+    expect(s.apHalf).toBeGreaterThan(0);
+    expect(pickApToast(s, none, false)).toBe(AP_TOAST.text);
   });
 });
 

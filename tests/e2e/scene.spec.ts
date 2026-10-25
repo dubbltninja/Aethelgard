@@ -3,7 +3,9 @@
 // 120 × 50 small, so the test can tell which file loaded). A painted place shows its picture under the code overlays; an
 // unpainted Ruins place borrows its nearest painted mate; a region with none draws U64's SVG; a 404 falls back; the Depths
 // change picture with the Heartstone's state; only the exits' paintings are preloaded; the Title shows its key art and the
-// Grok credit; and Explore keeps no sideways scroll at 1.5× text.
+// Grok credit; and Explore keeps no sideways scroll at 1.5× text. U72's overlays (src/ui/art/overlays.ts): particles and the
+// focal glow animate and are stilled under reduced motion, the hour's tint skips timeless interiors, the Depths' paintings
+// each carry their own glow, the Library marks Ilyra's portal once a Horde runs, and an infected place is darkened and hatched.
 import { expect, test, type Page, type TestInfo } from 'playwright/test';
 
 interface GameWindow {
@@ -29,17 +31,18 @@ async function newGame(page: Page): Promise<void> {
 }
 
 /** Put the running game at `id` (and the Heartstone in `heartstone`) through a save round-trip. */
-async function teleport(page: Page, id: string, heartstone?: string): Promise<void> {
+async function teleport(page: Page, id: string, heartstone?: string, infected = false): Promise<void> {
   const result = await page.evaluate(
-    ([to, hs]) => {
+    ([to, hs, infect]) => {
       const shell = (window as unknown as GameWindow).__aethelgard.store.shell;
       const file = JSON.parse(shell.exportSave()) as unknown;
       const walk = (o: unknown): boolean => {
         if (o === null || typeof o !== 'object') return false;
-        const world = (o as { world?: { currentLocationId?: unknown; heartstone?: string } }).world;
+        const world = (o as { world?: { currentLocationId?: unknown; heartstone?: string; infected?: string[] } }).world;
         if (world !== undefined && typeof world.currentLocationId === 'string') {
           world.currentLocationId = to;
           if (hs !== null) world.heartstone = hs;
+          if (infect) world.infected = [...new Set([...(world.infected ?? []), to as string])];
           return true;
         }
         return Object.values(o).some(walk);
@@ -47,7 +50,7 @@ async function teleport(page: Page, id: string, heartstone?: string): Promise<vo
       walk(file);
       return shell.importSave(JSON.stringify(file));
     },
-    [id, heartstone ?? null] as const,
+    [id, heartstone ?? null, infected] as const,
   );
   expect(result.ok, result.error).toBe(true);
 }
@@ -165,5 +168,78 @@ test.describe('painted scenes', () => {
     await newGame(page);
     await page.evaluate(() => (window as unknown as GameWindow).__aethelgard.store.shell.updateSettings({ highContrast: true }));
     await expect.poll(() => frame(page).locator('img').evaluate((el) => getComputedStyle(el).filter)).toContain('brightness(0.45)');
+  });
+
+  test.describe('overlays (U72)', () => {
+    const layer = (page: Page, name: string) => frame(page).locator(`[data-layer="${name}"]`);
+
+    test('the Ruins have particles and a pulsing glow; the Depths (a timeless interior) take no hour', async ({ page }) => {
+      await newGame(page);
+      await expect(layer(page, 'particles').locator('circle')).not.toHaveCount(0);
+      expect(await layer(page, 'particles').locator('circle').count()).toBeLessThanOrEqual(24);
+      await expect(layer(page, 'glow')).toHaveCount(1);
+      await expect(layer(page, 'wash')).toHaveCount(1);
+      expect(await layer(page, 'glow').evaluate((el) => getComputedStyle(el).animationName)).toBe('focus-pulse');
+      expect(await layer(page, 'particles').locator('circle').first().evaluate((el) => getComputedStyle(el).animationName)).toBe('mote-drift');
+      await teleport(page, 'loc_heartstone_depths');
+      await expect(frame(page)).toHaveAttribute('data-backdrop-key', 'loc_heartstone_depths');
+      await expect(layer(page, 'wash')).toHaveCount(0);
+      await expect(layer(page, 'glow')).toHaveCount(1);
+    });
+
+    test('reduced motion stills it all: no particles, a glow that does not pulse', async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await newGame(page);
+      await expect(frame(page)).toHaveAttribute('data-motion', 'off');
+      await expect(layer(page, 'particles')).toHaveCount(0);
+      await expect(layer(page, 'glow')).toHaveCount(1);
+      expect(await layer(page, 'glow').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+      const running = await page.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running' && Number(a.effect?.getComputedTiming().duration ?? 0) > 150).length);
+      expect(running).toBe(0);
+    });
+
+    test('each Heartstone painting carries its own glow; the destroyed one has none', async ({ page }) => {
+      await newGame(page);
+      const colours: string[] = [];
+      for (const state of ['intact', 'stabilized', 'exploited'] as const) {
+        await teleport(page, 'loc_heartstone_depths', state);
+        await expect(layer(page, 'glow')).toHaveCount(1);
+        colours.push(await frame(page).locator('radialGradient[id$="-focus"] stop').first().getAttribute('stop-color') as string);
+      }
+      expect(new Set(colours).size).toBe(3);
+      await teleport(page, 'loc_heartstone_depths', 'destroyed');
+      await expect(frame(page)).toHaveAttribute('data-backdrop-key', 'loc_heartstone_depths~destroyed');
+      await expect(layer(page, 'glow')).toHaveCount(0);
+      await expect(layer(page, 'particles')).toHaveCount(0);
+    });
+
+    test('the Library marks Ilyra’s portal only once a Horde runs', async ({ page }) => {
+      await newGame(page);
+      await teleport(page, 'loc_shattered_library');
+      await expect(page.getByRole('heading', { level: 1, name: 'Shattered Library' })).toBeVisible();
+      await expect(layer(page, 'portal')).toHaveCount(0);
+      await page.goto('./?scenario=expiry_minus_1');
+      await page.getByRole('button', { name: /^\d: Short rest/ }).click();
+      await expect.poll(() => page.evaluate(() => document.querySelector('[data-screen="explore"]') !== null)).toBe(true);
+      await teleport(page, 'loc_shattered_library');
+      await expect(page.getByRole('heading', { level: 1, name: 'Shattered Library' })).toBeVisible();
+      await expect(layer(page, 'portal')).toHaveCount(1);
+      await expect(page.getByRole('img', { name: /Ilyra’s portal burns open here/ })).toBeVisible();
+      await teleport(page, 'loc_whispering_ruins');
+      await expect(layer(page, 'portal')).toHaveCount(0);
+    });
+
+    test('an infected place is darkened and hatched; a clean one is not; the hatch survives high contrast', async ({ page }) => {
+      await newGame(page);
+      await expect(layer(page, 'breach')).toHaveCount(0);
+      await teleport(page, 'loc_whispering_ruins', undefined, true);
+      await expect(page.locator('[data-screen="explore"]')).toHaveAttribute('data-infected', 'true');
+      await expect(layer(page, 'breach')).toHaveCount(1);
+      await expect(layer(page, 'breach-dark')).toHaveCount(1);
+      expect(Number(await layer(page, 'breach').getAttribute('opacity'))).toBeGreaterThanOrEqual(0.5);
+      await page.evaluate(() => (window as unknown as GameWindow).__aethelgard.store.shell.updateSettings({ highContrast: true }));
+      await expect(layer(page, 'breach')).toBeVisible();
+      await expect(layer(page, 'glow')).toBeHidden();
+    });
   });
 });

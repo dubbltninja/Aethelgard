@@ -46,7 +46,7 @@ import {
   type NpcRow,
   type PlaceModel,
 } from './exploreModel';
-import { watchNow } from '@engine/index';
+import { portalIsOpen, watchNow } from '@engine/index';
 import type { Region } from '@schema/region';
 import type { Location } from '@schema/location';
 import type { SceneState } from '../art/Scene';
@@ -303,6 +303,7 @@ export function ExploreScreen(): ReactNode {
           watch: watchNow(state),
           loop: state.meta.loop,
           infected: model.place.infected,
+          portalOpen: portalIsOpen(state),
           breachOverlay: breachOverlay({ clock: state.clock, hordeActive: state.world.hordeActive, infected: model.place.infected }),
         }}
         backdrop={backdrop}

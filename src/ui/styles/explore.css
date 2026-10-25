@@ -1042,3 +1042,59 @@
   border-color: var(--glyph-corruption);
   border-style: dashed;
 }
+
+/* U72: the painted scene's overlays (overlays.ts). One soft pulse on the focal glow, screened over the painting so it reads as
+   light; the portal marker breathes a little faster. Still under reduced motion (the global rule in themes.css kills the
+   animation; the scene's own data-motion="off" does too, for a prop-driven reducedMotion). Hidden in high contrast, where the
+   painting is dimmed and no light should sit over it. */
+.scene__focus,
+.scene__portal {
+  mix-blend-mode: screen;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: focus-pulse 9s ease-in-out infinite alternate;
+}
+
+.scene__portal {
+  animation-duration: 3.6s;
+}
+
+@keyframes focus-pulse {
+  from {
+    opacity: 0.72;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.scene[data-motion="off"] .scene__focus,
+.scene[data-motion="off"] .scene__portal {
+  animation: none;
+}
+
+/* mist: big soft puffs that wander slowly, never a hard dot */
+.scene__particles--puff .scene__particle {
+  animation-name: mist-drift;
+  animation-timing-function: linear;
+}
+
+@keyframes mist-drift {
+  0%,
+  100% {
+    transform: translate(-40px, 0);
+    opacity: 0.12;
+  }
+
+  50% {
+    transform: translate(40px, -8px);
+    opacity: 0.6;
+  }
+}
+
+:root[data-theme="high-contrast"] .scene--painted .scene__focus {
+  display: none;
+}

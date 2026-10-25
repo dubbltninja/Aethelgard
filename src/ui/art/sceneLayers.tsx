@@ -12,10 +12,27 @@ export const SCENE_H = 500;
 /** One decimal place: short, stable path data. */
 export const f = (n: number): string => (Math.round(n * 10) / 10).toString();
 
-export type ParticleKind = LocationArt['particles'];
+/** The schema's kinds plus DESIGN §17.2's `dust`, `mist` and `void_flecks`, which only the UI-side overlay registry (U72) names. */
+export type ParticleKind = LocationArt['particles'] | 'dust' | 'mist' | 'void_flecks';
+
+/** The frame's rectangle a kind is scattered in: `[x0, y0, x1, y1]` in the 1200 × 500 viewBox. */
+export type Area = readonly [number, number, number, number];
+
+interface MotionSpec {
+  count: number;
+  motion: 'drift' | 'rise' | 'fall';
+  r: [number, number];
+  /** Seconds one cycle takes (default 7–14). */
+  dur?: [number, number];
+  /** Soft gradient puffs rather than hard dots (mist). */
+  puff?: boolean;
+}
 
 /** DESIGN §17.2: at most 24 particles; how each kind moves (CSS keyframes in explore.css, off under reduced motion). */
-export const PARTICLE_MOTION: Readonly<Record<Exclude<ParticleKind, 'none'>, { count: number; motion: 'drift' | 'rise' | 'fall'; r: [number, number] }>> = {
+export const PARTICLE_MOTION: Readonly<Record<Exclude<ParticleKind, 'none'>, MotionSpec>> = {
+  dust: { count: 16, motion: 'drift', r: [0.8, 1.8] },
+  mist: { count: 7, motion: 'drift', r: [26, 52], dur: [22, 34], puff: true },
+  void_flecks: { count: 16, motion: 'rise', r: [0.9, 2] },
   motes: { count: 18, motion: 'drift', r: [1.2, 2.6] },
   embers: { count: 16, motion: 'rise', r: [1.2, 2.4] },
   spores: { count: 18, motion: 'drift', r: [1.4, 3] },
@@ -38,35 +55,48 @@ export interface Particle {
 
 export interface ParticleSet {
   motion: 'drift' | 'rise' | 'fall';
+  puff: boolean;
   dots: Particle[];
 }
 
-/** The particles of `kind` (null for none), placed by `rng`. */
-export function makeParticles(kind: ParticleKind, rng: UiRng): ParticleSet | null {
+export interface ParticleOptions {
+  /** Where to scatter them (default: the whole frame less the top and bottom bands). */
+  area?: Area;
+  /** The share of the kind's usual count, 0..1 (U72 overlays). */
+  rate?: number;
+}
+
+/** The particles of `kind` (null for none), placed by `rng`. Never more than 24 (DESIGN §17.2). */
+export function makeParticles(kind: ParticleKind, rng: UiRng, opts: ParticleOptions = {}): ParticleSet | null {
   if (kind === 'none') return null;
   const spec = PARTICLE_MOTION[kind];
+  const [x0, y0, x1, y1] = opts.area ?? [0, 40, SCENE_W, SCENE_H - 60];
+  const count = Math.min(24, Math.max(1, Math.round(spec.count * (opts.rate ?? 1))));
+  const [d0, d1] = spec.dur ?? [7, 14];
   return {
     motion: spec.motion,
-    dots: Array.from({ length: spec.count }, () => ({
-      x: rng.range(0, SCENE_W),
-      y: rng.range(40, SCENE_H - 60),
+    puff: spec.puff === true,
+    dots: Array.from({ length: count }, () => ({
+      x: rng.range(x0, x1),
+      y: rng.range(y0, y1),
       r: rng.range(spec.r[0], spec.r[1]),
       delay: rng.range(0, 9),
-      dur: rng.range(7, 14),
+      dur: rng.range(d0, d1),
     })),
   };
 }
 
+/** `fill` is a colour, or for puffs (mist) a `url(#gradient)` the caller defines. */
 export function ParticlesLayer({ set, fill, reducedMotion }: { set: ParticleSet; fill: string; reducedMotion: boolean }): ReactNode {
   return (
-    <g className={`scene__particles scene__particles--${set.motion}`} fill={fill}>
+    <g className={`scene__particles scene__particles--${set.motion}${set.puff ? ' scene__particles--puff' : ''}`} fill={fill}>
       {set.dots.map((pt, i) => (
         <circle
           key={i}
           cx={f(pt.x)}
           cy={f(pt.y)}
           r={f(pt.r)}
-          opacity={0.7}
+          opacity={set.puff ? 0.5 : 0.7}
           className={reducedMotion ? undefined : 'scene__particle'}
           style={reducedMotion ? undefined : { animationDelay: `-${f(pt.delay)}s`, animationDuration: `${f(pt.dur)}s` }}
         />

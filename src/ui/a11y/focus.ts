@@ -57,15 +57,19 @@ export function focusablesIn(root: ParentNode): HTMLElement[] {
 
 /**
  * Where a newly shown view puts focus: its `[data-autofocus]` element if there is one, else its first heading made
- * focusable (`tabindex="-1"`), else its first focusable. Screen readers then announce the new view.
+ * focusable (`tabindex="-1"`), else its first focusable. Screen readers then announce the new view. `fromTop`: the view
+ * is a new screen, so the page scrolls to the top and focus does not scroll it.
  */
-export function focusView(root: HTMLElement | null): void {
+export function focusView(root: HTMLElement | null, opts: { fromTop?: boolean } = {}): void {
   if (!root) return;
+  // A new screen starts at its top (D-129): focusing a control further down (combat's Attack) must not scroll the stage —
+  // the picture of the fight — off the screen. Panels and sub-views keep scrolling their target into view.
+  if (opts.fromTop === true && typeof window !== 'undefined') window.scrollTo({ top: 0 });
   const preferred = root.querySelector<HTMLElement>('[data-autofocus]');
   const heading = root.querySelector<HTMLElement>('h1, h2');
   const target = preferred ?? heading ?? focusablesIn(root)[0] ?? null;
   if (target === heading && heading !== null && !heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
-  target?.focus({ preventScroll: false });
+  target?.focus({ preventScroll: opts.fromTop === true });
 }
 
 /** The parts of a Document `focusFallback` reads (so the rule is unit-tested without a DOM). */

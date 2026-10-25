@@ -63,7 +63,7 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
   useEffect(() => {
     // a dialog that opened with the new screen (U65: the fight's summary) keeps focus; it returns focus when it closes
     if (document.activeElement?.closest('[role="dialog"], [role="alertdialog"]') != null) return;
-    focusView(mainRef.current);
+    focusView(mainRef.current, { fromTop: true });
   }, [mode]);
 
   // ---- panels ----

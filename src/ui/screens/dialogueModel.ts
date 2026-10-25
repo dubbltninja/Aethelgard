@@ -196,8 +196,8 @@ export interface DialogueModel {
   /** Continue closes the scene (the node leads to `end`): the button says so. */
   endsScene: boolean;
   backlog: BacklogLine[];
-  /** The companion standing in the party, who listens. */
-  listener: { name: string; sigil: string; accent?: string } | null;
+  /** The companion standing in the party, who listens (`npcId`: its portrait's file, U73a). */
+  listener: { name: string; sigil: string; accent?: string; npcId?: string } | null;
 }
 
 function listenerOf(state: GameState, content: ContentPack): DialogueModel['listener'] {
@@ -209,8 +209,8 @@ function listenerOf(state: GameState, content: ContentPack): DialogueModel['list
   return npc === undefined
     ? { name: def.name, sigil: def.id }
     : npc.portrait.accent === undefined
-      ? { name: def.name, sigil: npc.portrait.sigil }
-      : { name: def.name, sigil: npc.portrait.sigil, accent: npc.portrait.accent };
+      ? { name: def.name, sigil: npc.portrait.sigil, npcId: npc.id }
+      : { name: def.name, sigil: npc.portrait.sigil, accent: npc.portrait.accent, npcId: npc.id };
 }
 
 /** The screen's model, or null when no scene is open (or its scene is no longer in the pack: an old save). */

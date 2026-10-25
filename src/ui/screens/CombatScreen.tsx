@@ -15,20 +15,29 @@
 // Pattern (D-104, D-107): the container gathers hooks, builds the model with combatModel.ts, and renders `CombatView`
 // (props only). The container also remembers, per step, each hit's explanation and the last hit on each enemy (events
 // are its only source); a target chosen by click, tap or arrows is screen state, never engine state.
+//
+// U73a (D-128): the stage band at the top (CombatStage: the place's painting, the heroes and the enemies as sprites, the
+// event-driven motion, sprite targeting in sync with the cards and ← / →). The cards stay below it for the numbers.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
-import type { Action, GameEvent, GameState, Stance } from '@engine/index';
+import { watchNow, type Action, type GameEvent, type GameState, type Stance } from '@engine/index';
 import type { Region } from '@schema/region';
 import { Icon } from '../art/Icon';
 import { RegionPalette } from '../art/RegionPalette';
+import { Scene } from '../art/Scene';
+import { breachOverlay } from '../art/breachOverlay';
+import { NO_CUES, stageCues, type StageCues } from '../art/stageMotion';
+import { useBackdrop } from '../art/useBackdrop';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { AbilityBar } from '../components/combat/AbilityBar';
 import { CombatLog } from '../components/combat/CombatLog';
 import { CommunionBar } from '../components/combat/CommunionBar';
+import { CombatStage, useStageSize } from '../components/combat/CombatStage';
 import { CompanionCard } from '../components/combat/CompanionCard';
 import { EnemyCard, type HitFlash } from '../components/combat/EnemyCard';
 import { PlayerPanel } from '../components/combat/PlayerPanel';
 import { TurnOrder } from '../components/combat/TurnOrder';
+import { stageFigures } from '../components/combat/stageModel';
 import type { HotkeyMap } from '../hooks/hotkeys';
 import { useHotkeys } from '../hooks/useHotkeys';
 import { useReducedMotion } from '../hooks/useMediaQuery';
@@ -118,6 +127,8 @@ export interface CombatViewProps {
   onLoad: (slot: SlotInfo['slot']) => void;
   onTitle: () => void;
   logRef?: RefObject<HTMLOListElement | null>;
+  /** U73a: the stage band (a <CombatStage/>), shown under the heading; absent in tests that leave it out. */
+  stage?: ReactNode;
 }
 
 const MENU_LABELS: Readonly<Record<CombatMenuId, string>> = { inventory: 'Inventory', bestiary: 'Bestiary', help: 'Keys', settings: 'Settings' };
@@ -127,7 +138,7 @@ export function CombatView(p: CombatViewProps): ReactNode {
   const communing = p.communion?.active === true && !p.showAbilities;
   return (
     <RegionPalette regionId={p.regionId} region={p.region} className="screen screen--combat">
-      <section className="combat" data-screen="combat" aria-labelledby="combat-heading">
+      <section className={p.stage == null ? 'combat' : 'combat combat--staged'} data-screen="combat" aria-labelledby="combat-heading">
         <header className="combat__head">
           <p className="combat__kicker">Combat</p>
           <h1 id="combat-heading" className="combat__title" tabIndex={-1}>
@@ -135,6 +146,7 @@ export function CombatView(p: CombatViewProps): ReactNode {
           </h1>
           <TurnOrder entries={p.turns} round={p.round} />
         </header>
+        {p.stage ?? null}
         {p.banner === null ? null : (
           <aside className="combat-banner" aria-label="What changed">
             {p.banner.title === null ? null : <p className="combat-banner__title">{p.banner.title}</p>}
@@ -258,6 +270,9 @@ export function CombatScreen(): ReactNode {
   const [showAbilities, setShowAbilities] = useState(false);
   const [explained, setExplained] = useState<ReadonlyMap<string, string[]>>(() => new Map());
   const [hits, setHits] = useState<Record<string, HitFlash>>({});
+  const [cues, setCues] = useState<StageCues>(NO_CUES);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const stageSize = useStageSize(stageRef);
   const before = useRef<GameState>(state);
   const nonce = useRef(0);
   const logRef = useRef<HTMLOListElement>(null);
@@ -272,10 +287,13 @@ export function CombatScreen(): ReactNode {
     if (ex.size > 0) setExplained((m) => new Map([...m, ...ex].slice(-EXPLAINED_CAP)));
     nonce.current += 1;
     setHits(hitsOf(events, after, nonce.current));
+    setCues(stageCues(events, nonce.current));
   });
 
   const combat = state.combat;
   const target = effectiveTarget(combat, chosen);
+  const stageLocation = combat === null ? undefined : content.locations[combat.locationId];
+  const backdrop = useBackdrop(stageLocation, state.world.heartstone, content.locations);
   const model = useMemo(() => {
     const communion = communionModel(state, content, profile, legal);
     const items = combatItems(state, content, legal, target);
@@ -401,8 +419,50 @@ export function CombatScreen(): ReactNode {
     );
   }
 
-  const location = content.locations[combat.locationId];
+  const location = stageLocation;
   const regionId = location?.regionId ?? '';
+  const you = combat.party.find((c) => c.kind === 'player');
+  const companionNpc = model.companion === null ? undefined : content.npcs[content.companions[model.companion.companionId]?.npcId ?? ''];
+  const figures = stageFigures({
+    classId: state.player.classId,
+    player: { uid: you?.uid ?? 'player', name: state.player.name, alive: you?.alive ?? true },
+    companion: model.companion,
+    companionSigil:
+      companionNpc === undefined
+        ? null
+        : companionNpc.portrait.accent === undefined
+          ? { key: companionNpc.portrait.sigil }
+          : { key: companionNpc.portrait.sigil, accent: companionNpc.portrait.accent },
+    enemies: model.enemies,
+  });
+  const stage =
+    location === undefined ? null : (
+      <CombatStage
+        scene={
+          <Scene
+            location={location}
+            region={content.regions[regionId]}
+            state={{
+              horde: state.world.hordeActive,
+              heartstone: state.world.heartstone,
+              watch: watchNow(state),
+              loop: state.meta.loop,
+              infected: state.world.infected.includes(location.id),
+              breachOverlay: breachOverlay({ clock: state.clock, hordeActive: state.world.hordeActive, infected: state.world.infected.includes(location.id) }),
+            }}
+            reducedMotion={reducedMotion}
+            seed={`${location.id}:combat`}
+            backdrop={backdrop}
+          />
+        }
+        figures={figures}
+        size={stageSize}
+        cues={cues}
+        reducedMotion={reducedMotion}
+        onSelect={selectTarget}
+        bandRef={stageRef}
+      />
+    );
   const fallen: FallenModel | null =
     combat.phase === 'defeat'
       ? {
@@ -457,6 +517,7 @@ export function CombatScreen(): ReactNode {
         }}
         onTitle={() => dispatch({ type: 'returnToTitle' })}
         logRef={logRef}
+        stage={stage}
       />
       {itemsOpen ? (
         <Modal title="Use an item" onClose={() => setItemsOpen(false)} className="item-sheet-dialog">

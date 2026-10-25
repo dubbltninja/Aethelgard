@@ -10,11 +10,21 @@
 // Pattern (D-104): the container gathers hooks and builds the model with `dialogueModel`; `DialogueView` takes props only.
 // After a node changes, focus goes to the new first answer (or Continue), so a keyboard or screen-reader player never
 // loses their place; the line itself is a polite live region.
+//
+// U73a (D-128, docs/ART-2.md §7): the speaker's painted portrait, large, beside the text, over a dimmed copy of the place's
+// painting (U71's backdrop chooser); a creature that speaks stands as its sprite, the player as their class sprite. With no
+// file (or a failed load) each falls back to its code sigil. The listening companion's chip uses the small portrait.
 import { useMemo, useRef, type ReactNode } from 'react';
 import { CreatureSigil } from '../art/CreatureSigil';
 import { Icon, type IconKind } from '../art/Icon';
 import { NpcSigil } from '../art/NpcSigil';
+import { Portrait } from '../art/Portrait';
 import { RegionPalette } from '../art/RegionPalette';
+import { SMALL_MEDIA } from '../art/SceneBackdrop';
+import { Sprite } from '../art/Sprite';
+import type { ArtFiles } from '../art/sceneManifest';
+import { creatureSprite, heroSprite } from '../art/sprites';
+import { useBackdrop } from '../art/useBackdrop';
 import { Button, cx } from '../components/Button';
 import type { HotkeyMap } from '../hooks/hotkeys';
 import { useHotkeys } from '../hooks/useHotkeys';
@@ -31,10 +41,11 @@ export interface PortraitProps {
   reducedMotion?: boolean;
 }
 
-/** A speaker's picture: a creature's own sigil, a person's portrait, or the narrator's quiet mark. */
+/** A speaker's picture: a creature's sprite (else its sigil), a person's painted portrait (else their portrait sigil), the
+ * player's class sprite, or the narrator's quiet mark. */
 export function SpeakerPortrait({ speaker, size = 'lg', reducedMotion = true }: PortraitProps): ReactNode {
   if (speaker.creature !== null) {
-    return (
+    const sigil = (
       <CreatureSigil
         creatureId={speaker.creature.id}
         {...(speaker.creature.sigil === undefined ? {} : { sigil: speaker.creature.sigil })}
@@ -43,9 +54,23 @@ export function SpeakerPortrait({ speaker, size = 'lg', reducedMotion = true }: 
         reducedMotion={reducedMotion}
       />
     );
+    const sprite = creatureSprite(speaker.creature.id, '', 'left');
+    return sprite === null ? sigil : <Sprite file={sprite.file} flip={sprite.flip} effect={sprite.effect} fallback={sigil} className="speaker-sprite" />;
   }
   if (speaker.portrait !== null) {
-    return <NpcSigil sigilKey={speaker.portrait.sigil} {...(speaker.portrait.accent === undefined ? {} : { accent: speaker.portrait.accent })} size={size} />;
+    const sigil = <NpcSigil sigilKey={speaker.portrait.sigil} {...(speaker.portrait.accent === undefined ? {} : { accent: speaker.portrait.accent })} size={size} />;
+    if (speaker.kind === 'player') {
+      const hero = heroSprite(speaker.portrait.sigil);
+      return <Sprite file={hero.file} fallback={sigil} className="speaker-sprite" />;
+    }
+    return (
+      <Portrait
+        npcId={speaker.id}
+        size={size === 'lg' ? 'lg' : 'sm'}
+        fallback={sigil}
+        {...(speaker.portrait.accent === undefined ? {} : { accent: speaker.portrait.accent })}
+      />
+    );
   }
   return (
     <span className="narrator-mark" aria-hidden="true">
@@ -56,6 +81,8 @@ export function SpeakerPortrait({ speaker, size = 'lg', reducedMotion = true }: 
 
 export interface DialogueViewProps {
   model: DialogueModel;
+  /** U73a: the place's painting, shown dimmed behind the speaker (null → none). */
+  backdrop?: ArtFiles | null;
   reducedMotion?: boolean;
   onChoose: (id: string) => void;
   onContinue: () => void;
@@ -127,7 +154,7 @@ function BacklogView({ lines }: { lines: readonly BacklogLine[] }): ReactNode {
   );
 }
 
-export function DialogueView({ model, reducedMotion = true, onChoose, onContinue }: DialogueViewProps): ReactNode {
+export function DialogueView({ model, backdrop = null, reducedMotion = true, onChoose, onContinue }: DialogueViewProps): ReactNode {
   const { speaker } = model;
   const firstEnabled = model.choices.findIndex((c) => c.enabled);
   const anyChoices = model.choices.length > 0;
@@ -141,12 +168,23 @@ export function DialogueView({ model, reducedMotion = true, onChoose, onContinue
           </h1>
           {model.listener === null ? null : (
             <p className="dialogue__listener">
-              <NpcSigil sigilKey={model.listener.sigil} {...(model.listener.accent === undefined ? {} : { accent: model.listener.accent })} size="sm" />
+              <Portrait
+                npcId={model.listener.npcId ?? null}
+                size="sm"
+                fallback={<NpcSigil sigilKey={model.listener.sigil} {...(model.listener.accent === undefined ? {} : { accent: model.listener.accent })} size="sm" />}
+                {...(model.listener.accent === undefined ? {} : { accent: model.listener.accent })}
+              />
               <span>{model.listener.name} is listening.</span>
             </p>
           )}
         </header>
-        <div className="dialogue__stage">
+        <div className={['dialogue__stage', backdrop === null ? null : 'dialogue__stage--painted', speaker.kind === 'narrator' ? null : 'dialogue__stage--portrait'].filter(Boolean).join(' ')}>
+          {backdrop === null ? null : (
+            <picture className="dialogue__backdrop" aria-hidden="true">
+              <source media={SMALL_MEDIA} srcSet={backdrop.sm} />
+              <img src={backdrop.lg} alt="" decoding="async" draggable={false} />
+            </picture>
+          )}
           <figure className="dialogue__portrait" data-speaker-kind={speaker.kind}>
             <SpeakerPortrait speaker={speaker} reducedMotion={reducedMotion} />
             {speaker.name === null ? null : (
@@ -210,6 +248,7 @@ export function DialogueScreen(): ReactNode {
   const reducedMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const model = useMemo(() => dialogueModel(state, content, profile, legal), [state, content, profile, legal]);
+  const backdrop = useBackdrop(content.locations[state.world.currentLocationId], state.world.heartstone, content.locations);
   useViewFocus(rootRef, model === null ? 'lost' : `${model.sceneId}:${model.nodeId}`);
 
   const choose = (id: string): void => void store.dispatch({ type: 'choose', choiceId: id });
@@ -240,7 +279,7 @@ export function DialogueScreen(): ReactNode {
       {model === null ? (
         <DialogueLostView canLeave={store.isLegal({ type: 'returnToTitle' })} onTitle={() => void store.dispatch({ type: 'returnToTitle' })} />
       ) : (
-        <DialogueView model={model} reducedMotion={reducedMotion} onChoose={choose} onContinue={cont} />
+        <DialogueView model={model} backdrop={backdrop} reducedMotion={reducedMotion} onChoose={choose} onContinue={cont} />
       )}
     </div>
   );

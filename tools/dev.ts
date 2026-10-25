@@ -7,7 +7,7 @@
 import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
-import { ART_DIR, ROOT, copyDir, entryAssets, esbuildOptions, injectAssets, readSceneManifest, readVersion } from './build';
+import { ART_DIR, ROOT, copyDir, entryAssets, esbuildOptions, injectAssets, readSceneManifest, readSpriteManifest, readVersion } from './build';
 
 const portIndex = process.argv.indexOf('--port');
 const port = portIndex >= 0 ? Number(process.argv[portIndex + 1]) : 5173;
@@ -24,6 +24,7 @@ const ctx = await esbuild.context({
     mode: 'dev',
     version: `${readVersion()}-dev`,
     sceneManifest: readSceneManifest(path.join(ROOT, ART_DIR)),
+    spriteManifest: readSpriteManifest(path.join(ROOT, ART_DIR)),
   }),
   banner: { js: "new EventSource('/esbuild').addEventListener('change', () => location.reload());" },
   logLevel: 'info',

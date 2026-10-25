@@ -168,7 +168,8 @@ export interface HudModel {
   /** DESIGN §16.2: the pips appear after the first spellbook (or once there is any Corruption). */
   showCorruption: boolean;
   statuses: HudStatus[];
-  companion: { name: string; hp: number; hpMax: number; stance: string; ko: boolean } | null;
+  /** `npcId`: the companion's person, whose small portrait the chip shows (U73a). */
+  companion: { name: string; hp: number; hpMax: number; stance: string; ko: boolean; npcId?: string } | null;
   statPoints: number;
   /** Unspent ability points (whole and half points, DESIGN §5.1). */
   abilityPoints: number;
@@ -213,7 +214,14 @@ export function hudModel(s: GameState, content: ContentPack): HudModel {
     companion:
       active === undefined
         ? null
-        : { name: companionDef?.name ?? active.id, hp: active.hp, hpMax: active.hpMax, stance: cap(active.stance), ko: active.ko },
+        : {
+            name: companionDef?.name ?? active.id,
+            hp: active.hp,
+            hpMax: active.hpMax,
+            stance: cap(active.stance),
+            ko: active.ko,
+            ...(companionDef === undefined ? {} : { npcId: companionDef.npcId }),
+          },
     statPoints: p.statPoints,
     abilityPoints: p.apHalf / 2,
     stats: { ...p.stats },

@@ -3,12 +3,16 @@
 // The card keeps to what is known: its sigil, name, level and voiced summary once met; resistances after the first kill of
 // its family; tactics, then every move with its stats and drops as kills add up — and a question mark, in words, for what
 // is not known yet, with the number of kills that would reveal the next part. Opened in a fight it lists the creatures on
-// screen first. Read-only.
+// screen first. Read-only. U73a: the creature's sprite once met (a silhouette before), its family sigil as a corner badge;
+// the sigil alone when it has no sprite yet.
 //
 // Pattern (D-104): `BestiaryPanel` holds the selection; `BestiaryView` takes props only.
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { CreatureSigil } from '../art/CreatureSigil';
 import { Icon } from '../art/Icon';
+import { Sprite } from '../art/Sprite';
+import { chooseSprite } from '../art/spriteManifest';
+import { creatureSprite } from '../art/sprites';
 import { cx } from '../components/Button';
 import { MasterDetail, type LoreView } from '../components/lore/MasterDetail';
 import { NARROW_QUERY, useLoreFocus } from '../components/lore/useLoreFocus';
@@ -21,6 +25,8 @@ import { bestiaryModel, type BestiaryModel, type CreatureCard, type MoveRow } fr
 
 export interface BestiaryViewProps {
   model: BestiaryModel;
+  /** The player's class (the Redundant Wayfinder wears its sprite). */
+  classId?: string;
   selectedId: string | null;
   view: LoreView;
   reducedMotion?: boolean;
@@ -58,11 +64,39 @@ function MoveItem({ move }: { move: MoveRow }): ReactNode {
   );
 }
 
-export function CreatureDetail({ card, reducedMotion = true, canOpenCodex, onOpenCodex }: { card: CreatureCard; reducedMotion?: boolean; canOpenCodex: boolean; onOpenCodex: (id: string) => void }): ReactNode {
+/** The creature's figure: its sprite (a silhouette until met) with the family sigil as a badge, else the sigil alone. */
+export function CreatureFigure({ card, classId = '', reducedMotion = true }: { card: CreatureCard; classId?: string; reducedMotion?: boolean }): ReactNode {
+  const sigil = <CreatureSigil creatureId={card.id} sigil={card.sigil} family={card.family} size="lg" reducedMotion={reducedMotion} />;
+  const sprite = creatureSprite(card.id, classId);
+  if (sprite === null || chooseSprite(sprite.file) === null) return sigil;
+  const met = card.seen + card.killed + card.spared > 0;
+  return (
+    <span className="creature-card__figure" data-met={met ? 'true' : 'false'}>
+      <Sprite file={sprite.file} flip={sprite.flip} effect={met ? sprite.effect : null} silhouette={!met} revealed fallback={sigil} />
+      <span className="stage-fig__badge" aria-hidden="true">
+        <CreatureSigil creatureId={card.id} sigil={card.sigil} family={card.family} size="sm" reducedMotion />
+      </span>
+    </span>
+  );
+}
+
+export function CreatureDetail({
+  card,
+  classId = '',
+  reducedMotion = true,
+  canOpenCodex,
+  onOpenCodex,
+}: {
+  card: CreatureCard;
+  classId?: string;
+  reducedMotion?: boolean;
+  canOpenCodex: boolean;
+  onOpenCodex: (id: string) => void;
+}): ReactNode {
   return (
     <div className="creature-card" data-family={card.family} data-knowledge={card.knowledge}>
       <header className="creature-card__head">
-        <CreatureSigil creatureId={card.id} sigil={card.sigil} family={card.family} size="lg" reducedMotion={reducedMotion} />
+        <CreatureFigure card={card} classId={classId} reducedMotion={reducedMotion} />
         <div className="creature-card__id">
           <h3 className="creature-card__name" tabIndex={-1}>
             {card.name}
@@ -171,7 +205,7 @@ export function CreatureDetail({ card, reducedMotion = true, canOpenCodex, onOpe
   );
 }
 
-export function BestiaryView({ model, selectedId, view, reducedMotion = true, canOpenCodex, onSelect, onBack, onOpenCodex }: BestiaryViewProps): ReactNode {
+export function BestiaryView({ model, classId = '', selectedId, view, reducedMotion = true, canOpenCodex, onSelect, onBack, onOpenCodex }: BestiaryViewProps): ReactNode {
   if (model.families.length === 0) {
     return (
       <div className="lore-panel">
@@ -218,7 +252,7 @@ export function BestiaryView({ model, selectedId, view, reducedMotion = true, ca
             </ul>
           </section>
         ))}
-        detail={card === null ? null : <CreatureDetail card={card} reducedMotion={reducedMotion} canOpenCodex={canOpenCodex} onOpenCodex={onOpenCodex} />}
+        detail={card === null ? null : <CreatureDetail card={card} classId={classId} reducedMotion={reducedMotion} canOpenCodex={canOpenCodex} onOpenCodex={onOpenCodex} />}
       />
     </div>
   );
@@ -241,6 +275,7 @@ export function BestiaryPanel(): ReactNode {
     <div ref={rootRef}>
       <BestiaryView
         model={model}
+        classId={state.player.classId}
         selectedId={selected}
         view={view}
         reducedMotion={reducedMotion}

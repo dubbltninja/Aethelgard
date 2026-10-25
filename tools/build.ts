@@ -10,11 +10,18 @@
 // (src/ui/art/sceneManifest.ts). Production and dev use public/art/; the e2e build uses tests/fixtures/art/ (copied to
 // art/ in place of public/art/), so the e2e tests pass whatever the art session adds. Images are separate files, outside
 // PLAN §1.1's JS budget (D-124); the build reports their total.
+//
+// Figures (U73a, docs/ART-2.md §1): `sprites/*.webp` and `portraits/*.webp` in the same folder become the sprite manifest,
+// inlined as `__SPRITE_MANIFEST__` (src/ui/art/spriteManifest.ts) with each sprite's stored size (read from the file's header),
+// so the stage lays a figure out before it loads. A sprite whose stored height is not its size class's (src/ui/art/sprites.ts)
+// is reported, not refused: the game scales it all the same.
 import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { buildSceneManifest, paintingCount, type SceneManifest } from '../src/ui/art/sceneManifest';
+import { EMPTY_SPRITE_MANIFEST, buildSpriteManifest, figureCount, type SizedFile, type SpriteManifest } from '../src/ui/art/spriteManifest';
+import { CREATURE_SPRITES, SIZE_PX } from '../src/ui/art/sprites';
 
 export const ROOT = path.resolve(import.meta.dirname, '..');
 /** PLAN §1.1 bundle budget: total gzip size of every emitted .js file. */
@@ -45,6 +52,51 @@ export interface BuildResult {
   jsGzipBytes: number;
   /** The scene art shipped: images in the manifest and the bytes of every file under art/. */
   art: { images: number; bytes: number };
+  /** U73a: the sprites and portraits in the sprite manifest. */
+  figures: number;
+}
+
+/** The pixel size of a WebP (VP8, VP8L, VP8X) or PNG file from its header; null for anything else. */
+export function imageSize(buf: Uint8Array): { width: number; height: number } | null {
+  const ascii = (at: number, n: number): string => String.fromCharCode(...buf.subarray(at, at + n));
+  const u16 = (at: number): number => (buf[at] ?? 0) | ((buf[at + 1] ?? 0) << 8);
+  const u24 = (at: number): number => u16(at) | ((buf[at + 2] ?? 0) << 16);
+  if (buf.length >= 24 && buf[0] === 0x89 && ascii(1, 3) === 'PNG') {
+    const be = (at: number): number => (((buf[at] ?? 0) << 24) | ((buf[at + 1] ?? 0) << 16) | ((buf[at + 2] ?? 0) << 8) | (buf[at + 3] ?? 0)) >>> 0;
+    return { width: be(16), height: be(20) };
+  }
+  if (buf.length < 30 || ascii(0, 4) !== 'RIFF' || ascii(8, 4) !== 'WEBP') return null;
+  const chunk = ascii(12, 4);
+  if (chunk === 'VP8X') return { width: u24(24) + 1, height: u24(27) + 1 };
+  if (chunk === 'VP8L') {
+    const b = (i: number): number => buf[21 + i] ?? 0;
+    return { width: 1 + (((b(1) & 0x3f) << 8) | b(0)), height: 1 + (((b(3) & 0xf) << 10) | (b(2) << 2) | ((b(1) & 0xc0) >> 6)) };
+  }
+  if (chunk === 'VP8 ') return { width: u16(26) & 0x3fff, height: u16(28) & 0x3fff };
+  return null;
+}
+
+/** The sprite manifest of an art folder (`sprites/*.webp` with their sizes, `portraits/*.webp`); empty when missing. */
+export function readSpriteManifest(artDir: string): SpriteManifest {
+  const list = (dir: string): string[] => (fs.existsSync(dir) ? fs.readdirSync(dir).filter((n) => fs.statSync(path.join(dir, n)).isFile()) : []);
+  const spriteDir = path.join(artDir, 'sprites');
+  const sprites: SizedFile[] = list(spriteDir).flatMap((name) => {
+    const size = name.endsWith('.webp') ? imageSize(fs.readFileSync(path.join(spriteDir, name))) : null;
+    return size === null ? [] : [{ name, ...size }];
+  });
+  const manifest = buildSpriteManifest(sprites, list(path.join(artDir, 'portraits')));
+  return Object.keys(manifest.sprites).length + Object.keys(manifest.portraits).length === 0 ? EMPTY_SPRITE_MANIFEST : manifest;
+}
+
+/** Sprites whose stored height is not their size class's (ART-2 §2): `id: 400 px, medium is 384`. */
+export function sizeClassMismatches(manifest: SpriteManifest): string[] {
+  const out: string[] = [];
+  for (const [id, art] of Object.entries(manifest.sprites)) {
+    const size = id.startsWith('cr_') ? CREATURE_SPRITES[id]?.size : 'medium';
+    if (size === undefined) out.push(`${id}: not in the sprite registry`);
+    else if (Math.abs(art.h - SIZE_PX[size]) > 2) out.push(`${id}: ${art.h} px, ${size} is ${SIZE_PX[size]}`);
+  }
+  return out;
 }
 
 /** The scene manifest of an art folder (`scenes/*.webp` + the root's `title*.webp`); empty when the folder is missing. */
@@ -78,6 +130,8 @@ export function esbuildOptions(opts: {
   version: string;
   /** Inlined as `__SCENE_MANIFEST__` (empty when absent). */
   sceneManifest?: SceneManifest;
+  /** Inlined as `__SPRITE_MANIFEST__` (empty when absent). */
+  spriteManifest?: SpriteManifest;
 }): esbuild.BuildOptions {
   const dev = opts.mode === 'dev';
   return {
@@ -101,6 +155,7 @@ export function esbuildOptions(opts: {
       __E2E__: String(opts.mode !== 'production'),
       __VERSION__: JSON.stringify(opts.version),
       __SCENE_MANIFEST__: JSON.stringify(opts.sceneManifest ?? { scenes: {}, title: null }),
+      __SPRITE_MANIFEST__: JSON.stringify(opts.spriteManifest ?? EMPTY_SPRITE_MANIFEST),
     },
     logLevel: 'warning',
   };
@@ -164,6 +219,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
   const publicDir = path.resolve(root, options.publicDir ?? 'public');
   const artDir = path.resolve(root, options.artDir ?? (e2e ? FIXTURE_ART_DIR : ART_DIR));
   const sceneManifest = readSceneManifest(artDir);
+  const spriteManifest = readSpriteManifest(artDir);
 
   const result = await esbuild.build(
     esbuildOptions({
@@ -173,6 +229,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
       mode: e2e ? 'e2e' : 'production',
       version: options.version ?? readVersion(root),
       sceneManifest,
+      spriteManifest,
     }),
   );
   const metafile = result.metafile;
@@ -190,6 +247,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
     copied += copyDir(artDir, path.join(outdir, 'art'));
   }
   const art = { images: paintingCount(sceneManifest), bytes: dirBytes(path.join(outdir, 'art')) };
+  const figures = figureCount(spriteManifest);
 
   let jsGzipBytes = 0;
   for (const file of Object.keys(metafile.outputs)) {
@@ -201,11 +259,13 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
   for (const href of assets.styles) log(`  ${path.relative(root, path.join(outdir, href))}`);
   log(`  index.html + ${copied} public file(s) → ${path.relative(root, outdir) || '.'}/`);
   log(`  art: ${art.images} image(s) from ${path.relative(root, artDir) || '.'}/, ${(art.bytes / 1000).toFixed(1)} kB (outside the JS budget)`);
+  log(`  art: ${figures} figure(s) (sprites + portraits)`);
+  for (const line of sizeClassMismatches(spriteManifest)) log(`  art: sprite size class — ${line}`);
   if (jsGzipBytes > budget) {
     throw new Error(`JS budget exceeded: ${(jsGzipBytes / 1000).toFixed(1)} kB gzip > ${(budget / 1000).toFixed(0)} kB`);
   }
   log(`build: ok — JS ${(jsGzipBytes / 1000).toFixed(1)} kB gzip (budget ${Number.isFinite(budget) ? `${(budget / 1000).toFixed(0)} kB` : 'none: e2e'})`);
-  return { outdir, ...assets, jsGzipBytes, art };
+  return { outdir, ...assets, jsGzipBytes, art, figures };
 }
 
 if (import.meta.main) {

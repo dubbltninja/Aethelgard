@@ -69,7 +69,8 @@ export function CreatureFigure({ card, classId = '', reducedMotion = true }: { c
   const sigil = <CreatureSigil creatureId={card.id} sigil={card.sigil} family={card.family} size="lg" reducedMotion={reducedMotion} />;
   const sprite = creatureSprite(card.id, classId);
   if (sprite === null || chooseSprite(sprite.file) === null) return sigil;
-  const met = card.seen + card.killed + card.spared > 0;
+  // met before, or standing in this very fight: a creature you are looking at is not a silhouette
+  const met = card.seen + card.killed + card.spared > 0 || card.present;
   return (
     <span className="creature-card__figure" data-met={met ? 'true' : 'false'}>
       <Sprite file={sprite.file} flip={sprite.flip} effect={met ? sprite.effect : null} silhouette={!met} revealed fallback={sigil} />

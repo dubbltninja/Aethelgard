@@ -31,7 +31,10 @@
 .sprite__ghost {
   position: absolute;
   inset: 0;
-  opacity: 0.42;
+  z-index: 1;
+  opacity: 0.36;
+  /* a cold, pale after-image over the figure: it reads on a dark painting as well as a light one */
+  filter: grayscale(0.55) brightness(1.9);
 }
 
 .sprite--flip .sprite__fig {
@@ -51,7 +54,7 @@
 
 /* doubled: ghost copies a moment out of step (Echoed, Doubled, Stutter, Frayed, the pairs and packs) */
 .sprite--fx-doubled .sprite__ghost--1 {
-  transform: translateX(-13%);
+  transform: translateX(-16%);
   animation: sprite-stutter 1.3s steps(1) infinite;
 }
 
@@ -63,11 +66,11 @@
 @keyframes sprite-stutter {
   0%,
   55% {
-    transform: translateX(-13%);
+    transform: translateX(-16%);
   }
   56%,
   100% {
-    transform: translateX(-7%);
+    transform: translateX(-9%);
   }
 }
 
@@ -136,6 +139,7 @@
 
 .sprite--fx-split .sprite__ghost--1 {
   opacity: 1;
+  filter: none;
   clip-path: inset(0 0 0 50%);
   transform: translateX(8%) rotate(4deg);
 }
@@ -364,6 +368,8 @@ button.stage-fig[aria-disabled="true"] {
   inset: 0;
   width: 100%;
   height: 100%;
+  /* a sigil's shape leaves a margin in its 96 px box: set it down on the floor */
+  transform: translateY(8%);
 }
 
 .stage-fig .sprite__fallback {
@@ -745,14 +751,14 @@ button.stage-fig:not([aria-disabled="true"]):hover .stage-fig__bob {
   height: 100%;
   object-fit: cover;
   object-position: center;
-  filter: brightness(0.3) saturate(0.75);
+  filter: brightness(0.45) saturate(0.8);
 }
 
 .dialogue__backdrop::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(8, 6, 12, 0.15), rgba(8, 6, 12, 0.6) 60%);
+  background: linear-gradient(90deg, rgba(8, 6, 12, 0.05), rgba(8, 6, 12, 0.5) 65%);
 }
 
 :root[data-theme="high-contrast"] .dialogue__backdrop {

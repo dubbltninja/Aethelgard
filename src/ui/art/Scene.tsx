@@ -73,6 +73,8 @@ export interface SceneState {
   infected?: boolean;
   /** DESIGN §17.2 `breachOverlay` (0..1), from `breachOverlay()` in ./breachOverlay.ts; when absent the Horde flags decide. */
   breachOverlay?: number;
+  /** U72: Ilyra's portal at the Shattered Library is open (a Horde runs, or content opened it): the scene marks it. */
+  portalOpen?: boolean;
 }
 
 export interface SceneProps {

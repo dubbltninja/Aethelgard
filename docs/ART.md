@@ -91,7 +91,7 @@ interiors, round q, 2026-10-25.)
 
 **Silverwood Before** uses the style lock with "stately and gothic" in place of "grim and gothic", so the whole, living city
 reads warmer than its ruined twin. **Very dark picks** are lifted on conversion: mean luminance under 15 → gamma 1.25, 15–22 →
-gamma 1.15 (logged per image), so they survive the game's edge darkening.
+gamma 1.15 (under 8 → 1.4) (logged per image), so they survive the game's edge darkening.
 
 ---
 
@@ -321,3 +321,58 @@ Conversion note: Grok's pixel art is ~3 screen px per art pixel at 2128 wide, so
 | `loc_gallery_of_loops` | `scenes/loc_gallery_of_loops.webp` (+`@sm`) | p / Q1 | 0 | Colonnade with framed (abstract, figure-free) paintings, far light right of centre. Gamma 1.25. |
 | `loc_loom` | `scenes/loc_loom.webp` (+`@sm`) | p / R3 | 0 | Driftwood loom of light; the gallery's arches behind it. Gamma 1.25. |
 | `loc_far_light` | `scenes/loc_far_light.webp` (+`@sm`) | p / S2 | 0 | Bright door of light at the end of a path of water. Gamma 1.25. |
+| `loc_wayfarers_respite` | `scenes/loc_wayfarers_respite.webp` (+`@sm`) | p / 1 | 0 |  |
+| `loc_blighted_outpost` | `scenes/loc_blighted_outpost.webp` (+`@sm`) | p / 1 | 0 |  |
+| `loc_voidscar_hollow` | `scenes/loc_voidscar_hollow.webp` (+`@sm`) | p / 3 | 0 | Gamma 1.15. |
+| `loc_shimmering_pass` | `scenes/loc_shimmering_pass.webp` (+`@sm`) | p / 2 | 0 |  |
+| `loc_sky_whisper_plateau` | `scenes/loc_sky_whisper_plateau.webp` (+`@sm`) | p / 3 | 0 | Picked over E2/E4, which carved glowing runes on the markers. |
+| `loc_outer_walks` | `scenes/loc_outer_walks.webp` (+`@sm`) | w / 3 | 0 | Gate centred, new tablets along the path. Round w = a clean re-download of round p (a scroll glitch mixed rows). |
+| `loc_scholars_corridor` | `scenes/loc_scholars_corridor.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_ninefold_hall` | `scenes/loc_ninefold_hall.webp` (+`@sm`) | p / 4 | 0 | Ring of tall chairs (≈9–10 visible) round a glowing floor map. |
+| `loc_apprentices_garret` | `scenes/loc_apprentices_garret.webp` (+`@sm`) | p / 3 | 0 | Gamma 1.15. |
+| `loc_cistern_gardens` | `scenes/loc_cistern_gardens.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_archives_of_danthe` | `scenes/loc_archives_of_danthe.webp` (+`@sm`) | p / 1 | 0 | Twin of the Sunken Archives: shelves left, desk and stair right, brass rail. |
+| `loc_drowned_stair` | `scenes/loc_drowned_stair.webp` (+`@sm`) | p / 1 | 0 | Gamma 1.15. |
+| `loc_tidewell_hall` | `scenes/loc_tidewell_hall.webp` (+`@sm`) | p / 2 | 0 | Gamma 1.15. |
+| `loc_cistern_of_names` | `scenes/loc_cistern_of_names.webp` (+`@sm`) | p / 1 | 0 | Walls carry dense illegible carved glyphs (the 'names'), kept as texture; nothing legible. Gamma 1.15. |
+| `loc_lamplighters_rest` | `scenes/loc_lamplighters_rest.webp` (+`@sm`) | p / 2 | 0 | Kettle on a stove, nets, lamps, water below. Gamma 1.15. |
+| `loc_sunken_scriptorium` | `scenes/loc_sunken_scriptorium.webp` (+`@sm`) | p / 4 | 0 | Gamma 1.15. |
+| `loc_black_sluice` | `scenes/loc_black_sluice.webp` (+`@sm`) | p / 2 | 0 | Gamma 1.25. |
+| `loc_bellmouth` | `scenes/loc_bellmouth.webp` (+`@sm`) | p / 1 | 0 | Gamma 1.25. |
+| `loc_bell_wardens_deep` | `scenes/loc_bell_wardens_deep.webp` (+`@sm`) | p / 1 | 0 | Gamma 1.15. |
+| `loc_scorched_gate` | `scenes/loc_scorched_gate.webp` (+`@sm`) | p / 2 | 0 |  |
+| `loc_ash_wind_flats` | `scenes/loc_ash_wind_flats.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_bone_orchard` | `scenes/loc_bone_orchard.webp` (+`@sm`) | p / 3 | 0 | Rows of white stone bison. A 'statues' reroll (q) came out as a charging herd, so round p kept. |
+| `loc_grey_salt_pan` | `scenes/loc_grey_salt_pan.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_stormgate_cairns` | `scenes/loc_stormgate_cairns.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_watchfire_ridge` | `scenes/loc_watchfire_ridge.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_reedmarch_descent` | `scenes/loc_reedmarch_descent.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_herd_grave` | `scenes/loc_herd_grave.webp` (+`@sm`) | p / 4 | 0 |  |
+| `loc_veil_mouth` | `scenes/loc_veil_mouth.webp` (+`@sm`) | p / 3 | 0 | Gamma 1.15. |
+| `loc_stair_of_unmaking` | `scenes/loc_stair_of_unmaking.webp` (+`@sm`) | p / 3 | 0 | Gamma 1.25. |
+| `loc_scar_shelf` | `scenes/loc_scar_shelf.webp` (+`@sm`) | p / 3 | 0 | Gamma 1.15. |
+| `loc_voidglass_gallery` | `scenes/loc_voidglass_gallery.webp` (+`@sm`) | p / 1 | 0 | Gamma 1.25. |
+| `loc_null_orchard` | `scenes/loc_null_orchard.webp` (+`@sm`) | p / 4 | 0 | Gamma 1.15. |
+| `loc_eye_of_the_scar` | `scenes/loc_eye_of_the_scar.webp` (+`@sm`) | p / 1 | 0 | A cast shadow with no one casting it (the brief); E2/E3 drew a figure and were rejected. Gamma 1.15. |
+| `loc_where_she_fell` | `scenes/loc_where_she_fell.webp` (+`@sm`) | p / 1 | 0 | Crater of starlit glass, a shadow-print at the centre. |
+| `loc_lantern_causeway` | `scenes/loc_lantern_causeway.webp` (+`@sm`) | p / 1 | 0 |  |
+| `loc_sporelight_shallows` | `scenes/loc_sporelight_shallows.webp` (+`@sm`) | p / 4 | 0 |  |
+| `loc_elder_mangrove` | `scenes/loc_elder_mangrove.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_breathing_pool` | `scenes/loc_breathing_pool.webp` (+`@sm`) | p / 4 | 0 |  |
+| `loc_firefly_barrows` | `scenes/loc_firefly_barrows.webp` (+`@sm`) | p / 1 | 0 |  |
+| `loc_pale_gullet` | `scenes/loc_pale_gullet.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_matrons_hall` | `scenes/loc_matrons_hall.webp` (+`@sm`) | p / 2 | 0 |  |
+| `loc_windward_stair` | `scenes/loc_windward_stair.webp` (+`@sm`) | p / 2 | 0 |  |
+| `loc_spire_crown` | `scenes/loc_spire_crown.webp` (+`@sm`) | p / 2 | 0 |  |
+| `loc_roost_of_sentinels` | `scenes/loc_roost_of_sentinels.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_auldes_eyrie` | `scenes/loc_auldes_eyrie.webp` (+`@sm`) | p / 3 | 0 |  |
+| `loc_stormcrowns_perch` | `scenes/loc_stormcrowns_perch.webp` (+`@sm`) | p / 2 | 0 |  |
+| `loc_heartstone_depths~stabilized` | `scenes/loc_heartstone_depths~stabilized.webp` (+`@sm`) | p / 1 | 0 | Text prompt matching the base composition (image-edit upload was blocked); bands of blue light, even plinth glow. Gamma 1.15. |
+| `loc_heartstone_depths~exploited` | `scenes/loc_heartstone_depths~exploited.webp` (+`@sm`) | p / 2 | 0 | Cracked crystal, violet light running into floor channels. Gamma 1.15. |
+| `loc_heartstone_depths~destroyed` | `scenes/loc_heartstone_depths~destroyed.webp` (+`@sm`) | p / 4 | 0 | Shattered empty dais, shards across the floor. Gamma 1.15. |
+
+**Session notes (Tier 2, 2026-10-25).** Prompts were injected into Grok's box with `execCommand('insertText')` and each row was
+downloaded only once its 4 images were stable on screen; three prompts per browser batch is the safe maximum (four timed out).
+Grok's file input refused uploads of the approved Heartstone, so the three state variants were made from a text prompt that
+describes the same composition; they match the base closely. Tier 2 candidates stay in `Downloads\` on Tim's PC (approved
+originals are in `approved\`). All 73 locations, the 3 Heartstone variants and the title are now painted.

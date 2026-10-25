@@ -110,6 +110,7 @@ const HINT_BY_ATOM: Readonly<Record<string, string>> = {
   corruption: 'Dark books and darker choices may bring it to light.',
   location: 'It waits in a place you have not stood.',
   visited: 'It waits in a place you have not stood.',
+  region: 'It waits in a land you have not walked.',
   item: 'Something you carry, or have read, may open it.',
   killed: 'A creature may give it up.',
 };

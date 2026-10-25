@@ -37,7 +37,7 @@ Candidates go in `Documents\Aethelgard Art\candidates\`.
 - **No people, no text.** Characters, the Tyrant and creatures are drawn by the game; a painted figure would clash. Screen out
   any image with figures, lettering, signatures or watermarks.
 - **Overlays sit on top.** The game darkens the top and bottom 15% slightly for legibility, tints by time of day, and adds
-  particles. Paintings should be rich but not busy; a calm sky band helps.
+  particles. Backdrops should be rich but not busy; a calm sky band helps.
 - **Accent colour.** Each region has one glowing accent (§4). It should appear in every painting of that region, and nowhere else.
 - **Convert** with Pillow (`pip install pillow`): crop → resize with LANCZOS → `save(..., 'WEBP', quality=78, method=6)`; then
   the `@sm` copy at 720 × 300. Check sizes against the table.
@@ -46,10 +46,14 @@ Candidates go in `Documents\Aethelgard Art\candidates\`.
 
 ## 3. The style lock (paste word for word at the end of every prompt)
 
-> Atmospheric fantasy matte painting, painterly digital brushwork with soft edges, cinematic wide panoramic establishing shot at
-> eye level, the main subject in the middle horizontal band of the frame, deep layered depth from foreground to far horizon, moody
-> low-key light with one luminous accent colour, muted and slightly desaturated palette, still and quiet, an empty landscape with
-> only the place itself.
+**Changed 2026-10-25 by Tim's ruling: dark-fantasy dungeon-crawler RPG, lightly pixellated.** The original painterly
+matte-painting lock was tested in round a and replaced; a "grim gothic but painted" lock (round b) and pixellating paintings in
+post (muddy, rejected) were also tried. Asking Grok for pixel art directly gave crisp hand-placed pixels at a light, fine grain.
+
+> Detailed dark fantasy pixel art background for a dungeon crawler RPG, visible pixels with hand-placed dithered shading, grim and
+> gothic, cinematic wide panoramic view at eye level, the main subject in the middle horizontal band of the frame, layered depth to
+> a far horizon, heavy shadows with one luminous accent colour, muted desaturated palette with deep blacks, still and empty, only
+> the place itself.
 
 **Prompt = subject line (§5) + region light line (§4) + style lock.** 60–110 words in all. Grok ignores negatives — describe what
 you want, never "no X".
@@ -270,11 +274,13 @@ current location's exits only.
 
 Grok terms checked: 2026-10-24 — xAI's consumer FAQ (https://x.ai/legal/faq) says the user owns Grok's outputs and may use them, including commercially; xAI *asks* (does not require) that generated work be attributed to Grok. Suggest a credits line: "Scene backdrops made with Grok Imagine."
 
-Session settings: Grok Imagine, Image, Quality 2.0, ×4, aspect **21:9** (widest offered; 2128 × 912, trims to 12:5 with a sliver off top and bottom). The §3 style lock worked unchanged on round a.
+Session settings: Grok Imagine, Image, Quality 2.0, ×4, aspect **21:9** (widest offered; 2128 × 912, trims to 12:5 with a sliver off top and bottom). Round a used the original painterly lock; round p (2026-10-25) is the pixel lock now in §3. **Submit one prompt at a time and wait for its 4 images:** sending the next prompt while one is generating cancels the earlier one. Downloads land in `Downloads\\`; the session files them into `candidates\\`.
+
+Conversion note: Grok's pixel art is ~3 screen px per art pixel at 2128 wide, so the LANCZOS resize to 1440 keeps a light, even pixel grain; no nearest-neighbour step is needed.
 
 | id | file | round / pick | crop offset | notes |
 |---|---|---|---|---|
-| `loc_whispering_ruins` | `scenes/loc_whispering_ruins.webp` (+`@sm`) | a / A2 | 0 | Crystal trees both sides, arch and tablets inside the phone centre. |
-| `loc_emberforge` | `scenes/loc_emberforge.webp` (+`@sm`) | a / B3 | 0 | Hearth and anvil centred; left third is calm grey sky. |
-| `loc_lanternreed` | `scenes/loc_lanternreed.webp` (+`@sm`) | a / C2 | 0 | Big hut, rope walkways, reflected lantern light. |
-| `loc_still_shore` | `scenes/loc_still_shore.webp` (+`@sm`) | a / D2 | 0 | Midtones lifted (gamma 1.25) so it survives the edge darkening. |
+| `loc_whispering_ruins` | `scenes/loc_whispering_ruins.webp` (+`@sm`) | p / A2 | 0 | Pixel lock. Arch, tablets and crystal trees inside the phone centre. |
+| `loc_emberforge` | `scenes/loc_emberforge.webp` (+`@sm`) | p / B3 | 0 | Pixel lock. Strongest hearth glow; forge sits right of centre, inside the 60%. |
+| `loc_lanternreed` | `scenes/loc_lanternreed.webp` (+`@sm`) | p / C2 | 0 | Pixel lock. Row of stilt huts, lantern windows, rope walkways. |
+| `loc_still_shore` | `scenes/loc_still_shore.webp` (+`@sm`) | p / D2 | 0 | Pixel lock. Midtones lifted (gamma 1.25). Faint far-shore spires (not in brief) kept: dim, read as distance. |

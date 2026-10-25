@@ -456,7 +456,7 @@ export const tomes = [
     type: 'tome',
     tier: 0,
     usableInCombat: false,
-    onUse: [{ damage: { hp: 15 } }, { corruption: 1 }],
+    onUse: [{ damage: { hp: 15 } }, { corruption: 1 }, { unlockCodex: 'codex_item_dark_spellbook' }], // U61: STORY §14.1 "Read one"
     value: 8,
     sources: ['drop:cr_corrupted_shade', 'drop:cr_starved_shadow', 'merchant:npc_hollis_cade'],
     art: { icon: 'tome', major: true },
@@ -469,7 +469,7 @@ export const tomes = [
     type: 'tome',
     tier: 0,
     usableInCombat: false,
-    onUse: [{ unlockCodex: 'codex_maelis_korr' }],
+    onUse: [{ unlockCodex: 'codex_maelis_korr' }, { unlockCodex: 'codex_item_dark_spellbook' }], // U61: it counts as a Spellbook read
     passives: [{ kind: 'custom', scriptId: 'counts_as_spellbook', params: { toward: 'echo_litany_verse_2', hpCost: 0, corruption: 0 } }],
     value: 30,
     sources: ['loc:loc_grand_library', 'loc:loc_shattered_library'],

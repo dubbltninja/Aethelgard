@@ -32,7 +32,6 @@ import {
   type Profile,
 } from '@engine/index';
 import { fireEvent } from '@engine/reducers/explore';
-import type { CodexEntryInput } from '@schema/codex';
 import type { Condition } from '@schema/condition';
 import { CreatureSchema, walkSteps, type Creature, type Step } from '@schema/creature';
 import { LocationSchema, type Location } from '@schema/location';
@@ -935,8 +934,8 @@ describe('the Unveiled Tyrant’s communion vs DESIGN §4.11, WORLD §6.8’s ta
   });
 
   test('in the engine: Loop 2 at the Apex the fight opens on its words, it does not strike while unhurt, Listen opens Movement I and answers count', () => {
-    const stub = (id: `codex_${string}`): CodexEntryInput => ({ id, title: 'Test stub', voice: 'wayfinder_notes', category: 'the_nine', body: 'Test stub.' });
-    const withCodex = buildContentPack({ ...contentTables, codex: (['codex_tyrant_holding', 'codex_tyrant_six', 'codex_veyran_thal'] as const).map(stub) }, { incompleteTables: INCOMPLETE_TABLES });
+    // U61: the codex is complete (the communion's three `unlockCodex` targets are U60's), so the real tables build as they are
+    const withCodex = buildContentPack(contentTables, { incompleteTables: INCOMPLETE_TABLES });
     const prof: Profile = freshProfile({ loopCounter: 2, echoes: ['echo_apex_resonance'] });
     const s0 = makeState({ loop: 2, level: 18, locationId: NEXUS }, { content: withCodex, profile: prof });
     const rejected = (events: readonly GameEvent[]) => events.filter((e) => e.t === 'actionRejected');

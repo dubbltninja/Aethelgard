@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
-import { buildContentPack, parseContentPack } from '@content/index';
+import { buildContentPack, contentTables, parseContentPack } from '@content/index';
 import { INCOMPLETE_TABLES } from '@content/progress';
 import { echoes } from '@content/shared/echoes';
 import { validateContent } from '@content/validate';
@@ -240,6 +240,13 @@ describe('rule 16 with the catalog in: what quests and dialogue will grant or re
   const grants = (issues: readonly Issue[]): string[] => issues.filter((i) => i.rule === 'rule-16' && i.message.includes('no grantEcho effect')).map((i) => i.id).sort();
   const gates = (issues: readonly Issue[]): Issue[] => issues.filter((i) => i.rule === 'rule-16' && i.message.includes('gates nothing'));
   const PENDING = 'pending — content not yet authored: ';
+  // U61: `codex_echoes` ("First Echo gained") reads every Echo of the catalog, so in the real pack nothing "gates nothing" any
+  // more; the Echoes that only that entry reads are still worth seeing, so they are measured on a pack where it is unlocked at
+  // the start instead
+  const sansEchoesEntry = buildContentPack(
+    { ...contentTables, codex: contentTables.codex.map((c) => (c.id === 'codex_echoes' ? { ...c, unlockWhen: undefined, unlockedAtStart: true } : c)) },
+    { incompleteTables: INCOMPLETE_TABLES },
+  );
 
   test('most of the catalog is granted by the engine or by region events; the rest waits for U52+ quests and dialogue', () => {
     expect(ungranted.length).toBeGreaterThan(0);
@@ -255,8 +262,10 @@ describe('rule 16 with the catalog in: what quests and dialogue will grant or re
     expect(grants(r.errors)).toEqual([]);
     expect(gates(r.errors)).toEqual([]);
     expect(grants(r.warnings)).toEqual(ungranted);
-    expect(gates(r.warnings).length).toBeGreaterThan(0);
-    for (const w of r.warnings.filter((x) => x.rule === 'rule-16')) expect(w.message.startsWith(PENDING)).toBe(true);
+    expect(gates(r.warnings)).toEqual([]); // every Echo opens `codex_echoes`
+    const probe = validateContent(sansEchoesEntry, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
+    expect(gates(probe.warnings).length).toBeGreaterThan(0);
+    for (const w of [...r.warnings, ...probe.warnings].filter((x) => x.rule === 'rule-16')) expect(w.message.startsWith(PENDING)).toBe(true);
   });
 
   test('the everyday build and a lenient run say nothing of them (a completeness check, like the counts)', () => {
@@ -270,8 +279,10 @@ describe('rule 16 with the catalog in: what quests and dialogue will grant or re
     for (const incompleteTables of [[], ['items', 'npcs']] as const) {
       const r = validateContent(pack, { incompleteTables });
       expect(grants(r.errors)).toEqual(ungranted);
-      expect(gates(r.warnings).length).toBeGreaterThan(0);
-      for (const w of gates(r.warnings)) expect(w.message.startsWith(PENDING)).toBe(false);
+      expect(gates(r.warnings)).toEqual([]);
+      const probe = validateContent(sansEchoesEntry, { incompleteTables });
+      expect(gates(probe.warnings).length).toBeGreaterThan(0);
+      for (const w of gates(probe.warnings)) expect(w.message.startsWith(PENDING)).toBe(false);
     }
     for (const incompleteTables of [['quests'], ['dialogues']] as const) {
       expect(grants(validateContent(pack, { strict: true, incompleteTables }).errors)).toEqual([]);

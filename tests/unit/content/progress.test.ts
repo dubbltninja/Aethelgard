@@ -15,7 +15,7 @@ describe('INCOMPLETE_TABLES', () => {
   test('names real tables, once each; the finished shared tables are not on it', () => {
     for (const t of INCOMPLETE_TABLES) expect(TABLE_NAMES).toContain(t);
     expect(new Set(INCOMPLETE_TABLES).size).toBe(INCOMPLETE_TABLES.length);
-    for (const done of ['classes', 'statuses', 'affixes', 'abilities', 'regions', 'locations', 'echoes', 'achievements', 'attunements', 'modifiers', 'endings', 'factions', 'quests'] as const) {
+    for (const done of ['classes', 'statuses', 'affixes', 'abilities', 'regions', 'locations', 'echoes', 'achievements', 'attunements', 'modifiers', 'endings', 'factions', 'quests', 'codex'] as const) {
       expect(INCOMPLETE_TABLES).not.toContain(done);
     }
   });

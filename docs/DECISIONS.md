@@ -2134,3 +2134,9 @@ owning unit (PLAN §9.1).
   - **U72** (Sonnet) shrinks to per-location overlay data: particles, focal glows, time-of-day per place, and the parametric
     fallback's silhouettes. Its brief is written after the test batch is approved.
   - Grok's usage terms for a public game are checked by the art session and noted in `docs/ART.md` §8.
+- **Amended 2026-10-25 (art session, Tim's ruling): the backdrop style is dark-fantasy dungeon-crawler RPG pixel art, lightly
+  pixellated** — not the painterly matte painting first specified. Grok renders the pixel art directly (crisp, fine grain);
+  pixellating paintings in post was tried and rejected as muddy. `docs/ART.md` §3 holds the new style lock; the four Tier 0
+  backdrops on `wip/art` are the pixel versions. For U71: the WebPs are ordinary 1440 × 600 / 720 × 300 images with the pixel
+  grain baked in, so no `image-rendering` change is needed. U72's overlays (particles, glows) should stay soft and sparse so
+  they sit on the pixel art without fighting it; U64's vector fallback will look smoother than its neighbours until painted.

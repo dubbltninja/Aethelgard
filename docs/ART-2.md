@@ -364,6 +364,7 @@ As Part 1 §6, with these changes:
 | `cr_spire_loom` | `sprites/cr_spire_loom.webp` | large | a / a4 | left / no | Brass loom walking on its own legs, glass shuttles flying. |
 | `cr_gale_kite` | `sprites/cr_gale_kite.webp` | medium | a / a1 | left / no | Diamond kite, gold wind-tail. |
 | `cr_cloud_ray` | `sprites/cr_cloud_ray.webp` | large | a / a1 | left / no | Brass-and-sailcloth manta on its own cloud. |
+| `npc_tamsin_reed` | `portraits/npc_tamsin_reed.webp` (+`@sm`) | — | g / G3 | — | **Made with Grok Bot**, not Grok Imagine (see notes). Quill behind the ear, pen in an ink-stained hand, pale-blue glow; G4 had a "REED SCRIBE" tag painted on. |
 
 **Session notes (Tier 0, 2026-10-25).** Both locks worked as written. Aspect: **2:3** for upright figures, **1:1** for wide or
 seated ones and for portraits. Grok often ignores "facing right"; mirroring is cheap (Ranger). `tools/art/cutout.py` keys the
@@ -382,3 +383,6 @@ leaves olive moss and yellow-green glow alone. `tools/art/sheet.py` builds the b
 - **Square creatures** (beasts, wisps, constructs) were made at **1:1**. For things made of light, add "with no body":
   without it Grok gives the wisp a dark creature's body.
 - **Status:** all 67 sprites are done (Tier 0, 1 and 2). The 37 Tier 2 portraits are on hold; Tim's call (2026-10-25).
+- **Grok Bot as a second source (trial, 2026-10-25):** Tim's Grok Bot usage is metered separately from Grok Imagine. Sending
+  the same prompt word for word, with "make 4 separate images, each in 1:1 square aspect ratio", returns four 1024 px images
+  with the same pixel texture as Imagine's 1408 px ones. Round letter `g` marks Grok Bot images.

@@ -228,12 +228,12 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. ~~U70~~ done (D-121); ~~U57~~ done (D-122); ~~U58~~ done (D-123).
-2. **Art (D-124, `docs/ART.md`):** ~~U71~~ done (D-125) ·
-   the **art session** on Tim's PC (Grok Imagine; Tim starts a desktop task linked to his computer: *"Read docs/ART.md in
-   dubbltninja/Aethelgard (branch `unraveling`) and run the art session"*; it pushes to `wip/art`) · ~~U72~~ done (D-126). After every UI merge the lead runs the **full** e2e suite (D-120).
+1. Done since U69: U70 (D-121), U57 (D-122), U58 (D-123), U71 (D-125), the art (D-124/D-126), U72 (D-126), U59 (D-127).
+   After every UI merge the lead runs the **full** e2e suite (D-120).
+2. **U73** (Sonnet; creature sigils, item icons, damage/status glyphs — code, DESIGN §17.3–17.5) · **U74** (Opus; audio engine +
+   30 SFX, DESIGN §18).
 3. ✦ Fable units:
-   **U61** Codex II + the 103 Echo codex lines · **U62** scenes and endings. Tell agents to commit early.
+   **U61** Codex II + the 103 Echo codex lines · **U62** scenes and endings (+ D-127's Echo gaps). Tell agents to commit early.
 4. The balance + bot unit (Opus): **ending D unreachable by play — the road outruns the clock after Destroy (D-123)**; bots stop guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain
    (D-109); Tyrant numbers (D-101); Warden vs bosses (D-089); Ilyra's loyalty arithmetic for ending E (D-113); affix on
    Uncommon upgrade (D-118); the achievement engine + 13 `tally_*` counters (D-119); the first fight's forced intents (D-121); the Cairns Stalkers, Scriptorium guard and Windward kites (D-122).

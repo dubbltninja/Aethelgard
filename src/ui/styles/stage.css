@@ -11,6 +11,8 @@
   position: relative;
   display: inline-block;
   line-height: 0;
+  /* a picture, never a target: clicks reach the control it sits in (the stage's buttons, a class card's radio) */
+  pointer-events: none;
 }
 
 .sprite__fig {
@@ -202,6 +204,7 @@
 .portrait {
   --portrait-accent: var(--line-strong);
   position: relative;
+  pointer-events: none;
   display: inline-block;
   flex: none;
   overflow: hidden;

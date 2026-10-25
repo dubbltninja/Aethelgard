@@ -268,7 +268,13 @@ current location's exits only.
 
 ## 8. Log (one row per approved image)
 
-Grok terms checked: _(the art session fills this in)_
+Grok terms checked: 2026-10-24 — xAI's consumer FAQ (https://x.ai/legal/faq) says the user owns Grok's outputs and may use them, including commercially; xAI *asks* (does not require) that generated work be attributed to Grok. Suggest a credits line: "Scene backdrops made with Grok Imagine."
+
+Session settings: Grok Imagine, Image, Quality 2.0, ×4, aspect **21:9** (widest offered; 2128 × 912, trims to 12:5 with a sliver off top and bottom). The §3 style lock worked unchanged on round a.
 
 | id | file | round / pick | crop offset | notes |
 |---|---|---|---|---|
+| `loc_whispering_ruins` | `scenes/loc_whispering_ruins.webp` (+`@sm`) | a / A2 | 0 | Crystal trees both sides, arch and tablets inside the phone centre. |
+| `loc_emberforge` | `scenes/loc_emberforge.webp` (+`@sm`) | a / B3 | 0 | Hearth and anvil centred; left third is calm grey sky. |
+| `loc_lanternreed` | `scenes/loc_lanternreed.webp` (+`@sm`) | a / C2 | 0 | Big hut, rope walkways, reflected lantern light. |
+| `loc_still_shore` | `scenes/loc_still_shore.webp` (+`@sm`) | a / D2 | 0 | Midtones lifted (gamma 1.25) so it survives the edge darkening. |

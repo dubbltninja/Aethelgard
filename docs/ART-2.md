@@ -226,11 +226,6 @@ As in Part 1, if the test batch shows a better phrasing, update the lock here be
 | id | Subject line |
 |---|---|
 | `npc_tamsin_reed` | Scribe Tamsin Reed, a sharp middle-aged Remnant scribe with ink-stained fingers and a quill behind one ear, pale-blue accent. |
-| `npc_ansel_dray` | `portraits/npc_ansel_dray.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. White beard, round spectacles, ledger held to the chest, pale-blue rim light. |
-| `npc_kaelen_stonehand` | `portraits/npc_kaelen_stonehand.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Fur-trimmed coat, sharpest gaze of the four, orange ember glow. |
-| `npc_brak` | `portraits/npc_brak.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Shaved scarred head, chipped axe over the shoulder, ember sparks; matches his sprite's leather and scrap armour. |
-| `npc_borin_stonefist` | `portraits/npc_borin_stonefist.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Soot-dark beard and arms, leather apron, forge-orange glow. |
-| `npc_nyx` | `portraits/npc_nyx.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Grey threads over shadowed hair, violet starlit eyes. |
 | `npc_ansel_dray` | Keeper Ansel Dray, a Remnant keeper of about seventy with a white beard and spectacles, holding a heavy ledger, pale-blue accent. |
 | `npc_kaelen_stonehand` | Kaelen Stonehand, a broad-shouldered trader with weathered hands and a sharp gaze, a fur-trimmed coat, orange ember accent. |
 | `npc_brak` | Brak, a scarred Ironclad scout, shaved head, chipped axe over the shoulder, orange ember accent. |
@@ -370,6 +365,42 @@ As Part 1 §6, with these changes:
 | `cr_gale_kite` | `sprites/cr_gale_kite.webp` | medium | a / a1 | left / no | Diamond kite, gold wind-tail. |
 | `cr_cloud_ray` | `sprites/cr_cloud_ray.webp` | large | a / a1 | left / no | Brass-and-sailcloth manta on its own cloud. |
 | `npc_tamsin_reed` | `portraits/npc_tamsin_reed.webp` (+`@sm`) | — | g / G3 | — | **Made with Grok Bot**, not Grok Imagine (see notes). Quill behind the ear, pen in an ink-stained hand, pale-blue glow; G4 had a "REED SCRIBE" tag painted on. |
+| `npc_ansel_dray` | `portraits/npc_ansel_dray.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Tim's pick. White beard, round spectacles, heavy ledger, violet-blue glow. |
+| `npc_kaelen_stonehand` | `portraits/npc_kaelen_stonehand.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Fur-trimmed coat, sharpest gaze of the four, orange ember glow. |
+| `npc_brak` | `portraits/npc_brak.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Shaved scarred head, chipped axe over the shoulder, ember sparks; matches his sprite's leather and scrap armour. |
+| `npc_borin_stonefist` | `portraits/npc_borin_stonefist.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Soot-dark beard and arms, leather apron, forge-orange glow. |
+| `npc_nyx` | `portraits/npc_nyx.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Grey threads over shadowed hair, violet starlit eyes. |
+| `npc_dask` | `portraits/npc_dask.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Face doubled as if seen in two moments, grey-silver glow. |
+| `npc_caelum` | `portraits/npc_caelum.webp` (+`@sm`) | — | g / G3 | — | Grok Bot. Anxious young face, blue-and-white livery, warm gold glow. |
+| `npc_mireya` | `portraits/npc_mireya.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Yellow-green light at the wrists and cheek, reed shawl. |
+| `npc_bryn_dunn` | `portraits/npc_bryn_dunn.webp` (+`@sm`) | — | g / G4 | — | Grok Bot. Stern, steel cap, blue-and-white livery with the watch tower badge. |
+| `npc_bellwright_anso` | `portraits/npc_bellwright_anso.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Cheerful, burn-scarred hands holding a small bell charm. |
+| `npc_veyran_thal` | `portraits/npc_veyran_thal.webp` (+`@sm`) | — | g / G3 | — | Grok Bot. Kind, confident, white-and-silver robes, gold glow. |
+| `npc_nyxaria_vell_before` | `portraits/npc_nyxaria_vell_before.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Young, ordinary grey eyes, grey-and-silver robes, gold glow; reads as a young Nyx. |
+| `npc_oriel_danthe` | `portraits/npc_oriel_danthe.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Writing with a quill, ink on her hands, blue robes, gold halo. |
+| `npc_maelis_korr` | `portraits/npc_maelis_korr.webp` (+`@sm`) | — | g / G4 | — | Grok Bot. Severe older woman in grey robes holding the annotated workbook. |
+| `npc_haldric_vane` | `portraits/npc_haldric_vane.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Grim, ring-and-bar pendant clearly visible. |
+| `npc_durn_hallow` | `portraits/npc_durn_hallow.webp` (+`@sm`) | — | g / G4 | — | Grok Bot. Burn scars, heavy-set, chain and leather; G1 had his name painted on. |
+| `npc_seraphine_aulde` | `portraits/npc_seraphine_aulde.webp` (+`@sm`) | — | g / G3 | — | Grok Bot. Tuning fork, crystal earrings, gold glow. |
+| `npc_imre_sallow` | `portraits/npc_imre_sallow.webp` (+`@sm`) | — | g / G3 | — | Grok Bot. Soil and seedlings in her hands, flowers in her hair. |
+| `npc_tovren_masque` | `portraits/npc_tovren_masque.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Brass eyepiece, star chart, hood. |
+| `npc_tobrin_vask` | `portraits/npc_tobrin_vask.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Young and earnest, drafting square and compass. |
+| `npc_corvin_dreyl` | `portraits/npc_corvin_dreyl.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Hard-faced officer in blue and white, gold glow. |
+| `npc_ilsabet_rhune` | `portraits/npc_ilsabet_rhune.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Sleepless, wet hair and robes, chain of office. |
+| `npc_hadrek` | `portraits/npc_hadrek.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Old clockwright, magnifying lenses, small orrery at his chest. |
+| `npc_sedge_marrow` | `portraits/npc_sedge_marrow.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Diving cap and leathers, aqua-lit lamp. |
+| `npc_pellam` | `portraits/npc_pellam.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Lamplighter with a lit lantern on a long pole, aqua glow. |
+| `npc_scout_ferrin` | `portraits/npc_scout_ferrin.webp` (+`@sm`) | — | h / H2 | — | Grok Bot. Reroll (round h): round g gave him horns on his head. Reworded to "a curved brass signal horn hung on a leather strap across his chest". |
+| `npc_hadda_ironvow` | `portraits/npc_hadda_ironvow.webp` (+`@sm`) | — | g / G4 | — | Grok Bot. Fierce older clan-mother, grey braids, bone-and-iron torc. |
+| `npc_oma_varr` | `portraits/npc_oma_varr.webp` (+`@sm`) | — | g / G4 | — | Grok Bot. Very old, kind smile, wrapped in hides. |
+| `npc_tessaly_varr` | `portraits/npc_tessaly_varr.webp` (+`@sm`) | — | g / G3 | — | Grok Bot. Confident, ledger in hand, salt-stained coat. |
+| `npc_ketch` | `portraits/npc_ketch.webp` (+`@sm`) | — | g / G3 | — | Grok Bot. Ash-painted face, frame drum. |
+| `npc_sethe_unlidded` | `portraits/npc_sethe_unlidded.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Wide lidless violet eyes, grey thread hood. |
+| `npc_ysmay` | `portraits/npc_ysmay.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Ancient, eyeless, a single thread between her fingers. |
+| `npc_hollis_cade` | `portraits/npc_hollis_cade.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Grey thread wrap, tally cords hung across the chest. |
+| `npc_elder_wen` | `portraits/npc_elder_wen.webp` (+`@sm`) | — | g / G4 | — | Grok Bot. Glowing veins across her face, grey hair, reed weave. |
+| `npc_elder_tam` | `portraits/npc_elder_tam.webp` (+`@sm`) | — | g / G3 | — | Grok Bot. Half his face lit from inside, roots in his beard. |
+| `npc_old_fennick` | `portraits/npc_old_fennick.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Wiry, baskets of moss on a yoke. |
 
 **Session notes (Tier 0, 2026-10-25).** Both locks worked as written. Aspect: **2:3** for upright figures, **1:1** for wide or
 seated ones and for portraits. Grok often ignores "facing right"; mirroring is cheap (Ranger). `tools/art/cutout.py` keys the
@@ -387,7 +418,10 @@ leaves olive moss and yellow-green glow alone. `tools/art/sheet.py` builds the b
   `--erode N` shaves a painted light outline (the "sticker" rim on the Temporal Aberration).
 - **Square creatures** (beasts, wisps, constructs) were made at **1:1**. For things made of light, add "with no body":
   without it Grok gives the wisp a dark creature's body.
-- **Status:** all 67 sprites are done (Tier 0, 1 and 2). The 37 Tier 2 portraits are on hold; Tim's call (2026-10-25).
+- **Status:** ART-2 is complete: all 67 sprites and all 38 portraits. The 37 Tier 2 portraits were made with Grok Bot.
 - **Grok Bot as a second source (trial, 2026-10-25):** Tim's Grok Bot usage is metered separately from Grok Imagine. Sending
   the same prompt word for word, with "make 4 separate images, each in 1:1 square aspect ratio", returns four 1024 px images
   with the same pixel texture as Imagine's 1408 px ones. Round letter `g` marks Grok Bot images.
+- **Grok Bot in practice:** the full Tier 2 portrait run went through Grok Bot without touching Tim's extra credits. Each
+  request returns four images in about a minute. Watch for literal readings: "a horn" became horns on the head (Ferrin), and
+  Grok sometimes paints a name label onto the picture (Durn Hallow G1, Tamsin G4), so check every pick for lettering.

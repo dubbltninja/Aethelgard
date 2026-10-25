@@ -230,8 +230,9 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 1. Done since U69: U70 (D-121), U57 (D-122), U58 (D-123), U71 (D-125), the art (D-124/D-126), U72 (D-126), U59 (D-127).
    After every UI merge the lead runs the **full** e2e suite (D-120).
-2. **U73** (Sonnet; creature sigils, item icons, damage/status glyphs — code, DESIGN §17.3–17.5) · **U74** (Opus; audio engine +
-   30 SFX, DESIGN §18).
+2. **Figures (D-128, `docs/ART-2.md`):** **U73a** (Opus; the combat stage, sprites, portraits — brief ready) · the **art session
+   part 2** on Tim's PC (*"Read docs/ART-2.md in dubbltninja/Aethelgard (branch `unraveling`) and run the art session"*; pushes
+   to `wip/art`) · then **U73** (Sonnet; code glyphs only). **U74** (Opus; audio engine + 30 SFX, DESIGN §18).
 3. ✦ Fable units:
    **U61** Codex II + the 103 Echo codex lines · **U62** scenes and endings (+ D-127's Echo gaps). Tell agents to commit early.
 4. The balance + bot unit (Opus): **ending D unreachable by play — the road outruns the clock after Destroy (D-123)**; bots stop guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain

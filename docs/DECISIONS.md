@@ -2206,3 +2206,22 @@ owning unit (PLAN §9.1).
     `echo_caelum_stayed`, `echo_crystal_seeded`, `echo_glowfen_dammed`, `echo_glowfen_let_run`.
   - STORY §12 says what each grants or unlocks. U62 (scenes) takes the ones its scenes give; whatever remains goes to the
     audit. When rule 16 has no pending items, close `dialogues`, `npcs` and `encounters`.
+
+### D-128 · Creature sprites and character portraits (Grok Imagine); the combat stage; U73 split, 2026-10-25
+- **Tim's ruling:** pixel-art **cut-out sprites standing in the scene** in combat, in the backdrops' style, instead of framed
+  cards. Code alone left the figures as small sigils and outline busts, the weakest part of the look.
+- **Art:** `docs/ART-2.md`, run from Tim's PC like Part 1, pushing to `wip/art`. 105 prompts in tiers:
+  - 56 creature sprites. The 16 anomaly variants reuse their base sprite with a code effect, and the Redundant Wayfinder
+    reuses the player's class sprite.
+  - 5 class sprites and 6 companion sprites.
+  - 38 portraits.
+
+  Sprites are keyed out of a flat green or magenta background into transparent WebP, stored by size class (256 / 384 / 512 /
+  768 px). Portraits are opaque 512 px busts.
+- **Code keeps the small symbols:** the family sigil stays as a corner badge (shape for colour-blind players) and as the fallback
+  for any missing figure; item icons, damage and status glyphs stay code.
+- **Units:**
+  - **U73a** (Opus, new): the combat stage (backdrop band, heroes left, enemies right, event-driven motion, sprite targeting),
+    portraits in dialogue, Explore, the Bestiary and Class Select, the variant registry, fallbacks (`docs/briefs/u73a.md`).
+    Builds with fixture art; runs before or alongside the art session.
+  - **U73** (Sonnet) shrinks to the code glyphs (DESIGN §17.4–17.5) and the sigil polish; brief written after U73a.

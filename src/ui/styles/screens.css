@@ -33,6 +33,39 @@
   display: none;
 }
 
+/* U71: the Title's key art (public/art/title.webp) in place of the drawn Ruins, with the scenes' legibility bands. It
+   covers the window at every width; on a phone that keeps the painting's centre (the archway, ART §2's middle band) around
+   the title card. The card's own veil keeps the menu legible over it. */
+.title-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(var(--ruins-sky-top), var(--ruins-sky-bottom));
+}
+
+.title-backdrop picture,
+.title-backdrop__painting {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.title-backdrop__painting {
+  object-fit: cover;
+  object-position: center;
+}
+
+.title-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgb(0 0 0 / 0.55), transparent 15%, transparent 85%, rgb(0 0 0 / 0.55));
+}
+
+:root[data-theme="high-contrast"] .title-backdrop {
+  display: none;
+}
+
 :root[data-theme="high-contrast"] .screen--title {
   background: var(--surface-base);
 }
@@ -183,6 +216,11 @@
 .credits__byline {
   font-family: var(--font-display);
   font-size: var(--type-h3);
+}
+
+.credits__art {
+  font-size: var(--type-small);
+  color: var(--text-muted);
 }
 
 /* ---- Class Select ---- */

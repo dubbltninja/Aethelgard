@@ -7,15 +7,20 @@
 // set of generic far / mid / near shapes. The per-location silhouette keys and the hand-authored focal pieces
 // (`art.silhouettes`, `art.focal`) are U71/U72's registry; until then they fall back to the template (validator rule
 // 4 reports them once the registry is injected). Pure (no hooks), so it renders inside the pure views and on the server.
+//
+// U71 (D-124, docs/ART.md §7): given a `backdrop` (the container's pick from backdropChooser.ts), the scene is a painting
+// instead — <SceneBackdrop> draws it under the same code layers, and these parametric layers become the fallback.
 import type { ReactNode } from 'react';
 import type { HeartstoneState, Watch } from '@engine/index';
 import type { Location, LocationArt } from '@schema/location';
 import type { Region } from '@schema/region';
+import type { Backdrop } from './backdropChooser';
 import { scenePalette, shade, type ScenePalette } from './palettes';
+import { SceneBackdrop } from './SceneBackdrop';
+import { HatchPattern, ParticlesLayer, SCENE_H, SCENE_W, TIME_WASH, breachLevel, f, idOf, makeParticles } from './sceneLayers';
 import { uiRng, type UiRng } from './uiRng';
 
-export const SCENE_W = 1200;
-export const SCENE_H = 500;
+export { SCENE_H, SCENE_W } from './sceneLayers';
 
 export type Template = LocationArt['template'];
 type Curve = 'flat' | 'hills' | 'jagged' | 'flooded';
@@ -79,6 +84,8 @@ export interface SceneProps {
   reducedMotion: boolean;
   seed: string;
   className?: string;
+  /** U71: the painting to show (backdropChooser's pick); absent or null draws the parametric scene. */
+  backdrop?: Backdrop | null;
 }
 
 /** `art` with `patch` merged over it (an art variant: `{ focal, particles, timeOfDay … }`); unknown keys are ignored. */
@@ -88,8 +95,6 @@ export function patchArt(art: LocationArt, patch: Record<string, unknown>): Loca
   for (const key of keys) if (patch[key] !== undefined) (out as Record<string, unknown>)[key] = patch[key];
   return out;
 }
-
-const f = (n: number): string => (Math.round(n * 10) / 10).toString();
 
 // ---- horizon -----------------------------------------------------------------------------------------------------------------
 
@@ -345,36 +350,15 @@ function nearPath(kind: Near, rng: UiRng): { fill: string; lines: string } {
   return { fill: pts.join(' '), lines };
 }
 
-// ---- particles ---------------------------------------------------------------------------------------------------------------
-
-type ParticleKind = LocationArt['particles'];
-
-/** DESIGN §17.2: at most 24 particles; how each kind moves (CSS keyframes in explore.css, off under reduced motion). */
-const PARTICLE_MOTION: Readonly<Record<Exclude<ParticleKind, 'none'>, { count: number; motion: 'drift' | 'rise' | 'fall'; r: [number, number] }>> = {
-  motes: { count: 18, motion: 'drift', r: [1.2, 2.6] },
-  embers: { count: 16, motion: 'rise', r: [1.2, 2.4] },
-  spores: { count: 18, motion: 'drift', r: [1.4, 3] },
-  ash: { count: 22, motion: 'fall', r: [1, 2.2] },
-  static: { count: 14, motion: 'drift', r: [0.8, 1.6] },
-  shards: { count: 12, motion: 'drift', r: [1.6, 3.2] },
-  rain: { count: 24, motion: 'fall', r: [0.8, 1.2] },
-  fireflies: { count: 14, motion: 'drift', r: [1.6, 2.8] },
-  snow: { count: 24, motion: 'fall', r: [1.2, 2.6] },
-  pollen: { count: 16, motion: 'drift', r: [1, 2] },
-};
-
 // ---- the component ---------------------------------------------------------------------------------------------------------------
 
-const TIME_WASH: Readonly<Record<Watch, { color: string; opacity: number }>> = {
-  0: { color: '#ffb27a', opacity: 0.1 },
-  1: { color: '#ffffff', opacity: 0.05 },
-  2: { color: '#ff7a6a', opacity: 0.07 },
-  3: { color: '#02030a', opacity: 0.32 },
-};
+export function Scene(props: SceneProps): ReactNode {
+  if (props.backdrop !== undefined && props.backdrop !== null) return <SceneBackdrop {...props} backdrop={props.backdrop} />;
+  return <ParametricScene {...props} />;
+}
 
-const idOf = (s: string): string => s.replace(/[^a-z0-9_-]/gi, '_');
-
-export function Scene({ location, region, art: artIn, state, reducedMotion, seed, className }: SceneProps): ReactNode {
+/** U64's drawn scene: the fallback when no painting can be shown. */
+function ParametricScene({ location, region, art: artIn, state, reducedMotion, seed, className }: SceneProps): ReactNode {
   const art = artIn ?? location.art;
   const spec = TEMPLATES[art.template] ?? TEMPLATES.custom;
   const p: ScenePalette = scenePalette(location.regionId, region);
@@ -395,16 +379,9 @@ export function Scene({ location, region, art: artIn, state, reducedMotion, seed
     mids.push({ kind, x: Math.max(20, Math.min(SCENE_W - 220, x)) });
   }
   const near = nearPath(spec.near, rng);
-  const particleSpec = art.particles === 'none' ? null : PARTICLE_MOTION[art.particles];
-  const particles = particleSpec === null ? [] : Array.from({ length: particleSpec.count }, () => ({
-    x: rng.range(0, SCENE_W),
-    y: rng.range(40, SCENE_H - 60),
-    r: rng.range(particleSpec.r[0], particleSpec.r[1]),
-    delay: rng.range(0, 9),
-    dur: rng.range(7, 14),
-  }));
+  const particles = makeParticles(art.particles, rng);
   const wash = TIME_WASH[state.watch];
-  const breach = state.breachOverlay ?? (state.infected === true ? 0.55 : state.horde ? 0.22 : 0);
+  const breach = breachLevel(state);
   const ceiling = spec.ceiling === true;
   const ceilingPath = ceiling
     ? (() => {
@@ -439,10 +416,7 @@ export function Scene({ location, region, art: artIn, state, reducedMotion, seed
           <stop offset="0" stopColor={p.accent} stopOpacity={0.45} />
           <stop offset="1" stopColor={p.accent} stopOpacity={0} />
         </radialGradient>
-        <pattern id={`${id}-hatch`} width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <rect width="14" height="14" fill="#0b0414" fillOpacity={0.35} />
-          <line x1="0" y1="0" x2="0" y2="14" stroke="#7b3fe4" strokeWidth={5} strokeOpacity={0.8} />
-        </pattern>
+        <HatchPattern id={`${id}-hatch`} />
       </defs>
       {/* 1 sky */}
       <rect width={SCENE_W} height={SCENE_H} fill={`url(#${id}-sky)`} />
@@ -481,21 +455,7 @@ export function Scene({ location, region, art: artIn, state, reducedMotion, seed
       {/* the hour (non-timeless places follow the Breach Clock) */}
       {timeless ? null : <rect width={SCENE_W} height={SCENE_H} fill={wash.color} opacity={wash.opacity} className="scene__wash" />}
       {/* 7 particles (≤ 24; still under reduced motion) */}
-      {particleSpec === null ? null : (
-        <g className={`scene__particles scene__particles--${particleSpec.motion}`} fill={p.accent}>
-          {particles.map((pt, i) => (
-            <circle
-              key={i}
-              cx={f(pt.x)}
-              cy={f(pt.y)}
-              r={f(pt.r)}
-              opacity={0.7}
-              className={reducedMotion ? undefined : 'scene__particle'}
-              style={reducedMotion ? undefined : { animationDelay: `-${f(pt.delay)}s`, animationDuration: `${f(pt.dur)}s` }}
-            />
-          ))}
-        </g>
-      )}
+      {particles === null ? null : <ParticlesLayer set={particles} fill={p.accent} reducedMotion={reducedMotion} />}
       {/* 8 the Breach: infected nodes hatched violet-black, the whole world tinged while the Horde runs */}
       {breach > 0 ? <rect width={SCENE_W} height={SCENE_H} fill={`url(#${id}-hatch)`} opacity={breach} data-breach="" /> : null}
     </svg>

@@ -15,6 +15,8 @@ import { Icon } from '../art/Icon';
 import { breachOverlay } from '../art/breachOverlay';
 import { RegionPalette } from '../art/RegionPalette';
 import { Scene } from '../art/Scene';
+import type { Backdrop } from '../art/backdropChooser';
+import { useBackdrop, usePreloadExits } from '../art/useBackdrop';
 import { ActionBar, actionKey } from '../components/ActionBar';
 import { Button } from '../components/Button';
 import { ExitBar } from '../components/ExitBar';
@@ -57,6 +59,8 @@ export interface ExploreViewProps {
   location: Pick<Location, 'id' | 'name' | 'regionId' | 'art'>;
   region?: Pick<Region, 'palette'>;
   scene: SceneState;
+  /** U71: the painting under the scene's code layers (null → the parametric scene). */
+  backdrop?: Backdrop | null;
   seed: string;
   reducedMotion: boolean;
   hud: HudModel;
@@ -101,7 +105,7 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
               )}
             </header>
             <div className="place__scene">
-              <Scene location={p.location} region={p.region} art={place.art} state={p.scene} reducedMotion={p.reducedMotion} seed={p.seed} />
+              <Scene location={p.location} region={p.region} art={place.art} state={p.scene} reducedMotion={p.reducedMotion} seed={p.seed} backdrop={p.backdrop ?? null} />
             </div>
             <div className="place__text">
               <p className="place__description">{place.description}</p>
@@ -215,6 +219,9 @@ export function ExploreScreen(): ReactNode {
       log: logLines(state, profile.settings.logLength),
     };
   }, [state, content, profile, legal, store, shell]);
+  const backdrop = useBackdrop(location, state.world.heartstone, content.locations);
+  const exitIds = useMemo(() => model.exits.filter((e) => e.state === 'open').map((e) => e.to), [model.exits]);
+  usePreloadExits(exitIds, here, state.world.heartstone, content.locations);
 
   const dispatch = (action: Parameters<typeof store.dispatch>[0]): void => void store.dispatch(action);
   const run = (row: ActionRow): void => {
@@ -298,6 +305,7 @@ export function ExploreScreen(): ReactNode {
           infected: model.place.infected,
           breachOverlay: breachOverlay({ clock: state.clock, hordeActive: state.world.hordeActive, infected: model.place.infected }),
         }}
+        backdrop={backdrop}
         seed={location.id}
         reducedMotion={reducedMotion}
         hud={model.hud}

@@ -4,10 +4,17 @@
 //
 //   bun tools/build.ts          → dist/      (minified, __E2E__ = false)
 //   bun tools/build.ts --e2e    → dist-e2e/  (unminified, __E2E__ = true: dev hooks for Playwright, PLAN §4.13)
+//   bun tools/build.ts --e2e --real-art      the e2e build with public/art/ instead of the fixture art (for looking at it)
+//
+// Scene art (U71, docs/ART.md §7): the art folder's file names become the scene manifest, inlined as `__SCENE_MANIFEST__`
+// (src/ui/art/sceneManifest.ts). Production and dev use public/art/; the e2e build uses tests/fixtures/art/ (copied to
+// art/ in place of public/art/), so the e2e tests pass whatever the art session adds. Images are separate files, outside
+// PLAN §1.1's JS budget (D-124); the build reports their total.
 import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import { buildSceneManifest, paintingCount, type SceneManifest } from '../src/ui/art/sceneManifest';
 
 export const ROOT = path.resolve(import.meta.dirname, '..');
 /** PLAN §1.1 bundle budget: total gzip size of every emitted .js file. */
@@ -23,7 +30,12 @@ export interface BuildOptions {
   budgetBytes?: number;
   version?: string;
   log?: (line: string) => void;
+  /** The scene art folder, relative to `root` (default: public/art, or tests/fixtures/art for e2e). */
+  artDir?: string;
 }
+
+export const ART_DIR = 'public/art';
+export const FIXTURE_ART_DIR = 'tests/fixtures/art';
 
 export interface BuildResult {
   outdir: string;
@@ -31,6 +43,25 @@ export interface BuildResult {
   scripts: string[];
   styles: string[];
   jsGzipBytes: number;
+  /** The scene art shipped: images in the manifest and the bytes of every file under art/. */
+  art: { images: number; bytes: number };
+}
+
+/** The scene manifest of an art folder (`scenes/*.webp` + the root's `title*.webp`); empty when the folder is missing. */
+export function readSceneManifest(artDir: string): SceneManifest {
+  const list = (dir: string): string[] => (fs.existsSync(dir) ? fs.readdirSync(dir).filter((n) => fs.statSync(path.join(dir, n)).isFile()) : []);
+  return buildSceneManifest(list(path.join(artDir, 'scenes')), list(artDir));
+}
+
+/** Total bytes of the files under `dir`. */
+export function dirBytes(dir: string): number {
+  if (!fs.existsSync(dir)) return 0;
+  let bytes = 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    bytes += entry.isDirectory() ? dirBytes(full) : fs.statSync(full).size;
+  }
+  return bytes;
 }
 
 export function readVersion(root: string = ROOT): string {
@@ -45,6 +76,8 @@ export function esbuildOptions(opts: {
   assetsDir: string;
   mode: 'production' | 'e2e' | 'dev';
   version: string;
+  /** Inlined as `__SCENE_MANIFEST__` (empty when absent). */
+  sceneManifest?: SceneManifest;
 }): esbuild.BuildOptions {
   const dev = opts.mode === 'dev';
   return {
@@ -67,6 +100,7 @@ export function esbuildOptions(opts: {
       __DEV__: String(dev),
       __E2E__: String(opts.mode !== 'production'),
       __VERSION__: JSON.stringify(opts.version),
+      __SCENE_MANIFEST__: JSON.stringify(opts.sceneManifest ?? { scenes: {}, title: null }),
     },
     logLevel: 'warning',
   };
@@ -98,10 +132,11 @@ export function injectAssets(html: string, assets: { scripts: string[]; styles: 
   return `${before}${tags.join('\n')}\n  ${html.slice(marker)}`;
 }
 
-export function copyDir(from: string, to: string): number {
+export function copyDir(from: string, to: string, skip: readonly string[] = []): number {
   if (!fs.existsSync(from)) return 0;
   let count = 0;
   for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
+    if (skip.includes(entry.name)) continue;
     const src = path.join(from, entry.name);
     const dest = path.join(to, entry.name);
     if (entry.isDirectory()) {
@@ -126,6 +161,9 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
 
   fs.rmSync(outdir, { recursive: true, force: true });
   fs.mkdirSync(outdir, { recursive: true });
+  const publicDir = path.resolve(root, options.publicDir ?? 'public');
+  const artDir = path.resolve(root, options.artDir ?? (e2e ? FIXTURE_ART_DIR : ART_DIR));
+  const sceneManifest = readSceneManifest(artDir);
 
   const result = await esbuild.build(
     esbuildOptions({
@@ -134,6 +172,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
       assetsDir: path.join(outdir, 'assets'),
       mode: e2e ? 'e2e' : 'production',
       version: options.version ?? readVersion(root),
+      sceneManifest,
     }),
   );
   const metafile = result.metafile;
@@ -143,7 +182,14 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
   if (assets.scripts.length === 0) throw new Error('esbuild emitted no entry script');
   const template = fs.readFileSync(path.resolve(root, options.html ?? 'index.html'), 'utf8');
   fs.writeFileSync(path.join(outdir, 'index.html'), injectAssets(template, assets));
-  const copied = copyDir(path.resolve(root, options.publicDir ?? 'public'), outdir);
+  // the art folder lands at art/ whatever its source (public/art is skipped when another folder stands in for it)
+  const ownArt = artDir === path.join(publicDir, 'art');
+  let copied = copyDir(publicDir, outdir, ownArt ? [] : ['art']);
+  if (!ownArt && fs.existsSync(artDir)) {
+    fs.mkdirSync(path.join(outdir, 'art'), { recursive: true });
+    copied += copyDir(artDir, path.join(outdir, 'art'));
+  }
+  const art = { images: paintingCount(sceneManifest), bytes: dirBytes(path.join(outdir, 'art')) };
 
   let jsGzipBytes = 0;
   for (const file of Object.keys(metafile.outputs)) {
@@ -154,16 +200,21 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
   }
   for (const href of assets.styles) log(`  ${path.relative(root, path.join(outdir, href))}`);
   log(`  index.html + ${copied} public file(s) → ${path.relative(root, outdir) || '.'}/`);
+  log(`  art: ${art.images} image(s) from ${path.relative(root, artDir) || '.'}/, ${(art.bytes / 1000).toFixed(1)} kB (outside the JS budget)`);
   if (jsGzipBytes > budget) {
     throw new Error(`JS budget exceeded: ${(jsGzipBytes / 1000).toFixed(1)} kB gzip > ${(budget / 1000).toFixed(0)} kB`);
   }
   log(`build: ok — JS ${(jsGzipBytes / 1000).toFixed(1)} kB gzip (budget ${Number.isFinite(budget) ? `${(budget / 1000).toFixed(0)} kB` : 'none: e2e'})`);
-  return { outdir, ...assets, jsGzipBytes };
+  return { outdir, ...assets, jsGzipBytes, art };
 }
 
 if (import.meta.main) {
   try {
-    await buildApp({ e2e: process.argv.includes('--e2e'), log: (line) => process.stdout.write(`${line}\n`) });
+    await buildApp({
+      e2e: process.argv.includes('--e2e'),
+      ...(process.argv.includes('--real-art') ? { artDir: ART_DIR } : {}),
+      log: (line) => process.stdout.write(`${line}\n`),
+    });
   } catch (error) {
     process.stderr.write(`build: FAILED — ${error instanceof Error ? error.message : String(error)}\n`);
     process.exit(1);

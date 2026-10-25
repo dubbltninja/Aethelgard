@@ -12,6 +12,8 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { thresholdArea, thresholdLocationId, type ThresholdArea } from '@engine/index';
 import { RegionPalette } from '../art/RegionPalette';
 import { Scene, type SceneState } from '../art/Scene';
+import type { Backdrop } from '../art/backdropChooser';
+import { useBackdrop } from '../art/useBackdrop';
 import { Button, cx } from '../components/Button';
 import { ActionButtons } from '../components/items/ItemCard';
 import { Tabs, tabId, tabPanelId, type TabItem } from '../components/lore/Tabs';
@@ -438,6 +440,8 @@ export interface ThresholdSceneProps {
   region: Parameters<typeof Scene>[0]['region'];
   art: Parameters<typeof Scene>[0]['art'];
   state: SceneState;
+  /** U71: the painting, if any (null → the parametric scene). */
+  backdrop?: Backdrop | null;
 }
 
 export interface ThresholdViewProps {
@@ -471,7 +475,7 @@ export function ThresholdView(p: ThresholdViewProps): ReactNode {
         <div role="tabpanel" id={tabPanelId('threshold')} aria-labelledby={tabId('threshold', header.area)} className="threshold__panel">
           {p.scene === null ? null : (
             <div className="threshold__scene" aria-hidden="true">
-              <Scene location={p.scene.location} {...(p.scene.region === undefined ? {} : { region: p.scene.region })} {...(p.scene.art === undefined ? {} : { art: p.scene.art })} state={p.scene.state} reducedMotion={p.reducedMotion} seed={header.locationId} />
+              <Scene location={p.scene.location} {...(p.scene.region === undefined ? {} : { region: p.scene.region })} {...(p.scene.art === undefined ? {} : { art: p.scene.art })} state={p.scene.state} reducedMotion={p.reducedMotion} seed={header.locationId} backdrop={p.scene.backdrop ?? null} />
             </div>
           )}
           {header.description === '' ? null : <p className="threshold__description">{header.description}</p>}
@@ -528,6 +532,7 @@ export function ThresholdScreen(): ReactNode {
 
   const locationId = thresholdLocationId(state);
   const location = content.locations[locationId];
+  const backdrop = useBackdrop(location, state.world.heartstone, content.locations);
   const scene: ThresholdSceneProps | null =
     location === undefined
       ? null
@@ -536,6 +541,7 @@ export function ThresholdScreen(): ReactNode {
           region: content.regions[location.regionId],
           art: resolvedArt(state, content, profile, locationId),
           state: { horde: false, heartstone: state.world.heartstone, watch: 3, loop: state.meta.loop },
+          backdrop,
         };
 
   const go = (to: ThresholdArea): void => {

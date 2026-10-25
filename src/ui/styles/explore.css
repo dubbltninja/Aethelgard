@@ -328,6 +328,35 @@
   height: 100%;
 }
 
+/* U71: a painted backdrop under the code layers (SceneBackdrop.tsx). The frame's region sky shows while the painting loads,
+   so it is never empty. Smooth scaling (no `image-rendering: pixelated`): the frame shows the pixel art at fractional scales. */
+.scene--painted {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(var(--region-sky-top, var(--ruins-sky-top)), var(--region-sky-bottom, var(--ruins-sky-bottom)));
+}
+
+.scene__backdrop,
+.scene__painting,
+.scene__overlay {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scene__painting {
+  object-fit: cover;
+  object-position: center;
+}
+
+/* High contrast: a framed painting has no text over it, so it stays, dimmed, as a quiet picture of the place (the
+   frame's white border carries the shape); paintings behind text — the Title, the Ending — are hidden instead. */
+:root[data-theme="high-contrast"] .scene__painting {
+  filter: brightness(0.45) saturate(0.6);
+}
+
 .place__text {
   display: grid;
   gap: var(--space-3);

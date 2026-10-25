@@ -4,7 +4,7 @@ import { describe, expect, test } from 'bun:test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { buildApp, injectAssets, readVersion } from '../../../tools/build';
+import { buildApp, injectAssets, readSceneManifest, readVersion } from '../../../tools/build';
 
 function fixtureRoot(): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'build-test-'));
@@ -69,6 +69,37 @@ describe('buildApp', () => {
     const log: string[] = [];
     await buildApp({ root, entry: 'src/main.ts', e2e: true, log: (line) => log.push(line) });
     expect(log.at(-1)).toContain('(budget none: e2e)');
+  });
+
+  test('U71: the art folder becomes the inlined scene manifest; e2e swaps in the fixture art at art/', async () => {
+    const w = (rel: string) => {
+      fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+      fs.writeFileSync(path.join(root, rel), 'RIFF');
+    };
+    w('public/art/scenes/loc_real.webp');
+    w('public/art/title.webp');
+    w('tests/fixtures/art/scenes/loc_fake.webp');
+    w('tests/fixtures/art/scenes/loc_fake@sm.webp');
+    fs.writeFileSync(path.join(root, 'src/scene.ts'), 'document.title = JSON.stringify(__SCENE_MANIFEST__);\n');
+    expect(Object.keys(readSceneManifest(path.join(root, 'public/art')).scenes)).toEqual(['loc_real']);
+    expect(readSceneManifest(path.join(root, 'nowhere'))).toEqual({ scenes: {}, title: null });
+
+    const log: string[] = [];
+    const prod = await buildApp({ root, entry: 'src/scene.ts', log: (line) => log.push(line) });
+    expect(fs.readFileSync(path.join(prod.outdir, prod.scripts[0] ?? ''), 'utf8')).toContain('art/scenes/loc_real.webp');
+    expect(fs.existsSync(path.join(prod.outdir, 'art/scenes/loc_real.webp'))).toBe(true);
+    expect(prod.art).toEqual({ images: 2, bytes: 8 });
+    expect(log.some((l) => l.includes('art: 2 image(s) from public/art/'))).toBe(true);
+
+    const e2e = await buildApp({ root, entry: 'src/scene.ts', e2e: true });
+    const js = fs.readFileSync(path.join(e2e.outdir, e2e.scripts[0] ?? ''), 'utf8');
+    expect(js).toContain('art/scenes/loc_fake@sm.webp');
+    expect(js).not.toContain('loc_real');
+    expect(fs.existsSync(path.join(e2e.outdir, 'art/scenes/loc_fake.webp'))).toBe(true);
+    expect(fs.existsSync(path.join(e2e.outdir, 'art/scenes/loc_real.webp'))).toBe(false);
+    expect(e2e.art.images).toBe(1);
+    const real = await buildApp({ root, entry: 'src/scene.ts', e2e: true, artDir: 'public/art' });
+    expect(fs.existsSync(path.join(real.outdir, 'art/scenes/loc_real.webp'))).toBe(true);
   });
 
   test('reads the version from package.json', () => {

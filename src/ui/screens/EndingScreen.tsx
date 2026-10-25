@@ -11,6 +11,8 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { RegionPalette } from '../art/RegionPalette';
 import { Scene, type SceneState } from '../art/Scene';
+import type { Backdrop } from '../art/backdropChooser';
+import { useBackdrop } from '../art/useBackdrop';
 import { Button } from '../components/Button';
 import { ActionButtons } from '../components/items/ItemCard';
 import { useHotkeys } from '../hooks/useHotkeys';
@@ -28,6 +30,8 @@ export interface EndingSceneProps {
   region: Parameters<typeof Scene>[0]['region'];
   state: SceneState;
   seed: string;
+  /** U71: the painting, if any (null → the parametric scene). */
+  backdrop?: Backdrop | null;
 }
 
 export interface EndingViewProps {
@@ -49,7 +53,7 @@ export function EndingView({ phase, model, summary, scene, reducedMotion, onNext
       <section className="ending" data-screen="ending" data-phase={phase} data-outcome={model.outcome.kind} aria-labelledby="ending-heading">
         {scene === null ? null : (
           <div className="ending__scene" aria-hidden="true">
-            <Scene location={scene.location} {...(scene.region === undefined ? {} : { region: scene.region })} state={scene.state} reducedMotion={reducedMotion} seed={scene.seed} />
+            <Scene location={scene.location} {...(scene.region === undefined ? {} : { region: scene.region })} state={scene.state} reducedMotion={reducedMotion} seed={scene.seed} backdrop={scene.backdrop ?? null} />
           </div>
         )}
         <div className="ending__panel">
@@ -123,6 +127,7 @@ export function EndingScreen(): ReactNode {
   useViewFocus(rootRef, phase);
 
   const location = content.locations[state.world.currentLocationId];
+  const backdrop = useBackdrop(location, state.world.heartstone, content.locations);
   const scene: EndingSceneProps | null =
     location === undefined
       ? null
@@ -131,6 +136,7 @@ export function EndingScreen(): ReactNode {
           region: content.regions[location.regionId],
           state: { horde: state.world.hordeActive, heartstone: state.world.heartstone, watch: 2, loop: state.meta.loop },
           seed: location.id,
+          backdrop,
         };
 
   const last = model?.last ?? false;

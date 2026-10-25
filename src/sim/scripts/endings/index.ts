@@ -85,7 +85,7 @@ export const ENDING_SCRIPTS: readonly EndingScript[] = [
     name: "Loop 3 with the oath, the iron and the design: Brak, the Heartstone destroyed, Hadda's ask — the road past it outruns the clock (KNOWN GAP)",
     classId: 'ironclad_warden',
     seed: 'quest:silence',
-    profile: { loop: 3, echoes: ['echo_ironclad_oath', 'echo_stone_hide_origin', 'echo_tyrant_jailer', 'echo_iron_that_does_not_wish', 'echo_anchor_half_a', 'echo_anchor_half_b', 'echo_brak_bond', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_high_mark', 'echo_hollow_path', 'echo_steppe_waystones', 'echo_heartstone_path', 'echo_crystal_location'], bestLevel: 20 },
+    profile: { loop: 3, echoes: ['echo_ironclad_oath', 'echo_stone_hide_origin', 'echo_tyrant_jailer', 'echo_iron_that_does_not_wish', 'echo_anchor_half_a', 'echo_anchor_half_b', 'echo_brak_lives', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_high_mark', 'echo_hollow_path', 'echo_steppe_waystones', 'echo_heartstone_path', 'echo_crystal_location'], bestLevel: 20 },
     loops: [[...ironSilenceAsked, { assert: { quest: { id: 'q_iron_silence', status: 'completed' } }, message: "ending D's road: the anchor's materials, Borin and the Apex lie past the nineteenth dawn" }]],
   },
   {

@@ -1191,6 +1191,123 @@ export const ironSilenceAsked: ScriptStep[] = [
   holds({ all: [{ quest: { id: 'q_iron_silence', stage: 'cut_the_line' } }, { echo: 'echo_anchor_schema' }, { item: { id: 'mat_ember_ore' } }] }, 'q_iron_silence did not start, or the design was not derived'),
 ];
 
+// ---- U59: the five class mini-quests (Loop 2+, each played by its class; the hooks are the givers' scenes and the regions' events) ----
+
+/** Loop 2, a Ranger: Kaelen's ask at the Respite, the ground read at the Path (the marks, the snare, one watch), the runner home. */
+const unmarkedTrail: ScriptStep[] = [
+  { fight: 'flee' }, // the Path's Prowlers, where they roll (the quest is pacifist)
+  { goto: 'loc_wayfarers_respite' },
+  { talk: 'npc_kaelen_stonehand', pick: ['yes'] }, // scene_kaelen_unmarked_trail_offer
+  holds({ quest: { id: 'q_class_ranger', stage: 'read_ground' } }, 'q_class_ranger did not start'),
+  { goto: 'loc_mistwood_path' },
+  interact('ev_mistwood_read_ground'),
+  choose('read_marks'),
+  goOn,
+  holds({ quest: { id: 'q_class_ranger', stage: 'snare' } }, 'the marks did not move the quest on'),
+  choose('snare'),
+  goOn,
+  goOn,
+  holds({ quest: { id: 'q_class_ranger', stage: 'bring_home' } }, 'the snare did not take'),
+  { goto: 'loc_wayfarers_respite' },
+  { talk: 'npc_kaelen_stonehand', pick: [] }, // scene_kaelen_unmarked_trail_report
+  done('q_class_ranger', 'home'),
+  holds({ all: [{ echo: 'echo_kaelen_ledger' }, { item: { id: 'item_harrier_bow' } }] }, 'the ledger or the bow was not paid'),
+];
+
+/** Loop 2, a Wizard: Tamsin's page at the Plaza, the night waited for at the Chasm's camp, the page read by ley-light; copied or burned. */
+const seventhPage = (choiceId: 'copy' | 'burn'): ScriptStep[] => [
+  { fight: 'flee' }, // the Plaza's Wisp scatters when fled (the quest is pacifist)
+  { goto: 'loc_silverwood_plaza' },
+  { talk: 'npc_tamsin_reed', pick: ['yes'] }, // scene_tamsin_seventh_page_offer
+  holds({ quest: { id: 'q_class_wizard', stage: 'ley_light' } }, 'q_class_wizard did not start'),
+  { goto: 'loc_chasm_of_whispers' }, // the cold camp on the lip: a dawn, then dusk, then the Plaza by night
+  { rest: 1 },
+  waitFor({ watch: 'dusk' }),
+  { fight: 'melee' }, // a return roll at the Plaza is fought: a flight costs three watches (combat/flee.ts) and the night
+  { goto: 'loc_silverwood_plaza' },
+  holds({ all: [{ watch: 'night' }, { quest: { id: 'q_class_wizard', stage: 'read' } }] }, 'the fountain at night did not open the reading'),
+  interact('ev_plaza_ley_light'),
+  goOn,
+  goOn,
+  choose(choiceId),
+  goOn,
+  done('q_class_wizard', choiceId === 'copy' ? 'copied' : 'burned'),
+  holds({ item: { id: 'item_scriptorium_staff' } }, 'the staff was not paid'),
+  ...(choiceId === 'copy'
+    ? [holds({ all: [{ echo: 'echo_korr_marginalia' }, { corruption: { min: 1 } }] }, 'the margins were not read, or the copy cost nothing')]
+    : [holds({ rep: { faction: 'remnants', min: 5 } }, 'the burning did not pay the Remnants')]),
+];
+
+/** Loop 2, an Elf: the whisper followed from the Archway, a dawn at Ilyra's fire, the Plaza reached at dusk, the buried duel; drawn, or let pass. */
+const bladesong = (choiceId: 'draw' | 'still'): ScriptStep[] => [
+  { fight: 'melee' },
+  { goto: 'loc_crumbling_archway' },
+  interact('ev_archway_follow'),
+  choose('follow'),
+  goOn,
+  holds({ quest: { id: 'q_class_elf', stage: 'follow' } }, 'the whisper did not start q_class_elf'),
+  { goto: 'loc_whispering_ruins' },
+  { rest: 1 }, // to dawn: the Path by day, the Plaza at dusk
+  { goto: 'loc_silverwood_plaza' },
+  holds({ all: [{ watch: 'dusk' }, { quest: { id: 'q_class_elf', stage: 'duel' } }] }, 'the Plaza at dusk did not open the duelling-ground'),
+  interact('ev_plaza_duelling_ground'),
+  goOn,
+  choose(choiceId),
+  ...(choiceId === 'draw' ? [{ fight: 'melee' } as ScriptStep] : [goOn, goOn]),
+  done('q_class_elf', choiceId === 'draw' ? 'won' : 'passed'),
+  holds({ item: { id: 'item_elven_bow' } }, 'the bow was not paid'),
+];
+
+/** Loop 2, a Warden: the Peaks accepted (the legacy offer wins the tie), Brak's hub to the wall, the night at the gap (three waves), the plate to Borin. */
+const wallThatHolds: ScriptStep[] = [
+  { fight: 'melee' },
+  { goto: 'loc_ironclad_camp' },
+  { talk: 'npc_brak', pick: ['yes'] }, // scene_brak_clear_path_offer (first in content order)
+  holds({ quest: { id: 'q_clear_path', stage: 'hunt' } }, 'q_clear_path did not start'),
+  { talk: 'npc_brak', pick: ['wall', 'yes'] }, // scene_brak_arc → scene_brak_wall_offer
+  holds({ quest: { id: 'q_class_ironclad_warden', stage: 'be_a_wall' } }, 'q_class_ironclad_warden did not start'),
+  { rest: 1 }, // the inn, to dawn and whole
+  waitFor({ watch: 'night' }),
+  holds({ quest: { id: 'q_class_ironclad_warden', stage: 'hold' } }, 'the Camp at night did not open the gap'),
+  interact('ev_camp_barricade_gap'),
+  choose('take'),
+  { fight: 'melee' }, // the three waves, chained
+  holds({ quest: { id: 'q_class_ironclad_warden', stage: 'dawn' } }, 'the gap did not hold through the three waves'),
+  { rest: 1 },
+  { fight: 'flee' }, // the Peaks' Brute holds (the gate while q_clear_path runs); the Outpost's Golems are fled
+  { goto: 'loc_emberforge' },
+  { talk: 'npc_borin_stonefist', pick: [] }, // scene_borin_wall_tempered
+  done('q_class_ironclad_warden', 'tempered'),
+  holds({ item: { id: 'item_ironclad_hammer' } }, 'the hammer was not paid'),
+];
+
+/** Loop 2, a Shadow Weaver: the shards' pact (the legacy offer wins the tie, and opens the bridge), Nyx's ask, the Hollow at night, the seam; the Shard left or taken. */
+const unlitThread = (choiceId: 'leave' | 'take'): ScriptStep[] => [
+  { fight: 'flee' }, // the Plaza's Wisp on the way scatters when fled (the quest is pacifist)
+  { goto: 'loc_chasm_of_whispers' },
+  nyxDejaVu,
+  { talk: 'npc_nyx', pick: ['yes'] }, // scene_nyx_void_shards_offer
+  holds({ quest: { id: 'q_void_shards', stage: 'gather' } }, 'q_void_shards did not start'),
+  { talk: 'npc_nyx', pick: ['yes'] }, // scene_nyx_unlit_thread_offer
+  holds({ quest: { id: 'q_class_shadow_weaver', stage: 'seam' } }, 'q_class_shadow_weaver did not start'),
+  { rest: 1 }, // the cold camp on the lip: a dawn, then night
+  waitFor({ watch: 'night' }),
+  // the Hollow's first group fights on arrival (dawn) and scatters when fled, which costs three watches (combat/flee.ts): night
+  { goto: 'loc_voidscar_hollow' },
+  holds({ all: [{ watch: 'night' }, { quest: { id: 'q_class_shadow_weaver', stage: 'hex' } }] }, 'the Hollow at night did not open the seam'),
+  interact('ev_hollow_feel_seam'),
+  goOn,
+  choose('hex'),
+  goOn,
+  choose(choiceId),
+  goOn,
+  holds({ quest: { id: 'q_class_shadow_weaver', stage: choiceId === 'leave' ? 'return' : 'return_took' } }, 'the seam did not send you back'),
+  { goto: 'loc_chasm_of_whispers' },
+  { talk: 'npc_nyx', pick: [] }, // scene_nyx_unlit_thread_report
+  done('q_class_shadow_weaver', choiceId === 'leave' ? 'one_of_us' : 'remembered'),
+  holds({ item: { id: 'item_chasmglass_focus' } }, 'the lens was not paid'),
+];
+
 export const QUEST_SCRIPTS: readonly QuestScript[] = [
   // ---- q_echo_crystal ----
   { questId: 'q_echo_crystal', outcome: 'given', name: 'the Crystal given (Loop 1), verse I next talk', classId: CLASS, seed: 'quest:crystal:give', steps: crystalGiven() },
@@ -1930,6 +2047,79 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     seed: 'quest:unbound',
     profile: { loop: 2, echoes: ['echo_tyrant_speaks', 'echo_apex_resonance'], bestLevel: 17 },
     steps: unbound,
+  },
+  // ---- U59 · the class mini-quests (Loop 2, each by its class; STORY §11.8) ----
+  {
+    questId: 'q_class_ranger',
+    outcome: 'home',
+    name: "Loop 2, a Ranger: Kaelen's salt-runner, the ground read, the snare at the drag-line, the runner home; the ledger",
+    classId: 'ranger',
+    seed: 'quest:class:ranger',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: unmarkedTrail,
+  },
+  {
+    questId: 'q_class_wizard',
+    outcome: 'copied',
+    name: "Loop 2, a Wizard: Tamsin's page read by ley-light at night; Korr's hand copied (Corruption +1, the margins)",
+    classId: 'wizard',
+    seed: 'quest:class:wizard:copy',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: seventhPage('copy'),
+  },
+  {
+    questId: 'q_class_wizard',
+    outcome: 'burned',
+    name: 'Loop 2, a Wizard: the same, the page burned on the rim (Remnants +5)',
+    classId: 'wizard',
+    seed: 'quest:class:wizard:burn',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: seventhPage('burn'),
+  },
+  {
+    questId: 'q_class_elf',
+    outcome: 'won',
+    name: "Loop 2, an Elf: the Archway's whisper followed to the Plaza at dusk, the buried duel drawn and won (Bladesong)",
+    classId: 'elf',
+    seed: 'quest:class:elf:draw',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: bladesong('draw'),
+  },
+  {
+    questId: 'q_class_elf',
+    outcome: 'passed',
+    name: 'Loop 2, an Elf: the same, standing still and letting it pass (Shadowstep)',
+    classId: 'elf',
+    seed: 'quest:class:elf:still',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: bladesong('still'),
+  },
+  {
+    questId: 'q_class_ironclad_warden',
+    outcome: 'tempered',
+    name: "Loop 2, a Warden: Brak's gap held through three waves at night, the plate tempered by Borin",
+    classId: 'ironclad_warden',
+    seed: 'quest:class:warden',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: wallThatHolds,
+  },
+  {
+    questId: 'q_class_shadow_weaver',
+    outcome: 'one_of_us',
+    name: "Loop 2, a Shadow Weaver: the seam at the Hollow at night, a Stalker hexed onto its pack, the Shard left; the line she says to no one else",
+    classId: 'shadow_weaver',
+    seed: 'quest:class:weaver:leave',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: unlitThread('leave'),
+  },
+  {
+    questId: 'q_class_shadow_weaver',
+    outcome: 'remembered',
+    name: 'Loop 2, a Shadow Weaver: the same, the Shard taken (no line, no +5)',
+    classId: 'shadow_weaver',
+    seed: 'quest:class:weaver:take',
+    profile: { loop: 2, bestLevel: 17 },
+    steps: unlitThread('take'),
   },
 ];
 

@@ -88,6 +88,17 @@ export const locations = [
     events: [
       { id: 'ev_mistwood_herbs', text: 'You crush a leaf without meaning to. The smell is clean. Nothing here has been clean in a long time.' },
       { id: 'ev_mistwood_shapes', text: 'A shape between the trunks keeps your pace for ten steps, then is a tree.' },
+      // U59 (STORY §11.8 `q_class_ranger` stages 1–2): read the ground while the Ranger's quest asks it; the scene reads the marks
+      // and sets the snare (shared/dialogues/classes.ts)
+      {
+        id: 'ev_mistwood_read_ground',
+        trigger: 'interact',
+        label: 'Read the ground',
+        text: 'Boot prints at the edge of the trail, one pair, light. Something with four feet walked over them.',
+        once: false,
+        when: { any: [{ quest: { id: 'q_class_ranger', stage: 'read_ground' } }, { quest: { id: 'q_class_ranger', stage: 'snare' } }] },
+        effects: [{ startDialogue: 'scene_mistwood_read_ground' }],
+      },
     ],
     // WORLD's particles are "fog drift (horizontal, slow)"; the nearest preset is spores (the horizontal drift is the UI unit's).
     art: { template: 'forest', horizon: 0.64, silhouettes: ['bark_seam_trunks', 'fog_band', 'scrap_cairn'], particles: 'spores', timeOfDay: 'dusk' },
@@ -169,6 +180,17 @@ export const locations = [
     events: [
       { id: 'ev_camp_clamor', text: 'Hammer strikes ring out like a steady heartbeat.' },
       { id: 'ev_camp_bull', text: "The ash bull on the barricade is Hearthring's sign. Someone here is homesick.", when: { flag: 'flag_hearthring_caravan' } },
+      // U59 (STORY §11.8 `q_class_ironclad_warden` stage 2): the gap in the barricade, the night the Warden holds it; the scene starts
+      // the first of three waves (shared/dialogues/classes.ts, shared/quests/classes.ts)
+      {
+        id: 'ev_camp_barricade_gap',
+        trigger: 'interact',
+        label: 'Take the gap in the barricade',
+        text: 'The gap in the barricade faces north. Nothing is in it.',
+        once: false,
+        when: { quest: { id: 'q_class_ironclad_warden', stage: 'hold' } },
+        effects: [{ startDialogue: 'scene_camp_barricade_night' }],
+      },
     ],
     art: { template: 'camp', horizon: 0.6, silhouettes: ['tent_peaks', 'barricade_spikes', 'smoke_column'], particles: 'embers', timeOfDay: 'dusk' },
     // WORLD §11.1 / §10.3: an inn (Camp rest points: WY inn, IC inn, EF camp); the fee is DESIGN §9.5's

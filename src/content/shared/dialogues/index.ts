@@ -34,6 +34,7 @@
 //   - A one-time payoff on "the next talk" is its own non-repeatable scene in the `payoff` band (scene_ilyra_crystal_deciphered,
 //     the déjà vu lines).
 import type { DialogueSceneInput } from '@schema/dialogue';
+import { dialogues as classes } from './classes';
 import { dialogues as companionsU54 } from './companions_u54';
 import { dialogues as companionsU55 } from './companions_u55';
 import { dialogues as companionsU56 } from './companions_u56';
@@ -44,5 +45,5 @@ import { dialogues as loop } from './loop';
 import { dialogues as regional } from './regional';
 import { dialogues as tyrant } from './tyrant';
 
-/** Every shared scene. U52: the legacy quests' scenes. U53: the faction chain quests' scenes. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs and camps. U56: Mireya's and Caelum's arcs and camps. U57: the regional quests' scenes. U58: the loop-only and ending quests' scenes, and the Tyrant's first words. */
-export const dialogues: readonly DialogueSceneInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56, ...regional, ...loop, ...endings, ...tyrant];
+/** Every shared scene. U52: the legacy quests' scenes. U53: the faction chain quests' scenes. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs and camps. U56: Mireya's and Caelum's arcs and camps. U57: the regional quests' scenes. U58: the loop-only and ending quests' scenes, and the Tyrant's first words. U59: the five class mini-quests' scenes. */
+export const dialogues: readonly DialogueSceneInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56, ...regional, ...loop, ...endings, ...tyrant, ...classes];

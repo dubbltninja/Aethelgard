@@ -45,6 +45,8 @@ const CREATURE_TABLE = worldCreatureTable();
 const pack = buildContentPack();
 const parsedLocations: Location[] = locations.map((l) => LocationSchema.parse(l));
 const parsedCreatures: Creature[] = creatures.map((c) => CreatureSchema.parse(c));
+/** U59 hooked the class mini-quests on interacts here: the Ranger's ground at the Path, the Warden's gap at the Camp (tests/unit/content/quests/classes.test.ts pins them). */
+const U59_HOOKS = ['ev_mistwood_read_ground', 'ev_camp_barricade_gap'];
 const byId = <T extends { id: string }>(rows: readonly T[], id: string): T => {
   const found = rows.find((r) => r.id === id);
   if (!found) throw new Error(`no record ${id}`);
@@ -301,10 +303,11 @@ describe('the six locations vs WORLD §3.2 blocks', () => {
   test('events: every WORLD event, its text verbatim, legacy ids with the ev_ prefix, once; the Forge’s Heartstone texts are three coined companions', () => {
     for (const l of parsedLocations) {
       const w = WL[l.id];
-      const got = Object.fromEntries(l.events.filter((e) => !e.id.startsWith('ev_forge_pulse_')).map((e) => [e.id, e.text]));
+      const got = Object.fromEntries(l.events.filter((e) => !e.id.startsWith('ev_forge_pulse_') && !U59_HOOKS.includes(e.id)).map((e) => [e.id, e.text]));
       const expected = Object.fromEntries(Object.entries(w?.events ?? {}).map(([id, text]) => [id.startsWith('ev_') ? id : `ev_${id}`, text]));
       expect([l.id, got]).toEqual([l.id, expected]);
       for (const e of l.events) {
+        if (U59_HOOKS.includes(e.id)) continue;
         expect([e.id, e.trigger, e.once]).toEqual([e.id, 'enter', true]);
         expect(e.id.startsWith('ev_')).toBe(true);
       }
@@ -981,7 +984,7 @@ describe('authored words outside the documents are few and short', () => {
     ]);
     // event ids WORLD does not spell: the three Heartstone variants of the Forge pulse
     const wordedEvents = new Set(Object.values(WL).flatMap((w) => Object.keys(w.events).map((id) => (id.startsWith('ev_') ? id : `ev_${id}`))));
-    const coined = parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id));
+    const coined = parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id) && !U59_HOOKS.includes(id));
     expect(coined).toEqual(['ev_forge_pulse_stabilized', 'ev_forge_pulse_exploited', 'ev_forge_pulse_destroyed']);
     // no move, phase or counter id is coined in this region: the creatures use WORLD's intent ids only (tested above); the
     // Horde-moves counter is the engine's

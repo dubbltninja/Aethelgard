@@ -98,6 +98,17 @@ export const locations = [
         text: 'You count the faces on the keystone. Nine. The ninth is unworn, as if cut yesterday.',
         when: { echo: 'echo_nine_voices' },
       },
+      // U59 (STORY §11.8 `q_class_elf`, "discovery at the Crumbling Archway (the whisper says follow to Silverwood blood)"): an Elf,
+      // from Loop 2, until the quest is in the journal; the scene says the second word (shared/dialogues/classes.ts)
+      {
+        id: 'ev_archway_follow',
+        trigger: 'interact',
+        label: 'Follow the whisper',
+        text: "'Wayfinder... follow.' There is a second word under it, and your blood knows it.",
+        once: false,
+        when: { all: [{ loop: { min: 2 } }, { class: 'elf' }, { not: { quest: { id: 'q_class_elf' } } }] },
+        effects: [{ startDialogue: 'scene_archway_follow' }],
+      },
     ],
     art: { template: 'ruins', horizon: 0.55, silhouettes: ['great_arch', 'vine_curtain', 'fallen_capital'], particles: 'pollen', timeOfDay: 'dusk' },
     levelBand: { min: 1, max: 2 },
@@ -266,6 +277,28 @@ export const locations = [
         id: 'ev_plaza_bells_before',
         text: 'You have heard these bells with their roofs on. The memory is not yours yet. Then it is.',
         when: { flag: 'flag_visited_before' },
+      },
+      // U59 (STORY §11.8 `q_class_wizard` stage 2): the page read by ley-light at the fountain, once the quest has reached the fountain
+      // at night; the scene is Korr's hand, copied or burned (shared/dialogues/classes.ts)
+      {
+        id: 'ev_plaza_ley_light',
+        trigger: 'interact',
+        label: 'Read the page by ley-light',
+        text: 'Under the cracked basin the ley comes up blue and slow. The page would read from below.',
+        once: false,
+        when: { quest: { id: 'q_class_wizard', stage: 'read' } },
+        effects: [{ startDialogue: 'scene_plaza_ley_light' }],
+      },
+      // U59 (STORY §11.8 `q_class_elf` stage 2): "a buried duelling-ground under the Plaza", once the whisper has been followed here at
+      // dusk; the scene is the last duel, drawn or let pass (shared/dialogues/classes.ts)
+      {
+        id: 'ev_plaza_duelling_ground',
+        trigger: 'interact',
+        label: 'Go down where the whisper goes',
+        text: 'A flagstone under the fountain ring has lifted on a hinge. The whisper went down it.',
+        once: false,
+        when: { quest: { id: 'q_class_elf', stage: 'duel' } },
+        effects: [{ startDialogue: 'scene_plaza_last_duel' }],
       },
     ],
     // WORLD's particles are "shimmering mist low to the ground"; motes is the nearest preset.

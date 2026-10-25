@@ -3,7 +3,7 @@
 // ../dialogues/, the same file name). Regional quests may instead live in a region folder's `quests.ts` (PLAN §10.3).
 //
 // Files: legacy.ts (U52) · factions.ts (U53) · companions_u54.ts (U54: Ilyra, Brak) · companions_u55.ts, companions_u56.ts
-// (U55–U56) · regional.ts (U57) · loop.ts, endings.ts (U58) · class.ts (U59). Each exports `quests` (`satisfies QuestInput[]`),
+// (U55–U56) · regional.ts (U57) · loop.ts, endings.ts (U58) · classes.ts (U59). Each exports `quests` (`satisfies QuestInput[]`),
 // in STORY §11's order.
 //
 // Conventions (the scene side is ../dialogues/index.ts):
@@ -38,6 +38,7 @@
 //     every outcome a later quest or ending reads — run by `npm run sim -- quest <id>` and tests/unit/sim/questScripts.test.ts.
 import type { EncounterInput } from '@schema/encounter';
 import type { QuestInput } from '@schema/quest';
+import { encounters as classEncounters, quests as classes } from './classes';
 import { quests as companionsU54 } from './companions_u54';
 import { quests as companionsU55 } from './companions_u55';
 import { quests as companionsU56 } from './companions_u56';
@@ -47,8 +48,8 @@ import { quests as legacy } from './legacy';
 import { quests as loop } from './loop';
 import { encounters as regionalEncounters, quests as regional } from './regional';
 
-/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs. U56: Mireya's and Caelum's arcs. U57: the six regional quests (the Heartbeat is legacy's). U58: the four loop-only quests and the six ending quests. */
-export const quests: readonly QuestInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56, ...regional, ...loop, ...endings];
+/** Every shared quest, in STORY §11 order. U52: the six legacy quests. U53: the four faction chain quests. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs. U56: Mireya's and Caelum's arcs. U57: the six regional quests (the Heartbeat is legacy's). U58: the four loop-only quests and the six ending quests. U59: the five class mini-quests (STORY §11.8, outside D-045's 44). */
+export const quests: readonly QuestInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56, ...regional, ...loop, ...endings, ...classes];
 
-/** The fights a quest starts itself (`startCombat` from a stage, a wave's `onVictory` or a scene): U53's Horde-echo waves; U57's cairn-ambushes and the Bell Vault's drowned; U58's hold-failing waves. */
-export const encounters: readonly EncounterInput[] = [...factionEncounters, ...regionalEncounters, ...endingEncounters];
+/** The fights a quest starts itself (`startCombat` from a stage, a wave's `onVictory` or a scene): U53's Horde-echo waves; U57's cairn-ambushes and the Bell Vault's drowned; U58's hold-failing waves; U59's last duel and the Camp's three waves. */
+export const encounters: readonly EncounterInput[] = [...factionEncounters, ...regionalEncounters, ...endingEncounters, ...classEncounters];

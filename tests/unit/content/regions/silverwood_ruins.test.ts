@@ -179,7 +179,8 @@ describe('the seven locations vs WORLD §3.1 blocks', () => {
     // U54 added the carrel's scene opener to the Sunken Archives (STORY §13 scene_the_first_drowned; its own test holds it);
     // U58 the carrel approached without drawing (`q_the_first_drowned`) and the Depths' count (`q_the_thirtieth_dawn`), both interacts
     const U54_EVENTS = ['ev_archives_first_drowned'];
-    const U58_EVENTS = ['ev_archives_oriel_carrel', 'ev_depths_count_beats'];
+    // U59 the class mini-quests' hooks (`q_class_elf` at the Archway and the Plaza, `q_class_wizard` at the fountain), interacts
+    const U58_EVENTS = ['ev_archives_oriel_carrel', 'ev_depths_count_beats', 'ev_archway_follow', 'ev_plaza_ley_light', 'ev_plaza_duelling_ground'];
     for (const l of parsedLocations) {
       const w = WL[l.id];
       const got = Object.fromEntries(l.events.filter((e) => !U54_EVENTS.includes(e.id) && !U58_EVENTS.includes(e.id)).map((e) => [e.id, e.text]));

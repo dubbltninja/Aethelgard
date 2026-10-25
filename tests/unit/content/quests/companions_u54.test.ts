@@ -707,6 +707,7 @@ const WRITTEN = {
     'Sleep on it.',
     'Later.',
     'About the Ring of Wagons.',
+    'About the barricade.', // U59: the hub's way to the Warden's quest
     'About the salt.',
     'About the Apex.',
     'Nothing.',
@@ -1072,8 +1073,8 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     const late = at(ilyra, 5);
     const toldLate = play(late.s, [talk('npc_ilyra'), pick('tell'), go], { content: pack, profile: late.profile });
     expect([nodesSeen(toldLate.events), toldLate.state.flags.flag_ilyra_told]).toEqual([['tier5', 'held_to_it'], true]);
-    // Kaelen, Loop 2 with the ledger remembered
-    const kaelen = at({ locationId: 'loc_wayfarers_respite' }, 2, ['echo_kaelen_ledger']);
+    // Kaelen, Loop 2 with the ledger remembered (a Wizard: for a Ranger his class quest's offer comes first, U59, as any offer does)
+    const kaelen = at({ locationId: 'loc_wayfarers_respite', classId: 'wizard' }, 2, ['echo_kaelen_ledger']);
     const look = play(kaelen.s, [talk('npc_kaelen_stonehand'), go], { content: pack, profile: kaelen.profile });
     expect((look.events.find((e) => e.t === 'dialogueNode' && e.nodeId === 'look') as { text: string } | undefined)?.text).toContain('The ledger says');
     expect(play(look.state, [{ type: 'rest', kind: 'short' }], { content: pack, profile: kaelen.profile }).state.dialogue).toBeNull();

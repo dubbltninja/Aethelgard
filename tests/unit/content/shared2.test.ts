@@ -697,6 +697,8 @@ function stubTables(drop?: string): ContentTables {
     dialogues: keep(stubScenes),
     // U34f: the refusals and traits name places, regions and quest stages this stub pack does not have
     companions: contentTables.companions.map((c) => ({ ...c, refusesWhen: [], traits: [] })),
+    // U59: the classes name their mini-quests, which this stub pack does not have
+    classes: contentTables.classes.map(({ uniqueQuestId: _quest, ...c }) => c),
   };
 }
 

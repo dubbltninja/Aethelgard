@@ -299,8 +299,9 @@ describe('the two locations vs WORLD §3.3 blocks', () => {
   });
 
   test('events: every WORLD event, its text verbatim, legacy ids with the ev_ prefix, once; WORLD’s conditions', () => {
-    // U57 hooked `q_lightless_stair`'s discovery on an interact at the curtain (tests/unit/content/quests/regional.test.ts pins it)
-    const U57_HOOKS = ['ev_hollow_curtain_stair'];
+    // U57 hooked `q_lightless_stair`'s discovery on an interact at the curtain (tests/unit/content/quests/regional.test.ts pins it);
+    // U59 `q_class_shadow_weaver`'s seam (tests/unit/content/quests/classes.test.ts)
+    const U57_HOOKS = ['ev_hollow_curtain_stair', 'ev_hollow_feel_seam'];
     for (const l of parsedLocations) {
       const got = Object.fromEntries(l.events.filter((e) => !U57_HOOKS.includes(e.id)).map((e) => [e.id, e.text]));
       const expected = Object.fromEntries(Object.entries(WL[l.id]?.events ?? {}).map(([id, text]) => [id.startsWith('ev_') ? id : `ev_${id}`, text]));

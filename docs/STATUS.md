@@ -111,7 +111,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U58 | Loop-only (4) + ending quests (6) + communion words + Tyrant lines; 8 real ending scripts — **C3 content** — brief `briefs/u58.md` | ✦ Fable | ✅ 30a218d (spot-reviewed; resumed after a cutoff) — all 44 quests; 7/8 endings by play, D a known gap; 4161 tests; **C3 content**; D-123 |
 | U71 | Scene system: painted backdrops under code overlays, fallbacks, title art (D-124) — brief `briefs/u71.md` | Opus | ✅ 6ecc3e8 (spot-reviewed) — backdrops + fallbacks; art Tier 0–1 merged (28 images); JS 533 kB; D-125 |
 | Art | Grok Imagine backdrops: all 73 locations + 3 Heartstone states + title (pixel style), 11 MB — `docs/ART.md` | Tim + art session | ✅ merged (D-124, D-125) |
-| U72 | Overlays fitted to each painting: particles, focal glow, time-of-day tint, portal marker, infection — brief `briefs/u72.md` | Sonnet | 🔄 running |
+| U72 | Overlays fitted to each painting: particles, focal glow, time-of-day tint, portal marker, infection — brief `briefs/u72.md` | Sonnet | ✅ 532f22f (spot-reviewed) — 76 overlay entries, portal marker, infection; full e2e 137 ✓; JS 537 kB; D-126 |
 | U59 | Class mini-quests (5) — brief `briefs/u59.md` | ✦ Fable | 🔄 running |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
@@ -231,8 +231,7 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 1. ~~U70~~ done (D-121); ~~U57~~ done (D-122); ~~U58~~ done (D-123).
 2. **Art (D-124, `docs/ART.md`):** ~~U71~~ done (D-125) ·
    the **art session** on Tim's PC (Grok Imagine; Tim starts a desktop task linked to his computer: *"Read docs/ART.md in
-   dubbltninja/Aethelgard (branch `unraveling`) and run the art session"*; it pushes to `wip/art`) · then **U72** (Sonnet;
-   per-location overlays). After every UI merge the lead runs the **full** e2e suite (D-120).
+   dubbltninja/Aethelgard (branch `unraveling`) and run the art session"*; it pushes to `wip/art`) · ~~U72~~ done (D-126). After every UI merge the lead runs the **full** e2e suite (D-120).
 3. ✦ Fable units: **U59** class quests ·
    **U61** Codex II + the 103 Echo codex lines · **U62** scenes and endings. Tell agents to commit early.
 4. The balance + bot unit (Opus): **ending D unreachable by play — the road outruns the clock after Destroy (D-123)**; bots stop guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain

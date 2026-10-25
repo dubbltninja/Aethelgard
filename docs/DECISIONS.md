@@ -2158,3 +2158,25 @@ owning unit (PLAN §9.1).
   dark-fantasy pixel art (Tim's ruling, `docs/ART.md` §3). Production JS **533.0 kB** gzip of 600 (D-115 watch: ~67 kB left — the
   growth since D-121 is mostly U57/U58's text). The lead's screenshots: the Title art and a borrowed region-mate backdrop
   (the Wayfarer's Respite shows Mistwood Path's) read well.
+
+### D-126 · U72 details — overlays fitted to each painting; art complete, 2026-10-25
+- **Art complete:** the art session delivered Tier 2 (every remaining location + the three Heartstone states): 73 locations, 3
+  variants and the title, 11 MB in `public/art`, every file within ART §1's size limits.
+- **U72 (… 532f22f; Sonnet, spot-reviewed):** `src/ui/art/overlays.ts`, a UI-side registry with one entry per location and
+  Heartstone state, each written after looking at its painting. It sets particles (kind, area, rate; cap 24), at most one
+  focal glow (a slow 9 s pulse), tint strength, and a pure `resolveOverlay`.
+  - The Library portal marker shows once a Horde opens it (`SceneState.portalOpen`), and the aria-label says so.
+  - Infection adds a `breach-dark` layer (0.3 × the breach value) under U70's hatch.
+  - Tests: +22 unit (4,204); `scene.spec.ts` 28; full e2e 137 passed, 3 skipped. Production JS 537.2 kB gzip of 600 (D-115
+    watch: ~63 kB left).
+- **Rulings:**
+  - The particle kinds `mist`, `dust` and `void_flecks` live UI-side only, because the frozen `art.particles` enum lacks them.
+  - Reduced motion draws no particles (D-125). The glow and the portal marker stay drawn but do not pulse.
+  - A scene may have two ambient motions (particles + the glow's slow opacity pulse), a deliberate exception to DESIGN §17.7's
+    one.
+  - The portal marker also shows on a borrowed painting (it is information); glow and tint do not.
+  - High contrast keeps the hatch and hides the glow.
+- **Fixed from the screenshots:**
+  - The portal marker drew at the top-left, because a CSS transform overrode the SVG one.
+  - Mist on the Drowned Stair looked like a grey moon.
+  - Infection darkening buried the violet places (Chasm, Veil Mouth). The hatch is weakest on violet-on-violet but readable.

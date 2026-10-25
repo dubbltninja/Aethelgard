@@ -607,6 +607,11 @@
   object-fit: cover;
 }
 
+/* U71: the ending's text runs over its scene, so under high contrast a painting there is hidden, not dimmed */
+:root[data-theme="high-contrast"] .ending__scene .scene--painted {
+  display: none;
+}
+
 .ending__panel {
   position: relative;
   display: grid;

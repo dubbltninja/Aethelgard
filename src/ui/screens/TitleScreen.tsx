@@ -2,6 +2,9 @@
 // autosave), New game (→ Class Select), Load (→ Saves panel), Settings (→ Settings panel), Credits. ↑/↓ move through
 // the menu, Enter chooses. Class Select and Credits are sub-views here, before the first `newGame` (PLAN §6.2).
 import { useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
+import { TitleBackdrop } from '../art/SceneBackdrop';
+import { hasPaintings, sceneManifest } from '../art/sceneManifest';
+import { useTitleArt } from '../art/useBackdrop';
 import { Button } from '../components/Button';
 import { useHotkeys } from '../hooks/useHotkeys';
 import { useViewFocus } from '../hooks/useViewFocus';
@@ -113,7 +116,10 @@ export function TitleMenuView({ items, onChoose, version, menuRef }: TitleMenuVi
   );
 }
 
-export function CreditsView({ onBack }: { onBack: () => void }): ReactNode {
+/** ART §8: xAI asks that Grok's output be attributed; shown once the build carries a painting. */
+export const ART_CREDIT = 'Scene backdrops made with Grok Imagine; art direction by Tim Dibert.';
+
+export function CreditsView({ onBack, artCredit = false }: { onBack: () => void; artCredit?: boolean }): ReactNode {
   return (
     <section className="title-card title-card--credits" aria-labelledby="title-heading">
       <Wordmark />
@@ -126,6 +132,7 @@ export function CreditsView({ onBack }: { onBack: () => void }): ReactNode {
           It began as a text adventure in Python. This rebuild keeps its places, its people and their lines, and turns the
           Breach into a loop you live through again and again.
         </p>
+        {artCredit ? <p className="credits__art">{ART_CREDIT}</p> : null}
         <Button onClick={onBack} data-autofocus="">
           Back to title
         </Button>
@@ -153,6 +160,7 @@ export function TitleScreen({ version = __VERSION__ }: { version?: string }): Re
   const slots = useSyncExternalStore(store.subscribe, store.shell.listSlots, store.shell.listSlots);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
+  const titleArt = useTitleArt();
   useViewFocus(rootRef, view);
 
   const continueSlot = slots.find((s) => s.slot === 'auto' && s.status === 'ok') ?? null;
@@ -187,12 +195,12 @@ export function TitleScreen({ version = __VERSION__ }: { version?: string }): Re
   useHotkeys({ escape: { run: () => setView('menu'), label: 'Back to title', group: 'system' } }, { scope: 'Credits', enabled: view === 'credits' });
 
   return (
-    <div ref={rootRef} className="screen screen--title" data-screen="title" data-view={view}>
-      <TitleArt />
+    <div ref={rootRef} className="screen screen--title" data-screen="title" data-view={view} data-painted={titleArt.files === null ? undefined : ''}>
+      {titleArt.files === null ? <TitleArt /> : <TitleBackdrop files={titleArt.files} onError={titleArt.onError} />}
       {view === 'class' ? (
         <ClassSelectScreen onBack={() => setView('menu')} />
       ) : view === 'credits' ? (
-        <CreditsView onBack={() => setView('menu')} />
+        <CreditsView onBack={() => setView('menu')} artCredit={hasPaintings(sceneManifest())} />
       ) : (
         <TitleMenuView items={items} onChoose={choose} version={version} menuRef={menuRef} />
       )}

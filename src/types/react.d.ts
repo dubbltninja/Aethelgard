@@ -430,7 +430,18 @@ declare module 'react' {
     decoding?: 'async' | 'auto' | 'sync' | undefined;
     height?: number | string | undefined;
     loading?: 'eager' | 'lazy' | undefined;
+    sizes?: string | undefined;
     src?: string | undefined;
+    srcSet?: string | undefined;
+    width?: number | string | undefined;
+  }
+  export interface SourceHTMLAttributes<T> extends HTMLAttributes<T> {
+    height?: number | string | undefined;
+    media?: string | undefined;
+    sizes?: string | undefined;
+    src?: string | undefined;
+    srcSet?: string | undefined;
+    type?: string | undefined;
     width?: number | string | undefined;
   }
   export interface MeterHTMLAttributes<T> extends HTMLAttributes<T> {
@@ -650,11 +661,13 @@ declare namespace JSX {
     nav: H<HTMLElement>;
     ol: H<HTMLOListElement, import('react').OlHTMLAttributes<HTMLOListElement>>;
     p: H<HTMLParagraphElement>;
+    picture: H<HTMLElement>;
     pre: H<HTMLPreElement>;
     q: H<HTMLQuoteElement, import('react').QuoteHTMLAttributes<HTMLQuoteElement>>;
     s: H<HTMLElement>;
     section: H<HTMLElement>;
     small: H<HTMLElement>;
+    source: H<HTMLSourceElement, import('react').SourceHTMLAttributes<HTMLSourceElement>>;
     span: H<HTMLSpanElement>;
     strong: H<HTMLElement>;
     sub: H<HTMLElement>;

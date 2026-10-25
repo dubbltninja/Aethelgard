@@ -2085,3 +2085,30 @@ owning unit (PLAN §9.1).
   offer (D-113's tie rule; the stair discovery covers it).
 - **Balance → the balance unit:** two Stalkers at the Cairns beat a carried-over L10 Ranger about 1 in 2 (seed pinned
   `quest:bone:mark:1`); the Scriptorium guard and the Windward Stair's kites (band 12) kill L7–10 (the proofs flee them).
+
+### D-123 · U58 details — loop-only and ending quests, the communion's words, the real ending scripts; C3 content, 2026-10-25
+- **U58 (225b170, the lead's cutoff snapshot 34d5752, … 30a218d; ✦ Fable, spot-reviewed; resumed after a usage cutoff):**
+  - Loop-only `q_the_thirtieth_dawn`, `q_what_the_crystal_heard`, `q_stop_the_ritual`, `q_the_first_drowned`; ending quests
+    `q_wardens_vigil`, `q_the_mending`, `q_weavers_dawn`, `q_iron_silence`, `q_long_archive`, `q_unbound` (`quests/{loop,endings}.ts`,
+    `dialogues/{loop,endings,tyrant}.ts`). **All 44 quests are authored.**
+  - The Tyrant: question lines in Veyran's voice, a silence answer for every question (resolve 0; the gaps no longer need a
+    forfeit blow), `nothing_left` below Resolve 3 (rejection, STORY §8.5), Movement III's Listen at Resolve ≥ 6 gives verse IX,
+    `onSpared` opens the Resolution's words (`scene_ending_mending` / `_vigil` / `_unbound`), outcomes carry `questAdvance`.
+  - Written: 79 scene nodes, 22 journals, 10 descriptions, 5 question lines and 9 answers, all pinned in `WRITTEN`; 54 story nodes
+    verbatim; verse VII corrected to STORY §2.3.
+  - **Real ending scripts** (`src/sim/scripts/endings/index.ts`, `npm run sim:endings`): escape, fall, A, B (from the
+    `ending_b_ready` scenario), C, E and F reached by play; D a **known gap** (below). 72/72 quest proofs; 4,161 tests. Validate:
+    rule 15 pending 3 → 0, rule 16 28 → 18.
+- **C1 additions (minimal):** `EndingScript.profile?`; `run.ts` plays with `trained(pathBot)` and a profile; `playCommunion`
+  settles an open dialogue; a `cli.ts endings` subcommand and `sim:endings`.
+- **Rulings:**
+  - `q_stop_the_ritual`'s attempts may come in any order, not one per reset (STORY §11.5 says one per reset).
+  - STORY §11.6 D says "fight the Tyrant to Phase 2", but a phase's entry cannot carry a conditional effect (validator rule 11).
+    The iron is offered through the communion's anchor Offer in any Movement instead (`scene_ending_silence`).
+  - Keep-the-vigil (E) passes the days in the scene, because the Depths have no camp. The Dawn waves are ×2/×2 (the
+    creature note said ×3). Dray's Thirtieth Dawn offer is in the `offer` band.
+  - `echo_litany_complete` and `echo_anchor_schema` are granted by the offers (D-100 gap).
+  - The e2e communion test now expects focus on the first answer that can be given, the silence (4e4d7ff).
+- **Gap → the balance unit (high priority): ending D cannot be reached by play.** After Destroy, the anchor's materials,
+  Borin and the Apex lie past the 19 dawns left. `scene_ending_silence` is proven on a constructed state. B's played road (pin →
+  forge → Apex) is covered by unit tests only; its sim proof starts from the scenario.

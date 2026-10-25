@@ -28,6 +28,7 @@ import { breachOverlay } from '../art/breachOverlay';
 import { NO_CUES, stageCues, type StageCues } from '../art/stageMotion';
 import { useBackdrop } from '../art/useBackdrop';
 import { Button } from '../components/Button';
+import { DockPortal } from '../components/DockPortal';
 import { Modal } from '../components/Modal';
 import { AbilityBar } from '../components/combat/AbilityBar';
 import { CombatLog } from '../components/combat/CombatLog';
@@ -35,12 +36,14 @@ import { CommunionBar } from '../components/combat/CommunionBar';
 import { CombatStage, useStageSize } from '../components/combat/CombatStage';
 import { CompanionCard } from '../components/combat/CompanionCard';
 import { EnemyCard, type HitFlash } from '../components/combat/EnemyCard';
+import { PhoneBar } from '../components/combat/PhoneBar';
+import { phoneBarModel } from '../components/combat/phoneBarModel';
 import { PlayerPanel } from '../components/combat/PlayerPanel';
 import { TurnOrder } from '../components/combat/TurnOrder';
 import { stageFigures } from '../components/combat/stageModel';
 import type { HotkeyMap } from '../hooks/hotkeys';
 import { useHotkeys } from '../hooks/useHotkeys';
-import { useReducedMotion } from '../hooks/useMediaQuery';
+import { useMediaQuery, useReducedMotion } from '../hooks/useMediaQuery';
 import { useShell } from '../shellContext';
 import type { SlotInfo } from '../store/gameStore';
 import { useContent, useGame, useGameEvents, useLegal, useProfile, useStore } from '../store/useGame';
@@ -77,6 +80,9 @@ import {
   type PlayerPanelModel,
   type TurnEntry,
 } from './combatModel';
+
+/** The one breakpoint (DESIGN §16.1): under it the turn's controls pin to the bottom as a bar (U73 part B). */
+const PHONE_QUERY = '(max-width: 759.98px)';
 
 /** Explanations kept for the log (the engine caps the log at 200 lines). */
 const EXPLAINED_CAP = 200;
@@ -127,6 +133,9 @@ export interface CombatViewProps {
   onLoad: (slot: SlotInfo['slot']) => void;
   onTitle: () => void;
   logRef?: RefObject<HTMLOListElement | null>;
+  /** U73 part B: under 760 px the turn's controls pin to the bottom as a bar, and the abilities open as a sheet. */
+  phone?: boolean;
+  onAbilities?: () => void;
   /** U73a: the stage band (a <CombatStage/>), shown under the heading; absent in tests that leave it out. */
   stage?: ReactNode;
 }
@@ -136,6 +145,34 @@ const MENU_ICONS = { inventory: 'item', bestiary: 'look', help: 'keys', settings
 
 export function CombatView(p: CombatViewProps): ReactNode {
   const communing = p.communion?.active === true && !p.showAbilities;
+  const phone = p.phone === true && p.fallen === null;
+  const pinnedCommunion = phone && communing && p.communion !== null;
+  // the pinned bar: the turn's actions, or the communion when it is on (DESIGN §4.11 "takes the bar's place")
+  const pinned = !phone ? null : (
+    <DockPortal>
+      {pinnedCommunion && p.communion !== null ? (
+        <div className="phone-dock phone-dock--communion">
+          <CommunionBar model={p.communion} buttons={p.communionButtons} showingAbilities={p.showAbilities} onAct={p.onAct} onToggleView={p.onToggleCommuneView} />
+        </div>
+      ) : (
+        <div className="phone-dock">
+          <PhoneBar
+            model={phoneBarModel(p.tiles)}
+            targetName={p.targetName}
+            guard={p.guard}
+            flee={p.flee}
+            itemCount={p.itemCount}
+            canItem={p.canItem}
+            onAttack={p.onTile}
+            onGuard={p.onGuard}
+            onFlee={p.onFlee}
+            onItems={p.onItems}
+            onAbilities={p.onAbilities ?? (() => undefined)}
+          />
+        </div>
+      )}
+    </DockPortal>
+  );
   return (
     <RegionPalette regionId={p.regionId} region={p.region} className="screen screen--combat">
       <section className={p.stage == null ? 'combat' : 'combat combat--staged'} data-screen="combat" aria-labelledby="combat-heading">
@@ -187,11 +224,11 @@ export function CombatView(p: CombatViewProps): ReactNode {
           <div className="combat__main">
             {p.fallen === null ? (
               <>
-                <PlayerPanel player={p.player} guard={p.guard} flee={p.flee} itemCount={p.itemCount} canItem={p.canItem} onGuard={p.onGuard} onFlee={p.onFlee} onItems={p.onItems} />
-                {p.communion === null ? null : (
+                <PlayerPanel player={p.player} guard={p.guard} flee={p.flee} itemCount={p.itemCount} canItem={p.canItem} onGuard={p.onGuard} onFlee={p.onFlee} onItems={p.onItems} barActions={phone} />
+                {p.communion === null || pinnedCommunion ? null : (
                   <CommunionBar model={p.communion} buttons={p.communionButtons} showingAbilities={p.showAbilities} onAct={p.onAct} onToggleView={p.onToggleCommuneView} />
                 )}
-                {communing ? null : <AbilityBar tiles={p.tiles} targetName={p.targetName} onUse={p.onTile} />}
+                {communing || phone ? null : <AbilityBar tiles={p.tiles} targetName={p.targetName} onUse={p.onTile} />}
                 {p.companion === null ? null : <CompanionCard companion={p.companion} onStance={p.onStance} onCommand={p.onAct} />}
               </>
             ) : null}
@@ -211,6 +248,7 @@ export function CombatView(p: CombatViewProps): ReactNode {
           </aside>
         </div>
       </section>
+      {pinned}
     </RegionPalette>
   );
 }
@@ -265,6 +303,8 @@ export function CombatScreen(): ReactNode {
   const reducedMotion = useReducedMotion();
   const [chosen, setChosen] = useState<string | null>(null);
   const [itemsOpen, setItemsOpen] = useState(false);
+  const [abilitiesOpen, setAbilitiesOpen] = useState(false);
+  const phone = useMediaQuery(PHONE_QUERY);
   const [allyFor, setAllyFor] = useState<AbilityTileModel | null>(null);
   const [logExpanded, setLogExpanded] = useState(false);
   const [showAbilities, setShowAbilities] = useState(false);
@@ -403,8 +443,22 @@ export function CombatScreen(): ReactNode {
   const communionActive = model.communion?.active === true;
   useLayoutEffect(() => {
     // the communion takes the bar (DESIGN §4.11): its first act takes focus when it opens or the view switches back
-    if (communionActive && !showAbilities) rootRef.current?.querySelector<HTMLElement>('.communion [data-autofocus]')?.focus();
-  }, [communionActive, showAbilities]);
+    if (communionActive && !showAbilities && !phone) rootRef.current?.querySelector<HTMLElement>('.communion [data-autofocus]')?.focus();
+  }, [communionActive, showAbilities, phone]);
+  useEffect(() => {
+    // on a phone the bar (or the communion) lives in the dock, which the Shell's new-screen focus does not look in: its first
+    // control takes focus once the Shell has run, as Attack / the first answer does on a desktop
+    if (!phone) return undefined;
+    const frame = requestAnimationFrame(() => {
+      const active = document.activeElement;
+      if (communionActive && !showAbilities) {
+        document.querySelector<HTMLElement>('#dock-slot .communion [data-autofocus]')?.focus({ preventScroll: true });
+      } else if (active === null || active === document.body || active.id === 'combat-heading' || active.id === 'main') {
+        document.querySelector<HTMLElement>('#dock-slot .phone-bar [data-autofocus]')?.focus({ preventScroll: true });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [phone, communionActive, showAbilities]);
   useEffect(() => {
     const list = logRef.current;
     if (list !== null) list.scrollTop = list.scrollHeight;
@@ -518,7 +572,21 @@ export function CombatScreen(): ReactNode {
         onTitle={() => dispatch({ type: 'returnToTitle' })}
         logRef={logRef}
         stage={stage}
+        phone={phone}
+        onAbilities={() => setAbilitiesOpen(true)}
       />
+      {abilitiesOpen && phone ? (
+        <Modal title="Abilities" onClose={() => setAbilitiesOpen(false)} className="ability-sheet">
+          <AbilityBar
+            tiles={model.tiles.filter((t) => t.kind !== 'attack')}
+            targetName={targetName}
+            onUse={(tile) => {
+              setAbilitiesOpen(false);
+              pressTile(tile);
+            }}
+          />
+        </Modal>
+      ) : null}
       {itemsOpen ? (
         <Modal title="Use an item" onClose={() => setItemsOpen(false)} className="item-sheet-dialog">
           <ItemSheet

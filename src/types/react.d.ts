@@ -585,6 +585,12 @@ declare module 'react/jsx-runtime' {
   export function jsxs(type: any, props: any, key?: Key): ReactElement;
 }
 
+declare module 'react-dom' {
+  import type { ReactNode } from 'react';
+  /** U73: the phone action bar renders into the Shell's dock. */
+  export function createPortal(children: ReactNode, container: Element | DocumentFragment, key?: string | null): ReactNode;
+}
+
 declare module 'react-dom/client' {
   import type { ReactNode } from 'react';
   export interface RootOptions {

@@ -50,6 +50,7 @@ export function SceneBackdrop({ location, region, art: artIn, state, reducedMoti
   const breach = breachLevel(state);
   // U72: the overlay registry (overlays.ts) says what this painting takes: its hour's share, its particles, its glow, the portal.
   const overlay = resolveOverlay({
+    locationId: location.id,
     key: backdrop.key,
     own: backdrop.source !== 'region',
     baseArt: location.art,
@@ -98,7 +99,8 @@ export function SceneBackdrop({ location, region, art: artIn, state, reducedMoti
           {breach > 0 ? <HatchPattern id={`${id}-hatch`} /> : null}
           {spec !== null && particles?.puff === true ? (
             <radialGradient id={`${id}-puff`}>
-              <stop offset="0" stopColor={particleTone} stopOpacity={0.55} />
+              <stop offset="0" stopColor={particleTone} stopOpacity={0.3} />
+              <stop offset="0.5" stopColor={particleTone} stopOpacity={0.12} />
               <stop offset="1" stopColor={particleTone} stopOpacity={0} />
             </radialGradient>
           ) : null}
@@ -111,8 +113,9 @@ export function SceneBackdrop({ location, region, art: artIn, state, reducedMoti
           )}
           {portal === null ? null : (
             <radialGradient id={`${id}-portal`}>
-              <stop offset="0" stopColor="#f0e4ff" stopOpacity={0.75} />
-              <stop offset="0.45" stopColor="#a56bff" stopOpacity={0.35} />
+              <stop offset="0" stopColor="#f0e4ff" stopOpacity={0.95} />
+              <stop offset="0.4" stopColor="#a56bff" stopOpacity={0.55} />
+              <stop offset="0.7" stopColor="#7b3fe4" stopOpacity={0.18} />
               <stop offset="1" stopColor="#7b3fe4" stopOpacity={0} />
             </radialGradient>
           )}
@@ -126,10 +129,10 @@ export function SceneBackdrop({ location, region, art: artIn, state, reducedMoti
           <circle className="scene__focus" cx={glow.x} cy={glow.y} r={glow.r} fill={`url(#${id}-focus)`} data-layer="glow" />
         )}
         {portal === null ? null : (
-          <g className="scene__portal" data-layer="portal" transform={`translate(${portal.x} ${portal.y})`}>
-            <circle r={portal.r} fill={`url(#${id}-portal)`} />
-            <ellipse rx={f(portal.r * 0.28)} ry={f(portal.r * 0.46)} fill="none" stroke="#e6d4ff" strokeWidth={2} strokeOpacity={0.85} />
-            <ellipse rx={f(portal.r * 0.17)} ry={f(portal.r * 0.3)} fill="none" stroke="#a56bff" strokeWidth={1.5} strokeOpacity={0.9} />
+          <g className="scene__portal" data-layer="portal">
+            <circle cx={portal.x} cy={portal.y} r={portal.r} fill={`url(#${id}-portal)`} />
+            <ellipse cx={portal.x} cy={portal.y} rx={f(portal.r * 0.28)} ry={f(portal.r * 0.46)} fill="#d9c2ff" fillOpacity={0.35} stroke="#f0e4ff" strokeWidth={2.5} strokeOpacity={0.95} />
+            <ellipse cx={portal.x} cy={portal.y} rx={f(portal.r * 0.17)} ry={f(portal.r * 0.3)} fill="none" stroke="#a56bff" strokeWidth={1.5} strokeOpacity={0.9} />
           </g>
         )}
         {particles === null ? null : (
@@ -139,7 +142,7 @@ export function SceneBackdrop({ location, region, art: artIn, state, reducedMoti
         )}
         {breach > 0 ? (
           <>
-            <rect width={SCENE_W} height={SCENE_H} fill="#07030f" opacity={r3(breach * 0.45)} data-layer="breach-dark" />
+            <rect width={SCENE_W} height={SCENE_H} fill="#07030f" opacity={r3(breach * 0.3)} data-layer="breach-dark" />
             <rect width={SCENE_W} height={SCENE_H} fill={`url(#${id}-hatch)`} opacity={breach} data-breach="" data-layer="breach" />
           </>
         ) : null}

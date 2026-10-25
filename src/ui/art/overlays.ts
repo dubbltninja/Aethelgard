@@ -189,7 +189,9 @@ export interface ResolvedOverlay {
 }
 
 export interface OverlayQuery {
-  /** The painting's key (`<id>` or `<id>~<state>`), and whether it is the place's own (a region-mate's borrowed painting gets no glow). */
+  /** The place, the painting's key (`<id>` or `<id>~<state>`), and whether the painting is the place's own (a region-mate's
+   *  borrowed painting gets no glow or hour of its own: the points would sit on someone else's picture). */
+  locationId: string;
   key: string;
   own: boolean;
   /** The location's base `art` and the one its variants resolve to. */
@@ -211,7 +213,8 @@ export function resolveOverlay(q: OverlayQuery): ResolvedOverlay {
   const kind = variantKind ? q.art.particles : (entry?.particles?.kind ?? q.art.particles);
   const wanted = entry === undefined ? { rate: DEFAULT_RATE, area: DEFAULT_AREA } : entry.particles;
   const particles = kind === 'none' || wanted === undefined ? null : { kind, rate: wanted.rate, area: wanted.area, tone: entry?.particles?.tone ?? null };
-  const portal = q.portalOpen || q.art.focal === 'library_portal' ? (entry?.portal ?? null) : null;
+  // the portal is information, not decoration: it is marked on a borrowed painting too
+  const portal = q.portalOpen || q.art.focal === 'library_portal' ? (OVERLAYS[q.locationId]?.portal ?? null) : null;
   // one focal glow at most: the portal's marker takes the place of the Library's own
   return { tint, particles, glow: portal === null ? (entry?.glow ?? null) : null, portal };
 }

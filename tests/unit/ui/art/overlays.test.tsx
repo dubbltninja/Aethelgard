@@ -102,7 +102,7 @@ describe('particles', () => {
   test('where the painting suggests: embers over the Emberforge hearth, ash on the Steppe, spores in the Shallows', () => {
     const q = (id: string): OverlayQuery => {
       const art = (pack.locations[id] as { art: LocationArt }).art;
-      return { key: id, own: true, baseArt: art, art, portalOpen: false };
+      return { locationId: id, key: id, own: true, baseArt: art, art, portalOpen: false };
     };
     const forge = resolveOverlay(q('loc_emberforge'));
     expect(forge.particles?.kind).toBe('embers');
@@ -115,19 +115,19 @@ describe('particles', () => {
   test('an art variant that changes the particles beats the registry (the Depths gone dark, the bell’s static)', () => {
     const base = LocationArtSchema.parse({ template: 'ruins', particles: 'motes' });
     const dark = { ...base, particles: 'none' as const };
-    const r = resolveOverlay({ key: 'loc_spire_crown', own: true, baseArt: base, art: dark, portalOpen: false });
+    const r = resolveOverlay({ locationId: 'loc_spire_crown', key: 'loc_spire_crown', own: true, baseArt: base, art: dark, portalOpen: false });
     expect(r.particles).toBeNull();
     const static_ = { ...base, particles: 'static' as const };
-    expect(resolveOverlay({ key: 'loc_plaza_of_bells', own: true, baseArt: base, art: static_, portalOpen: false }).particles?.kind).toBe('static');
+    expect(resolveOverlay({ locationId: 'loc_plaza_of_bells', key: 'loc_plaza_of_bells', own: true, baseArt: base, art: static_, portalOpen: false }).particles?.kind).toBe('static');
   });
 
   test('an unregistered or borrowed painting: the art’s own particles, no glow, the art’s hour', () => {
     const art = LocationArtSchema.parse({ template: 'ruins', particles: 'ash', timeOfDay: 'dusk' });
-    const r = resolveOverlay({ key: 'loc_x', own: true, baseArt: art, art, portalOpen: false });
+    const r = resolveOverlay({ locationId: 'loc_x', key: 'loc_x', own: true, baseArt: art, art, portalOpen: false });
     expect(r).toMatchObject({ tint: 1, glow: null, portal: null, particles: { kind: 'ash' } });
-    const borrowed = resolveOverlay({ key: 'loc_emberforge', own: false, baseArt: art, art, portalOpen: false });
+    const borrowed = resolveOverlay({ locationId: 'loc_x', key: 'loc_emberforge', own: false, baseArt: art, art, portalOpen: false });
     expect(borrowed.glow).toBeNull();
-    expect(resolveOverlay({ key: 'loc_x', own: true, baseArt: art, art: { ...art, timeOfDay: 'timeless' }, portalOpen: false }).tint).toBe(0);
+    expect(resolveOverlay({ locationId: 'loc_x', key: 'loc_x', own: true, baseArt: art, art: { ...art, timeOfDay: 'timeless' }, portalOpen: false }).tint).toBe(0);
   });
 });
 
@@ -208,7 +208,7 @@ describe('the painted view with overlays', () => {
       expect(closed).toContain('aria-label="Shattered Library"');
       const html = render('loc_shattered_library', open);
       expect(html).toContain('data-layer="portal"');
-      expect(html).toContain('translate(600 285)');
+      expect(html).toContain('cx="600" cy="285"');
       expect(html).not.toContain('data-layer="glow"');
       expect(html).toContain('Ilyra’s portal burns open here.');
     });
@@ -219,6 +219,13 @@ describe('the painted view with overlays', () => {
       expect(html).toContain('data-layer="portal"');
       expect(html).toContain('scene__particles--drift');
       for (const other of LOCATIONS.filter((x) => x.id !== 'loc_shattered_library')) expect(render(other.id, open), other.id).not.toContain('data-layer="portal"');
+    });
+
+    test('it is marked on a borrowed painting too (information, not decoration), but the glow is not', () => {
+      const html = render('loc_shattered_library', open, { key: 'loc_grand_library', source: 'region' });
+      expect(html).toContain('data-layer="portal"');
+      expect(html).toContain('data-layer="tint"');
+      expect(html).not.toContain('data-layer="glow"');
     });
 
     test('it stays when motion is reduced (drawn, not animated)', () => {
@@ -241,7 +248,7 @@ describe('the painted view with overlays', () => {
     test('U70’s value, when given, sets the strength (and the darkening follows it)', () => {
       const html = render('loc_emberforge', { ...calm, breachOverlay: 0.2 });
       expect(html).toContain('opacity="0.2" data-breach=""');
-      expect(html).toContain('opacity="0.09" data-layer="breach-dark"');
+      expect(html).toContain('opacity="0.06" data-layer="breach-dark"');
     });
   });
 });

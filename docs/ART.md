@@ -89,6 +89,10 @@ the region light line for an interior one — *"Enclosed underground, deep <regi
 Also name crystals as "a faceted crystal monolith": "crystal heart" came back as a literal ♥ shape. (Learned on the Silverwood
 interiors, round q, 2026-10-25.)
 
+**Silverwood Before** uses the style lock with "stately and gothic" in place of "grim and gothic", so the whole, living city
+reads warmer than its ruined twin. **Very dark picks** are lifted on conversion: mean luminance under 15 → gamma 1.25, 15–22 →
+gamma 1.15 (logged per image), so they survive the game's edge darkening.
+
 ---
 
 ## 5. The shot list (77 prompts, in tiers)
@@ -295,8 +299,25 @@ Conversion note: Grok's pixel art is ~3 screen px per art pixel at 2128 wide, so
 | `loc_still_shore` | `scenes/loc_still_shore.webp` (+`@sm`) | p / D2 | 0 | Pixel lock. Midtones lifted (gamma 1.25). Faint far-shore spires (not in brief) kept: dim, read as distance. |
 | `title` | `title.webp` (+`@sm`) | p / T1 | 0 | Arch framing a violet rift, road leading in. |
 | `loc_crumbling_archway` | `scenes/loc_crumbling_archway.webp` (+`@sm`) | p / A1 | 0 | Keystone of carved faces, crystal trees both sides. |
-| `loc_darkened_corridor` | `scenes/loc_darkened_corridor.webp` (+`@sm`) | q / B4 | 0 | Interior reroll: round p painted sky into it. Fungal glow on the vaults. |
+| `loc_darkened_corridor` | `scenes/loc_darkened_corridor.webp` (+`@sm`) | q / B4 | 0 | Interior reroll: round p painted sky into it. Fungal glow on the vaults. Gamma 1.15. |
 | `loc_shattered_library` | `scenes/loc_shattered_library.webp` (+`@sm`) | p / C4 | 0 | Light shafts through the broken glass roof. |
 | `loc_silverwood_plaza` | `scenes/loc_silverwood_plaza.webp` (+`@sm`) | p / D3 | 0 | Misting fountains in a ring of colonnades. |
-| `loc_sunken_archives` | `scenes/loc_sunken_archives.webp` (+`@sm`) | q / E1 | 0 | Interior reroll. Stair into ley-lit water, soaked shelves. |
+| `loc_sunken_archives` | `scenes/loc_sunken_archives.webp` (+`@sm`) | q / E1 | 0 | Interior reroll. Stair into ley-lit water, soaked shelves. Gamma 1.15. |
 | `loc_heartstone_depths` | `scenes/loc_heartstone_depths.webp` (+`@sm`) | q / F1 | 0 | Interior reroll; round p drew a ♥. Crystal monolith on a dais, nine plinths. Base for the three state variants. |
+| `loc_mistwood_path` | `scenes/loc_mistwood_path.webp` (+`@sm`) | p / A4 | 0 | Ember-veined bark, path winding into fog. |
+| `loc_ironclad_camp` | `scenes/loc_ironclad_camp.webp` (+`@sm`) | p / B1 | 0 | Tents inside a stake barricade, forge glow, path through the gap. |
+| `loc_barren_peaks` | `scenes/loc_barren_peaks.webp` (+`@sm`) | p / C3 | 0 | Path zigzagging up the crags. Small ember-lit caves (accent) on the right. |
+| `loc_chasm_of_whispers` | `scenes/loc_chasm_of_whispers.webp` (+`@sm`) | p / D1 | 0 | Rope bridge over violet light rising from the rift. |
+| `loc_aetherium_spires` | `scenes/loc_aetherium_spires.webp` (+`@sm`) | p / E1 | 0 | Tallest spire centred, white light-trails across the basin. |
+| `loc_veridian_glowlands` | `scenes/loc_veridian_glowlands.webp` (+`@sm`) | p / F2 | 0 | Stone causeway through glowing fungi and swamp. |
+| `loc_chronos_nexus` | `scenes/loc_chronos_nexus.webp` (+`@sm`) | p / G3 | 0 | Shattered dome, cracked floor, sealed door on the right (east). Gamma 1.15. |
+| `loc_temporal_breach_apex` | `scenes/loc_temporal_breach_apex.webp` (+`@sm`) | p / H2 | 0 | Central wound of green light tearing the sky. |
+| `loc_silver_gate` | `scenes/loc_silver_gate.webp` (+`@sm`) | p / J1 | 0 | Twin of the Crumbling Archway. Chosen because its keystone has exactly nine faces (J2/J3 had 7–8); arch is squarer than the ruin's. |
+| `loc_grand_library` | `scenes/loc_grand_library.webp` (+`@sm`) | p / K2 | 0 | Twin of the Shattered Library: shelves, ladders, glass vault opening on the city. |
+| `loc_plaza_of_bells` | `scenes/loc_plaza_of_bells.webp` (+`@sm`) | p / L3 | 0 | Twin of Silverwood Plaza. Nine bells counted; fountain ring and colonnades. |
+| `loc_conflux_chamber` | `scenes/loc_conflux_chamber.webp` (+`@sm`) | p / M1 | 0 | Twin of the Heartstone Depths: same monolith-on-dais-with-plinths composition, golden. |
+| `loc_hearthring` | `scenes/loc_hearthring.webp` (+`@sm`) | p / N1 | 0 | Standing stones round a central fire, hide tents. |
+| `loc_sanctum_of_threads` | `scenes/loc_sanctum_of_threads.webp` (+`@sm`) | p / O3 | 0 | Hall of threads; dense detail needed WebP q50 to fit 160 kB (checked at 1:1, holds up). |
+| `loc_gallery_of_loops` | `scenes/loc_gallery_of_loops.webp` (+`@sm`) | p / Q1 | 0 | Colonnade with framed (abstract, figure-free) paintings, far light right of centre. Gamma 1.25. |
+| `loc_loom` | `scenes/loc_loom.webp` (+`@sm`) | p / R3 | 0 | Driftwood loom of light; the gallery's arches behind it. Gamma 1.25. |
+| `loc_far_light` | `scenes/loc_far_light.webp` (+`@sm`) | p / S2 | 0 | Bright door of light at the end of a path of water. Gamma 1.25. |

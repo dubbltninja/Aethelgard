@@ -82,6 +82,13 @@ uses the improved wording.
 | The Skyreach | Deep blue zenith fading to pale sky-blue, slate stone and cloud, warm pale-gold sunlight on stone. |
 | The Threshold | Black void, faint midnight-blue haze, a single cool silver-blue far light. |
 
+**Interior locations** (corridors, vaults, caverns, halls under ground): the light lines above name a sky, and Grok paints one
+into underground rooms. For interiors, (1) add "under a low stone ceiling" / "under a rock ceiling" to the subject line, (2) swap
+the region light line for an interior one — *"Enclosed underground, deep <region shadow colours>, <region accent> glow."* — and
+(3) in the style lock say "cinematic wide view" and "layered depth into the distance" instead of "panoramic" and "far horizon".
+Also name crystals as "a faceted crystal monolith": "crystal heart" came back as a literal ♥ shape. (Learned on the Silverwood
+interiors, round q, 2026-10-25.)
+
 ---
 
 ## 5. The shot list (77 prompts, in tiers)
@@ -276,6 +283,8 @@ Grok terms checked: 2026-10-24 — xAI's consumer FAQ (https://x.ai/legal/faq) s
 
 Session settings: Grok Imagine, Image, Quality 2.0, ×4, aspect **21:9** (widest offered; 2128 × 912, trims to 12:5 with a sliver off top and bottom). Round a used the original painterly lock; round p (2026-10-25) is the pixel lock now in §3. **Submit one prompt at a time and wait for its 4 images:** sending the next prompt while one is generating cancels the earlier one. Downloads land in `Downloads\\`; the session files them into `candidates\\`.
 
+Crop note: 21:9 (2.33) is slightly *taller* than 12:5 (2.4), so the crop keeps full width and trims ~12 px off top and bottom (an early convert script padded black side bars instead; fixed 2026-10-25 and every WebP regenerated).
+
 Conversion note: Grok's pixel art is ~3 screen px per art pixel at 2128 wide, so the LANCZOS resize to 1440 keeps a light, even pixel grain; no nearest-neighbour step is needed.
 
 | id | file | round / pick | crop offset | notes |
@@ -284,3 +293,10 @@ Conversion note: Grok's pixel art is ~3 screen px per art pixel at 2128 wide, so
 | `loc_emberforge` | `scenes/loc_emberforge.webp` (+`@sm`) | p / B3 | 0 | Pixel lock. Strongest hearth glow; forge sits right of centre, inside the 60%. |
 | `loc_lanternreed` | `scenes/loc_lanternreed.webp` (+`@sm`) | p / C2 | 0 | Pixel lock. Row of stilt huts, lantern windows, rope walkways. |
 | `loc_still_shore` | `scenes/loc_still_shore.webp` (+`@sm`) | p / D2 | 0 | Pixel lock. Midtones lifted (gamma 1.25). Faint far-shore spires (not in brief) kept: dim, read as distance. |
+| `title` | `title.webp` (+`@sm`) | p / T1 | 0 | Arch framing a violet rift, road leading in. |
+| `loc_crumbling_archway` | `scenes/loc_crumbling_archway.webp` (+`@sm`) | p / A1 | 0 | Keystone of carved faces, crystal trees both sides. |
+| `loc_darkened_corridor` | `scenes/loc_darkened_corridor.webp` (+`@sm`) | q / B4 | 0 | Interior reroll: round p painted sky into it. Fungal glow on the vaults. |
+| `loc_shattered_library` | `scenes/loc_shattered_library.webp` (+`@sm`) | p / C4 | 0 | Light shafts through the broken glass roof. |
+| `loc_silverwood_plaza` | `scenes/loc_silverwood_plaza.webp` (+`@sm`) | p / D3 | 0 | Misting fountains in a ring of colonnades. |
+| `loc_sunken_archives` | `scenes/loc_sunken_archives.webp` (+`@sm`) | q / E1 | 0 | Interior reroll. Stair into ley-lit water, soaked shelves. |
+| `loc_heartstone_depths` | `scenes/loc_heartstone_depths.webp` (+`@sm`) | q / F1 | 0 | Interior reroll; round p drew a ♥. Crystal monolith on a dais, nine plinths. Base for the three state variants. |

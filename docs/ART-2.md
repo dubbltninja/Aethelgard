@@ -381,4 +381,4 @@ leaves olive moss and yellow-green glow alone. `tools/art/sheet.py` builds the b
   `--erode N` shaves a painted light outline (the "sticker" rim on the Temporal Aberration).
 - **Square creatures** (beasts, wisps, constructs) were made at **1:1**. For things made of light, add "with no body":
   without it Grok gives the wisp a dark creature's body.
-- **Status:** all 66 sprites are done (Tier 0, 1 and 2). The 37 Tier 2 portraits are on hold; Tim's call (2026-10-25).
+- **Status:** all 67 sprites are done (Tier 0, 1 and 2). The 37 Tier 2 portraits are on hold; Tim's call (2026-10-25).

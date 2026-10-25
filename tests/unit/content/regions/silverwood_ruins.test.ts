@@ -176,16 +176,18 @@ describe('the seven locations vs WORLD §3.1 blocks', () => {
   });
 
   test('events: every WORLD event, its text verbatim, legacy ids with the ev_ prefix; once unless WORLD repeats it', () => {
-    // U54 added the carrel's scene opener to the Sunken Archives (STORY §13 scene_the_first_drowned; its own test holds it)
+    // U54 added the carrel's scene opener to the Sunken Archives (STORY §13 scene_the_first_drowned; its own test holds it);
+    // U58 the carrel approached without drawing (`q_the_first_drowned`) and the Depths' count (`q_the_thirtieth_dawn`), both interacts
     const U54_EVENTS = ['ev_archives_first_drowned'];
+    const U58_EVENTS = ['ev_archives_oriel_carrel', 'ev_depths_count_beats'];
     for (const l of parsedLocations) {
       const w = WL[l.id];
-      const got = Object.fromEntries(l.events.filter((e) => !U54_EVENTS.includes(e.id)).map((e) => [e.id, e.text]));
+      const got = Object.fromEntries(l.events.filter((e) => !U54_EVENTS.includes(e.id) && !U58_EVENTS.includes(e.id)).map((e) => [e.id, e.text]));
       const expected = Object.fromEntries(Object.entries(w?.events ?? {}).map(([id, text]) => [id.startsWith('ev_') ? id : `ev_${id}`, text]));
       expect([l.id, got]).toEqual([l.id, expected]);
       for (const e of l.events) {
-        expect([e.id, e.trigger]).toEqual([e.id, 'enter']);
-        expect([e.id, e.once]).toEqual([e.id, e.id !== 'ev_depths_choice' && !U54_EVENTS.includes(e.id)]);
+        expect([e.id, e.trigger]).toEqual([e.id, U58_EVENTS.includes(e.id) ? 'interact' : 'enter']);
+        expect([e.id, e.once]).toEqual([e.id, e.id !== 'ev_depths_choice' && !U54_EVENTS.includes(e.id) && !U58_EVENTS.includes(e.id)]);
       }
     }
     // the Heartstone prompt opens STORY's choice scene while the quest is open

@@ -20,6 +20,7 @@
     "sim:balance": "bun --define __DEV__=false --define __E2E__=true tools/gen-balance.ts",
     "sim:batch": "bun --define __DEV__=false --define __E2E__=true src/sim/cli.ts batch",
     "sim:replay": "bun src/sim/cli.ts run --verbose",
+    "sim:endings": "bun --define __DEV__=false --define __E2E__=true src/sim/cli.ts endings",
     "check": "npm run typecheck && npm run lint && npm run validate && npm test && npm run build && npm run test:e2e -- --grep @smoke"
   },
   "dependencies": {

@@ -569,9 +569,11 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
       const one = at({ locationId }, 1);
       const opened = play(one.s, [talk(npcId)], { content: pack, profile: one.profile });
       expect([npcId, nodesSeen(opened.events)]).toEqual([npcId, ['come_back']]);
-      // U57: from Loop 2 Hadda offers the Bone Road at any standing (its offer, and its after line, outrank her idle line)
+      // U57: from Loop 2 Hadda offers the Bone Road at any standing (its offer, and its after line, outrank her idle line);
+      // U58: so does Dray the Thirtieth Dawn (its offer outranks his idle, waiting and after lines)
       const two = at({ locationId, reputation: { weavers: -20 } }, 2);
-      expect([npcId, nodesSeen(play(two.s, [talk(npcId)], { content: pack, profile: two.profile }).events)]).toEqual([npcId, [npcId === 'npc_hadda_ironvow' ? 'wind' : 'later']]);
+      const opens: Record<string, string> = { npc_hadda_ironvow: 'wind', npc_ansel_dray: 'ashcombe' };
+      expect([npcId, nodesSeen(play(two.s, [talk(npcId)], { content: pack, profile: two.profile }).events)]).toEqual([npcId, [opens[npcId] ?? 'later']]);
     }
   });
 
@@ -588,8 +590,9 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect(read.state.echoesThisLoop).not.toContain('echo_tyrant_jailer');
     const plain = read.events.find((e) => e.t === 'dialogueNode' && e.nodeId === 'reads') as { text: string } | undefined;
     expect(plain?.text).toBe(node('scene_dray_keepers_ledger_offer', 'reads').text);
-    // the Horde closes him; the waiting line while the case is out
-    expect(nodesSeen(play(read.state, [talk('npc_ansel_dray')], { content: pack, profile }).events)).toEqual(['waiting']);
+    // the Horde closes him; the waiting line while the case is out (U58: his Thirtieth Dawn offer, an `offer`, comes first now)
+    expect(nodesSeen(play(read.state, [talk('npc_ansel_dray')], { content: pack, profile }).events)).toEqual(['ashcombe']);
+    expect(nodesSeen(play({ ...read.state, quests: { ...read.state.quests, q_the_thirtieth_dawn: { status: 'completed', stage: 'done', startedDay: 1, endedDay: 1, counters: {}, objectivesDone: [] } } }, [talk('npc_ansel_dray')], { content: pack, profile }).events)).toEqual(['waiting']);
     // Loop 3 with the thirtieth dawn and Nyx's reading behind you: the pattern aloud, and the engine's Jailer (two of five sources)
     const known = at({ locationId: 'loc_shattered_library', reputation: { remnants: 20 } }, 3, ['echo_thirtieth_dawn', 'echo_breach_recoil']);
     const heard = play(known.s, [talk('npc_ansel_dray'), go, pick('yes'), go], { content: pack, profile: known.profile });
@@ -621,7 +624,9 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect(xpOf(whole.events)).toBe(400);
     expect(nodesSeen(whole.events)).toEqual(['entered', 'held_well']);
     expect(whole.state.mode).toBe('explore');
-    expect(nodesSeen(play(whole.state, [talk('npc_ansel_dray')], { content: pack, profile }).events)).toEqual(['pencil']);
+    // U58: the Thirtieth Dawn's offer outranks his after line; with it done, the pencil
+    expect(nodesSeen(play(whole.state, [talk('npc_ansel_dray')], { content: pack, profile }).events)).toEqual(['ashcombe']);
+    expect(nodesSeen(play({ ...whole.state, quests: { ...whole.state.quests, q_the_thirtieth_dawn: { status: 'completed', stage: 'done', startedDay: 1, endedDay: 1, counters: {}, objectivesDone: [] } } }, [talk('npc_ansel_dray')], { content: pack, profile }).events)).toEqual(['pencil']);
     const one = play(opened.state, [pick('verse_one'), go], { content: pack, profile });
     expect(one.state.quests.q_keepers_ledger).toMatchObject({ status: 'completed', stage: 'verse_one' });
     expect([one.state.reputation.remnants, one.state.flags.flag_remnants_hold_litany, carries(one.state, 'item_keepers_copy')]).toEqual([10, undefined, 1]);

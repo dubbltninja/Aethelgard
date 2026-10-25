@@ -983,6 +983,11 @@ function playCommunion(
     const combat = run.s.combat;
     if (combat === null) throw run.fail('the fight ended before the communion reached its target');
     if (combat.phase === 'defeat') throw new ScenarioDefeat(run.id, 'the Wayfinder fell');
+    // U58: the Resolution's words open over the fight (the Unveiled Tyrant's `onSpared`); clicked through, the outcomes follow
+    if ((run.s.mode as string) === 'dialogue') {
+      run.settle(false);
+      continue;
+    }
     if (combat.communion !== null && done(combat)) return combat;
     run.act(communeAction(run, spec, bossOf(combat).uid));
   }

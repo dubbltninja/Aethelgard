@@ -955,7 +955,8 @@ describe('the validate CLI', () => {
     expect(verbose.code).toBe(0);
     // what is still short: the story quests (D-045), the class mini-quests and the codex; regions and locations are complete since U48a,
     // the companions (6) and their 24 abilities since D-111, so neither has a pending completeness line any more
-    expect(verbose.out).toMatch(/pending rule-21: quests\.-: pending — content not yet authored: \d+ story quests \(D-045, legacy six included\); expected 44/);
+    // U58: all 44 story quests are authored (the line is gone); the class mini-quests (U59) and the codex are still short
+    expect(verbose.out).not.toMatch(/pending rule-21: quests\.-: pending — content not yet authored: \d+ story quests/);
     expect(verbose.out).toMatch(/pending rule-21: quests\.-: pending — content not yet authored: \d+ class mini-quests; expected 5/);
     expect(verbose.out).toMatch(/pending rule-21: codex\.-: pending — content not yet authored: \d+ codex entries; expected at least 85/);
     expect(verbose.out).not.toMatch(/pending rule-21: companions\./);

@@ -470,18 +470,19 @@ describe('endings', () => {
     ]);
   });
 
-  test('rule 15: the three endings whose ending effect arrives with their quest (C, D, E) are pending, not errors', () => {
+  test('rule 15: every ending has its { ending } effect — A, B and F in the Tyrant\'s communion outcomes, C, D and E in their quests\' scenes (U58)', () => {
     type Issue = { rule: string; id: string; message: string };
     const reach = (issues: readonly Issue[]): string[] => issues.filter((i) => i.rule === 'rule-15' && i.message.includes('effect anywhere')).map((i) => i.id).sort();
-    const waiting = ['ending_iron_silence', 'ending_long_archive', 'ending_weavers_dawn'];
     const gate = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(reach(gate.errors)).toEqual([]);
-    expect(reach(gate.warnings)).toEqual(waiting);
-    for (const w of gate.warnings.filter((x) => x.rule === 'rule-15')) expect(w.message.startsWith('pending — content not yet authored: ')).toBe(true);
+    expect(reach(gate.warnings)).toEqual([]);
     expect(reach(parseContentPack().report.warnings)).toEqual([]);
-    // A, B and F already have their { ending } effect in the Tyrant's communion outcomes; once the quests and dialogue are in, the rest are errors
-    expect(reach(validateContent(pack, { incompleteTables: [] }).errors)).toEqual(waiting);
-    expect(reach(validateContent(pack, { incompleteTables: ['dialogues'] }).errors)).toEqual([]);
+    expect(reach(validateContent(pack, { incompleteTables: [] }).errors)).toEqual([]);
+    // the three that arrive with their quests' scenes (U58): the Weaver's Dawn's second wave, the Iron Silence's "Now.", the Archive's choice
+    const scenes = Object.values(pack.dialogues).flatMap((s) => s.nodes.flatMap((n) => n.choices.flatMap((c) => c.effects.flatMap((e) => ('ending' in e ? [e.ending] : [])))));
+    expect(scenes).toContain('ending_iron_silence');
+    expect(scenes).toContain('ending_long_archive');
+    expect(Object.values(pack.encounters).flatMap((e) => e.onVictory.flatMap((x) => ('ending' in x ? [x.ending] : [])))).toEqual(['ending_weavers_dawn']);
   });
 });
 

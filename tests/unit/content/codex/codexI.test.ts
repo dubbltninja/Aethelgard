@@ -285,7 +285,8 @@ describe('every unlock is §14.1\'s, as a Condition', () => {
     expect(tomeTargets.sort()).toEqual(['codex_corvin_dreyl', 'codex_ilsabet_rhune', 'codex_maelis_korr', 'codex_oriel_danthe', 'codex_seraphine_aulde', 'codex_tobrin_vask']); // + the three D-108 tomes
     for (const t of tomeTargets) expect(pack.codex[t]).toBeDefined();
     const unveiled = pack.creatures['cr_chronos_tyrant_unveiled'];
-    const listens = (unveiled?.communion?.movements ?? []).flatMap((m) => (m.listen?.effects ?? []).map((e) => ('unlockCodex' in e ? e.unlockCodex : '')));
+    // U58: Movement III's Listen also carries the ninth verse at Resolve ≥ 6 (an `onlyIf`, not a codex unlock)
+    const listens = (unveiled?.communion?.movements ?? []).flatMap((m) => (m.listen?.effects ?? []).flatMap((e) => ('unlockCodex' in e ? [e.unlockCodex] : [])));
     expect(listens).toEqual(['codex_tyrant_holding', 'codex_tyrant_six', 'codex_veyran_thal']);
     for (const t of listens) expect(pack.codex[t]).toBeDefined();
   });

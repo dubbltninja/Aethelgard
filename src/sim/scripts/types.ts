@@ -7,6 +7,8 @@
 //   · `EndingScript.scenario`: start from `loadScenario(id)` (PLAN §7.8: "long prefixes start from loadScenario")
 //   · `EndingScript.name`: a label when one ending has several scripts (closer_fall by expiry, by death, by *Let go*)
 //   · `until.do` also names the other policy bots (`caster`, `speedrunner`, `pacifist`), not only `explorer` and `melee`
+//   · `EndingScript.profile` (U58): a constructed Loop 2+ profile to start from, as the quest proofs' (scripts/quests.ts) — an
+//     ending that needs a companion's bond or a region's Echoes from an earlier loop is proved from the loop that has them
 import type { Action } from '@engine/index';
 import type { Condition } from '@schema/condition';
 import type { Bot } from '../bots/types';
@@ -51,6 +53,8 @@ export interface EndingScript {
   scenario?: ScenarioId;
   /** A label when one ending has several scripts. */
   name?: string;
+  /** U58: a constructed profile to start from (the loop counter, the Echoes earlier loops earned, the class's best level). */
+  profile?: { loop: number; echoes?: readonly `echo_${string}`[]; bestLevel?: number };
 }
 
 /** Default step budget of `goto`, `until` and `loopEnd` (PLAN §7.8). */

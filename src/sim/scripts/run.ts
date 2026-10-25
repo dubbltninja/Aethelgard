@@ -6,6 +6,8 @@
 import type { ContentPack } from '@engine/index';
 import { pathBot } from '../bots/pathBot';
 import { runLoop, type RunResult } from '../runner';
+import { newProfile } from '../scenarios';
+import { trained } from './quests';
 import type { EndingScript } from './types';
 
 export interface ScriptProof {
@@ -24,8 +26,19 @@ export interface ScriptRunOptions {
 /** `closer_escape` and `closer_fall` are loop closers (recorded in `closers`); every other id is a true ending. */
 export const isCloser = (endingId: string): boolean => endingId === 'closer_escape' || endingId === 'closer_fall';
 
+/** U58: the constructed profile of a Loop 2+ script (the quest proofs' form, scripts/quests.ts `profileOf`). */
+function profileOf(script: EndingScript): ReturnType<typeof newProfile> | undefined {
+  if (script.profile === undefined) return undefined;
+  const p = newProfile(script.seed);
+  const { loop, echoes = [], bestLevel } = script.profile;
+  const mastery = bestLevel === undefined ? {} : { [script.classId]: { loopsPlayed: loop - 1, mastered: [], endings: [], bestLevel, bestDays: null } };
+  return { ...p, loopCounter: loop, echoes: [...echoes], classMastery: mastery };
+}
+
 export function runEndingScript(script: EndingScript, content: ContentPack, opts: ScriptRunOptions = {}): ScriptProof {
-  const bot = pathBot(script.loops.flat());
+  // U58: a script from a constructed Loop 2+ profile plays with the quest proofs' trained hand (the character a player brings)
+  const profile = profileOf(script);
+  const bot = profile === undefined ? pathBot(script.loops.flat()) : trained(pathBot(script.loops.flat()));
   const result = runLoop(
     {
       seed: script.seed,
@@ -36,6 +49,7 @@ export function runEndingScript(script: EndingScript, content: ContentPack, opts
       onFallen: 'stop',
       ...(opts.maxSteps === undefined ? {} : { maxSteps: opts.maxSteps }),
       ...(script.scenario === undefined ? {} : { scenario: script.scenario }),
+      ...(profile === undefined ? {} : { profile }),
     },
     content,
   );

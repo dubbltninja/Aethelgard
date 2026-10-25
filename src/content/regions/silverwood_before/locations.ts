@@ -328,6 +328,8 @@ export const locations = [
         id: 'enc_hall_knight',
         groups: [{ creatureId: 'cr_ninefold_knight' }],
         when: bell(3),
+        // U58 (STORY §9.4 the sixth beat; `q_stop_the_ritual` is Pacifist): the one Masque waits for on the dome is let by
+        optionalWhen: { quest: { id: 'q_stop_the_ritual', stage: 'masque' } },
         fleeable: false,
         onFlee: 'hold',
         intro: 'The nine chairs are empty. Plate with no one in it stands on the floor-map.',
@@ -353,6 +355,8 @@ export const locations = [
         id: 'ev_hall_masque_roof',
         text: "On the dome, Masque has his eye to the glass. 'It fails,' he says without turning. 'I have read it twice. Go and tell him. He will not hear it from me.'",
         when: bell(3),
+        // U58 (STORY §9.4): on the fourth failure he says the rest (`scene_masque_roof`: `echo_ritual_inevitable`, verse VII)
+        effects: [{ onlyIf: { when: { quest: { id: 'q_stop_the_ritual', stage: 'masque' } }, effects: [{ startDialogue: 'scene_masque_roof' }] } }],
       },
     ],
     // "silver glints along the floor lines": motes
@@ -467,6 +471,16 @@ export const locations = [
         text: "She looks up. 'You have my hands,' she says. 'No. Someone with my hands sent you.' She goes back to writing, faster.",
         effects: [{ grantEcho: 'echo_oriel_lineage' }],
       },
+      // U58 (STORY §9.4 attempt 3, `q_stop_the_ritual`): Oriel's fair copy of the Litany, on the desk by the stair (an interact)
+      {
+        id: 'ev_archives_fair_copy',
+        trigger: 'interact',
+        label: 'Take the fair copy',
+        text: "On the desk by the stair, Oriel's fair copy of the Litany, the last line's ink not yet dry.",
+        once: false,
+        when: { all: [{ quest: { id: 'q_stop_the_ritual', stage: 'try' } }, { not: { flag: 'flag_scene_done_scene_ritual_steal_record' } }] },
+        effects: [{ startDialogue: 'scene_ritual_steal_record' }],
+      },
     ],
     art: { template: 'archive', horizon: 0.64, silhouettes: ['straight_shelves', 'brass_rails', 'desk_with_lamp', 'stair_down'], particles: 'motes', timeOfDay: 'timeless' },
     levelBand: { min: 14, max: 15 },
@@ -534,6 +548,27 @@ export const locations = [
         id: 'ev_conflux_well',
         text: 'The Heartstone is whole. It sits in Hallow\'s iron and beats slowly, like something asleep, and nine people are about to reach into it.',
         effects: [{ setFlag: 'flag_visited_before' }],
+      },
+      // U58 (STORY §9.4 attempt 4, `q_stop_the_ritual`): break the cradle (an interact; Hallow's iron holds)
+      {
+        id: 'ev_conflux_cradle',
+        trigger: 'interact',
+        label: 'Break the cradle',
+        text: "Hallow's cradle holds the Heartstone in nine bands of iron, pinned at the rim. Iron can be broken.",
+        once: false,
+        when: { all: [{ quest: { id: 'q_stop_the_ritual', stage: 'try' } }, { not: { flag: 'flag_scene_done_scene_ritual_break_cradle' } }] },
+        effects: [{ startDialogue: 'scene_ritual_break_cradle' }],
+      },
+      // U58 (STORY §13 `scene_anchor_in_the_conflux`, `q_the_mending` stage 2): the pin on the rim with Caelum beside you — his
+      // words, and the hour steadies by three days (the Anchor itself is the engine's `drop`, before.ts)
+      {
+        id: 'ev_conflux_pin',
+        trigger: 'interact',
+        label: 'Stand at the rim with Caelum',
+        text: "Hallow's second pin lies on the rim where you set it. Caelum is looking at it, not at you.",
+        once: false,
+        when: { all: [{ quest: { id: 'q_the_mending', stage: 'crossing' } }, { companion: { id: 'caelum', state: 'active' } }, { not: { flag: 'flag_scene_done_scene_anchor_in_the_conflux' } }] },
+        effects: [{ startDialogue: 'scene_anchor_in_the_conflux' }],
       },
     ],
     // "rising light streams (Day 3: strobe to white)": motes, then static

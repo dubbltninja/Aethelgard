@@ -210,10 +210,26 @@ describe('stepping out, waiting, falling back in (engine: applyLocationRule, swa
 // ---- 2. Dask and the Tyrant -----------------------------------------------------------------------------------------------------
 
 describe('Dask and the Tyrant (DESIGN §12.5, STORY §7.4): −30 on the kill, +3 on sparing it, Phase 3 one voice quieter', () => {
+  /** U58: the step onto the Apex opens the Tyrant's first words (`scene_tyrant_first_words`); Fight starts the fight. */
+  const intoTheFight = (s: GameState, prof: Profile): { state: GameState; profile: Profile; events: Ev[] } => {
+    let r = { state: step(s, { type: 'move', to: APEX }, pack, prof).state, profile: prof, events: [] as Ev[] };
+    expect(r.state.mode).toBe('dialogue');
+    for (let i = 0; i < 12 && r.state.mode === 'dialogue'; i++) {
+      const legal = legalActions(r.state, pack, r.profile);
+      const a = legal.find((x) => x.type === 'choose' && x.choiceId === 'fight') ?? legal.find((x) => x.type === 'continue');
+      if (a === undefined) throw new Error('the first words offer no way to the fight');
+      const out = step(r.state, a, pack, r.profile);
+      r = { state: out.state, profile: out.profile, events: [...r.events, ...out.events] };
+    }
+    return r;
+  };
+
   test('the data: the kill is the creature’s `onDefeat`, the sparing its communion’s `onSpared`', () => {
     const t = pack.creatures[TYRANT];
     expect(t?.onDefeat).toEqual([{ loyalty: { companion: 'dask', delta: -30 } }]);
-    expect(t?.communion?.onSpared).toEqual([{ loyalty: { companion: 'dask', delta: 3 } }]);
+    // U58: the Resolution's words follow the loyalty (three `onlyIf`s, one per ending's scene)
+    expect(t?.communion?.onSpared[0]).toEqual({ loyalty: { companion: 'dask', delta: 3 } });
+    expect(t?.communion?.onSpared.slice(1).map((e) => ('onlyIf' in e ? e.onlyIf.effects : e))).toEqual([[{ startDialogue: 'scene_ending_mending' }], [{ startDialogue: 'scene_ending_vigil' }], [{ startDialogue: 'scene_ending_unbound' }]]);
     expect(pack.creatures['cr_chronos_tyrant_contained']?.onDefeat).toEqual([]); // Loop 1: no Dask (DESIGN §12.1)
   });
 
@@ -221,7 +237,8 @@ describe('Dask and the Tyrant (DESIGN §12.5, STORY §7.4): −30 on the kill, +
     const prof = freshProfile({ loopCounter: 2 });
     const s0 = party('dask', { level: 18, locationId: NEXUS, echoes: ['echo_apex_resonance'] });
     s0.companions.recruited.dask!.loyalty = 40;
-    const up = step(s0, { type: 'move', to: APEX }, pack, prof);
+    // U58: its first words open on arrival; Fight starts the fight
+    const up = intoTheFight(s0, prof);
     expect(up.state.mode).toBe('combat');
     const s1 = clone(up.state);
     const tyrant = (s1.combat as CombatState).enemies.find((e) => e.refId === TYRANT) as Combatant;
@@ -237,7 +254,7 @@ describe('Dask and the Tyrant (DESIGN §12.5, STORY §7.4): −30 on the kill, +
     expect(ofType(r.events, 'loyaltyChanged')).toContainEqual({ t: 'loyaltyChanged', companionId: 'dask', delta: -30, value: 10 });
     // without Dask recruited, nothing to change
     const alone = party(null, { level: 18, locationId: NEXUS, echoes: ['echo_apex_resonance'] });
-    const fight = clone(step(alone, { type: 'move', to: APEX }, pack, prof).state);
+    const fight = clone(intoTheFight(alone, prof).state);
     (fight.combat as CombatState).enemies.find((e) => e.refId === TYRANT)!.hp = 1;
     const quiet = step(fight, { type: 'attack', targetUid: (fight.combat as CombatState).enemies[0]!.uid }, pack, prof);
     expect(ofType(quiet.events, 'loyaltyChanged')).toEqual([]);

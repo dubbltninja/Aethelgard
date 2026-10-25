@@ -226,6 +226,11 @@ As in Part 1, if the test batch shows a better phrasing, update the lock here be
 | id | Subject line |
 |---|---|
 | `npc_tamsin_reed` | Scribe Tamsin Reed, a sharp middle-aged Remnant scribe with ink-stained fingers and a quill behind one ear, pale-blue accent. |
+| `npc_ansel_dray` | `portraits/npc_ansel_dray.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. White beard, round spectacles, ledger held to the chest, pale-blue rim light. |
+| `npc_kaelen_stonehand` | `portraits/npc_kaelen_stonehand.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Fur-trimmed coat, sharpest gaze of the four, orange ember glow. |
+| `npc_brak` | `portraits/npc_brak.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Shaved scarred head, chipped axe over the shoulder, ember sparks; matches his sprite's leather and scrap armour. |
+| `npc_borin_stonefist` | `portraits/npc_borin_stonefist.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Soot-dark beard and arms, leather apron, forge-orange glow. |
+| `npc_nyx` | `portraits/npc_nyx.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Grey threads over shadowed hair, violet starlit eyes. |
 | `npc_ansel_dray` | Keeper Ansel Dray, a Remnant keeper of about seventy with a white beard and spectacles, holding a heavy ledger, pale-blue accent. |
 | `npc_kaelen_stonehand` | Kaelen Stonehand, a broad-shouldered trader with weathered hands and a sharp gaze, a fur-trimmed coat, orange ember accent. |
 | `npc_brak` | Brak, a scarred Ironclad scout, shaved head, chipped axe over the shoulder, orange ember accent. |

@@ -2112,3 +2112,25 @@ owning unit (PLAN §9.1).
 - **Gap → the balance unit (high priority): ending D cannot be reached by play.** After Destroy, the anchor's materials,
   Borin and the Apex lie past the 19 dawns left. `scene_ending_silence` is proven on a constructed state. B's played road (pin →
   forge → Apex) is covered by unit tests only; its sim proof starts from the scenario.
+
+### D-124 · Scene art: painted backdrops (Grok Imagine) under code overlays; U71/U72 re-scoped, 2026-10-24
+- **Tim's ruling:** location scenes are **painted with Grok Imagine** (his SuperGrok subscription), not drawn only in code.
+  Code-drawn SVG scenes would read as flat vector art; atmosphere matters for fun.
+- **The split:**
+  - Paintings: one backdrop per location (73), the Heartstone Depths' three state variants, and Title key art. 77 prompts in
+    tiers (test batch of 4 → 24 story places → 49 others).
+  - Code still draws what changes in play: time-of-day tint, particles, the Breach overlay and infection hatching, focal glows,
+    creature sigils, item icons and status glyphs (U73 stays code).
+- **The art session runs on Tim's PC**, from a separate Claude task linked to his computer (this cloud task cannot link). It
+  follows `docs/ART.md` (style lock, region light lines, shot list, screening, delivery), shows Tim contact sheets for approval,
+  and pushes WebPs (1440 × 600 + 720 × 300) to `public/art/scenes/` on `wip/art`; the lead merges.
+- **Fallback is permanent:** own painting → a region-mate's painting (nearest by map distance) with the region tint → U64's
+  parametric SVG. The game ships whole at any point in the art session.
+- **Budget:** images are separate files, outside PLAN §1.1's 600 kB JS budget; target ≤ 160 kB per large WebP (~8 MB for the full
+  set on Pages).
+- **Units:**
+  - **U71** (Opus) is now the backdrop system: manifest, `<picture>` under the overlays, the fallbacks, preloading exits,
+    Title key art, high contrast, credits (`docs/briefs/u71.md`). Runs before or alongside the art session, with fixture images.
+  - **U72** (Sonnet) shrinks to per-location overlay data: particles, focal glows, time-of-day per place, and the parametric
+    fallback's silhouettes. Its brief is written after the test batch is approved.
+  - Grok's usage terms for a public game are checked by the art session and noted in `docs/ART.md` §8.

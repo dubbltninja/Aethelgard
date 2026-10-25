@@ -1,7 +1,7 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except class quests (U59), scenes/endings text (U62) and codex (42 of 87); all 44 quests authored — **C3 content**; UI U63–U70 done (every screen and panel, saves/settings, mobile tab bar, onboarding, toasts) — **C4 playable** — 4,161 tests, bundle 508 kB of 600. Next: U71/U72 (art), then ✦ U59, U61, U62 when Fable allows. Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except class quests (U59), scenes/endings text (U62) and codex (42 of 87); all 44 quests authored — **C3 content**; UI U63–U70 done (every screen and panel, saves/settings, mobile tab bar, onboarding, toasts) — **C4 playable** — 4,161 tests, bundle 508 kB of 600. Next: U71 + the Grok art session (D-124), U72, then ✦ U59, U61, U62 when Fable allows. Unit list: PLAN §9.2.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-119), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
@@ -225,7 +225,10 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 ## 4. Next actions, in order
 
 1. ~~U70~~ done (D-121); ~~U57~~ done (D-122); ~~U58~~ done (D-123).
-2. **U71 / U72** (art system, scene data). After every UI merge the lead runs the **full** e2e suite (D-120).
+2. **Art (D-124, `docs/ART.md`):** **U71** (Opus; the painted-backdrop scene system with fallbacks — brief ready) ·
+   the **art session** on Tim's PC (Grok Imagine; Tim starts a desktop task linked to his computer: *"Read docs/ART.md in
+   dubbltninja/Aethelgard (branch `unraveling`) and run the art session"*; it pushes to `wip/art`) · then **U72** (Sonnet;
+   per-location overlays). After every UI merge the lead runs the **full** e2e suite (D-120).
 3. ✦ Fable units: **U59** class quests ·
    **U61** Codex II + the 103 Echo codex lines · **U62** scenes and endings. Tell agents to commit early.
 4. The balance + bot unit (Opus): **ending D unreachable by play — the road outruns the clock after Destroy (D-123)**; bots stop guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain

@@ -114,6 +114,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U72 | Overlays fitted to each painting: particles, focal glow, time-of-day tint, portal marker, infection — brief `briefs/u72.md` | Sonnet | ✅ 532f22f (spot-reviewed) — 76 overlay entries, portal marker, infection; full e2e 137 ✓; JS 537 kB; D-126 |
 | U59 | Class mini-quests (5) — brief `briefs/u59.md` | ✦ Fable | ✅ cf5ab23 (spot-reviewed) — 5 class quests; `quests` complete; 80/80 proofs; 4205 tests; D-127 |
 | U73a | The combat stage, creature/class/companion sprites, portraits, variant registry, fallbacks (D-128) — brief `briefs/u73a.md` | Opus | ✅ 815cd8c (+ the lead's focus fix) — stage, sprites, portraits; 4247 tests; full e2e 155 ✓; JS 552 kB; D-129 |
+| U73 | Glyph coverage + legibility; the phone action bar (D-130) — brief `briefs/u73.md` | Sonnet | 🔄 running |
+| U61 | Codex II (to 87) + the 103 Echo codex lines rewritten — brief `briefs/u61.md` | ✦ Fable | 🔄 running |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
 | U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ✅ 6824137 (resumed after the cutoff) — 6 quests, 23 scenes, 11 proofs; 3613 tests; D-113 |

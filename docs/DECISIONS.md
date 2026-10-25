@@ -2253,3 +2253,15 @@ owning unit (PLAN §9.1).
 - **Budget warning → U61/U62:** about 48 kB of JS headroom is left, and Codex II, the Echo lines, the scenes and the epilogues
   are mostly text. Before they push past 600 kB, split content per D-115 (e.g. lazy-load codex text and ending/epilogue text as
   separate JSON chunks); do not raise the budget.
+
+### D-130 · U73 re-scoped to glyph coverage + the phone action bar; U61 brief, 2026-10-25
+- PLAN §9.2's U73 work was mostly done along the way: U64/U65 `Icon` (the HUD, 18 statuses, 6 damage types), U65
+  `CreatureSigil`, U67 `ItemIcon`, and U73a's sprites. **U73** (Sonnet) is now:
+  - **A:** the art registry test (every item `art.icon`, status, damage type, sigil and `IconKind` drawn), legibility at real
+    sizes in both themes;
+  - **B:** D-129's open item, a pinned action bar on phones (Attack, Guard, Item, Flee, Abilities sheet; the communion takes the
+    slot).
+- **U61** (✦ Fable): Codex II (every §14 entry U60 didn't write, to STORY's 87), a rewrite of the 103 Echo `codexLine`s in
+  the Wayfinder's voice (D-100), and `codex` off `INCOMPLETE_TABLES` when nothing is pending. It must stop and report if
+  production JS would pass 590 kB (D-129).
+- **Art:** ART-2 has delivered all 67 sprites and 7 of 38 portraits so far, merged.

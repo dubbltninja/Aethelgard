@@ -97,6 +97,8 @@ const OATH_OK: Condition = { all: [FROM_LOOP_2, { quest: { id: 'q_blighted_outpo
 const SALT_OK: Condition = { not: { quest: { id: 'q_blood_and_salt' } } };
 /** STORY's prereq, exactly (DESIGN §13.3 ex. 5's `when`). */
 const LINE_OK: Condition = { all: [{ echo: 'echo_brak_death' }, { quest: { id: 'q_blighted_outpost', status: 'completed' } }, { not: { quest: { id: 'q_the_line_he_holds' } } }] };
+/** U59 (STORY §11.8 `q_class_ironclad_warden`): the Warden's own ask, Loop 2+, chained from the hub to scene_brak_wall_offer (dialogues/classes.ts). */
+const WALL_OK: Condition = { all: [FROM_LOOP_2, { class: 'ironclad_warden' }, { not: { quest: { id: 'q_class_ironclad_warden' } } }] };
 
 /** Blood and Salt's ask, shared by the hub and the Peaks-refuser's first offer. */
 const saltAsk = (): NodeInput[] => [
@@ -683,6 +685,8 @@ export const dialogues = [
           { id: 'ring', text: 'About the Ring of Wagons.', when: OATH_OK, next: 'season' },
           { id: 'salt', text: 'About the salt.', when: SALT_OK, next: 'short' },
           { id: 'apex', text: 'About the Apex.', when: LINE_OK, next: 'look' },
+          // U59: the Warden's quest (the hub's `when` is unchanged: his own offer scene opens by `talk` when the hub does not)
+          { id: 'wall', text: 'About the barricade.', when: WALL_OK, tags: ['class'], effects: [{ startDialogue: 'scene_brak_wall_offer' }], next: 'end' },
           { id: 'nothing', text: 'Nothing.', next: 'end' },
         ],
       },

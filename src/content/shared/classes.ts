@@ -7,8 +7,8 @@
 // - Starting kits are DESIGN §5.2–5.6's; the item records live in `src/content/items/{weapons,armor,consumables,quest}.ts`. Every class starts with 30 gold and no ability: 1 AP at level 1 buys a Tier-1 ability (DESIGN §5.1).
 // - `intro` keeps the legacy class-select lines for Ranger, Wizard and Elf (legacy/echoes_of_aethelgard.py CLASS_DEFS);
 //   the Warden's and the Weaver's follow their pattern.
-// - `uniqueQuestId` (q_class_<class>, STORY §11.8) is set by the quest unit that authors those quests: a reference to a
-//   missing quest is a rule-1 error.
+// - `uniqueQuestId` (q_class_<class>, STORY §11.8) names the class's mini-quest (U59, shared/quests/classes.ts): a reference
+//   to a missing quest is a rule-1 error.
 import type { ClassInput } from '@schema/class';
 
 export const classes = [
@@ -40,6 +40,7 @@ export const classes = [
     ],
     startingAbilities: [],
     startingGold: 30,
+    uniqueQuestId: 'q_class_ranger',
     dialogueTag: 'ranger',
     sigil: 'ranger',
     legacy: true,
@@ -73,6 +74,7 @@ export const classes = [
     ],
     startingAbilities: [],
     startingGold: 30,
+    uniqueQuestId: 'q_class_wizard',
     dialogueTag: 'wizard',
     sigil: 'wizard',
     legacy: true,
@@ -106,6 +108,7 @@ export const classes = [
     ],
     startingAbilities: [],
     startingGold: 30,
+    uniqueQuestId: 'q_class_elf',
     dialogueTag: 'elf',
     sigil: 'elf',
     legacy: true,
@@ -140,6 +143,7 @@ export const classes = [
     ],
     startingAbilities: [],
     startingGold: 30,
+    uniqueQuestId: 'q_class_ironclad_warden',
     dialogueTag: 'warden',
     sigil: 'warden',
     legacy: false,
@@ -171,6 +175,7 @@ export const classes = [
     ],
     startingAbilities: [],
     startingGold: 30,
+    uniqueQuestId: 'q_class_shadow_weaver',
     dialogueTag: 'weaver',
     sigil: 'weaver',
     legacy: false,

@@ -179,6 +179,17 @@ export const locations = [
         when: { all: [{ loop: { min: 2 } }, { not: { quest: { id: 'q_lightless_stair' } } }] },
         effects: [{ startDialogue: 'scene_hollow_curtain_stair' }],
       },
+      // U59 (STORY §11.8 `q_class_shadow_weaver` stage 2): feel for the seam, once the Weaver's quest has reached the Hollow at night;
+      // the scene is the Stalker at the hand, the hex, the Shard left or taken (shared/dialogues/classes.ts)
+      {
+        id: 'ev_hollow_feel_seam',
+        trigger: 'interact',
+        label: 'Feel for the seam',
+        text: "The dark at the scree's far edge is colder along one line than the rest. It would be found by touch.",
+        once: false,
+        when: { quest: { id: 'q_class_shadow_weaver', stage: 'hex' } },
+        effects: [{ startDialogue: 'scene_hollow_unlit_thread' }],
+      },
     ],
     // WORLD's particles are "smoke wisps peeling off edges"; ash is the nearest preset. Heartstone exploited: "the Hollow's
     // crystal glows brighter" (WORLD §2.3): a patch of glints, the glow itself the UI unit's.

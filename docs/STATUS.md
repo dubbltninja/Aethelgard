@@ -109,6 +109,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U69 | Saves + Settings panels, persistence (slots, `.tmp`/`.bak`, export/import), mobile layout + tab bar — brief `briefs/u69.md` | Sonnet | ✅ a0a2d53 (spot-reviewed) — tab bar per DESIGN §16.1; 3998 tests; full e2e 90 ✓; bundle 502 kB; D-120 |
 | U57 | Regional quests (6 new; `q_echoing_heartbeat` is U52's) + dialogue — brief `briefs/u57.md` | ✦ Fable | ✅ 101f508 (spot-reviewed) — 6 quests, 23 scenes, `echo_threshold` granted; 62/62 proofs; 4101 tests; D-122 |
 | U58 | Loop-only (4) + ending quests (6) + communion words + Tyrant lines; 8 real ending scripts — **C3 content** — brief `briefs/u58.md` | ✦ Fable | ✅ 30a218d (spot-reviewed; resumed after a cutoff) — all 44 quests; 7/8 endings by play, D a known gap; 4161 tests; **C3 content**; D-123 |
+| U71 | Scene system: painted backdrops under code overlays, fallbacks, title art (D-124) — brief `briefs/u71.md` | Opus | 🔄 running |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
 | U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ✅ 6824137 (resumed after the cutoff) — 6 quests, 23 scenes, 11 proofs; 3613 tests; D-113 |

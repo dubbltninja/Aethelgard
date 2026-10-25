@@ -2180,3 +2180,29 @@ owning unit (PLAN §9.1).
   - The portal marker drew at the top-left, because a CSS transform overrode the SVG one.
   - Mist on the Drowned Stair looked like a grey moon.
   - Infection darkening buried the violet places (Chasm, Veil Mouth). The hatch is weakest on violet-on-violet but readable.
+
+### D-127 · U59 details — the class mini-quests; `quests` complete; the Echoes still ungranted or unread, 2026-10-25
+- **U59 (796cce7, cf5ab23; ✦ Fable, spot-reviewed):** `quests/classes.ts` (5 quests + 4 encounters: the Plaza duel, the
+  Camp's three waves) and `dialogues/classes.ts` (21 scenes); `uniqueQuestId` on all five classes.
+  - Hooks: two Mistwood events, three Silverwood Ruins events, one Voidscar event, and a `wall` choice in Brak's hub
+    (`scene_brak_arc` → `scene_brak_wall_offer`).
+  - Written: 58 nodes (~1,950 words; narrator 23, Nyx 11, Kaelen 8, Tamsin 7, Brak 5, Borin 4), all pinned.
+  - Tests: 15 new (class and loop gates for all 5 × 5 classes and Loop 1); 80/80 quest proofs; 4,205 unit tests;
+    `sim:endings` 8/8; full e2e 137 passed, 3 skipped.
+- **`quests` leaves INCOMPLETE_TABLES** (49 quests, no pending reference). The lead also tried closing `dialogues`, `npcs` and
+  `encounters`, which have no pending references. Closing `dialogues` made rule 16 strict and surfaced 5 errors, so the list
+  stays `dialogues · npcs · codex · encounters` until the gaps below close.
+- **Rulings:**
+  - The class badge is the completed quest itself, read from the profile's run history (no engine field; C1 kept). XP 150.
+  - The Ranger's "Kaelen's prices −5% this loop" is the `echo_kaelen_ledger` grant, because no loop-scoped discount exists.
+  - Not modelled (no atom): the Weaver's hex is narrated; the Elf's "without taking a hit" (a win is a win); the Warden's
+    dawn gate on Borin.
+  - Nyx's and Brak's class offers wait behind their legacy offers (D-113's tie rule).
+- **Open → U61/U62 and the audit — rule 16's 18 pending checks:**
+  - **Granted by nothing:** `echo_breach_door`, `echo_hadrek_clockwright`, `echo_emberforge_vein`, `echo_nomad_signs`,
+    `echo_hollow_path`.
+  - **Read by nothing:** `echo_heartstone_triune`, `echo_ninth_verse_unfinished`, `echo_breach_recoil`, `echo_day_of_teeth`,
+    `echo_tyrant_consent`, `echo_tyrant_rejected`, `echo_amulet_memory`, `echo_horde_path`, `echo_breach_door`,
+    `echo_caelum_stayed`, `echo_crystal_seeded`, `echo_glowfen_dammed`, `echo_glowfen_let_run`.
+  - STORY §12 says what each grants or unlocks. U62 (scenes) takes the ones its scenes give; whatever remains goes to the
+    audit. When rule 16 has no pending items, close `dialogues`, `npcs` and `encounters`.

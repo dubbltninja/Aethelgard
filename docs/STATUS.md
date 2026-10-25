@@ -1,7 +1,7 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except class quests (U59), scenes/endings text (U62) and codex (42 of 87); all 44 quests authored — **C3 content**; UI U63–U70 done (every screen and panel, saves/settings, mobile tab bar, onboarding, toasts) — **C4 playable** — 4,161 tests, bundle 508 kB of 600. Next: U71 + the Grok art session (D-124), U72, then ✦ U59, U61, U62 when Fable allows. Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except scenes/endings text (U62), 18 Echo grant/read gaps (D-127) and codex (42 of 87); all 44 quests authored — **C3 content**; UI U63–U70 done (every screen and panel, saves/settings, mobile tab bar, onboarding, toasts) — **C4 playable** — 4,161 tests, bundle 508 kB of 600. Next: U71 + the Grok art session (D-124), U72, then ✦ U61, U62 when Fable allows. Unit list: PLAN §9.2.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-119), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
@@ -112,7 +112,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U71 | Scene system: painted backdrops under code overlays, fallbacks, title art (D-124) — brief `briefs/u71.md` | Opus | ✅ 6ecc3e8 (spot-reviewed) — backdrops + fallbacks; art Tier 0–1 merged (28 images); JS 533 kB; D-125 |
 | Art | Grok Imagine backdrops: all 73 locations + 3 Heartstone states + title (pixel style), 11 MB — `docs/ART.md` | Tim + art session | ✅ merged (D-124, D-125) |
 | U72 | Overlays fitted to each painting: particles, focal glow, time-of-day tint, portal marker, infection — brief `briefs/u72.md` | Sonnet | ✅ 532f22f (spot-reviewed) — 76 overlay entries, portal marker, infection; full e2e 137 ✓; JS 537 kB; D-126 |
-| U59 | Class mini-quests (5) — brief `briefs/u59.md` | ✦ Fable | 🔄 running |
+| U59 | Class mini-quests (5) — brief `briefs/u59.md` | ✦ Fable | ✅ cf5ab23 (spot-reviewed) — 5 class quests; `quests` complete; 80/80 proofs; 4205 tests; D-127 |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
 | U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ✅ 6824137 (resumed after the cutoff) — 6 quests, 23 scenes, 11 proofs; 3613 tests; D-113 |
@@ -232,7 +232,7 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 2. **Art (D-124, `docs/ART.md`):** ~~U71~~ done (D-125) ·
    the **art session** on Tim's PC (Grok Imagine; Tim starts a desktop task linked to his computer: *"Read docs/ART.md in
    dubbltninja/Aethelgard (branch `unraveling`) and run the art session"*; it pushes to `wip/art`) · ~~U72~~ done (D-126). After every UI merge the lead runs the **full** e2e suite (D-120).
-3. ✦ Fable units: **U59** class quests ·
+3. ✦ Fable units:
    **U61** Codex II + the 103 Echo codex lines · **U62** scenes and endings. Tell agents to commit early.
 4. The balance + bot unit (Opus): **ending D unreachable by play — the road outruns the clock after Destroy (D-123)**; bots stop guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain
    (D-109); Tyrant numbers (D-101); Warden vs bosses (D-089); Ilyra's loyalty arithmetic for ending E (D-113); affix on

@@ -85,8 +85,9 @@ describe('the fixture pack', () => {
     const strict = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(strict.errors).toEqual([]);
     const pending = strict.warnings.filter((w) => w.message.startsWith('pending — content not yet authored'));
-    expect(pending.length).toBeGreaterThan(100);
-    expect(pending.some((w) => w.message.startsWith('pending — content not yet authored (reference): '))).toBe(true);
+    // U61: with the codex complete no reference into a table still being authored is pending; rule 16's Echo checks still are
+    expect(pending.length).toBeGreaterThan(0);
+    expect(pending.some((w) => w.message.startsWith('pending — content not yet authored (reference): '))).toBe(false);
     // the only real warnings are flags later units set (rule 2) and WORLD's deliberately out-of-band placements (rule 11)
     expect(strict.warnings.filter((w) => !pending.includes(w)).every((w) => w.rule === 'rule-02' || w.rule === 'rule-11')).toBe(true);
   });
@@ -944,8 +945,11 @@ describe('the validate CLI', () => {
     expect(code).toBe(0);
     expect(out).toContain('validate: 22 rules, strict');
     expect(out).toMatch(/ locations [1-9]\d* · /); // U42 landed the first region
-    expect(out).toMatch(/pending rule-21: \d+ completeness check\(s\) — content not yet authored/);
-    expect(out).toMatch(/pending rule-01: \d+ reference\(s\) into tables still being authored — content not yet authored/);
+    // U61: the codex is complete, so rule-21 has no pending count left and no reference into a table still being authored is
+    // pending; rule-16's Echo completeness checks (the Echoes still ungranted or unread, D-127) are the remaining pending lines
+    expect(out).toMatch(/pending rule-16: \d+ completeness check\(s\) — content not yet authored/);
+    expect(out).not.toMatch(/pending rule-21: /);
+    expect(out).not.toMatch(/pending rule-01: /);
     expect(out).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\) \(\d+ table\(s\) still being authored\)/);
     expect(out).not.toContain('  error ');
   });
@@ -955,10 +959,10 @@ describe('the validate CLI', () => {
     expect(verbose.code).toBe(0);
     // what is still short: the story quests (D-045), the class mini-quests and the codex; regions and locations are complete since U48a,
     // the companions (6) and their 24 abilities since D-111, so neither has a pending completeness line any more
-    // U58: all 44 story quests are authored (the line is gone); U59: the five class mini-quests too; the codex is still short
+    // U58: all 44 story quests are authored (the line is gone); U59: the five class mini-quests too; U61: the codex too (90 ≥ 85)
     expect(verbose.out).not.toMatch(/pending rule-21: quests\.-: pending — content not yet authored: \d+ story quests/);
     expect(verbose.out).not.toMatch(/pending rule-21: quests\.-: pending — content not yet authored: \d+ class mini-quests/);
-    expect(verbose.out).toMatch(/pending rule-21: codex\.-: pending — content not yet authored: \d+ codex entries; expected at least 85/);
+    expect(verbose.out).not.toMatch(/pending rule-21: codex\.-: pending — content not yet authored: \d+ codex entries/);
     expect(verbose.out).not.toMatch(/pending rule-21: companions\./);
     expect(verbose.out).not.toMatch(/companion abilities/);
     expect(verbose.out).toContain(' · companions 6 · ');
@@ -966,7 +970,7 @@ describe('the validate CLI', () => {
     expect(lenient.code).toBe(0);
     expect(lenient.out).toContain('22 rules, lenient');
     expect(lenient.out).not.toMatch(/pending rule-\d+: \d+ completeness check/);
-    expect(lenient.out).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), 0 pending completeness check\(s\), \d+ pending reference\(s\)/);
+    expect(lenient.out).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)$/m); // U61: nothing pending is left to count
   });
 
   test('once the pack has any content the counts are errors: the fixture fails strict, passes lenient', () => {

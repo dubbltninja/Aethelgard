@@ -96,8 +96,8 @@ describe('Codex I is STORY §14.1', () => {
     expect(codexI.map((c) => c.id).sort()).toEqual([...U60_STORY_IDS, ...Object.keys(D101)].sort());
     expect(new Set(codexI.map((c) => c.id)).size).toBe(42);
     for (const id of Object.keys(D101)) expect([id, rowOf.has(id)]).toEqual([id, false]); // when STORY adds a row, this says so
-    expect(codex).toEqual(codexI); // U61 appends; until then the table is Codex I
-    expect(Object.keys(pack.codex).sort()).toEqual(codexI.map((c) => c.id).sort());
+    expect(codex.slice(0, codexI.length)).toEqual(codexI); // U61 appends Codex II after it (codexII.test.ts)
+    for (const c of codexI) expect(pack.codex[c.id]).toBeDefined();
   });
 
   test('every row entry: the title is STORY\'s (the Litany: "The Litany, Verse N · <verse title>"), the voice is STORY\'s tag', () => {
@@ -282,7 +282,8 @@ describe('every unlock is §14.1\'s, as a Condition', () => {
     for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) expect(entry(`codex_litany_${n}`).unlockWhen).toEqual({ echo: `echo_litany_verse_${n}` });
     const tomes = contentTables.items.filter((i) => i.onUse?.some((e) => 'unlockCodex' in e));
     const tomeTargets = tomes.flatMap((i) => (i.onUse ?? []).map((e) => ('unlockCodex' in e ? e.unlockCodex : '')).filter(Boolean));
-    expect(tomeTargets.sort()).toEqual(['codex_corvin_dreyl', 'codex_ilsabet_rhune', 'codex_maelis_korr', 'codex_oriel_danthe', 'codex_seraphine_aulde', 'codex_tobrin_vask']); // + the three D-108 tomes
+    // + the three D-108 tomes; U61: the Dark Spellbook and Korr's Marginalia also unlock `codex_item_dark_spellbook` ("Read one")
+    expect(tomeTargets.filter((t) => t !== 'codex_item_dark_spellbook').sort()).toEqual(['codex_corvin_dreyl', 'codex_ilsabet_rhune', 'codex_maelis_korr', 'codex_oriel_danthe', 'codex_seraphine_aulde', 'codex_tobrin_vask']);
     for (const t of tomeTargets) expect(pack.codex[t]).toBeDefined();
     const unveiled = pack.creatures['cr_chronos_tyrant_unveiled'];
     // U58: Movement III's Listen also carries the ninth verse at Resolve ≥ 6 (an `onlyIf`, not a codex unlock)
@@ -373,8 +374,8 @@ describe('bodies, voices, cross-links and the real pack', () => {
     }
   });
 
-  test('the real pack builds; `codex` stays on INCOMPLETE_TABLES until U61; no codex error, and its only codex warnings are U61\'s pending cross-links and the quests/companions still being authored', () => {
-    expect(INCOMPLETE_TABLES).toContain('codex');
+  test('the real pack builds; `codex` left INCOMPLETE_TABLES with U61; no codex error, and its only codex warnings are the quests/companions still being authored', () => {
+    expect(INCOMPLETE_TABLES).not.toContain('codex');
     const { report } = parseContentPack();
     expect(report.errors).toEqual([]);
     const codexWarnings = report.warnings.filter((w) => w.table === 'codex');
@@ -382,8 +383,8 @@ describe('bodies, voices, cross-links and the real pack', () => {
       expect([w.id, w.path, w.message.startsWith('pending — content not yet authored')]).toEqual([w.id, w.path, true]);
       const target = /'([a-z0-9_]+)' not found in (\w+)/.exec(w.message);
       const [, id, table] = target ?? [];
-      if (table === 'codex') expect([w.id, id, U61_KINDS.test(id as string)]).toEqual([w.id, id, true]);
-      else expect(['quests', 'companions']).toContain(table);
+      expect([w.id, id, table]).not.toEqual([w.id, id, 'codex']); // U61: every §14.1 id exists
+      expect(['quests', 'companions']).toContain(table);
     }
     // nothing in the real pack points at a codex entry that does not exist in STORY §14.1 or Codex I
     const known = new Set([...ALL_STORY_IDS, ...codexI.map((c) => c.id)]);

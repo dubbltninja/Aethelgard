@@ -423,7 +423,7 @@ describe('quest items, recipe items and tomes (WORLD §7.10, §7.12, §7.13)', (
   test('the Dark Spellbook costs 15 HP and adds 1 Corruption (DESIGN §6.7); the Warder Plate grants its Echo once the quest is complete', () => {
     const book = TOMES.find((c) => idOf(c) === 'item_dark_spellbook')?.[2] ?? '';
     expect(book).toContain('−15 HP (current); +1 Corruption');
-    expect(effects('item_dark_spellbook')).toEqual([{ damage: { hp: 15 } }, { corruption: 1 }]);
+    expect(effects('item_dark_spellbook')).toEqual([{ damage: { hp: 15 } }, { corruption: 1 }, { unlockCodex: 'codex_item_dark_spellbook' }]); // U61: "Read one"
     const plate = TOMES.find((c) => idOf(c) === 'item_warder_plate')?.[2] ?? '';
     expect(plate).toContain('grants `echo_stone_hide_origin`');
     expect(plate).toContain('needs `q_blighted_outpost` complete');
@@ -449,7 +449,9 @@ describe('quest items, recipe items and tomes (WORLD §7.10, §7.12, §7.13)', (
       expect([rec.id, rec.usableInCombat, rec.consumeOnUse]).toEqual([rec.id, false, true]);
       if (codex[person] !== undefined) {
         unlocked.push(rec.id);
-        expect([rec.id, rec.onUse]).toEqual([rec.id, [{ unlockCodex: codex[person] }]]);
+        // U61: Korr's Marginalia counts as a Spellbook read, so it also unlocks the Spellbooks' entry
+        const extra = rec.id === 'item_korrs_marginalia' ? [{ unlockCodex: 'codex_item_dark_spellbook' }] : [];
+        expect([rec.id, rec.onUse]).toEqual([rec.id, [{ unlockCodex: codex[person] }, ...extra]]);
         expect([rec.id, rec.notes]).toEqual([rec.id, undefined]);
       } else {
         expect([rec.id, rec.onUse, rec.notes?.includes('STORY §14.1')]).toEqual([rec.id, [], true]);

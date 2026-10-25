@@ -527,7 +527,8 @@ function expectNumbers(item: Item, cell: string): void {
   } else if (item.type === 'consumable') {
     expect([item.id, item.onUse]).toEqual([item.id, [{ heal: { hp: n.healHp, mp: n.healMp } }]]);
   } else {
-    expect([item.id, item.onUse]).toEqual([item.id, [{ damage: { hp: n.loseHp } }, { corruption: n.corruption }]]);
+    // U61: the Dark Spellbook's read also unlocks its codex entry (STORY §14.1 "Read one")
+    expect([item.id, item.onUse]).toEqual([item.id, [{ damage: { hp: n.loseHp } }, { corruption: n.corruption }, { unlockCodex: 'codex_item_dark_spellbook' }]]);
   }
 }
 

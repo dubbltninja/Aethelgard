@@ -3,8 +3,10 @@
 // by tests/unit/content/shared/echoes.test.ts. What each field is:
 //   name             the STORY title; a row that names several ids (the Glowfen pair, the three regional marks, the six
 //                    "Witnessed" endings, the five bonds) gets the title plus what tells its ids apart.
-//   codexLine        ≤ 40 words in the Wayfinder's Notes voice, written for this unit (STORY gives titles, not lines). It says
-//                    what the Echo is and how it is earned, in play words, and adds nothing STORY §12/§5–§10 does not say.
+//   codexLine        ≤ 40 words in the Wayfinder's own voice (STORY §14 WN, D-020): the note scratched in the margin after the
+//                    loop that taught it. U51 wrote them as mechanics notes (D-100); U61 rewrote every one, keeping what the
+//                    Echo is, how it was earned and what the player needs to act on, and adding nothing STORY §12/§5–§10 does
+//                    not say. Read back by tests/unit/content/shared/echoLines.test.ts against U51's lines.
 //   description      STORY's "Unlocks" cell, markup removed; the mechanical rows themselves are engine tables (engine/echoes.ts:
 //                    rep starts, bond loyalty, shortcuts through each quest's `shortcuts`) or content conditions (`{ echo }` on
 //                    exits, choices and ending requirements), so `onGrant` stays empty (a codex unlock would throw until
@@ -28,7 +30,7 @@ export const echoes = [
   {
     id: 'echo_litany_verse_1',
     name: 'The Witness',
-    codexLine: 'First verse of the Litany. Give the Crystal and Ilyra speaks it on your next meeting; keep it and Listen. Someone has to witness a thing for it to have happened.',
+    codexLine: "Oriel's verse, the first. Ilyra spoke it to me the talk after I gave her the Crystal; keep it and Listen instead. Nothing has happened until someone writes it down.",
     description: 'Breach-door route (with Lens); communion; codex',
     category: 'lore',
     obtainedBy: ['dialogue:ilyra_next_talk_after_crystal_given', 'discovery:crystal_kept_then_listened', 'quest:q_the_first_drowned', 'item:item_litany_page_1'],
@@ -37,7 +39,7 @@ export const echoes = [
   {
     id: 'echo_litany_verse_2',
     name: 'The Lesson',
-    codexLine: 'Second verse. Read three Dark Spellbooks in one loop and the margins assemble it. It is spoken in the Conflux and chalked on a garret wall in the Before. Korr has an answer for it.',
+    codexLine: "Korr's verse. Three of his books in one loop and the margins say it between them; the Garret's chalk wall and the Conflux say it too. Now I can answer him.",
     description: 'Answers Korr',
     category: 'lore',
     obtainedBy: ['item:three_dark_spellbooks_read_in_one_loop', 'discovery:conflux_chamber_in_the_before', 'event:ev_garret_litany'],
@@ -46,7 +48,7 @@ export const echoes = [
   {
     id: 'echo_litany_verse_3',
     name: 'The Warding',
-    codexLine: 'Third verse. The sigil-stones at the Blighted Outpost carry it, and in the Before Oriel hands a page of it across. Vane has an answer for it.',
+    codexLine: "Vane's verse. It's cut into the Outpost's sigil-stones, and Oriel hands me a page of it in the Before. He asks it of me at the Apex. Now I have it.",
     description: 'Answers Vane',
     category: 'lore',
     obtainedBy: ['discovery:blighted_outpost_sigil_stones', 'discovery:silverwood_before', 'item:item_litany_page_3'],
@@ -55,7 +57,7 @@ export const echoes = [
   {
     id: 'echo_litany_verse_4',
     name: 'The Cradle',
-    codexLine: "Fourth verse. It is found at Hallow's Cairn, and again in the Before. It answers Hallow's silence, and it belongs to the Breach-anchor's recipe.",
+    codexLine: "Hallow's verse, from his Cairn or the Before. It answers his silence when I face him, and Borin says I can't forge the anchor without it.",
     description: "Answers Hallow's silence; Breach-anchor recipe",
     category: 'lore',
     obtainedBy: ['quest:q_bone_road:hallows_cairn', 'discovery:silverwood_before'],
@@ -64,7 +66,7 @@ export const echoes = [
   {
     id: 'echo_litany_verse_5',
     name: 'The Spire',
-    codexLine: "Fifth verse. The Apprentice's errand carries it. So does a Spire, if you bring an Aetherium Shard to listen. Aulde has an answer for it.",
+    codexLine: "Aulde's verse. She laughed it at a boy's message on the Plaza's east terrace; the Spires sing it if I bring one of their Shards to listen. Her answer.",
     description: 'Answers Aulde',
     category: 'lore',
     obtainedBy: ['quest:q_the_apprentices_errand', 'discovery:the_spires_holding_an_aetherium_shard'],
@@ -73,7 +75,7 @@ export const echoes = [
   {
     id: 'echo_litany_verse_6',
     name: 'The Breath',
-    codexLine: 'Sixth verse. Learn what the light takes and the verse comes with it. The Before gives it too. Sallow has an answer for it.',
+    codexLine: "Sallow's verse. The Pool breathes it, six in, six out; what the light takes taught me the words. The Before has it too. Her answer.",
     description: 'Answers Sallow',
     category: 'lore',
     obtainedBy: ['quest:q_what_the_light_takes', 'discovery:silverwood_before'],
@@ -82,7 +84,7 @@ export const echoes = [
   {
     id: 'echo_litany_verse_7',
     name: 'The Eye',
-    codexLine: 'Seventh verse. Stand at the Nexus at dawn and look through the Lens, or find it in the Before. Masque has an answer for it.',
+    codexLine: "Masque's verse. Stand at the Nexus at dawn with the Lens to the eye, or hear him in the Before. He read the sky twice. Now I can tell him I know.",
     description: 'Answers Masque',
     category: 'lore',
     obtainedBy: ['discovery:the_nexus_through_the_lens_at_dawn', 'discovery:silverwood_before'],
@@ -91,7 +93,7 @@ export const echoes = [
   {
     id: 'echo_litany_verse_8',
     name: 'The Dark Between',
-    codexLine: "Eighth verse. Nyx's unmasking gives it, or Oriel's scroll read to her, or her own copy where she fell. Spoken, it corrects the Choir. Vell has an answer for it.",
+    codexLine: "Nyxaria's verse. She gave it unmasked, or the scroll read to her, or her own copy where she fell. Say it under the Chasm and I can set the Choir right. I can answer her now.",
     description: 'Correct the Choir; answers Vell',
     category: 'lore',
     obtainedBy: [
@@ -106,7 +108,7 @@ export const echoes = [
   {
     id: 'echo_litany_verse_9',
     name: 'The Holding',
-    codexLine: 'Ninth verse. The Tyrant gives it in the third movement at Resolve 6; so does Nyx once she is Loyal, or Veyran\'s study draft in the Before. Whoever says it stays in it.',
+    codexLine: "Veyran's verse, three lines, the third unfinished. From him at the Apex at Resolve six, or from Nyx once she trusted me, or his own draft in his study. Whoever says it stays in it.",
     description: 'Required for echo_litany_complete',
     category: 'lore',
     obtainedBy: ['communion:movement_iii_at_resolve_6', 'dialogue:nyx_loyal_recites', 'discovery:veyrans_study_draft_in_the_before'],
@@ -115,7 +117,7 @@ export const echoes = [
   {
     id: 'echo_litany_complete',
     name: 'The Litany of the Conflux',
-    codexLine: 'All nine verses held. Ending A needs it, and so does the Mending. At the Apex the Tyrant falls silent when there are no gaps in what you say.',
+    codexLine: 'All nine, in order, in my head. At the Apex the Tyrant goes silent when I say it with no gaps. The Vigil needs it. So does the Mending.',
     description: 'Ending A; Mending; Tyrant falls silent at no gaps',
     category: 'ending',
     obtainedBy: ['derived:all_nine_verses_held'],
@@ -127,7 +129,7 @@ export const echoes = [
   {
     id: 'echo_heartstone_resonance',
     name: 'Resonance',
-    codexLine: 'Stabilize the Heartstone and it keeps an even beat. Endings B and E need this one. Ley-tuned crafting opens, and the Glowfen can be dammed. Not in a loop with Hunger or Silence.',
+    codexLine: 'I steadied the stone and it kept an even beat. The Mending and the Long Archive want this. Borin can tune to it; the Glowfen can be dammed. Not with Hunger or Silence in the same loop.',
     description: 'Endings B, E; Ley-tuned crafting; dam the Glowfen',
     category: 'ending',
     exclusiveWith: ['echo_heartstone_hunger', 'echo_heartstone_silence'],
@@ -138,7 +140,7 @@ export const echoes = [
   {
     id: 'echo_heartstone_hunger',
     name: 'Hunger',
-    codexLine: 'Exploit the Heartstone and it takes. Ending C hangs on it, and the Depths turn unstable. Not in a loop with Resonance or Silence.',
+    codexLine: "I took from the stone and it took back. The Depths went unstable. The Weaver's Dawn hangs on this. Not with Resonance or Silence in the same loop.",
     description: 'Ending C flag; Depths unstable encounters',
     category: 'ending',
     exclusiveWith: ['echo_heartstone_resonance', 'echo_heartstone_silence'],
@@ -148,7 +150,7 @@ export const echoes = [
   {
     id: 'echo_heartstone_silence',
     name: 'Silence',
-    codexLine: 'Destroy the Heartstone and the Depths go dark. Ending D hangs on it, and the Breach-born are weaker by a quarter. Not in a loop with Resonance or Hunger.',
+    codexLine: 'I broke the stone. The Depths went dark and the Breach-born came up weaker. The Iron Silence hangs on this. Not with Resonance or Hunger in the same loop.',
     description: 'Ending D flag; Depths dark; Breach-born −25%',
     category: 'ending',
     exclusiveWith: ['echo_heartstone_resonance', 'echo_heartstone_hunger'],
@@ -158,7 +160,7 @@ export const echoes = [
   {
     id: 'echo_heartstone_triune',
     name: 'The Three Beats',
-    codexLine: 'Resonance, Hunger and Silence, held across loops: the stone has three states and you have seen each. Borin has a shortcut in the anchor talk.',
+    codexLine: "Resonance, Hunger, Silence: three loops, three beats, and I've heard each. Borin skips the long talk about the anchor now. He heard it in my hands.",
     description: "Codex; Borin's anchor dialogue shortcut",
     category: 'lore',
     obtainedBy: ['derived:all_three_heartstone_echoes_held'],
@@ -167,7 +169,7 @@ export const echoes = [
   {
     id: 'echo_void_resonance',
     name: 'The Note of Closing',
-    codexLine: "Be Trusted by the Weavers in some loop: through Nyx, through Sethe, or through the body-print where she fell. Ending B listens for it at the consent.",
+    codexLine: 'The Weavers trusted me once, through Nyx, or Sethe, or the body-print where she fell. The Mending listens for that at the consent, not for anything the anchor could say.',
     description: "Ending B's consent (checked there, not by the anchor recipe, D-066.10)",
     category: 'ending',
     obtainedBy: ['quest:q_what_she_would_undo', 'quest:q_unlidded_eye', 'event:ev_fell_resonance'],
@@ -179,7 +181,7 @@ export const echoes = [
   {
     id: 'echo_nine_voices',
     name: 'Nine Voices',
-    codexLine: 'Keep the Crystal and Listen in the Library, from Loop 2. It lets you say "I know what you are, Nyx", and it opens What the Crystal Heard.',
+    codexLine: "Kept the Crystal and Listened in the Library. Nine voices. The eighth I've heard at the Chasm. Now I can say 'I know what you are, Nyx', and ask what the Crystal heard.",
     description: '"I know what you are, Nyx"; q_what_the_crystal_heard',
     category: 'dialogue',
     obtainedBy: ['choice:crystal_kept', 'discovery:the_library_listened_to_in_loop_2'],
@@ -189,7 +191,7 @@ export const echoes = [
   {
     id: 'echo_ninth_verse_unfinished',
     name: 'The Unfinished Verse',
-    codexLine: 'Listen to the Crystal from Loop 2, or finish what the Crystal heard. The ninth verse was left open. In the first movement of the communion, it is an answer.',
+    codexLine: "The Crystal's ninth voice stops mid-word. It's still stopped. In the communion's first movement that's my answer, and maybe the only honest one.",
     description: 'Communion Movement I answer; codex',
     category: 'dialogue',
     obtainedBy: ['discovery:the_crystal_listened_to_in_loop_2', 'quest:q_what_the_crystal_heard'],
@@ -198,7 +200,7 @@ export const echoes = [
   {
     id: 'echo_nyx_is_of_the_nine',
     name: 'Nyxaria Vell',
-    codexLine: 'Unmask her, by either road, and you know who Nyx was. Her dialogue tree opens, Dask can speak to her, and what she would undo comes within reach.',
+    codexLine: "Nyx is Nyxaria Vell. She named the dark and it threw her here. She'll talk to me properly now; Dask will talk to her; and what she wants undone is within asking.",
     description: 'Nyx dialogue tree; Dask speaks to her; q_what_she_would_undo',
     category: 'dialogue',
     obtainedBy: ['scene:unmasking_either_route'],
@@ -207,7 +209,7 @@ export const echoes = [
   {
     id: 'echo_breach_recoil',
     name: 'The Recoil',
-    codexLine: 'Read Oriel\'s scroll to Nyx, or earn her loyalty. The recoil is what the dark does to the one who names it. In the communion it answers Vell. Not in a loop with the Danthe line.',
+    codexLine: "The recoil: what the dark does to the mouth that names it. I read Oriel's scroll to Nyx, or she trusted me enough to say. It answers Vell at the Apex. Not with the Danthe line in one loop.",
     description: 'Codex; answers Vell in communion',
     category: 'lore',
     exclusiveWith: ['echo_oriel_lineage'],
@@ -217,7 +219,7 @@ export const echoes = [
   {
     id: 'echo_what_she_would_undo',
     name: 'Her Plan',
-    codexLine: 'Nyx asked for help going back, and you heard her out. Ending C now has a name for its path.',
+    codexLine: "She wants to go back to the sixth verse and say what Hallow said, with a reason attached. I heard her out. The Weaver's Dawn has a road now.",
     description: 'Ending C path named',
     category: 'ending',
     obtainedBy: ['quest:q_what_she_would_undo'],
@@ -226,7 +228,7 @@ export const echoes = [
   {
     id: 'echo_shard_moments',
     name: 'Shards Are Moments',
-    codexLine: 'Nyx taught you to read a Shard: it is a moment, torn. Do not keep more than three. Three is a verse.',
+    codexLine: "A Shard is a second of the last night, torn. Nyx taught me to read one. Three is a verse. I'm not holding four.",
     description: 'Codex; Shard-reading flavour',
     category: 'lore',
     obtainedBy: ['quest:q_tears_of_the_breach'],
@@ -235,7 +237,7 @@ export const echoes = [
   {
     id: 'echo_choir_knows',
     name: 'The Choir Knows',
-    codexLine: 'You told Sethe what Nyx is. Sethe speaks to you differently now, and Nyx wakes Wary in the loops after.',
+    codexLine: "I told Sethe what Nyx is. Sethe looks at me differently. Nyx wakes Wary of me every loop after, and I'm not sure I was wrong.",
     description: 'Sethe dialogue; Nyx Wary on waking',
     category: 'dialogue',
     obtainedBy: ['dialogue:tell_sethe'],
@@ -244,7 +246,7 @@ export const echoes = [
   {
     id: 'echo_ilyra_watchword',
     name: 'The Ink Still Holds',
-    codexLine: 'The voices in the stacks answered you, and the ink held. From the next loop Ilyra believes you the first time you meet.',
+    codexLine: 'The ink still holds. Say it to Ilyra at the fire and she goes white and believes me, first meeting, from the next loop on.',
     description: 'Ilyra believes you on first meeting (from next loop)',
     category: 'dialogue',
     obtainedBy: ['quest:q_voices_in_the_stacks'],
@@ -253,7 +255,7 @@ export const echoes = [
   {
     id: 'echo_crystal_location',
     name: 'The Third Alcove',
-    codexLine: 'Take the Crystal once and you remember where it lies. The next loop, its quest begins further along, with the Crystal waiting.',
+    codexLine: "Third alcove, behind the fallen stacks. I don't need to search for the Crystal again. I can tell her where it is and go straight there.",
     description: 'Shortcut: q_echo_crystal starts at stage 2',
     category: 'shortcut',
     obtainedBy: ['pickup:the_crystal_taken_once'],
@@ -262,7 +264,7 @@ export const echoes = [
   {
     id: 'echo_oriel_lineage',
     name: 'The Danthe Line',
-    codexLine: "Read the scroll to Ilyra and the Door of Pages confirms it, or meet Oriel at her carrel in the Before. The Archway speaks in Oriel's voice. Not in a loop with the Recoil.",
+    codexLine: "Ilyra has Oriel's hands. The Door of Pages opened to her seal, or Oriel said it to my face in the Before. The Archway speaks in Oriel's voice now. Not with the Recoil in one loop.",
     description: "Ilyra arc; Oriel's Ring; E flavour; the Archway speaks in Oriel's voice",
     category: 'shortcut',
     exclusiveWith: ['echo_breach_recoil'],
@@ -272,7 +274,7 @@ export const echoes = [
   {
     id: 'echo_oriel_drowned',
     name: 'The First Drowned',
-    codexLine: 'Oriel did not leave the Archives. Meet her at the carrel and she can be calmed instead of fought.',
+    codexLine: 'The reader in the carrel is Oriel. She never left the Archives. I can calm her with the right page instead of fighting her.',
     description: 'q_the_first_drowned (pacifist scroll)',
     category: 'dialogue',
     obtainedBy: ['quest:q_the_danthe_line', 'discovery:oriels_carrel'],
@@ -281,7 +283,7 @@ export const echoes = [
   {
     id: 'echo_archive_door',
     name: 'The Door of Pages',
-    codexLine: 'Oriel\'s seal opens it. With this you can walk from the Sunken Archives to the Drowned Reach without the bells.',
+    codexLine: "The Door of Pages opens to Oriel's seal. I can go from the Sunken Archives into the Reach without passing the bells.",
     description: 'Route: Sunken Archives → Drowned Reach without the bells',
     category: 'route',
     obtainedBy: ['dialogue:oriels_scroll_read_to_ilyra', 'quest:q_bell_vault'],
@@ -290,7 +292,7 @@ export const echoes = [
   {
     id: 'echo_ilyra_cost',
     name: 'What the Door Costs',
-    codexLine: "Watch the Library fall after you pass the portal, or hear it from Keeper Dray. Each portal costs the one who tears it. That is the Keeper's price.",
+    codexLine: "Every portal she tears costs her. I watched the Library fall behind me, or Dray told me. The Keeper's price has a name now, and it's hers.",
     description: 'q_the_keepers_price',
     category: 'character',
     obtainedBy: ['discovery:the_library_falling_after_the_portal', 'dialogue:keeper_dray'],
@@ -301,7 +303,7 @@ export const echoes = [
   {
     id: 'echo_brak_death',
     name: 'Brak Stonehand',
-    codexLine: 'He dies at the Apex. Tell him so in the next loop and he stays away. He will not believe you, and he will remember it in his shoulders.',
+    codexLine: "He dies at the Apex if I let him stand there. Next loop I'll tell him to stay away. He won't believe me. His shoulders will.",
     description: 'q_the_line_he_holds; Kaelen dialogue',
     category: 'character',
     obtainedBy: ['event:brak_dies_at_the_apex'],
@@ -311,7 +313,7 @@ export const echoes = [
   {
     id: 'echo_brak_birth_name',
     name: 'The Dropped Name',
-    codexLine: 'The name Brak gave up with the scout\'s oath. Say it to Kaelen and he asks you not to. It opens Blood and Salt through Kaelen.',
+    codexLine: 'Stonehand. He said it once, in the dark at the Ring, when he gave me his oath. Say it to Kaelen and he asks me not to; then Blood and Salt opens through him.',
     description: 'Kaelen: "Don\'t say that name"; q_blood_and_salt via Kaelen',
     category: 'shortcut',
     obtainedBy: ['quest:q_the_scouts_oath'],
@@ -320,7 +322,7 @@ export const echoes = [
   {
     id: 'echo_brak_lives',
     name: 'The Line at the Nexus',
-    codexLine: 'Brak held the line and lived. Ending D goes easier for it, and he begins every loop at loyalty 25.',
+    codexLine: 'Brak held the line at the Nexus and lived. The Iron Silence goes easier for it, and he starts every loop already a little way toward trusting me.',
     description: 'Ending D eased; codex',
     category: 'character',
     obtainedBy: ['quest:q_the_line_he_holds:outcome_c'],
@@ -329,7 +331,7 @@ export const echoes = [
   {
     id: 'echo_day_of_teeth',
     name: 'The Day of Teeth',
-    codexLine: "The Day of Teeth, told true, or read in Keeper Dray's Ledger. Hadda keeps the Nomads away from the Apex. Ending D leans on it.",
+    codexLine: "Year 178: twenty Nomads held the Nexus a day against what spilled when a Wayfinder wounded the Tyrant. Told true, or read in Dray's Ledger. Hadda keeps her people from the Apex; the Iron Silence leans on it.",
     description: 'Hadda keeps Nomads from the Apex; codex',
     category: 'ending',
     obtainedBy: ['quest:q_day_of_teeth', 'item:keeper_drays_ledger'],
@@ -338,7 +340,7 @@ export const echoes = [
   {
     id: 'echo_hallows_ember',
     name: "Hallow's Ember",
-    codexLine: "At his Cairn the iron is still warm. Hallow carried the fire north and did not set it down. Borin has things to say about it.",
+    codexLine: 'The iron under the Cairn is still warm. Hallow carried the fire north and never set it down. Borin needs to hear this from me.',
     description: 'Borin dialogue; codex',
     category: 'dialogue',
     obtainedBy: ['discovery:hallows_cairn'],
@@ -347,7 +349,7 @@ export const echoes = [
   {
     id: 'echo_iron_that_does_not_wish',
     name: 'Iron That Does Not Wish',
-    codexLine: "The Cairn's inscription with Borin's forge-mark, or the Cradle verse and a word with Borin. Without it, no Breach-anchor for Endings B and D.",
+    codexLine: "The Cairn's inscription and Borin's forge-mark are the same words. Or Hallow's verse and a word with Borin. Without them, no anchor; without the anchor, no Mending and no Iron Silence.",
     description: 'Breach-anchor forging (B, D)',
     category: 'ending',
     obtainedBy: ['discovery:hallows_cairn_inscription_with_borins_forge_mark', 'echo:echo_litany_verse_4'],
@@ -357,7 +359,7 @@ export const echoes = [
   {
     id: 'echo_hallow_said_stop',
     name: 'Stop',
-    codexLine: "Hallow said it at the ritual. The Conflux says it again on Last Bell. In the communion it answers his silence and counts for two Resolve.",
+    codexLine: 'Hallow said it at the sixth verse. The Conflux still says it on Last Bell. In the communion it answers his silence, and it counts for more than most of what I say.',
     description: "Answers Hallow's silence (+2 Resolve)",
     category: 'dialogue',
     obtainedBy: ['quest:q_stop_the_ritual:attempt_2', 'discovery:the_conflux_on_last_bell'],
@@ -368,7 +370,7 @@ export const echoes = [
   {
     id: 'echo_tyrant_speaks',
     name: 'It Speaks',
-    codexLine: 'Listen at the Apex, from Loop 2. It speaks. The communion opens, and combat pauses at the phase changes while it talks.',
+    codexLine: 'Listened at the Apex. It spoke to me. The communion is open now, and when we fight it stops at the phase changes to talk.',
     description: 'Communion; stop combat at phase transitions; q_the_last_instant',
     category: 'dialogue',
     obtainedBy: ['discovery:the_apex_listened_to_in_loop_2'],
@@ -377,7 +379,7 @@ export const echoes = [
   {
     id: 'echo_tyrant_name',
     name: 'Veyran Thal',
-    codexLine: 'Ask its name with the Nine Voices or with Dask\'s testimony, or hear it said in the Ninefold Hall. Nyx will say, "You said his name."',
+    codexLine: "Veyran Thal. I asked with the Nine Voices, or on Dask's word, or heard it in the Hall when he was whole. Nyx: 'You said his name.'",
     description: 'Nyx: "You said his name"; codex',
     category: 'dialogue',
     obtainedBy: ['echo:echo_nine_voices', 'dialogue:dasks_testimony', 'event:ev_hall_veyran'],
@@ -386,7 +388,7 @@ export const echoes = [
   {
     id: 'echo_tyrant_jailer',
     name: 'The Jailer',
-    codexLine: 'Any two of five sources and you understand what the Tyrant is doing. The first movement has an answer for it, and the factions\' truth-tellings open.',
+    codexLine: "The Tyrant isn't the wound. It's the hand on the wound. Two of five things told me, and that's enough to answer the first movement and to tell the factions what they're wrong about.",
     description: 'Communion Movement I; faction truth-tellings',
     category: 'dialogue',
     obtainedBy: [
@@ -403,7 +405,7 @@ export const echoes = [
   {
     id: 'echo_six_in_the_mass',
     name: 'Six',
-    codexLine: 'Six of the Nine are in the mass. Finish the second movement, or take the hint on the Still Shore. The Tyrants\' hidden intents are shown.',
+    codexLine: 'Six of the Nine are in it: Korr, Vane, Aulde, Sallow, Masque, and him. Finished the second movement, or the Shore hinted. I can see what the limbs mean to do now.',
     description: "Codex; the Tyrants' hidden intents shown",
     category: 'lore',
     obtainedBy: ['communion:movement_ii_complete', 'quest:q_the_still_shore'],
@@ -412,7 +414,7 @@ export const echoes = [
   {
     id: 'echo_tyrant_consent',
     name: 'Consent',
-    codexLine: "At Resolve 8, with the anchor, the pin set and the Mending's Echoes, the third movement can ask and be answered. Ending B's last sequence needs it.",
+    codexLine: "The third movement, at full Resolve, with the anchor, the pin set and the rest. It asked. I answered. It said yes. The Mending's last sequence is open.",
     description: 'Ending B final sequence',
     category: 'ending',
     obtainedBy: ['communion:movement_iii_at_resolve_8_with_the_ending_b_echoes'],
@@ -421,7 +423,7 @@ export const echoes = [
   {
     id: 'echo_tyrant_rejected',
     name: 'Rejected',
-    codexLine: 'Fail the communion and leave. The next one begins at the second movement.',
+    codexLine: 'I failed the communion and walked away. Next time it starts at the second movement, as if the first had been said. It had.',
     description: 'Next communion starts at Movement II',
     category: 'shortcut',
     obtainedBy: ['communion:failed_and_left'],
@@ -430,7 +432,7 @@ export const echoes = [
   {
     id: 'echo_tyrant_never_struck',
     name: 'It Never Strikes First',
-    codexLine: 'The Stormcrown\'s bargain: it does not strike what keeps its distance. In the communion\'s first movement, that is an answer.',
+    codexLine: "The Stormcrown's bargain: it does not strike what keeps its distance. Five hundred years of watching, and that's what it learned. In the first movement, that's an answer.",
     description: 'Communion Movement I answer; codex (D-067.12)',
     category: 'dialogue',
     obtainedBy: ['bargain:the_stormcrown_it_does_not_strike_what_keeps_its_distance'],
@@ -439,7 +441,7 @@ export const echoes = [
   {
     id: 'echo_apex_resonance',
     name: 'The Way Up',
-    codexLine: 'Stand at the Apex once. From Loop 2 the Nexus gate opens without six quests.',
+    codexLine: 'Stood at the Apex once. From the next loop the Nexus gate opens for me without six quests done first.',
     description: 'Nexus→Apex gate opens without six quests (2+)',
     category: 'route',
     obtainedBy: ['discovery:the_apex_stood_at_once'],
@@ -450,7 +452,7 @@ export const echoes = [
   {
     id: 'echo_breach_clock',
     name: 'The Breach Clock',
-    codexLine: "Thirty dawns from the Ruins. Learn it from the Thirtieth Dawn, the High Mark, or the Ridge's view of the Apex. Exact-day warnings begin, and Steady Hours can be bought.",
+    codexLine: 'Thirty dawns from the Ruins, and the count was always running. The Thirtieth Dawn, the High Mark or the Ridge taught me. I get warned by the day now, and the Loom sells steadier hours.',
     description: 'Explicit clock effects; att_steady_hours',
     category: 'lore',
     obtainedBy: ['quest:q_the_thirtieth_dawn', 'quest:q_high_mark', 'event:ev_ridge_apex'],
@@ -459,7 +461,7 @@ export const echoes = [
   {
     id: 'echo_thirtieth_dawn',
     name: 'It Happened Anyway',
-    codexLine: "The clock ran out with the Tyrant alive. Granted on waking or at the Shore. It answers in the communion, opens Dray's notes, and is one source of the Jailer.",
+    codexLine: "The clock ran out with the Tyrant alive and the sky tore anyway. I get this on waking or at the Shore. The communion hears it, Dray's notes open, and with the Ledger it names the jailer.",
     description: 'Communion answer; Keeper Dray\'s notes; a source of echo_tyrant_jailer with the Ledger',
     category: 'dialogue',
     obtainedBy: ['engine:clock_expiry_with_the_tyrant_alive'],
@@ -468,7 +470,7 @@ export const echoes = [
   {
     id: 'echo_amulet_memory',
     name: 'The Amulet Remembers',
-    codexLine: 'Wake in Loop 2 and the Amulet is warm. Your hands remember a portal. It lets you Listen.',
+    codexLine: 'Woke in the Ruins with the Amulet warm and my hands remembering a portal. It remembers. It lets me Listen now.',
     description: 'Listen action',
     category: 'lore',
     obtainedBy: ['engine:waking_in_loop_2'],
@@ -477,7 +479,7 @@ export const echoes = [
   {
     id: 'echo_threshold',
     name: 'The Still Shore',
-    codexLine: 'The first Fall. Grey water, no horizon, a far light. Dask is there, and the Threshold has quests.',
+    codexLine: "The first Fall. Grey water, no horizon, a far light. Dask comes here too, when he's with me. There's work to do on the shore, and a figure out on the water I haven't gone to see.",
     description: 'Threshold quests; Dask at the shore',
     category: 'lore',
     obtainedBy: ['engine:the_first_fall'],
@@ -486,7 +488,7 @@ export const echoes = [
   {
     id: 'echo_horde_path',
     name: 'How the Unraveling Spreads',
-    codexLine: 'Witness the Horde once. Every Horde after shows its infection forecast on the map.',
+    codexLine: "Watched the Horde run once. Now, whenever it runs, the map shows me where it's going next.",
     description: 'Infection forecast on the map during any Horde',
     category: 'lore',
     obtainedBy: ['engine:the_horde_witnessed_once'],
@@ -497,7 +499,7 @@ export const echoes = [
   {
     id: 'echo_flickering_man',
     name: 'The Flickering Man',
-    codexLine: 'Dask, in the Shimmering Pass, heard all the way through. From Loop 2 he joins you at the first meeting, and his loyalty opens.',
+    codexLine: "Dask, in the Pass, heard all the way through. He joins me at the first meeting from now on, and he's started to trust me.",
     description: 'Dask Loyal; codex',
     category: 'character',
     obtainedBy: ['quest:q_the_flickering_man'],
@@ -506,7 +508,7 @@ export const echoes = [
   {
     id: 'echo_seven_wayfinders',
     name: 'Seven Marks',
-    codexLine: "Seven Wayfinders before you, and their marks. Dask's quest teaches it, or Keeper Dray's Ledger. It is an answer in the communion's first movement.",
+    codexLine: "Seven before me, seven frames, seven marks of the same hand. Dask's quest, or Dray's Ledger. In the communion's first movement, it's an answer.",
     description: 'Codex ×7; communion Movement I',
     category: 'lore',
     obtainedBy: ['quest:q_seven_marks', 'item:keepers_ledger'],
@@ -515,7 +517,7 @@ export const echoes = [
   {
     id: 'echo_wayfinder_symptom',
     name: 'A Symptom',
-    codexLine: 'Being a Wayfinder is a symptom. Seven Marks teaches it; from Loop 3 the Tyrant says it aloud. It colours the Unbound\'s last line.',
+    codexLine: "Not chosen. A fever the land runs when the hold weakens. Seven Marks taught me; the Tyrant says it aloud from the third loop. The Unbound's last line is coloured by it.",
     description: 'Codex; ending-F epilogue line',
     category: 'lore',
     obtainedBy: ['quest:q_seven_marks', 'communion:the_tyrant_in_loop_3_onward'],
@@ -524,7 +526,7 @@ export const echoes = [
   {
     id: 'echo_dask_rest',
     name: 'One Instant',
-    codexLine: 'Dask gets his rest. Phase 3 has one voice fewer, and the epilogues say so.',
+    codexLine: 'Dask got his one instant. At the Apex I hear one voice fewer in the third phase, and the epilogues know it.',
     description: 'Phase 3 one voice quieter; epilogues',
     category: 'character',
     obtainedBy: ['quest:q_the_last_instant:outcome_a'],
@@ -536,7 +538,7 @@ export const echoes = [
   {
     id: 'echo_breach_door',
     name: 'The Breach-Door',
-    codexLine: 'The Nexus shows a door when you carry the Lens and know the first verse. It leads to Silverwood Before.',
+    codexLine: 'The Nexus door opens when I carry the Lens and know the first verse. It leads to Silverwood, three days before.',
     description: 'Route to Silverwood Before',
     category: 'route',
     obtainedBy: ['discovery:the_nexus_with_the_lens_and_verse_1'],
@@ -545,7 +547,7 @@ export const echoes = [
   {
     id: 'echo_before_route',
     name: 'Three Days Before',
-    codexLine: 'You have stood in Silverwood in the three days before the fall. Quests in the Before, and Caelum, are open to you.',
+    codexLine: "I've walked Silverwood with its roofs on. The Before's quests are open to me now, and so is Caelum.",
     description: 'Before quests; Caelum',
     category: 'route',
     obtainedBy: ['engine:entering_silverwood_before'],
@@ -554,7 +556,7 @@ export const echoes = [
   {
     id: 'echo_ritual_inevitable',
     name: 'Always Going to Fail',
-    codexLine: "Stop the ritual four times and watch it fail four times. Masque's perfect answer follows, and so does refusing Nyx with the truth.",
+    codexLine: "Four times I tried to stop it. Four times it failed. It was always going to. Masque's answer is perfect now, and I can refuse Nyx with the truth.",
     description: 'Perfect answer to Masque; refuse Nyx with truth',
     category: 'ending',
     obtainedBy: ['quest:q_stop_the_ritual:attempt_4'],
@@ -563,7 +565,7 @@ export const echoes = [
   {
     id: 'echo_bells_of_silverwood',
     name: 'The Bells',
-    codexLine: 'Stand in the Plaza of Bells on Last Bell. The Bell-Vault order is known after, and the bell puzzle in the Before is solved.',
+    codexLine: "Stood in the Plaza of Bells on Last Bell. I know the order of the bells now, and the Vault's puzzle is already solved.",
     description: 'Bell-Vault order known (shortcut)',
     category: 'shortcut',
     obtainedBy: ['discovery:the_plaza_of_bells_on_last_bell'],
@@ -572,7 +574,7 @@ export const echoes = [
   {
     id: 'echo_caelum_unanchored',
     name: 'The Boy on the Stair',
-    codexLine: "Caelum, not anchored in his time. He can cross forward and be recruited, and his masters' sin comes next. Not in a loop where he stayed.",
+    codexLine: "Caelum, unmoored from his own time. He can cross forward and come with me, and then his masters' sin is next. Not in a loop where he stayed.",
     description: 'Caelum recruit; q_his_masters_sin',
     category: 'character',
     exclusiveWith: ['echo_caelum_stayed'],
@@ -582,7 +584,7 @@ export const echoes = [
   {
     id: 'echo_caelum_stayed',
     name: 'He Stayed',
-    codexLine: 'Caelum chose the Before. The Mending is harder for it: you must place the pin yourself.',
+    codexLine: 'Caelum chose the Before. The Mending is harder for it: I set the pin myself.',
     description: 'Harder Mending (player places pin)',
     category: 'character',
     exclusiveWith: ['echo_caelum_unanchored'],
@@ -592,7 +594,7 @@ export const echoes = [
   {
     id: 'echo_caelum_forgives',
     name: 'Forgiven',
-    codexLine: 'Caelum forgave his masters. At the consent there is no second test.',
+    codexLine: "Caelum forgave his masters. At the consent I'm not tested twice.",
     description: 'Consent without second test',
     category: 'character',
     exclusiveWith: ['echo_caelum_cannot'],
@@ -602,7 +604,7 @@ export const echoes = [
   {
     id: 'echo_caelum_cannot',
     name: 'He Cannot',
-    codexLine: 'Caelum could not forgive. The consent takes a second test, and the Mending ends colder.',
+    codexLine: "Caelum couldn't forgive them. The consent tests me twice, and the Mending ends colder.",
     description: 'Consent after a second test; colder Mending final scene',
     category: 'character',
     exclusiveWith: ['echo_caelum_forgives'],
@@ -612,7 +614,7 @@ export const echoes = [
   {
     id: 'echo_hadrek_clockwright',
     name: "The Clockwright's Key",
-    codexLine: 'Hadrek, in the Ninefold Hall on First Bell. A second Orrery Key is yours to take.',
+    codexLine: "Hadrek, in Masque's chair in the Hall on First Bell. A second Orrery Key, his to give me. The orrery at the Nexus is his too; it says so on the plate.",
     description: 'A second Orrery Key; codex',
     category: 'secret',
     obtainedBy: ['dialogue:hadrek_in_the_ninefold_hall_on_first_bell'],
@@ -621,7 +623,7 @@ export const echoes = [
   {
     id: 'echo_vask_seal',
     name: "Vask's Seal",
-    codexLine: "From Tobrin Vask on Second Bell, or his hidden copy under Vane's Watch from Loop 2. The ward seal opens the Hall and the Conflux stair before Last Bell.",
+    codexLine: "Tobrin's seal, from him on Second Bell or his hidden copy under Vane's Watch. It lets me into the Hall and down the Conflux stair before Last Bell.",
     description: 'The ward seal (item_ward_seal) opens the Hall and the Conflux stair before Last Bell',
     category: 'route',
     obtainedBy: ['dialogue:tobrin_vask_on_second_bell', 'event:ev_outpost_seal'],
@@ -630,7 +632,7 @@ export const echoes = [
   {
     id: 'echo_crystal_seeded',
     name: 'The Seeded Crystal',
-    codexLine: "Tell the Library's dark Crystal in the Before what it will hear. From the next loop it knows your voice, whether you kept it or not.",
+    codexLine: 'I told the dark Crystal in the Grand Library what it would hear. From the next loop it knows my voice, whether I kept it or not.',
     description: 'From the next loop the Crystal already knows your voice: Listen in the Library yields echo_nine_voices whether or not the Crystal was kept',
     category: 'shortcut',
     obtainedBy: ['event:ev_library_cradle'],
@@ -641,7 +643,7 @@ export const echoes = [
   {
     id: 'echo_anchor_mechanic',
     name: 'What the Chamber Keeps',
-    codexLine: 'A talisman left on the cradle rim, found in the Depths; or Caelum\'s first words about the chamber. The Mending can begin, and the Mending\'s consent asks for it.',
+    codexLine: "A talisman I left on the cradle's rim was lying in the Depths. Caelum said the chamber keeps. The Mending can begin, and its consent asks for this.",
     description: "q_the_mending; ending B's consent",
     category: 'ending',
     obtainedBy: ['discovery:a_talisman_on_the_cradle_rim_found_in_the_depths', 'dialogue:caelums_first_talk_about_the_chamber'],
@@ -651,7 +653,7 @@ export const echoes = [
   {
     id: 'echo_anchor_half_a',
     name: "Aulde's Half",
-    codexLine: "The first half of the Breach-anchor's design, read from Aulde's notes in her Eyrie.",
+    codexLine: "Aulde's half of the anchor's design, read in her Eyrie. Half a drawing is not a drawing. I need the other.",
     description: 'With half B: echo_anchor_schema (D-067.6)',
     category: 'lore',
     obtainedBy: ['item:item_breach_anchor_schematic_a'],
@@ -660,7 +662,7 @@ export const echoes = [
   {
     id: 'echo_anchor_half_b',
     name: "Vask's Half",
-    codexLine: "The second half, from Tobrin Vask in the Conflux Chamber on Second Bell, or from his failsafe copy under Vane's Watch from Loop 2.",
+    codexLine: "Tobrin's half: from him in the Conflux Chamber on Second Bell, or his failsafe copy I found under Vane's Watch.",
     description: 'With half A: echo_anchor_schema',
     category: 'lore',
     obtainedBy: ['item:item_breach_anchor_schematic_b', 'event:ev_outpost_seal'],
@@ -669,7 +671,7 @@ export const echoes = [
   {
     id: 'echo_anchor_schema',
     name: "The Anchor's Design",
-    codexLine: 'Hold both halves, in any loops, and Borin can forge the Breach-anchor. Endings B and D need one.',
+    codexLine: 'Both halves, from whichever loops. Borin can forge me the Breach-anchor now. The Mending and the Iron Silence both need one.',
     description: 'recipe_breach_anchor (endings B, D)',
     category: 'ending',
     obtainedBy: ['derived:both_anchor_halves_held'],
@@ -680,7 +682,7 @@ export const echoes = [
   {
     id: 'echo_stone_hide_origin',
     name: "Vane's Wards",
-    codexLine: "Vane's sigils, read at the Outpost with the Amulet, or in the Hall in the Before, or from the Warder Plate. One word stills the Outpost golems.",
+    codexLine: "Vane's sigils, read at the Outpost with the Amulet, or in the Hall before, or off the Warder Plate. One word stills the golems. I have to say it right.",
     description: "Answers Vane; codex; the warder's word stills the Outpost golems",
     category: 'shortcut',
     obtainedBy: ['quest:q_blighted_outpost:with_the_amulet', 'discovery:vanes_sigils_in_the_hall_in_the_before', 'item:item_warder_plate'],
@@ -689,7 +691,7 @@ export const echoes = [
   {
     id: 'echo_spire_note',
     name: 'The One Note',
-    codexLine: 'The Spires hold a single note. Hear it there and the Aetherial Weavers pass you by on the first visit. Aulde has an answer for it.',
+    codexLine: "The Spires hold one note, hers. I've heard it. The weavers of the air let me pass the first time, and I can answer Aulde.",
     description: 'Answers Aulde; codex',
     category: 'shortcut',
     obtainedBy: ['discovery:the_spires'],
@@ -698,7 +700,7 @@ export const echoes = [
   {
     id: 'echo_breathing_pool',
     name: "Sallow's Breath",
-    codexLine: 'What the light takes, and what the Green gave back. It opens Preserve or Heal, and Sallow has an answer for it.',
+    codexLine: 'What the light takes, and what the Green gives back. Preserve or Heal opens from this. I can answer Sallow.',
     description: 'q_preserve_or_heal; answers Sallow',
     category: 'dialogue',
     obtainedBy: ['quest:q_what_the_light_takes'],
@@ -707,7 +709,7 @@ export const echoes = [
   {
     id: 'echo_eye_of_masque',
     name: 'The Far Side',
-    codexLine: 'Look through the Lens at the Nexus and see what is on the far side of the sky. Masque has an answer for it.',
+    codexLine: "Through the Lens at the Nexus I saw what's on the far side of the sky. Now I can answer Masque.",
     description: 'Answers Masque; codex',
     category: 'lore',
     obtainedBy: ['discovery:the_nexus_with_the_lens'],
@@ -716,7 +718,7 @@ export const echoes = [
   {
     id: 'echo_korr_marginalia',
     name: 'The Margins',
-    codexLine: 'Read any Dark Spellbook with the Amulet and Korr\'s hand is in every one. The first book each loop costs you nothing.',
+    codexLine: "Korr's hand is in every margin. Read one with the Amulet and he's there. The first book each loop costs me nothing now.",
     description: 'Answers Korr; codex',
     category: 'secret',
     obtainedBy: ['item:any_dark_spellbook_read_with_the_amulet'],
@@ -727,7 +729,7 @@ export const echoes = [
   {
     id: 'echo_glowfen_dammed',
     name: "Mireya's Choice: Dammed",
-    codexLine: "The Glowfen dammed. The epilogue says so. Not in a loop where it was let run.",
+    codexLine: 'I dammed the Glowfen. The epilogue remembers. Not in a loop where I let it run.',
     description: 'Epilogue variants',
     category: 'ending',
     exclusiveWith: ['echo_glowfen_let_run'],
@@ -737,7 +739,7 @@ export const echoes = [
   {
     id: 'echo_glowfen_let_run',
     name: "Mireya's Choice: Let Run",
-    codexLine: "The Glowfen left to run. The epilogue says so. Not in a loop where it was dammed.",
+    codexLine: 'I let the Glowfen run. The epilogue remembers. Not in a loop where I dammed it.',
     description: 'Epilogue variants',
     category: 'ending',
     exclusiveWith: ['echo_glowfen_dammed'],
@@ -747,7 +749,7 @@ export const echoes = [
   {
     id: 'echo_glowlands_leak',
     name: 'The Glow Is the Breach',
-    codexLine: "The Glowlands' light is the Breach leaking. Mireya's lantern quest begins at its second stage.",
+    codexLine: 'The glow is the Breach, leaking. The elders said it; Mireya suspected. Her lantern quest starts further along for me now.',
     description: 'Mireya dialogue; q_lantern_in_the_reeds opens at stage 2',
     category: 'shortcut',
     obtainedBy: ['quest:q_lantern_in_the_reeds:stage_1', 'dialogue:the_glowfen_elders'],
@@ -756,7 +758,7 @@ export const echoes = [
   {
     id: 'echo_high_mark',
     name: 'The High Mark',
-    codexLine: "From the Windward Stair, look east and see the Breach's edge. The stair opens without the Talisman after, and the Sentinels let you pass.",
+    codexLine: 'Looked east from the Windward Stair and saw the seam in the sky. The stair opens for me without the Talisman now, and the Sentinels let me pass.',
     description: 'Shortcuts (stair lit; bells known; Sentinels pass)',
     category: 'route',
     obtainedBy: ['quest:q_high_mark'],
@@ -765,7 +767,7 @@ export const echoes = [
   {
     id: 'echo_bell_vault',
     name: 'The Bell Vault',
-    codexLine: 'The Bell Vault\'s quest teaches the order of the bells. After it, the bells are known.',
+    codexLine: "The order of the bells, from the Vault. I don't need to work it out again.",
     description: 'Shortcuts (stair lit; bells known; Sentinels pass)',
     category: 'shortcut',
     obtainedBy: ['quest:q_bell_vault'],
@@ -774,7 +776,7 @@ export const echoes = [
   {
     id: 'echo_lightless_stair',
     name: 'The Lightless Stair',
-    codexLine: 'Its quest lights the stair, and it stays lit.',
+    codexLine: 'I lit the stair without a light. It stays lit.',
     description: 'Shortcuts (stair lit; bells known; Sentinels pass)',
     category: 'shortcut',
     obtainedBy: ['quest:q_lightless_stair'],
@@ -785,7 +787,7 @@ export const echoes = [
   {
     id: 'echo_ending_a',
     name: "Witnessed: The Warden's Vigil",
-    codexLine: "Ending A seen to its last slide. A frame hangs in the Gallery, and a door opens to New Game+.",
+    codexLine: 'I kept the vigil, and watched it to the last slide. The Gallery hangs the frame; a new game can start from everything I know.',
     description: 'Gallery frames; New Game+; achievements',
     category: 'ending',
     obtainedBy: ['ending:ending_wardens_vigil'],
@@ -794,7 +796,7 @@ export const echoes = [
   {
     id: 'echo_ending_b',
     name: 'Witnessed: The Mending',
-    codexLine: 'Ending B seen to its last slide. A frame hangs in the Gallery, and a door opens to New Game+.',
+    codexLine: 'I mended it, and watched it to the last slide. The Gallery hangs the frame; a new game can start from everything I know.',
     description: 'Gallery frames; New Game+; achievements',
     category: 'ending',
     obtainedBy: ['ending:ending_mending'],
@@ -803,7 +805,7 @@ export const echoes = [
   {
     id: 'echo_ending_c',
     name: "Witnessed: The Weaver's Dawn",
-    codexLine: 'Ending C seen to its last slide. A frame hangs in the Gallery, and a door opens to New Game+.',
+    codexLine: 'I opened the gate for her, and watched it to the last slide. The Gallery hangs the frame; a new game can start from everything I know.',
     description: 'Gallery frames; New Game+; achievements',
     category: 'ending',
     obtainedBy: ['ending:ending_weavers_dawn'],
@@ -812,7 +814,7 @@ export const echoes = [
   {
     id: 'echo_ending_d',
     name: 'Witnessed: The Iron Silence',
-    codexLine: 'Ending D seen to its last slide. A frame hangs in the Gallery, and a door opens to New Game+.',
+    codexLine: 'I cut the ley, and watched it to the last slide. The Gallery hangs the frame; a new game can start from everything I know.',
     description: 'Gallery frames; New Game+; achievements',
     category: 'ending',
     obtainedBy: ['ending:ending_iron_silence'],
@@ -821,7 +823,7 @@ export const echoes = [
   {
     id: 'echo_ending_e',
     name: 'Witnessed: The Long Archive',
-    codexLine: 'Ending E seen to its last slide. A frame hangs in the Gallery, and a door opens to New Game+.',
+    codexLine: 'I made the loop deliberate, and watched it to the last slide. The Gallery hangs the frame; a new game can start from everything I know.',
     description: 'Gallery frames; New Game+; achievements',
     category: 'ending',
     obtainedBy: ['ending:ending_long_archive'],
@@ -830,7 +832,7 @@ export const echoes = [
   {
     id: 'echo_ending_f',
     name: 'Witnessed: The Unbound',
-    codexLine: 'Ending F seen to its last slide. A frame hangs in the Gallery, and a door opens to New Game+.',
+    codexLine: 'I walked out, and watched it to the last slide. The Gallery hangs the frame; a new game can start from everything I know.',
     description: 'Gallery frames; New Game+; achievements',
     category: 'ending',
     obtainedBy: ['ending:ending_unbound'],
@@ -841,7 +843,7 @@ export const echoes = [
   {
     id: 'echo_kaelen_ledger',
     name: "Kaelen's Ledger",
-    codexLine: 'Blood and Salt is done, and Kaelen keeps a better account of you. His prices drop five percent for good.',
+    codexLine: 'Blood and Salt, done. Kaelen keeps a better account of me now, and his prices show it. For good.',
     description: "Kaelen's prices −5% for good (DESIGN)",
     category: 'character',
     obtainedBy: ['quest:q_blood_and_salt'],
@@ -850,7 +852,7 @@ export const echoes = [
   {
     id: 'echo_borin_oath',
     name: "Borin's Oath",
-    codexLine: 'The Blighted Outpost done, then a word with Borin. He will forge void-forged things for you without the Trusted standing.',
+    codexLine: "Cleared the Outpost, then talked to Borin. He'll forge the void-forged work for me now without the Nomads' trust first.",
     description: 'Void-forged recipes without Trusted',
     category: 'shortcut',
     obtainedBy: ['quest:q_blighted_outpost:then_talk_to_borin'],
@@ -859,7 +861,7 @@ export const echoes = [
   {
     id: 'echo_emberforge_vein',
     name: 'The Ember Vein',
-    codexLine: 'A third visit to the Emberforge in one loop, and the fire shows you where the ore runs. Eight ember ore each loop.',
+    codexLine: 'Third visit to the Emberforge in one loop, and the fire showed me where the ore runs. Ember ore from the vein, every loop.',
     description: 'Ember ore, 8 per loop',
     category: 'secret',
     obtainedBy: ['discovery:the_emberforge_third_visit_in_one_loop'],
@@ -868,7 +870,7 @@ export const echoes = [
   {
     id: 'echo_weaver_sign',
     name: "The Weavers' Hand-Sign",
-    codexLine: 'Finish the Hollow Choir, or end a loop with the Weavers Trusted. They start you at 20 after, and the Veil\'s curtain opens without an escort.',
+    codexLine: "The Weavers' hand-sign. Finished the Choir's rite, or ended a loop trusted. They start me warmer now, and the Veil's curtain opens without an escort.",
     description: "Weavers start 20; the Veil's curtain opens without escort",
     category: 'route',
     obtainedBy: ['quest:q_hollow_choir', 'engine:weavers_trusted_at_a_loops_end'],
@@ -877,7 +879,7 @@ export const echoes = [
   {
     id: 'echo_ironclad_oath',
     name: 'Oath-Brother',
-    codexLine: 'End a loop with the Ironclad Trusted. Brak hears your word at the Ring. They start you at 20 after.',
+    codexLine: 'Oath-brother. Brak heard my word at the Ring and the Ironclad ended the loop trusting me. They start me warmer every loop now.',
     description: 'Ironclad start 20',
     category: 'shortcut',
     obtainedBy: ['engine:ironclad_trusted_at_a_loops_end'],
@@ -886,7 +888,7 @@ export const echoes = [
   {
     id: 'echo_ironclad_passwords',
     name: "The Scouts' Challenge",
-    codexLine: "Clear the Barren Peaks once. The pass opens without Brak's leave.",
+    codexLine: "The scouts' challenge and its answer. The Peaks pass opens for me without Brak's leave.",
     description: "The Barren Peaks pass opens without Brak's leave",
     category: 'route',
     obtainedBy: ['quest:q_clear_path'],
@@ -895,7 +897,7 @@ export const echoes = [
   {
     id: 'echo_nomad_signs',
     name: 'Trail-Signs',
-    codexLine: 'Scout Ferrin at the Scorched Gate will teach them to a Neutral friend. The Gate and the Herd-Grave open.',
+    codexLine: "Ferrin's trail-signs: two notes means friend. The Scorched Gate and the Herd-Grave open to me.",
     description: 'The Scorched Gate and the Herd-Grave open',
     category: 'route',
     obtainedBy: ['dialogue:scout_ferrin_at_the_scorched_gate'],
@@ -904,7 +906,7 @@ export const echoes = [
   {
     id: 'echo_heartstone_path',
     name: 'The Way Down',
-    codexLine: 'Reach the Heartstone Depths once. From Loop 2 the Depths open without the pulse.',
+    codexLine: 'Reached the Depths once. From the next loop the way down opens for me without the pulse.',
     description: 'The Depths open without the pulse (Loop 2+)',
     category: 'route',
     obtainedBy: ['discovery:the_heartstone_depths_reached_once'],
@@ -913,7 +915,7 @@ export const echoes = [
   {
     id: 'echo_hollow_path',
     name: 'The Bridge Holds',
-    codexLine: 'Cross the Chasm bridge once. Voidscar Hollow opens without Whispers of the Void.',
+    codexLine: "Crossed the Chasm bridge once. The Hollow opens to me without Nyx's errand.",
     description: 'Voidscar Hollow opens without q_void_shards',
     category: 'route',
     obtainedBy: ['discovery:the_chasm_bridge_crossed_once'],
@@ -922,7 +924,7 @@ export const echoes = [
   {
     id: 'echo_portal_tear',
     name: 'The Door She Can Open',
-    codexLine: "At the Keeper's Price, with the Remnants Trusted, Ilyra opens the Library portal on purpose from Loop 2. It closes the loop as an escape. Her oath of the unbound hand disables it for a loop.",
+    codexLine: "Ilyra can open the Library portal on purpose, from the Keeper's Price, with the Remnants trusting me. It closes the loop as an escape. Her oath of the unbound hand stops it for a loop.",
     description: 'Ilyra opens the Library portal on purpose (Loop 2+; closer_escape); disabled for a loop by her unbound_hand oath',
     category: 'route',
     obtainedBy: ['quest:q_the_keepers_price:keeper_with_remnants_trusted'],
@@ -931,7 +933,7 @@ export const echoes = [
   {
     id: 'echo_steppe_waystones',
     name: 'The Waystone Order',
-    codexLine: "The Bone Road, done. The Steppe's short road between the Scorched Gate and Reedmarch opens.",
+    codexLine: "The Bone Road, done; I know the waystones' order. The Steppe's short road runs between the Scorched Gate and Reedmarch.",
     description: "The Steppe's short road (Scorched Gate ↔ Reedmarch, D-068.1)",
     category: 'route',
     obtainedBy: ['quest:q_bone_road'],
@@ -940,7 +942,7 @@ export const echoes = [
   {
     id: 'echo_rhune_choice',
     name: 'By Her Own Choice',
-    codexLine: "Tidewell Hall's ledger, or Ilsabet Rhune in the Cistern Gardens on Second Bell. The Bell-Warden gives up the Cistern Key.",
+    codexLine: 'Ilsabet opened the cisterns by her own choice. I read it in her ledger at Tidewell, or heard it from her on Second Bell. The Bell-Warden gives up the Cistern Key for it.',
     description: 'The Bell-Warden surrenders the Cistern Key; codex',
     category: 'route',
     obtainedBy: ['event:ev_tidewell_ledger', 'dialogue:ilsabet_rhune_in_the_cistern_gardens_on_second_bell'],
@@ -949,7 +951,7 @@ export const echoes = [
   {
     id: 'echo_dreyl_brand',
     name: "Dreyl's Brand",
-    codexLine: "The Bone Orchard's brand. It answers the Steppe's beasts and opens the Ashbrand recipe.",
+    codexLine: "Dreyl's brand on the Steppe's beasts: a flame inside a ring. It answers them, and Borin can forge me Ashbrand from it.",
     description: 'Answers the Steppe beasts; the Ashbrand recipe; codex',
     category: 'secret',
     obtainedBy: ['event:ev_orchard_brand'],
@@ -958,7 +960,7 @@ export const echoes = [
   {
     id: 'echo_sky_oath',
     name: 'The Sky-Oath',
-    codexLine: 'Lightning takes a cairn on the Ashen Steppe when you carry the Sky-Whisper Talisman, and in the glass is a face. At the Perch, from Loop 2, the Stormcrown bargains instead of fighting.',
+    codexLine: 'Lightning took a cairn beside me while I wore the Talisman, and there was a face in the glass. At the Perch, from the next loop, the Stormcrown bargains instead of fighting.',
     description: "The Stormcrown's bargain: the Perch without a fight for a Talisman-bearer",
     category: 'route',
     obtainedBy: ['event:ev_cairns_strike'],
@@ -971,7 +973,7 @@ export const echoes = [
   {
     id: 'echo_nyx_bond',
     name: 'A Bond Remembered (Nyx)',
-    codexLine: "Nyx at loyalty 50 by a loop's end. The next loop she starts at 25.",
+    codexLine: 'Nyx trusted me by the end of a loop. The next one, she starts a little way toward it.',
     description: 'Nyx starts the loop at loyalty 25',
     category: 'character',
     obtainedBy: ['engine:nyx_loyalty_50_at_a_loops_end'],
@@ -980,7 +982,7 @@ export const echoes = [
   {
     id: 'echo_ilyra_bond',
     name: 'A Bond Remembered (Ilyra)',
-    codexLine: "Ilyra at loyalty 50 by a loop's end. The next loop she starts at 25.",
+    codexLine: 'Ilyra trusted me by the end of a loop. The next one, she starts a little way toward it.',
     description: 'Ilyra starts at loyalty 25',
     category: 'character',
     obtainedBy: ['engine:ilyra_loyalty_50_at_a_loops_end'],
@@ -989,7 +991,7 @@ export const echoes = [
   {
     id: 'echo_dask_bond',
     name: 'A Bond Remembered (Dask)',
-    codexLine: "Dask at loyalty 50 by a loop's end. The next loop he starts at 25.",
+    codexLine: 'Dask trusted me by the end of a loop. The next one, he starts a little way toward it.',
     description: 'Dask starts at loyalty 25',
     category: 'character',
     obtainedBy: ['engine:dask_loyalty_50_at_a_loops_end'],
@@ -998,7 +1000,7 @@ export const echoes = [
   {
     id: 'echo_mireya_bond',
     name: 'A Bond Remembered (Mireya)',
-    codexLine: "Mireya at loyalty 50 by a loop's end. The next loop she starts at 25.",
+    codexLine: 'Mireya trusted me by the end of a loop. The next one, she starts a little way toward it.',
     description: 'Mireya starts at loyalty 25',
     category: 'character',
     obtainedBy: ['engine:mireya_loyalty_50_at_a_loops_end'],
@@ -1007,7 +1009,7 @@ export const echoes = [
   {
     id: 'echo_caelum_bond',
     name: 'A Bond Remembered (Caelum)',
-    codexLine: "Caelum at loyalty 50 by a loop's end. The next loop he starts at 25. Brak's equivalent is the Line at the Nexus.",
+    codexLine: "Caelum trusted me by the end of a loop. The next one, he starts a little way toward it. Brak's is the Line at the Nexus.",
     description: "Caelum starts at loyalty 25 (Brak's equivalent is echo_brak_lives)",
     category: 'character',
     obtainedBy: ['engine:caelum_loyalty_50_at_a_loops_end'],

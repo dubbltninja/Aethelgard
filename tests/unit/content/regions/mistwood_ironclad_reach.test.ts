@@ -791,7 +791,7 @@ describe('the real pack with the region registered (D-090)', () => {
     const report = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(report.errors).toEqual([]);
     const pending = report.warnings.filter((w) => w.message.startsWith('pending — content not yet authored (reference): '));
-    expect(pending.length).toBeGreaterThan(50);
+    expect(pending).toEqual([]); // U61: the codex was the last table still being authored that a region referred to
     for (const w of pending) {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
       expect([w.message, INCOMPLETE_TABLES.includes(table as (typeof INCOMPLETE_TABLES)[number])]).toEqual([w.message, true]);
@@ -819,7 +819,7 @@ describe('the real pack with the region registered (D-090)', () => {
     expect(validateCli([], (line) => out.push(line))).toBe(0);
     const text = out.join('\n');
     expect(text).toMatch(/ regions \d+ · locations \d+ · creatures \d+ · /);
-    expect(text).toMatch(/pending rule-01: \d+ reference\(s\) into tables still being authored/);
+    expect(text).not.toMatch(/pending rule-01: /); // U61: the codex was the last table a region referred to; nothing is pending now
     expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
   });
 

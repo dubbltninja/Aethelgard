@@ -15,9 +15,10 @@ import type { TableName } from '@schema/contentPack';
 // D-111 (2026-10-21): `companions` is complete — the six records are registered (their arcs and camp scenes stay pending).
 // U59 (2026-10-25): `quests` is complete — D-045's 44 (U52–U58) and STORY §11.8's five class mini-quests; no reference into it
 // was pending when the list was cut.
+// U61 (2026-10-25): `codex` is complete — STORY §14.1's 87 plus D-101's three (Codex I and II); no reference into it was
+// pending when the list was cut.
 export const INCOMPLETE_TABLES: readonly TableName[] = [
   'dialogues',
   'npcs',
-  'codex',
   'encounters',
 ];

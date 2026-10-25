@@ -76,7 +76,8 @@ test.describe('combat', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Corrupted Shade' })).toBeVisible();
     const attack = page.getByRole('button', { name: /^1: Attack, at Corrupted Shade/ });
     await expect(attack).toBeFocused(); // the screen's first control takes focus
-    await expect(page.getByRole('button', { name: /^Target Corrupted Shade/ })).toHaveAttribute('aria-pressed', 'true');
+    // U73a: the stage's sprite carries the same name, so this reads the card's button
+    await expect(page.locator('.combat__enemies').getByRole('button', { name: /^Target Corrupted Shade/ })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('img', { name: /^Intent: Rake, physical, \d+ to \d+ damage, targeting you/ })).toBeVisible();
     await expect(page.getByRole('meter', { name: 'Corrupted Shade HP' })).toHaveAttribute('aria-valuenow', '36');
     await expect(page.getByRole('button', { name: /^F: Flee, \d+% chance/ })).toBeVisible();
@@ -168,9 +169,9 @@ test.describe('combat', () => {
     await expect(page.getByRole('log')).toBeAttached();
     // ← / → move the target between the Tyrant and its add
     if (!mobile(info)) {
-      await expect(page.getByRole('button', { name: /^Target The Chronos Tyrant/ })).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('.combat__enemies').getByRole('button', { name: /^Target The Chronos Tyrant/ })).toHaveAttribute('aria-pressed', 'true');
       await page.keyboard.press('ArrowRight');
-      await expect(page.getByRole('button', { name: /^Target Temporal Aberration/ })).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('.combat__enemies').getByRole('button', { name: /^Target Temporal Aberration/ })).toHaveAttribute('aria-pressed', 'true');
       await expect(page.getByRole('button', { name: /^1: Attack, at Temporal Aberration/ })).toBeVisible();
       const ring = await page.evaluate(() => parseFloat(getComputedStyle(document.activeElement as HTMLElement).outlineWidth));
       expect(ring).toBeGreaterThanOrEqual(2);

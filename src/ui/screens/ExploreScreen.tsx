@@ -12,6 +12,7 @@
 // is in a dialog or on the map (the traveller is still choosing there).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Icon } from '../art/Icon';
+import { Portrait } from '../art/Portrait';
 import { breachOverlay } from '../art/breachOverlay';
 import { RegionPalette } from '../art/RegionPalette';
 import { Scene } from '../art/Scene';
@@ -125,7 +126,7 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
                 <ul className="here__list">
                   {p.npcs.map((npc) => (
                     <li key={npc.id} className="here-chip here-chip--npc">
-                      <Icon kind="npc" size={18} />
+                      <Portrait npcId={npc.id} size="sm" fallback={<Icon kind="npc" size={18} />} />
                       <span className="here-chip__name">
                         {npc.name}
                         {npc.role === null ? null : <span className="here-chip__role"> · {npc.role}</span>}

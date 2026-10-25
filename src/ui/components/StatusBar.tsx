@@ -1,9 +1,11 @@
 // The HUD (DESIGN §16.2): name, class and level with the XP bar; HP (red) and the class resource (blue, by its name:
 // Focus, Mana, Grit …) as `role="meter"` bars with their numbers; gold; the clock chip; the loop; Corruption pips
 // (0–6) once the first spellbook is read; the statuses that persist out of combat (icon + name + watches left); the
-// companion's mini-card. `detail` (H) adds the stats, unspent points and what has moved the clock. Pure.
+// companion's mini-card (with its small painted portrait, U73a). `detail` (H) adds the stats, unspent points and what has
+// moved the clock. Pure.
 import type { ReactNode } from 'react';
 import { Icon } from '../art/Icon';
+import { Portrait } from '../art/Portrait';
 import type { HudModel } from '../screens/exploreModel';
 import { ClockWidget } from './ClockWidget';
 
@@ -109,6 +111,7 @@ export function StatusBar({ hud, detail = false }: StatusBarProps): ReactNode {
       </div>
       {hud.companion === null ? null : (
         <div className="hud__companion">
+          {hud.companion.npcId === undefined ? null : <Portrait npcId={hud.companion.npcId} size="sm" fallback={null} />}
           <Meter
             kind="companion"
             label={hud.companion.name}

@@ -9,6 +9,9 @@ import { Button } from '../components/Button';
 import { useHotkeys } from '../hooks/useHotkeys';
 import { useContent, useProfile, useStore } from '../store/useGame';
 import { ClassSigil } from './ClassSigil';
+import { Sprite } from '../art/Sprite';
+import { chooseSprite } from '../art/spriteManifest';
+import { heroSprite } from '../art/sprites';
 import {
   NAME_MAX,
   beginArgs,
@@ -116,9 +119,15 @@ function ClassCard({ option, selected, onSelect }: { option: ClassOption; select
         aria-describedby={`class-${option.id}-title`}
         data-autofocus={selected ? '' : undefined}
       />
-      <span className="class-card__sigil">
-        <ClassSigil classId={option.id} />
-      </span>
+      {chooseSprite(heroSprite(option.id).file) === null ? (
+        <span className="class-card__sigil">
+          <ClassSigil classId={option.id} />
+        </span>
+      ) : (
+        <span className="class-card__sprite class-card__sigil">
+          <Sprite file={heroSprite(option.id).file} fallback={<ClassSigil classId={option.id} />} />
+        </span>
+      )}
       <span className="class-card__name">{option.name}</span>
       <span className="class-card__title" id={`class-${option.id}-title`}>
         {option.title}

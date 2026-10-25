@@ -15,6 +15,7 @@ import './ui/styles/lore.css';
 import './ui/styles/inventory.css';
 import './ui/styles/threshold.css';
 import './ui/styles/onboarding.css';
+import './ui/styles/stage.css';
 import { StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SCENARIO_IDS, loadScenario, type ScenarioId } from '@sim/scenarios';
@@ -35,12 +36,20 @@ export function BootFailure({ message }: { message: string }): ReactNode {
   );
 }
 
+/** U73a: where an e2e test leaves a hand-built `{ state, profile }` for `?start=session` (a fight no scenario reaches). */
+export const E2E_START_KEY = 'aethelgard.e2e.start';
+
 /**
  * `?scenario=<id>` → boot options that start in that scenario (dev and e2e builds only; elsewhere, or for no id, none).
- * An id the registry lacks is an error the page shows.
+ * An id the registry lacks is an error the page shows. `?start=session` starts in the state an e2e test stored under
+ * `E2E_START_KEY` (U73a: the stage's four-enemy, companion and anomaly fights; a save cannot be loaded mid-fight).
  */
 export function scenarioStart(search: string): BootOptions['start'] {
   if (__DEV__ || __E2E__) {
+    if (new URLSearchParams(search).get('start') === 'session') {
+      const raw = typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(E2E_START_KEY);
+      if (raw !== null) return () => JSON.parse(raw) as ReturnType<NonNullable<BootOptions['start']>>;
+    }
     const id = new URLSearchParams(search).get('scenario');
     if (id === null || id === '') return undefined;
     if (!(SCENARIO_IDS as readonly string[]).includes(id)) throw new Error(`unknown scenario '${id}' (known: ${SCENARIO_IDS.join(', ')})`);

@@ -1,0 +1,856 @@
+/*
+ * Figures (U73a; docs/ART-2.md §7; DESIGN §16.5, §16.7, §17.3, §17.7; D-128): the cut-out sprites and the painted portraits,
+ * their code effects, the combat stage, and where the figures sit in Dialogue, Explore, the Bestiary and Class Select.
+ * Motion is CSS transforms, opacity and filters only; themes.css stops every animation under reduced motion, and the stage
+ * draws no cue at all then (CombatStage). Figures keep full brightness in high contrast (they are the subject); the stage's
+ * painting dims like U71's frames (explore.css), and paintings behind text hide.
+ */
+
+/* ---- <Sprite> ---- */
+.sprite {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  /* a picture, never a target: clicks reach the control it sits in (the stage's buttons, a class card's radio) */
+  pointer-events: none;
+}
+
+.sprite__fig {
+  position: relative;
+  display: block;
+  height: 100%;
+}
+
+.sprite__img {
+  display: block;
+  height: 100%;
+  width: auto;
+  user-select: none;
+}
+
+.sprite__ghost {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.36;
+  /* a cold, pale after-image over the figure: it reads on a dark painting as well as a light one */
+  filter: grayscale(0.55) brightness(1.9);
+}
+
+.sprite--flip .sprite__fig {
+  transform: scaleX(-1);
+}
+
+/* a failed load shows the sigil in place (Sprite.tsx flips data-failed) */
+.sprite:not([data-failed]) > .sprite__fallback,
+.portrait:not([data-failed]) > .portrait__fallback {
+  display: none;
+}
+
+.sprite[data-failed] > .sprite__fig,
+.portrait[data-failed] > .portrait__img {
+  display: none;
+}
+
+/* doubled: ghost copies a moment out of step (Echoed, Doubled, Stutter, Frayed, the pairs and packs) */
+.sprite--fx-doubled .sprite__ghost--1 {
+  transform: translateX(-16%);
+  animation: sprite-stutter 1.3s steps(1) infinite;
+}
+
+.sprite--fx-doubled .sprite__ghost--2 {
+  transform: translateX(13%);
+  animation: sprite-stutter-back 1.7s steps(1) infinite;
+}
+
+@keyframes sprite-stutter {
+  0%,
+  55% {
+    transform: translateX(-16%);
+  }
+  56%,
+  100% {
+    transform: translateX(-9%);
+  }
+}
+
+@keyframes sprite-stutter-back {
+  0%,
+  45% {
+    transform: translateX(13%);
+  }
+  46%,
+  100% {
+    transform: translateX(8%);
+  }
+}
+
+/* phase: half here on every other step (Phase Stalker, Late Mireling) */
+.sprite--fx-phase .sprite__ghost--1 {
+  opacity: 0.28;
+  transform: translateX(9%);
+}
+
+.sprite--fx-phase .sprite__main {
+  animation: sprite-phase 1.8s steps(1) infinite;
+}
+
+@keyframes sprite-phase {
+  0%,
+  44% {
+    opacity: 1;
+  }
+  45%,
+  62% {
+    opacity: 0.32;
+  }
+  63%,
+  100% {
+    opacity: 0.9;
+  }
+}
+
+/* tints: the same creature, wrong in one colour */
+.sprite--tint-flat .sprite__fig {
+  filter: hue-rotate(185deg) saturate(0.5) brightness(0.95);
+}
+
+.sprite--tint-unfiled .sprite__fig {
+  filter: sepia(0.85) saturate(0.55) brightness(0.85);
+}
+
+.sprite--tint-early .sprite__fig {
+  filter: sepia(0.5) saturate(1.7) hue-rotate(-14deg) brightness(1.12);
+}
+
+.sprite--tint-still .sprite__fig {
+  filter: grayscale(0.9) brightness(1.3) contrast(0.85);
+}
+
+.sprite--tint-seeding .sprite__fig {
+  filter: hue-rotate(38deg) saturate(1.6) brightness(1.05);
+}
+
+/* split: its two halves pulled apart along a bright seam (Split Wisp) */
+.sprite--fx-split .sprite__main {
+  clip-path: inset(0 50% 0 0);
+  transform: translateX(-8%) rotate(-4deg);
+}
+
+.sprite--fx-split .sprite__ghost--1 {
+  opacity: 1;
+  filter: none;
+  clip-path: inset(0 0 0 50%);
+  transform: translateX(8%) rotate(4deg);
+}
+
+.sprite--fx-split .sprite__fig::after {
+  content: "";
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  left: calc(50% - 1px);
+  width: 2px;
+  background: linear-gradient(transparent, #e6f6ff, transparent);
+  box-shadow: 0 0 6px #9fd8ff;
+}
+
+/* tethered: a cold rim; the stage draws the line between two */
+.sprite--fx-tethered .sprite__fig {
+  filter: drop-shadow(0 0 3px rgba(150, 205, 255, 0.95));
+}
+
+/* painted over: a flat dark shape until it is cracked (Unlit Lantern) */
+.sprite--fx-painted .sprite__fig {
+  filter: brightness(0.08) saturate(0) drop-shadow(0 0 1px rgba(214, 196, 255, 0.85));
+}
+
+.sprite--fx-painted.sprite--cracked .sprite__fig {
+  filter: brightness(0.8) drop-shadow(0 0 2px rgba(214, 196, 255, 0.6));
+}
+
+/* the Redundant Wayfinder: your own class, greyed and flickering */
+.sprite--fx-wayfinder .sprite__fig {
+  filter: grayscale(1) brightness(0.92) contrast(1.05);
+  animation: sprite-flicker 2.6s steps(1) infinite;
+}
+
+@keyframes sprite-flicker {
+  0%,
+  46% {
+    opacity: 1;
+  }
+  47%,
+  50% {
+    opacity: 0.45;
+  }
+  51%,
+  81% {
+    opacity: 1;
+  }
+  82%,
+  84% {
+    opacity: 0.65;
+  }
+  85%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* the Bestiary before a creature is met: its outline only */
+.sprite--silhouette .sprite__fig {
+  filter: brightness(0) drop-shadow(0 0 1px rgba(255, 255, 255, 0.6));
+  opacity: 0.85;
+}
+
+/* ---- <Portrait> ---- */
+.portrait {
+  --portrait-accent: var(--line-strong);
+  position: relative;
+  pointer-events: none;
+  display: inline-block;
+  flex: none;
+  overflow: hidden;
+  line-height: 0;
+  border: 2px solid color-mix(in srgb, var(--portrait-accent) 70%, transparent);
+  border-radius: var(--radius-m);
+  background: #17151b;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+.portrait[data-accent="remnants"] {
+  --portrait-accent: #9cc8ff;
+}
+
+.portrait[data-accent="weavers"] {
+  --portrait-accent: #b48cff;
+}
+
+.portrait[data-accent="ironclad"] {
+  --portrait-accent: #e0915a;
+}
+
+.portrait__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.portrait--sigil {
+  overflow: visible;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.portrait--sm:not(.portrait--sigil) {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-width: 1px;
+  border-radius: var(--radius-s);
+}
+
+.portrait--lg:not(.portrait--sigil) {
+  width: clamp(9rem, 20vw, 14rem);
+  aspect-ratio: 1;
+}
+
+:root[data-theme="high-contrast"] .portrait {
+  border-color: #ffffff;
+}
+
+/* ---- the combat stage ---- */
+.combat-stage {
+  position: relative;
+  height: clamp(210px, 33vh, 330px);
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--region-bg, var(--surface-panel));
+}
+
+.combat-stage__scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.combat-stage__scene .scene,
+.combat-stage__scene .scene > svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* no focal glow on the stage: the figures are the light now */
+.combat-stage .scene__focus,
+.combat-stage .scene__portal {
+  display: none;
+}
+
+/* the floor: the band darkens under the line the figures stand on */
+.combat-stage__floor {
+  position: absolute;
+  inset: calc(var(--floor) - 18px) 0 0 0;
+  z-index: 0;
+  background: linear-gradient(rgba(6, 4, 10, 0), rgba(6, 4, 10, 0.5) 18px, rgba(6, 4, 10, 0.72));
+  pointer-events: none;
+}
+
+.combat-stage__tethers {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.combat-stage__tethers line {
+  stroke: #bfe2ff;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 3px #7fc4ff);
+}
+
+.stage-fig {
+  position: absolute;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.stage-fig {
+  min-width: var(--target-min, 44px);
+  min-height: var(--target-min, 44px);
+  cursor: pointer;
+}
+
+button.stage-fig[aria-disabled="true"] {
+  cursor: default;
+}
+
+.stage-fig:focus-visible {
+  outline: var(--focus-width, 3px) solid var(--focus-ring);
+  outline-offset: 4px;
+  border-radius: var(--radius-s);
+}
+
+.stage-fig__ko,
+.stage-fig__lunge,
+.stage-fig__bob,
+.stage-fig__hit,
+.stage-fig .sprite,
+.stage-fig .sprite__fig {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.stage-fig .sprite__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.stage-fig .sprite--sigil svg,
+.stage-fig .sprite__fallback svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* a sigil's shape leaves a margin in its 96 px box: set it down on the floor */
+  transform: translateY(8%);
+}
+
+.stage-fig .sprite__fallback {
+  position: absolute;
+  inset: 0;
+}
+
+.stage-fig__class-sigil {
+  position: absolute;
+  inset: 8%;
+  color: var(--text-accent);
+}
+
+.stage-fig__shadow {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: calc(clamp(6px, 7%, 22px) / -2);
+  height: clamp(6px, 7%, 22px);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0));
+}
+
+.stage-fig[data-back] .stage-fig__shadow {
+  opacity: 0.75;
+}
+
+/* the target: a ring on the floor around its feet */
+.stage-fig__ring {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(clamp(12px, 11%, 30px) / -2);
+  height: clamp(12px, 11%, 30px);
+  border: 2px solid var(--text-accent);
+  border-radius: 50%;
+  box-shadow:
+    0 0 8px var(--text-accent),
+    inset 0 0 6px var(--text-accent);
+}
+
+button.stage-fig:not([aria-disabled="true"]):hover .stage-fig__bob {
+  filter: brightness(1.14);
+}
+
+/* the family sigil as a corner badge (shape for colour-blind players, DESIGN §17.3) */
+.stage-fig__badge {
+  position: absolute;
+  left: -6px;
+  bottom: 4px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
+}
+
+.stage-fig__badge svg {
+  width: 100%;
+  height: 100%;
+}
+
+.stage-fig[data-size="small"] .stage-fig__badge {
+  width: 20px;
+  height: 20px;
+}
+
+/* KO: faded, dropped, grey (the end state of the fall below) */
+.stage-fig[data-ko] .stage-fig__ko {
+  opacity: 0.2;
+  transform: translateY(5%);
+  filter: grayscale(1);
+}
+
+.stage-fig[data-ko] .stage-fig__shadow,
+.stage-fig[data-ko] .stage-fig__badge {
+  opacity: 0.35;
+}
+
+.stage-fig--fall-a .stage-fig__ko {
+  animation: stage-fall-a 650ms ease-in var(--ko-delay, 0ms) both;
+}
+
+.stage-fig--fall-b .stage-fig__ko {
+  animation: stage-fall-b 650ms ease-in var(--ko-delay, 0ms) both;
+}
+
+/* idle: a gentle bob, out of step from figure to figure */
+.combat-stage[data-motion="on"] .stage-fig:not([data-ko]) .stage-fig__bob {
+  animation: stage-bob 2.8s ease-in-out var(--bob-delay, 0s) infinite alternate;
+}
+
+/* a lunge toward the target: heroes to the right, enemies to the left */
+.stage-fig--hero {
+  --lunge-to: clamp(8px, 16%, 30px);
+}
+
+.stage-fig--enemy {
+  --lunge-to: calc(-1 * clamp(8px, 16%, 30px));
+}
+
+.stage-fig--lunge-a .stage-fig__lunge {
+  animation: stage-lunge-a 380ms var(--ease, ease-out) var(--lunge-delay, 0ms) both;
+}
+
+.stage-fig--lunge-b .stage-fig__lunge {
+  animation: stage-lunge-b 380ms var(--ease, ease-out) var(--lunge-delay, 0ms) both;
+}
+
+/* a hit: a white flash and a shake of at most 2 px (DESIGN §17.7) */
+.stage-fig--hit-a .stage-fig__hit {
+  animation: stage-hit-a 320ms linear var(--hit-delay, 0ms) both;
+}
+
+.stage-fig--hit-b .stage-fig__hit {
+  animation: stage-hit-b 320ms linear var(--hit-delay, 0ms) both;
+}
+
+/* a boss's phase change: a brief flare behind it */
+.stage-fig__flare {
+  position: absolute;
+  inset: -12% -22%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--region-accent, #b48cff) 65%, #ffffff), transparent);
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage-fig--flare-a .stage-fig__flare {
+  animation: stage-flare-a 1100ms ease-out var(--flare-delay, 0ms) both;
+}
+
+.stage-fig--flare-b .stage-fig__flare {
+  animation: stage-flare-b 1100ms ease-out var(--flare-delay, 0ms) both;
+}
+
+/* the number floats from the figure for 600 ms; a crit scales 1.2× once */
+.stage-float {
+  position: absolute;
+  top: 2%;
+  z-index: 3;
+  font-size: var(--type-h3);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-danger);
+  text-shadow:
+    0 1px 0 #000000,
+    0 0 4px #000000;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  animation: stage-float 600ms var(--ease, ease-out) both;
+}
+
+.stage-float--crit {
+  animation-name: stage-float-crit;
+  font-size: var(--type-h2);
+}
+
+@keyframes stage-bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-1.6%);
+  }
+}
+
+@keyframes stage-lunge-a {
+  0%,
+  100% {
+    transform: none;
+  }
+  40% {
+    transform: translateX(var(--lunge-to));
+  }
+}
+
+@keyframes stage-lunge-b {
+  0%,
+  100% {
+    transform: none;
+  }
+  40% {
+    transform: translateX(var(--lunge-to));
+  }
+}
+
+@keyframes stage-hit-a {
+  0% {
+    filter: none;
+    transform: none;
+  }
+  8%,
+  30% {
+    filter: brightness(0) invert(1);
+    transform: translateX(-2px);
+  }
+  31% {
+    transform: translateX(2px);
+  }
+  55% {
+    filter: brightness(1.5);
+    transform: translateX(-1px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
+  100% {
+    filter: none;
+    transform: none;
+  }
+}
+
+@keyframes stage-hit-b {
+  0% {
+    filter: none;
+    transform: none;
+  }
+  8%,
+  30% {
+    filter: brightness(0) invert(1);
+    transform: translateX(-2px);
+  }
+  31% {
+    transform: translateX(2px);
+  }
+  55% {
+    filter: brightness(1.5);
+    transform: translateX(-1px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
+  100% {
+    filter: none;
+    transform: none;
+  }
+}
+
+@keyframes stage-fall-a {
+  from {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  to {
+    opacity: 0.2;
+    transform: translateY(5%);
+    filter: grayscale(1);
+  }
+}
+
+@keyframes stage-fall-b {
+  from {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  to {
+    opacity: 0.2;
+    transform: translateY(5%);
+    filter: grayscale(1);
+  }
+}
+
+@keyframes stage-flare-a {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes stage-flare-b {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes stage-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+  1% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -1.5rem);
+  }
+}
+
+@keyframes stage-float-crit {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(1.2);
+  }
+  1%,
+  30% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -1.5rem) scale(1);
+  }
+}
+
+/* the cards below keep the numbers; the stage floats them instead of the cards */
+.combat--staged .enemy-card .float-number {
+  display: none;
+}
+
+@media (max-width: 759.98px) {
+  .combat-stage {
+    height: clamp(170px, 27vh, 220px);
+    margin-inline: calc(-1 * var(--gutter) / 2);
+  }
+
+  /* the sprite is above: the cards compact to their numbers */
+  .combat--staged .enemy-card .creature-sigil {
+    display: none;
+  }
+
+  .combat--staged .enemy-card {
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+:root[data-theme="high-contrast"] .combat-stage__floor {
+  background: #000000;
+  border-top: 2px solid #ffffff;
+  inset: var(--floor) 0 0 0;
+}
+
+:root[data-theme="high-contrast"] .stage-fig__ring {
+  border-color: #ffffff;
+  border-width: 3px;
+  box-shadow: none;
+}
+
+/* ---- Dialogue: the speaker large, over a dimmed copy of the place's painting ---- */
+.dialogue__stage--painted {
+  position: relative;
+  isolation: isolate;
+  padding: var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+}
+
+.dialogue__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.dialogue__backdrop img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(0.45) saturate(0.8);
+}
+
+.dialogue__backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(8, 6, 12, 0.05), rgba(8, 6, 12, 0.5) 65%);
+}
+
+:root[data-theme="high-contrast"] .dialogue__backdrop {
+  display: none;
+}
+
+.dialogue__portrait .portrait--lg:not(.portrait--sigil) {
+  width: 100%;
+  max-width: 14rem;
+}
+
+@media (min-width: 760px) {
+  .dialogue__stage--portrait {
+    grid-template-columns: 14rem minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 759.98px) {
+  .dialogue__portrait .portrait--lg:not(.portrait--sigil) {
+    width: 6.5rem;
+  }
+}
+
+/* ---- Explore rows, the companion chip ---- */
+.here-chip .portrait--sm,
+.hud__companion .portrait--sm {
+  align-self: center;
+}
+
+.here-chip .portrait--sigil .npc-sigil {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.hud__companion:has(> .portrait) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hud__companion > .meter {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* a creature or the player speaking: the sprite stands in the portrait's place */
+.dialogue__portrait .speaker-sprite:not(.sprite--sigil) {
+  height: 14rem;
+  max-width: 100%;
+}
+
+.dialogue__portrait .speaker-sprite .sprite__img {
+  max-width: 14rem;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+@media (max-width: 759.98px) {
+  .dialogue__portrait .speaker-sprite:not(.sprite--sigil) {
+    height: 7rem;
+  }
+}
+
+/* ---- Class Select and the Bestiary ---- */
+.class-card__sprite {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 7.5rem;
+}
+
+.class-card__sprite .sprite {
+  height: 100%;
+}
+
+.creature-card__figure {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: none;
+  width: 8rem;
+  height: 8rem;
+}
+
+.creature-card__figure .sprite:not(.sprite--sigil) {
+  height: 100%;
+  max-width: 100%;
+}
+
+.creature-card__figure .sprite__img {
+  max-width: 8rem;
+  object-fit: contain;
+  object-position: center bottom;
+}

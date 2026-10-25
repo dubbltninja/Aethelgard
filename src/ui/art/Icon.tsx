@@ -32,6 +32,9 @@ const arrow = (rotate: number): ReactNode => (
   </g>
 );
 
+/** Whether a kind has a drawing (the registry test: every IconKind is drawn). */
+export const isDrawn = (kind: IconKind): boolean => GLYPHS[kind] !== undefined;
+
 const GLYPHS: Record<IconKind, ReactNode> = {
   hp: <path d="M12 20 C 5 15, 3 11, 3 8 C 3 5.5, 5 4, 7.2 4 C 9.2 4, 11 5.4, 12 7.2 C 13 5.4, 14.8 4, 16.8 4 C 19 4, 21 5.5, 21 8 C 21 11, 19 15, 12 20 Z" />,
   mp: <path d="M12 3 L18 11 L12 21 L6 11 Z M12 3 L12 21" />,
@@ -93,12 +96,18 @@ const GLYPHS: Record<IconKind, ReactNode> = {
   status_shock: (
     <>
       <circle cx={12} cy={12} r={8.5} />
-      <path d="M13 6.5 L9.5 12.5 L13 12.5 L11 17.5" />
+      <path d="M13.5 5.5 L8.5 12.8 L12.8 12.8 L10.5 18.5" />
     </>
   ),
   status_soaked: <path d="M12 3 C 15 8, 16.5 10, 16.5 12.5 A 4.5 4.5 0 0 1 7.5 12.5 C 7.5 10, 9 8, 12 3 Z M4 19 C 7 17.5, 9 20.5, 12 19 C 15 17.5, 17 20.5, 20 19" />,
-  status_slow: <path d="M7 3 L17 3 M7 21 L17 21 M8 3 C 8 7, 12 9, 12 12 C 12 15, 8 16, 8 21 M16 3 C 16 7, 12 9, 12 12 C 12 15, 16 16, 16 21 M9 19.5 L15 19.5 L12 16.5 Z" />,
-  status_haste: <path d="M9 3 L19 3 M9 21 L19 21 M10 3 C 10 8, 14 9, 14 12 C 14 15, 10 16, 10 21 M18 3 C 18 8, 14 9, 14 12 C 14 15, 18 16, 18 21 M11 4.5 L17 4.5 L14 7.5 Z M2 9 L6 9 M3 13 L7 13 M2 17 L6 17" />,
+  // U73: Slow was an hourglass like Haste, Wait, Chrono and the clock-face; a snail (shell, foot, one horn) reads apart at 16 px
+  status_slow: (
+    <>
+      <circle cx={9.5} cy={11} r={6} />
+      <path d="M9.5 11 C 9.5 9.8, 11.2 9.8, 11.2 11 C 11.2 13, 7.6 13, 7.6 11" />
+      <path d="M2.5 19.5 L17.5 19.5 C 21.5 19.5, 21.5 14, 18 14 M19.5 14.5 L21 11" />
+    </>
+  ),  status_haste: <path d="M9 3 L19 3 M9 21 L19 21 M10 3 C 10 8, 14 9, 14 12 C 14 15, 10 16, 10 21 M18 3 C 18 8, 14 9, 14 12 C 14 15, 18 16, 18 21 M11 4.5 L17 4.5 L14 7.5 Z M2 9 L6 9 M3 13 L7 13 M2 17 L6 17" />,
   status_stun: <path d="M12 2.5 L13.6 8.6 L19.5 6 L15.6 11 L21 14 L14.8 14.5 L16 20.5 L12 15.8 L8 20.5 L9.2 14.5 L3 14 L8.4 11 L4.5 6 L10.4 8.6 Z" />,
   status_weaken: <path d="M12 3 L12 19 M6 13 L12 19 L18 13 M5 22 L19 22" />,
   status_armor_break: <path d="M5 4 L19 4 L19 12 C 19 16, 16 19, 12 21 C 8 19, 5 16, 5 12 Z M12 4 L10 9 L14 12 L11 16 L12 21" />,
@@ -118,7 +127,8 @@ const GLYPHS: Record<IconKind, ReactNode> = {
       <path d="M5 21 C 5 13, 19 13, 19 21" strokeDasharray="2.5 2" />
     </>
   ),
-  status_rewind: <path d="M12 12 C 12 10.5, 14 10.5, 14 12 C 14 14.5, 9.5 14.5, 9.5 12 C 9.5 8, 16.5 8, 16.5 12 C 16.5 17.5, 6.5 17.5, 6.5 12 C 6.5 6, 15 4, 19 7 M19 3 L19 7 L15 7" />,
+  // U73: the spiral clogged at 16 px; a counter-clockwise arrow round a clock hand says the same ("time runs back")
+  status_rewind: <path d="M4.5 12 A 7.5 7.5 0 1 0 7 6.5 M7 2.5 L7 7 L11.5 7 M12 8 L12 12.5 L15 14" />,
   status_blind: <path d="M3 10 C 7 15, 17 15, 21 10 M6.5 13 L5 16 M12 14.5 L12 17.5 M17.5 13 L19 16" />,
   // DESIGN §17.5: Physical diagonal blade, Fire three-tongue flame, Storm jagged bolt, Ley flowing double wave, Void
   // ring with a missing arc, Chrono hourglass-spiral.
@@ -259,6 +269,9 @@ const GLYPHS: Record<IconKind, ReactNode> = {
   ),
 };
 
+/** Stroke in viewBox units. 2 is 2 px at 24; below 20 px a 2-unit stroke falls under 1.5 px and blurs, so small glyphs get 2.25. */
+export const strokeFor = (size: number): number => (size < 20 ? 2.25 : 2);
+
 export interface IconProps {
   kind: IconKind;
   size?: number;
@@ -277,7 +290,7 @@ export function Icon({ kind, size = 20, title, className }: IconProps): ReactNod
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={strokeFor(size)}
       strokeLinecap="round"
       strokeLinejoin="round"
       focusable="false"

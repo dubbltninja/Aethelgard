@@ -21,7 +21,7 @@ import { Sprite } from '../../art/Sprite';
 import type { SpriteManifest } from '../../art/spriteManifest';
 import { stageLayout, type FigureBox } from '../../art/stageLayout';
 import { cueParity, type FigureCues, type StageCues } from '../../art/stageMotion';
-import { ClassSigil } from '../../screens/ClassSigil';
+import { ClassSigil } from '../../art/ClassSigil';
 import type { StageFigureModel } from './stageModel';
 
 /** Before the band is measured (and in tests): a typical desktop band. */

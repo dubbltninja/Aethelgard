@@ -8,7 +8,7 @@ import { useMemo, useReducer, type ReactNode } from 'react';
 import { Button } from '../components/Button';
 import { useHotkeys } from '../hooks/useHotkeys';
 import { useContent, useProfile, useStore } from '../store/useGame';
-import { ClassSigil } from './ClassSigil';
+import { ClassSigil } from '../art/ClassSigil';
 import { Sprite } from '../art/Sprite';
 import { chooseSprite } from '../art/spriteManifest';
 import { heroSprite } from '../art/sprites';

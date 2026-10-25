@@ -33,7 +33,7 @@ export interface CreatureSigilProps {
 }
 
 /** Outer shapes by `sigil.base` (DESIGN §17.3), on a 96 × 96 box centred at 48, 48. */
-const SHAPES: Readonly<Record<string, string>> = {
+export const SHAPES: Readonly<Record<string, string>> = {
   circle: 'M48 10 A 38 38 0 1 1 47.99 10 Z',
   circle_lit: 'M48 10 A 38 38 0 1 1 47.99 10 Z',
   broken_circle: 'M48 10 A 38 38 0 1 1 47.99 10 Z',
@@ -61,7 +61,7 @@ function baseExtra(base: string): ReactNode {
 }
 
 /** Inner glyphs by family (WORLD §5's families), drawn in the accent. */
-const FAMILY_GLYPHS: Readonly<Record<string, string>> = {
+export const FAMILY_GLYPHS: Readonly<Record<string, string>> = {
   fam_hollowed: 'M32 44 A 6 6 0 1 1 31.99 44 Z M64 44 A 6 6 0 1 1 63.99 44 Z M37 63 Q 48 56, 59 63',
   fam_wilds: 'M34 30 L42 66 M47 28 L52 68 M60 30 L62 64',
   fam_green: 'M48 70 L48 40 M48 52 C 36 52, 31 42, 33 33 C 43 33, 48 41, 48 52 M48 45 C 58 45, 64 37, 62 28 C 52 28, 48 36, 48 45',

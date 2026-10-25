@@ -14,7 +14,7 @@ import {
   type ClassOption,
 } from '@ui/screens/classOptions';
 import { ClassSelectScreen, ClassSelectView } from '@ui/screens/ClassSelectScreen';
-import { ClassSigil } from '@ui/screens/ClassSigil';
+import { ClassSigil } from '@ui/art/ClassSigil';
 import { createGameStore } from '@ui/store/gameStore';
 import { freshProfile } from '@ui/store/profile';
 import { GameProvider } from '@ui/store/useGame';

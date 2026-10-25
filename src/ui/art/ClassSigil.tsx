@@ -1,6 +1,5 @@
 // Class sigils for Class Select: one bold outer shape and one inner glyph each, in the grammar of DESIGN §17.3/§17.5
 // (Warden's hexagon, the Weaver's ring with a missing arc, …). Decorative: the class name beside it is the label.
-// The art units (U71/U73) may move these into src/ui/art with the rest of the sigil library.
 import type { ReactNode } from 'react';
 
 const GLYPHS: Record<string, ReactNode> = {
@@ -41,6 +40,9 @@ const GLYPHS: Record<string, ReactNode> = {
     </>
   ),
 };
+
+/** The class ids that have a glyph of their own (the registry test checks every class in the content is here). */
+export const CLASS_SIGIL_IDS: readonly string[] = Object.keys(GLYPHS);
 
 export function ClassSigil({ classId, size = 48 }: { classId: string; size?: number }): ReactNode {
   return (

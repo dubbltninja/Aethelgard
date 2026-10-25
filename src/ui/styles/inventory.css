@@ -45,8 +45,7 @@
   stroke-width: 2.2;
 }
 
-.item-icon__frame--inner,
-.item-icon__frame--marks {
+.item-icon__frame--inner {
   fill: none;
   stroke-width: 1.6;
 }

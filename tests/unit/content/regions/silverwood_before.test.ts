@@ -575,6 +575,15 @@ describe('the ten locations vs WORLD §3.11 blocks', () => {
       // U58: `q_stop_the_ritual`'s third and fourth attempts (STORY §9.4), once a loop each
       [AD, 'ev_archives_fair_copy', 'Take the fair copy', false, attempt('scene_ritual_steal_record'), [{ startDialogue: 'scene_ritual_steal_record' }]],
       [CX, 'ev_conflux_cradle', 'Break the cradle', false, attempt('scene_ritual_break_cradle'), [{ startDialogue: 'scene_ritual_break_cradle' }]],
+      // U58: the Mending's pin on the rim (STORY §13 `scene_anchor_in_the_conflux`), with Caelum beside you
+      [
+        CX,
+        'ev_conflux_pin',
+        'Stand at the rim with Caelum',
+        false,
+        { all: [{ quest: { id: 'q_the_mending', stage: 'crossing' } }, { companion: { id: 'caelum', state: 'active' } }, { not: { flag: 'flag_scene_done_scene_anchor_in_the_conflux' } }] },
+        [{ startDialogue: 'scene_anchor_in_the_conflux' }],
+      ],
     ]);
     expect(WL[GL]?.block).toContain('— once; Loop 3+ option grants `echo_crystal_seeded`');
     expect(WL[PB]?.block).toContain('drawing a weapon here summons cr_city_watch_halberdier ×2 (non-lethal arrest)');
@@ -1446,11 +1455,20 @@ describe('authored words outside the documents are few and short; coined ids are
       'enc_conflux_warden', 'enc_conflux_pillars',
     ]);
     const wordedEvents = new Set(Object.values(WL).flatMap((w) => Object.keys(w.events)));
-    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_library_cradle_seed', 'ev_plaza_blade', 'ev_archives_fair_copy', 'ev_conflux_cradle']);
+    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_library_cradle_seed', 'ev_plaza_blade', 'ev_archives_fair_copy', 'ev_conflux_cradle', 'ev_conflux_pin']);
     const flags = ids(JSON.stringify(locations), 'flag').sort();
-    // the two `flag_scene_done_*` are C-58's engine-written scene flags (U58's attempts, once a loop each)
-    expect(flags).toEqual(['flag_before_gate_whole', 'flag_entered_before_via_apex', 'flag_entered_before_via_nexus', 'flag_scene_done_scene_ritual_break_cradle', 'flag_scene_done_scene_ritual_steal_record', 'flag_visited_before', 'flag_wanted_in_silverwood']);
-    expect(flags.filter((f) => !WORLD.includes(f))).toEqual(['flag_before_gate_whole', 'flag_scene_done_scene_ritual_break_cradle', 'flag_scene_done_scene_ritual_steal_record']);
+    // the three `flag_scene_done_*` are C-58's engine-written scene flags (U58's attempts, once a loop each; the Mending's pin scene)
+    expect(flags).toEqual([
+      'flag_before_gate_whole',
+      'flag_entered_before_via_apex',
+      'flag_entered_before_via_nexus',
+      'flag_scene_done_scene_anchor_in_the_conflux',
+      'flag_scene_done_scene_ritual_break_cradle',
+      'flag_scene_done_scene_ritual_steal_record',
+      'flag_visited_before',
+      'flag_wanted_in_silverwood',
+    ]);
+    expect(flags.filter((f) => !WORLD.includes(f))).toEqual(['flag_before_gate_whole', 'flag_scene_done_scene_anchor_in_the_conflux', 'flag_scene_done_scene_ritual_break_cradle', 'flag_scene_done_scene_ritual_steal_record']);
     expect(cr(WARDEN).phases.map((p) => p.id)).toEqual(['uw_keep_the_line', 'uw_without_fear', 'uw_the_last_order']);
     for (const c of parsedCreatures) for (const id of Object.keys(c.moves)) expect([c.id, id, WORLD.includes(`\`${id}\``)]).toEqual([c.id, id, true]);
     expect(parsedLocations.map((l) => l.art.silhouettes.length)).toEqual([3, 3, 3, 3, 3, 3, 3, 3, 4, 4]);

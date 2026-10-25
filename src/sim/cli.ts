@@ -341,6 +341,7 @@ export function report(runs: readonly PackRun[], opts: SimOptions): string[] {
 export async function main(argv: readonly string[], write: (line: string) => void = (line) => process.stdout.write(`${line}\n`)): Promise<number> {
   if (argv[0] === 'batch') return (await import('./batch')).batchMain(argv.slice(1), write); // loaded on demand: batch.ts imports this module
   if (argv[0] === 'quest') return (await import('./scripts/quests')).questMain(argv.slice(1), write, loadPack); // U52: the quest proofs
+  if (argv[0] === 'endings') return (await import('./scripts/endings/index')).endingsMain(argv.slice(1), write, loadPack); // U58: the ending proofs
   let opts: SimOptions;
   const runs: PackRun[] = [];
   try {

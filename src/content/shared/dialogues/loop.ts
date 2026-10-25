@@ -40,7 +40,7 @@ const notStarted = (id: `q_${string}`): Condition => ({ not: { quest: { id } } }
 /** STORY §2.3's verses, as the regional and companion files carry them (verse I: companions_u54.ts; verse IV: regional.ts). */
 const VERSE_ONE = 'Let it be written as it is done.\nLet the hand fail and the word stand.\nWhat we do here, we do before the stone.';
 const VERSE_FOUR = 'Iron that does not wish, hold the heart.\nTake the weight and do not want it.\nWhat the hand would grasp, let the cradle only carry.';
-const VERSE_SEVEN = 'See the hour from its far side.\nTell us true, and we will not turn away.\nWhat is seen is already so.';
+const VERSE_SEVEN = 'Read the sky before it is written.\nSee the hour from its far side.\nTell us true, and we will not turn away.';
 
 /** The giver's ask: a yes that starts the quest, a no that goes to the refusal line (once a loop: the refusal steps aside). */
 const offer = (questId: `q_${string}`, yes: string, no: string, afterYes: string, refused: string): ChoiceInput[] => [

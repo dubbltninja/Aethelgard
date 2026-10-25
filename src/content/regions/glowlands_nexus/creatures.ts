@@ -24,6 +24,7 @@
 // Readings (listed in the U45 reply): a self-Rewind `ifHpBelow:50` with no "once" waits while its Rewind runs
 // (`not selfHas status_rewind`: a second cast is a no-op, statuses.ts "already holds a Rewind"); the Hour Leech has no
 // unconditioned move, so its opener (`first`) is also its cycled move.
+import type { Condition } from '@schema/condition';
 import type { CombatWhen, CreatureInput, MoveInput, Step } from '@schema/creature';
 
 const REVEALS = [{ kills: 1, reveal: 'resist' }, { kills: 3, reveal: 'all' }] as const;
@@ -473,7 +474,7 @@ const hourLeech = {
 
 // ---- cr_horde_husk — Unravelled · L12 fodder · XP 289 · any infected node; the Tide's add; the Nexus waves -----------------
 // The Horde's fixed groups (the Corridor, the Camp, the Scorched Gate) are their regions'; the Nexus waves of
-// q_day_of_teeth (three of one) and q_weavers_dawn (×2, then ×3) are those quests' fights (stage ids are STORY's units').
+// q_day_of_teeth (three of one) and q_weavers_dawn (×2, then ×2; U58) are those quests' fights (stage ids are STORY's units').
 const hordeHusk = {
   id: 'cr_horde_husk',
   name: 'Horde Husk',
@@ -604,6 +605,26 @@ const tyrUnraveling: MoveInput = {
 
 const TYRANT_IMMUNITIES: NonNullable<CreatureInput['statusImmunities']> = ['status_stun', 'status_slow', 'status_poison', 'status_bleed'];
 
+// U58: what the Resolution has on offer (the outcomes' own gates, with the Resolve they ask), read the moment it is spared
+/** Taking its place (A): Resolve ≥ 6 with the whole Litany. */
+const VIGIL_ON_OFFER: Condition = { all: [{ resolve: { min: 6 } }, { echo: 'echo_litany_complete' }] };
+/** The Mending's consent (B): Resolve 8 with STORY §10.2's requirements (DESIGN §13.3 ex. 11). */
+const MENDING_ON_OFFER: Condition = {
+  all: [
+    { resolve: { min: 8 } },
+    { echo: 'echo_heartstone_resonance' },
+    { echo: 'echo_litany_complete' },
+    { echo: 'echo_void_resonance' },
+    { echo: 'echo_anchor_mechanic' },
+    { item: { id: 'item_breach_anchor' } },
+    { counter: { name: 'factions_trusted', min: 2 } },
+    { flag: 'flag_conflux_anchored' },
+    { flag: 'flag_cradle_pin_anchored' },
+  ],
+};
+/** The Iron Silence (D) at the Apex: the quest's last stage, the anchor forged, Brak beside you (D-067.7). */
+const IRON_SILENCE_AT_THE_APEX: Condition = { all: [{ quest: { id: 'q_iron_silence', stage: 'apex' } }, { item: { id: 'item_breach_anchor' } }, { companion: { id: 'brak', state: 'active' } }] };
+
 // ---- cr_chronos_tyrant_contained — Unravelled · L14 boss, Loop 1 · XP 900 (DESIGN §4.10 row 1; D-051, D-066.1) ------------
 // Tuned for a level-11 party; effective HP ≤ 850 (DESIGN §6.6). Cannot speak (D-004). The Horde starts on its death
 // (D-060: the engine sets `flag_tyrant_dead` and runs the legacy defeat sequence). Loot: none (legacy); the Frayed
@@ -722,6 +743,14 @@ const containedTyrant = {
 // (DESIGN §4.11, STORY §8.3, WORLD §6.8's table) is the `communion` spec below; the engine keeps Resolve, the press,
 // Listen, Offer, the tired bonus, the Korr cost, rejection and the clock bonus (communion.ts). WORLD's "its next intent
 // becomes a full-strength tyr_time_lash" after Listen is superseded (D-069.8, D-081): not transcribed.
+// U58 (STORY §8.2–8.3, §10, §13; the dialogue unit): the questions' lines are the chorus's and Veyran's own words (Movement
+// II's are STORY §8.3's verbatim); every Echo-only question also takes silence (+0: "it falls silent at the gaps", §8.2), so a
+// gap can be passed without striking; Movement III's Listen at Resolve ≥ 6 gives the ninth verse (STORY §12 "The Tyrant gives
+// it in the third movement at Resolve 6"); `onSpared` opens the Resolution's words (`scene_ending_mending` / `_vigil` /
+// `_unbound`, dialogues/endings.ts) before the outcome is chosen; the anchor's Offer opens the Iron Silence
+// (`scene_ending_silence`) when `q_iron_silence` stands at the Apex with Brak beside you (STORY §11.6 D: "fight the Tyrant to
+// Phase 2 or talk it to Movement II; drive the anchor" — a phase's entry takes no conditional effect, rule 11, so the iron is
+// shown in communion from any Movement; listed in the U58 reply).
 const unveiledTyrant = {
   id: 'cr_chronos_tyrant_unveiled',
   name: 'The Chronos Tyrant',
@@ -830,7 +859,7 @@ const unveiledTyrant = {
         questions: [
           {
             id: 'tyr_q_why',
-            line: 'It asks why you have come.',
+            line: "The chorus asks, and one voice under it waits for the answer: 'Why have you come? Say it. The hour will know if you do not.'",
             answers: [
               { id: 'tyrant_jailer', when: { echo: 'echo_tyrant_jailer' }, resolve: 1, text: 'You are holding the door shut. You are the jailer, and the cell.' },
               { id: 'to_kill_you', when: { all: [] }, resolve: 1, text: 'To kill you.' }, // the honest answer (STORY §8.3)
@@ -840,13 +869,19 @@ const unveiledTyrant = {
           },
           {
             id: 'tyr_q_hour',
-            line: 'It asks what day this is, for you.',
-            answers: [{ id: 'thirtieth_dawn', when: { echo: 'echo_thirtieth_dawn' }, resolve: 1, text: 'The thirtieth dawn. I have seen what comes.' }],
+            line: "'What day is it, where you stand? I have had one day for five hundred years. Tell me yours.'",
+            answers: [
+              { id: 'thirtieth_dawn', when: { echo: 'echo_thirtieth_dawn' }, resolve: 1, text: 'The thirtieth dawn. I have seen what comes.' },
+              { id: 'hour_silence', when: { all: [] }, resolve: 0, text: 'I do not know what day it is.' },
+            ],
           },
           {
             id: 'tyr_q_before',
-            line: 'It asks who came before you.',
-            answers: [{ id: 'seven_wayfinders', when: { echo: 'echo_seven_wayfinders' }, resolve: 1, text: 'Seven. Sael Orrin was the first.' }],
+            line: "'Seven have stood where you stand. Do you know their names, or only that they stopped coming?'",
+            answers: [
+              { id: 'seven_wayfinders', when: { echo: 'echo_seven_wayfinders' }, resolve: 1, text: 'Seven. Sael Orrin was the first.' },
+              { id: 'before_silence', when: { all: [] }, resolve: 0, text: 'I do not know who came before me.' },
+            ],
           },
         ],
         // Listen: "What it told me; what it couldn't" (STORY §14 codex_tyrant_holding)
@@ -865,6 +900,7 @@ const unveiledTyrant = {
               { id: 'korr_marginalia', when: { echo: 'echo_korr_marginalia' }, resolve: 1, text: 'Your margins. I read them, and I owe.' },
               // Corruption ≥ 3 also satisfies him; the engine takes −1 at the next asker (STORY §8.3)
               { id: 'corruption', when: { corruption: { min: 3 } }, resolve: 1, text: 'Enough to owe. I am still paying.' },
+              { id: 'korr_silence', when: { all: [] }, resolve: 0, text: 'I have not read it.' },
             ],
           },
           {
@@ -873,6 +909,7 @@ const unveiledTyrant = {
             answers: [
               { id: 'litany_verse_3', when: { echo: 'echo_litany_verse_3' }, resolve: 1, text: 'Stone, stand where flesh would fall. Keep the line and hold the gate.' },
               { id: 'stone_hide_origin', when: { echo: 'echo_stone_hide_origin' }, resolve: 1, text: 'Your stone still keeps the Outpost. Nobody relieved it.' },
+              { id: 'vane_silence', when: { all: [] }, resolve: 0, text: 'I do not have that verse.' },
             ],
           },
           {
@@ -881,6 +918,7 @@ const unveiledTyrant = {
             answers: [
               { id: 'litany_verse_5', when: { echo: 'echo_litany_verse_5' }, resolve: 1, text: 'Rise, lines, and be lifted. Sing the one note the world was tuned to.' },
               { id: 'spire_note', when: { echo: 'echo_spire_note' }, resolve: 1, text: 'The note the Spires still hold. East.' },
+              { id: 'aulde_silence', when: { all: [] }, resolve: 0, text: 'I do not have that verse.' },
             ],
           },
           {
@@ -891,6 +929,7 @@ const unveiledTyrant = {
               { id: 'breathing_pool', when: { echo: 'echo_breathing_pool' }, resolve: 1, text: 'The Breathing Pool. It breathes for the Glowfen now.' },
               // "Mireya present: automatic" (STORY §8.3; D-081: an answer gated on her)
               { id: 'mireya_present', when: { companion: { id: 'mireya', state: 'active' } }, resolve: 1, text: 'She does. Look at her hands.' },
+              { id: 'sallow_silence', when: { all: [] }, resolve: 0, text: 'I do not have that verse.' },
             ],
           },
           {
@@ -908,15 +947,17 @@ const unveiledTyrant = {
                 resolve: 1,
                 text: "Caelum answers for you: 'The far side is a boy on a stair, Master Masque. You taught me to look. I looked.'",
               },
+              { id: 'masque_silence', when: { all: [] }, resolve: 0, text: 'I have not seen it from there.' },
             ],
           },
           {
             id: 'tyr_q_hallow',
-            line: 'The chorus leaves a gap where a sixth voice should be.',
+            line: 'The chorus leaves a gap where a sixth voice should be, and waits in it. Nobody asks. The one who would have asked walked up the stair.',
             answers: [
               { id: 'hallow_said_stop', when: { echo: 'echo_hallow_said_stop' }, resolve: 2, text: 'Durn Hallow said stop.' },
               // STORY §12: verse IV "Answers Hallow's silence" (WORLD's table names only the +2 Echo)
               { id: 'litany_verse_4', when: { echo: 'echo_litany_verse_4' }, resolve: 1, text: 'Iron that does not wish, hold the heart. Take the weight and do not want it.' },
+              { id: 'hallow_silence', when: { all: [] }, resolve: 0, text: 'You leave the gap where it is.' },
             ],
           },
         ],
@@ -930,19 +971,24 @@ const unveiledTyrant = {
         questions: [
           {
             id: 'tyr_q_choice',
-            line: 'The chorus stops. One voice asks what you will do.',
-            answers: [{ id: 'choose', when: { resolve: { min: 3 } }, resolve: 0, text: 'I know what I will do.' }],
+            line: "The chorus stops. One voice, alone, asks: 'What will you do? I cannot ask you for anything. I can ask you that.'",
+            answers: [
+              { id: 'choose', when: { resolve: { min: 3 } }, resolve: 0, text: 'I know what I will do.' },
+              // below 3 the question can only be given up: the end of Movement III is then a rejection (STORY §8.5)
+              { id: 'nothing_left', when: { resolve: { max: 2 } }, resolve: 0, text: 'I have nothing to say to you.' },
+            ],
           },
         ],
-        // Listen: Veyran alone (STORY §14 codex_veyran_thal)
-        listen: { effects: [{ unlockCodex: 'codex_veyran_thal' }] },
+        // Listen: Veyran alone (STORY §14 codex_veyran_thal); at Resolve ≥ 6 he says the ninth verse whole (STORY §12)
+        listen: { effects: [{ unlockCodex: 'codex_veyran_thal' }, { onlyIf: { when: { resolve: { min: 6 } }, effects: [{ grantEcho: 'echo_litany_verse_9' }] } }] },
       },
     ],
     // shown, never consumed (D-067.3)
     offers: [
       { itemId: 'item_chronos_lens', resolve: 1, effects: [] },
       { itemId: 'item_stabilized_heartstone', resolve: 1, effects: [] },
-      { itemId: 'item_breach_anchor', resolve: 2, effects: [{ setFlag: 'flag_anchor_offered' }] },
+      // U58 (STORY §11.6 D, the talk branch): shown the iron with Brak beside you, it sees what it is for (`scene_ending_silence`)
+      { itemId: 'item_breach_anchor', resolve: 2, effects: [{ setFlag: 'flag_anchor_offered' }, { onlyIf: { when: IRON_SILENCE_AT_THE_APEX, effects: [{ startDialogue: 'scene_ending_silence' }] } }] },
       { itemId: 'item_heartstone_core', resolve: -2, effects: [] }, // it recoils
     ],
     // The Resolution (DESIGN §4.11, STORY §8.3 / §10): spared (`flag_tyrant_spared`, engine), then one outcome. The
@@ -950,10 +996,15 @@ const unveiledTyrant = {
     outcomes: [
       // Resolve ≥ 3: let you pass — the tear opens onto Silverwood Before (D-016; locations.ts, `gate_tyrant_tear`) …
       { minResolve: 3, choiceId: 'pass_into_before', effects: [] },
-      // … or onto the far side: refusing every other offer (STORY §10.6) is ending F
-      { minResolve: 3, choiceId: 'pass_beyond', effects: [{ setFlag: 'flag_refused_all_paths' }, { ending: 'ending_unbound' }] },
-      // ≥ 6 with the whole Litany: take its place (A)
-      { minResolve: 6, when: { echo: 'echo_litany_complete' }, choiceId: 'take_its_place', effects: [{ ending: 'ending_wardens_vigil' }] },
+      // … or onto the far side: refusing every other offer (STORY §10.6) is ending F (U58: `q_unbound`'s outcome stage)
+      { minResolve: 3, choiceId: 'pass_beyond', effects: [{ setFlag: 'flag_refused_all_paths' }, { questAdvance: { quest: 'q_unbound', stage: 'gone' } }, { ending: 'ending_unbound' }] },
+      // ≥ 6 with the whole Litany: take its place (A) (U58: `q_wardens_vigil`'s outcome stage — the Resolution is the quest's last stage however you came)
+      {
+        minResolve: 6,
+        when: { echo: 'echo_litany_complete' },
+        choiceId: 'take_its_place',
+        effects: [{ questAdvance: { quest: 'q_wardens_vigil', stage: 'stepped_in' } }, { ending: 'ending_wardens_vigil' }],
+      },
       // 8 with STORY §10.2's requirements (DESIGN §4.11's three plus STORY's): consent to the Mending (B)
       {
         minResolve: 8,
@@ -970,11 +1021,23 @@ const unveiledTyrant = {
           ],
         },
         choiceId: 'consent_mending',
-        effects: [{ grantEcho: 'echo_tyrant_consent' }, { ending: 'ending_mending' }],
+        effects: [
+          { grantEcho: 'echo_tyrant_consent' },
+          { questAdvance: { quest: 'q_the_mending', stage: 'mended' } },
+          { ending: 'ending_mending' },
+        ],
       },
     ],
-    // U34f (DESIGN §12.5 "Dask: spare the Tyrant" +3; D-112): the moment it is spared; nothing if Dask is not recruited
-    onSpared: [{ loyalty: { companion: 'dask', delta: 3 } }],
+    // U34f (DESIGN §12.5 "Dask: spare the Tyrant" +3; D-112): the moment it is spared; nothing if Dask is not recruited.
+    // U58 (STORY §13 `scene_ending_mending` / `_vigil` / `_unbound`; DESIGN §4.11 "the Resolution dialogue follows"): the
+    // Resolution's words, before the outcome is chosen — the Mending's when its consent is on offer, else the Vigil's when
+    // taking its place is, else the tear's. Each scene's last choice is the ending itself, or the way back to the outcomes.
+    onSpared: [
+      { loyalty: { companion: 'dask', delta: 3 } },
+      { onlyIf: { when: MENDING_ON_OFFER, effects: [{ startDialogue: 'scene_ending_mending' }] } },
+      { onlyIf: { when: { all: [VIGIL_ON_OFFER, { not: MENDING_ON_OFFER }] }, effects: [{ startDialogue: 'scene_ending_vigil' }] } },
+      { onlyIf: { when: { all: [{ not: VIGIL_ON_OFFER }, { not: MENDING_ON_OFFER }] }, effects: [{ startDialogue: 'scene_ending_unbound' }] } },
+    ],
   },
   // U34f (DESIGN §12.5 "Dask: killing the Tyrant −30"; STORY §7.4; D-112): its death, with the loot; nothing if Dask is not
   // recruited (the `loyalty` effect). Before the Horde's step, so the loop's bond check reads it.

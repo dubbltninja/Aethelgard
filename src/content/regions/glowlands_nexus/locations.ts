@@ -228,8 +228,10 @@ export const locations = [
         intro: TYRANT_APPROACHES,
       },
       // Loop 2+ (D-051): the Unveiled Tyrant. It speaks first and never strikes first (its Phase 1 pattern speaks until
-      // it is hurt; communion opens on the first turn with Listen or `echo_tyrant_speaks`, U29). STORY §13's
-      // `scene_tyrant_first_words` (Fight / Listen / Leave) is the dialogue unit's; until then the fight opens here.
+      // it is hurt; communion opens on the first turn with Listen or `echo_tyrant_speaks`, U29). U58: STORY §13's
+      // `scene_tyrant_first_words` (Fight / Listen / Leave) opens on arrival (`ev_apex_first_words` below) and starts this
+      // fight on Fight or Listen (an arrival scene skips the fixed fight, D-122); it opens here by itself only when no scene
+      // is due (the Horde up; the tear's return).
       {
         id: 'enc_apex_unveiled',
         groups: [{ creatureId: 'cr_chronos_tyrant_unveiled' }],
@@ -248,6 +250,32 @@ export const locations = [
         id: 'ev_apex_names',
         text: 'In the mass, for an instant, a face you know from a painting in a hall that no longer exists.',
         when: { flag: 'flag_visited_before' },
+      },
+      // U58 (STORY §5.4, §8.2, §13 `scene_tyrant_first_words`): from Loop 2, while it stands unresolved, it speaks before anything
+      // is struck — every arrival (Leave lets you go, and it is still there when you come back). Not for the Weaver's Dawn, which
+      // has its own arrival (below).
+      {
+        id: 'ev_apex_first_words',
+        text: 'It does not strike. You notice that it is not striking, the way you notice a held breath.',
+        once: false,
+        when: {
+          all: [
+            { loop: { min: 2 } },
+            { not: { flag: 'flag_tyrant_spared' } },
+            { not: { flag: 'flag_tyrant_dead' } },
+            { not: { flag: 'flag_horde_active' } },
+            { not: { quest: { id: 'q_weavers_dawn', stage: 'apex' } } },
+          ],
+        },
+        effects: [{ startDialogue: 'scene_tyrant_first_words' }],
+      },
+      // U58 (STORY §10.3, §11.6 C, §13 `scene_ending_dawn`): the Weaver's Dawn's arrival, the Core in hand and Nyx beside you
+      {
+        id: 'ev_apex_dawn',
+        text: 'Nyx walks past you to the edge of the mass, and does not stop walking until she is under it.',
+        once: false,
+        when: { all: [{ quest: { id: 'q_weavers_dawn', stage: 'apex' } }, { not: { flag: 'flag_tyrant_dead' } }, { not: { flag: 'flag_horde_active' } }] },
+        effects: [{ startDialogue: 'scene_ending_dawn' }],
       },
     ],
     // WORLD: horizon none (abstract; "at the Apex there is no sky"): the breach template draws none, so the schema

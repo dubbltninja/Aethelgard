@@ -385,7 +385,7 @@ const dantheLine = (choiceId: 'take' | 'leave', stage: string): ScriptStep[] => 
 const ilyraLoyalLoop3: ScriptStep[] = [...ilyraJoinsLoop3, ...voicesHeard, ...scrollToIlyra, ...dantheLine('take', 'taken'), holds({ loyalty: { companion: 'ilyra', min: 50 } }, 'Ilyra is not Loyal')];
 
 /** The Keeper's table: the Ledger accepted first (from Dray's hub while both offers stand, U34f), then the telling and `choiceId`. */
-const keepersPrice = (choiceId: 'keeper' | 'never', stage: string): ScriptStep[] => [
+export const keepersPrice = (choiceId: 'keeper' | 'never', stage: string): ScriptStep[] => [
   ...ilyraLoyalLoop3,
   { goto: 'loc_shattered_library' },
   { talk: 'npc_ansel_dray', pick: ['ledger', 'yes'] }, // scene_dray_offers → q_keepers_ledger's offer
@@ -548,6 +548,14 @@ const daskSentence: ScriptStep[] = [
   holds({ all: [{ echo: 'echo_flickering_man' }, { item: { id: 'item_dasks_scout_badge' } }] }, 'the whole sentence or the badge was not paid'),
 ];
 
+/**
+ * U58: a `talk` step entered while a scene is open adopts it (pathBot.ts): the Tyrant's first words on arriving at the Apex
+ * (`scene_tyrant_first_words`; Fight, Listen or Leave), and the Resolution's words once it is spared (`scene_ending_vigil` /
+ * `_mending` / `_unbound`: the ending itself, or the way back to the outcomes).
+ */
+const firstWords = (pick: 'fight' | 'listen' | 'leave'): ScriptStep => ({ talk: 'cr_chronos_tyrant_unveiled', pick: [pick] });
+const resolutionWords = (...picks: string[]): ScriptStep => ({ talk: 'cr_chronos_tyrant_unveiled', pick: picks });
+
 /** One turn of the Tyrant's communion: Commune, Listen, the best honest answer of the question, else Resist; the Resolution's `outcome`. */
 const communing = (outcome: string): Bot => ({
   name: 'communing',
@@ -587,9 +595,12 @@ const daskAtTheApex: ScriptStep[] = [
   { goto: 'loc_aetherium_spires' },
   { goto: 'loc_chronos_nexus' },
   { rest: 1 },
-  // the step onto the Apex is an exact move: the Unveiled Tyrant's fight opens on arrival, and a `goto` would play it
+  // the step onto the Apex is an exact move: its first words open on arrival (U58), Listen starts the Unveiled Tyrant's fight
+  // with the communion open, and a `goto` would play it; the Resolution's words (U58) are turned back to the outcomes
   { type: 'move', to: 'loc_temporal_breach_apex' },
+  firstWords('listen'),
   { until: { flag: 'flag_tyrant_spared' }, do: communing('pass_into_before'), maxSteps: 120 },
+  resolutionWords('hold', 'turn_back'),
   { until: { not: { quest: { id: 'q_the_last_instant', stage: 'ask_it' } } }, do: communing('pass_into_before'), maxSteps: 4 },
   holds({ quest: { id: 'q_the_last_instant', stage: 'gathered' } }, 'the communion did not carry the ask'),
 ];
@@ -713,15 +724,18 @@ const caelumAtTheApex: ScriptStep[] = [
   { type: 'setStance', stance: 'support' },
   { rest: 1 },
   settle('loc_chronos_nexus'), // the camp conversation the rest opened
-  // the step onto the Apex is an exact move: the Unveiled Tyrant's fight opens on arrival, and a `goto` would play it
+  // the step onto the Apex is an exact move: its first words open on arrival (U58), Listen starts the Unveiled Tyrant's fight
+  // with the communion open, and a `goto` would play it; the Resolution's words (U58) are turned back to the outcomes
   { type: 'move', to: 'loc_temporal_breach_apex' },
+  firstWords('listen'),
   { until: { flag: 'flag_tyrant_spared' }, do: communing('pass_into_before'), maxSteps: 120 },
+  resolutionWords('hold', 'turn_back'),
   { until: { not: { quest: { id: 'q_his_masters_sin', stage: 'let_him' } } }, do: communing('pass_into_before'), maxSteps: 4 },
   holds({ quest: { id: 'q_his_masters_sin', stage: 'sorry' } }, 'the communion did not carry him to the one thing'),
 ];
 
 /** U56: the communion's answers for `q_his_masters_sin` (U55's list, verse V the Yard's and verse VI the Pool's held too), with verse I for the door and the bond. */
-const SIN_ECHOES: readonly `echo_${string}`[] = ['echo_litany_verse_1', 'echo_caelum_bond', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_tyrant_jailer', 'echo_thirtieth_dawn', 'echo_seven_wayfinders', 'echo_tyrant_never_struck', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4', 'echo_litany_verse_6', 'echo_litany_verse_7', 'echo_hallow_said_stop', 'echo_ritual_inevitable'];
+export const SIN_ECHOES: readonly `echo_${string}`[] = ['echo_litany_verse_1', 'echo_caelum_bond', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_tyrant_jailer', 'echo_thirtieth_dawn', 'echo_seven_wayfinders', 'echo_tyrant_never_struck', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4', 'echo_litany_verse_6', 'echo_litany_verse_7', 'echo_hallow_said_stop', 'echo_ritual_inevitable'];
 
 // ---- The proofs -------------------------------------------------------------------------------------------------------------
 
@@ -955,6 +969,226 @@ const firstDrowned = (choiceId: 'listen' | 'ring'): ScriptStep[] => [
   ...(choiceId === 'listen' ? [goOn, goOn] : []), // her voice, the verse, then the scroll
   done('q_the_first_drowned', 'given'),
   holds({ all: [{ item: { id: 'item_scholars_lost_scroll' } }, { echo: 'echo_litany_verse_1' }, { quest: { id: 'q_lost_scroll', stage: 'deliver' } }] }, 'the scroll or the verse was not given'),
+];
+
+
+// ---- U58: Stop the Ritual and the six ending quests -----------------------------------------------------------------------------
+
+const APEX = 'loc_temporal_breach_apex';
+/** The Tyrant's fight is reached by an exact move (its first words open on arrival; a `goto` would play them), Listen chosen. */
+const toTheTyrant = (pick: 'fight' | 'listen' = 'listen'): ScriptStep[] => [{ type: 'move', to: APEX }, firstWords(pick)];
+/** The Resolution reached with `outcome` on offer (the communion played by `communing`), its words then adopted with `picks`. */
+const spared = (outcome: string, ...picks: string[]): ScriptStep[] => [{ until: { flag: 'flag_tyrant_spared' }, do: communing(outcome), maxSteps: 160 }, resolutionWords(...picks)];
+
+/** A bot that sleeps the day through where it stands (a full rest, else a short one, else waits). */
+const fullRester: Bot = {
+  name: 'rester',
+  choose: (_s, legal) => legal.find((a) => a.type === 'rest' && a.kind === 'full') ?? legal.find((a) => a.type === 'rest' && a.kind === 'short') ?? legal.find((a) => a.type === 'wait') ?? legal.find((a) => a.type === 'continue') ?? (legal[0] as Action),
+};
+
+/** A bot that only strikes: a basic attack on any enemy, else an aimed ability, else any, else Guard (the hold's failing, where melee's rows stall). */
+const brawler: Bot = {
+  name: 'brawler',
+  choose: (_s, legal) =>
+    legal.find((a) => a.type === 'attack') ??
+    legal.find((a) => a.type === 'ability' && 'targetUid' in a && !a.abilityId.startsWith('itm_')) ??
+    legal.find((a) => a.type === 'ability' && !a.abilityId.startsWith('itm_')) ??
+    legal.find((a) => a.type === 'guard') ??
+    legal.find((a) => a.type === 'continue') ??
+    (legal[0] as Action),
+};
+
+/** A bot that keeps Ilyra's vigil at the Depths (her scene's one enabled "Keep the vigil" choice), talking to her between. */
+const vigilKeeper: Bot = {
+  name: 'vigil',
+  choose: (s, legal) => {
+    if (s.mode === 'dialogue') {
+      return legal.find((a) => a.type === 'choose' && a.choiceId !== 'not_now') ?? legal.find((a) => a.type === 'continue') ?? legal.find((a) => a.type === 'choose') ?? (legal[0] as Action);
+    }
+    return legal.find((a) => a.type === 'talk' && a.npcId === 'npc_ilyra') ?? legal.find((a) => a.type === 'wait') ?? (legal[0] as Action);
+  },
+};
+
+/**
+ * Loop 3 with Caelum's bond and the words for the communion: the four attempts of q_stop_the_ritual in the order the city
+ * allows — the fair copy on Last Bell (the stair is open), then Caelum beside you after the reset lets you into the Hall on
+ * First Bell (Veyran), then out by the Gate and in again by the Tyrant's tear (the Conflux before Last Bell: Hallow, the
+ * cradle), two rests to Last Bell, and Masque on the dome (the Knight lets the fourth failure by).
+ */
+const stopTheRitual: ScriptStep[] = [
+  ...caelumJoined, // Last Bell noon, Caelum beside you (U56)
+  holds({ quest: { id: 'q_stop_the_ritual', stage: 'try' } }, 'the Before did not start q_stop_the_ritual'),
+  { goto: 'loc_apprentices_garret' },
+  { goto: 'loc_outer_walks' },
+  { goto: 'loc_archives_of_danthe' },
+  interact('ev_archives_fair_copy'),
+  choose('take'),
+  goOn,
+  goOn,
+  holds({ flag: 'flag_scene_done_scene_ritual_steal_record' }, 'the record was not taken'),
+  { goto: 'loc_outer_walks' },
+  { goto: 'loc_apprentices_garret' },
+  { rest: 1 }, // Last Bell's reset: First Bell again, Caelum still beside you
+  holds({ beforeDay: 1 }, 'Last Bell did not reset'),
+  settle('loc_apprentices_garret'),
+  { goto: 'loc_plaza_of_bells' },
+  { goto: 'loc_ninefold_hall' }, // the doors admit the apprentice's companion
+  { talk: 'npc_veyran_thal', pick: ['warn'] },
+  holds({ all: [{ flag: 'flag_scene_done_scene_ritual_warn_veyran' }, { echo: 'echo_litany_verse_9' }] }, 'Veyran was not warned'),
+  // out by the Gate, and in again by the tear: the Conflux on First Bell
+  { goto: 'loc_plaza_of_bells' },
+  { goto: 'loc_grand_library' },
+  { goto: 'loc_scholars_corridor' },
+  { goto: 'loc_silver_gate' },
+  { type: 'move', to: 'loc_chronos_nexus' },
+  settle('loc_chronos_nexus'),
+  { type: 'setStance', stance: 'support' },
+  { rest: 1 },
+  settle('loc_chronos_nexus'),
+  ...toTheTyrant(),
+  ...spared('pass_into_before', 'hold', 'turn_back'),
+  { type: 'commune', act: 'speak', answerId: 'pass_into_before' }, // the outcome: the tear opens
+  { type: 'move', to: 'loc_conflux_chamber' },
+  holds({ all: [{ beforeDay: 1 }, { location: 'loc_conflux_chamber' }] }, 'the tear did not open onto the Conflux'),
+  { talk: 'npc_durn_hallow', pick: ['stay'] },
+  holds({ all: [{ flag: 'flag_scene_done_scene_ritual_keep_hallow' }, { echo: 'echo_hallow_said_stop' }, { echo: 'echo_litany_verse_4' }] }, 'Hallow did not stay'),
+  interact('ev_conflux_cradle'),
+  choose('break'),
+  goOn,
+  goOn,
+  goOn,
+  holds({ quest: { id: 'q_stop_the_ritual', stage: 'masque' } }, 'the four attempts did not bring the sixth beat'),
+  { goto: 'loc_archives_of_danthe' },
+  { goto: 'loc_outer_walks' },
+  { goto: 'loc_apprentices_garret' },
+  { until: { beforeDay: 3 }, do: fullRester, maxSteps: 6 }, // to Last Bell (a rest more would reset the echo)
+  settle('loc_apprentices_garret'),
+  { goto: 'loc_plaza_of_bells' },
+  { type: 'move', to: 'loc_ninefold_hall' }, // the dome's scene opens on arrival
+  { until: { quest: { id: 'q_stop_the_ritual', status: 'completed' } }, do: chooser('none'), maxSteps: 12 },
+  done('q_stop_the_ritual', 'inevitable'),
+  holds({ all: [{ echo: 'echo_ritual_inevitable' }, { echo: 'echo_litany_verse_7' }] }, 'Masque did not say it'),
+];
+
+/** Loop 2's road east, then the Highlands by the Depths, Dask met at the Pass (recruited, his first quest taken: U55's intro picks). */
+const daskMet: ScriptStep[] = [...loop2RoadEast, { fight: 'flee' }, { goto: 'loc_shimmering_pass' }, { talk: 'npc_dask', pick: ['who', 'what_do_i_do', 'come', 'where'] }, holds({ companion: { id: 'dask' } }, 'Dask was not recruited')];
+
+/** From the Pass with a companion in Support: the Spires, the Nexus (a rest, the camp conversation), the Tyrant. */
+const passToTheTyrant: ScriptStep[] = [
+  { type: 'setStance', stance: 'support' },
+  { goto: 'loc_aetherium_spires' },
+  { goto: 'loc_chronos_nexus' },
+  { rest: 1 },
+  settle('loc_chronos_nexus'),
+  ...toTheTyrant(),
+];
+
+/** A: Loop 4 with every verse: Dask's ask at the Pass, the Apex, the communion to the Resolution past six, the ninth said. */
+export const wardensVigil: ScriptStep[] = [
+  ...daskMet,
+  { talk: 'npc_dask', pick: ['yes'] }, // scene_dask_wardens_vigil_offer (ahead of his arc's lines)
+  holds({ all: [{ quest: { id: 'q_wardens_vigil', stage: 'go_and_see' } }, { echo: 'echo_litany_complete' }] }, 'q_wardens_vigil did not start, or the Litany was not derived'),
+  ...passToTheTyrant,
+  holds({ quest: { id: 'q_wardens_vigil', stage: 'communion' } }, 'the Apex did not count'),
+  ...spared('take_its_place', 'understand', 'say_it'),
+  done('q_wardens_vigil', 'stepped_in'),
+];
+
+/** F: Loop 2 with the Tyrant's Echo: the road east, the Apex, the communion to the Resolution (silence at the gaps), the tear stepped through. */
+export const unbound: ScriptStep[] = [
+  ...loop2RoadEast,
+  { fight: 'flee' },
+  { goto: 'loc_shimmering_pass' },
+  { goto: 'loc_aetherium_spires' },
+  { goto: 'loc_chronos_nexus' },
+  { rest: 1 },
+  ...toTheTyrant(),
+  ...spared('pass_beyond', 'hold', 'walk_through'),
+  done('q_unbound', 'gone'),
+  holds({ flag: 'flag_refused_all_paths' }, 'every other path was not refused'),
+];
+
+/** C: Loop 2 with the Weaver sign and Nyx's bond: her arc to the plan agreed (Weavers Sworn on the way), the Heartstone exploited, her ask, the Apex. */
+export const weaversDawn: ScriptStep[] = [
+  ...nyxPlanAnswered('agreed', 'agreed'),
+  { fight: 'flee' },
+  { goto: 'loc_sunken_archives' },
+  { type: 'move', to: 'loc_heartstone_depths' }, // two quests done: the heartbeat's choice opens on arrival (an exact move: a goto would take its first choice)
+  choose('exploit'),
+  holds({ all: [{ item: { id: 'item_heartstone_core' } }, { flag: 'flag_heartstone_exploited' }] }, 'the Core was not taken'),
+  { goto: 'loc_chasm_of_whispers' },
+  holds({ all: [{ rep: { faction: 'weavers', min: 60 } }, { companion: { id: 'nyx', state: 'active' } }] }, 'Weavers are not Sworn, or Nyx is not beside you'),
+  { talk: 'npc_nyx', pick: ['yes'] }, // scene_nyx_weavers_dawn_offer
+  holds({ quest: { id: 'q_weavers_dawn', stage: 'apex' } }, 'q_weavers_dawn did not start at its Apex stage'),
+  // the Core costs five dawns (STORY §13): no rest on the way — the Nexus must be reached before the thirtieth
+  { fight: 'melee' },
+  { goto: 'loc_chronos_nexus' },
+  holds({ not: { flag: 'flag_clock_expired' } }, 'the thirtieth dawn came first'),
+  { type: 'move', to: APEX }, // ev_apex_dawn → scene_ending_dawn
+  { talk: 'npc_nyx', pick: ['give'] },
+  { until: { quest: { id: 'q_weavers_dawn', status: 'completed' } }, do: brawler, maxSteps: 80 }, // the hold's failing: two waves, then the ending
+  done('q_weavers_dawn', 'dawn'),
+];
+
+/** E: Loop 3 with Ilyra's bond and her arc behind you (the Keeper), the Heartstone stabilized, Dray's ask, the vigil at the Depths. */
+export const longArchive: ScriptStep[] = [
+  // Ilyra's arc as U54 plays it, the Heartstone stabilized as soon as the heartbeat starts (before any road might cross the Depths)
+  ...ilyraJoinsLoop3,
+  ...voicesHeard,
+  ...scrollToIlyra,
+  { goto: 'loc_sunken_archives' },
+  { type: 'move', to: 'loc_heartstone_depths' }, // two quests done: the heartbeat's choice (an exact move: a goto would take its first choice)
+  choose('stabilize'),
+  holds({ all: [{ flag: 'flag_heartstone_stabilized' }, { echo: 'echo_heartstone_resonance' }] }, 'the Heartstone was not stabilized'),
+  { goto: 'loc_whispering_ruins' },
+  ...dantheLine('take', 'taken'),
+  holds({ loyalty: { companion: 'ilyra', min: 50 } }, 'Ilyra is not Loyal'),
+  { goto: 'loc_shattered_library' },
+  { talk: 'npc_ansel_dray', pick: ['ledger', 'yes'] }, // scene_dray_offers → q_keepers_ledger's offer
+  { talk: 'npc_ansel_dray', pick: ['yes', 'keeper'] },
+  done('q_the_keepers_price', 'keeper'),
+  holds({ rep: { faction: 'remnants', min: 60 } }, 'the Remnants are not Sworn'),
+  { talk: 'npc_ansel_dray', pick: ['yes'] }, // scene_dray_long_archive_offer
+  holds({ quest: { id: 'q_long_archive', stage: 'last_dawn' } }, 'q_long_archive did not start'),
+  { goto: 'loc_heartstone_depths' },
+  // her vigil: the dawns pass in the scene, which closes on "This is the last dawn."
+  { until: { all: [{ quest: { id: 'q_long_archive', stage: 'archive' } }, { flag: 'flag_scene_done_scene_ilyra_keep_the_vigil' }] }, do: vigilKeeper, maxSteps: 40 },
+  { talk: 'npc_ilyra', pick: ['yes', 'stay'] }, // scene_ending_archive
+  done('q_long_archive', 'remembered'),
+];
+
+/**
+ * D, as far as the clock lets a proof go: Loop 3 with the oath, the iron and both halves — two quick quests for the heartbeat
+ * (the Crystal kept; the Peaks, after which Brak joins), the Heartstone destroyed (a dead fragment, Ironclad +20, and ten dawns
+ * gone: nineteen remain), the Gate's ore, Hadda's ask at Hearthring (Ironclad Sworn; the design derived). The anchor's other
+ * materials — three Aetherium Shards (the Spires and the Crown), three Void Shards (the Hollow), heartwood (Kaelen) — and the
+ * forge, the Nexus and the Apex take a carry-over party past the nineteenth dawn on every order tried (22–25 days): the ending
+ * is reachable in data (scene_ending_silence from the anchor's Offer, tested on a built state) but not by a played route
+ * within the Heartstone's silence — a balance flag, listed in the U58 reply.
+ */
+export const ironSilenceAsked: ScriptStep[] = [
+  ...crystalToIlyra(true),
+  { talk: 'npc_ilyra', pick: ['keep', 'leave'] },
+  done('q_echo_crystal', 'kept'),
+  ...clearPath,
+  ...outpostAccepted, // the legacy offer wins the tie; then the hub: he joins
+  { talk: 'npc_brak', pick: ['come'] },
+  holds(BRAK_RECRUITED, 'Brak did not join'),
+  { fight: 'flee' },
+  { goto: 'loc_blighted_outpost' }, // the word stills the Golems (the shortcut): the Outpost's standing
+  { goto: 'loc_ironclad_camp' },
+  { talk: 'npc_brak', pick: [] },
+  done('q_blighted_outpost', 'done'),
+  { goto: 'loc_sunken_archives' },
+  { type: 'move', to: 'loc_heartstone_depths' },
+  { until: { flag: 'flag_heartstone_destroyed' }, do: chooser('destroy'), maxSteps: 4 },
+  holds({ all: [{ flag: 'flag_heartstone_destroyed' }, { item: { id: 'item_heartstone_fragment_dead' } }] }, 'the Heartstone was not destroyed'),
+  { goto: 'loc_scorched_gate' },
+  { type: 'gather' }, // the slag-heap's ore (the Gate's one gathering node)
+  { goto: 'loc_hearthring' },
+  holds({ all: [{ rep: { faction: 'ironclad', min: 60 } }, { not: { flag: 'flag_clock_expired' } }] }, 'the Ironclad are not Sworn, or the thirtieth dawn came first'),
+  { talk: 'npc_hadda_ironvow', pick: ['yes'] }, // scene_hadda_iron_silence_offer (ahead of her other asks)
+  holds({ all: [{ quest: { id: 'q_iron_silence', stage: 'cut_the_line' } }, { echo: 'echo_anchor_schema' }, { item: { id: 'mat_ember_ore' } }] }, 'q_iron_silence did not start, or the design was not derived'),
 ];
 
 export const QUEST_SCRIPTS: readonly QuestScript[] = [
@@ -1640,6 +1874,62 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     seed: 'quest:drowned:listen',
     profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_oriel_drowned'], bestLevel: 10 },
     steps: firstDrowned('listen'),
+  },
+  // ---- U58 · q_stop_the_ritual (Loop 3 with Caelum's bond: the four attempts, the dome) ----
+  {
+    questId: 'q_stop_the_ritual',
+    outcome: 'inevitable',
+    name: 'Loop 3: the fair copy, Veyran warned, Hallow kept and the cradle (by the tear), Masque on the dome',
+    classId: CLASS,
+    seed: 'quest:ritual',
+    profile: { loop: 3, echoes: SIN_ECHOES.filter((e) => e !== 'echo_litany_verse_4' && e !== 'echo_litany_verse_7' && e !== 'echo_hallow_said_stop' && e !== 'echo_ritual_inevitable'), bestLevel: 17 },
+    steps: stopTheRitual,
+  },
+  // ---- U58 · the ending quests ----
+  {
+    questId: 'q_wardens_vigil',
+    outcome: 'stepped_in',
+    name: "Loop 4 with every verse: Dask's ask, the communion past six, the ninth said (ending A)",
+    classId: CLASS,
+    seed: 'quest:vigil',
+    profile: { loop: 4, echoes: [...SIN_ECHOES.filter((e) => e !== 'echo_caelum_bond'), 'echo_dask_bond', 'echo_litany_verse_5', 'echo_litany_verse_8', 'echo_litany_verse_9'], bestLevel: 17 },
+    steps: wardensVigil,
+  },
+  {
+    questId: 'q_the_mending',
+    outcome: 'mended',
+    name: "the Resolution with the Mending on offer (the sim's ending_b_ready): the words, then consent (ending B)",
+    classId: CLASS,
+    seed: 'quest:mending',
+    scenario: 'ending_b_ready',
+    steps: [{ type: 'commune', act: 'speak', answerId: 'consent_mending' }, done('q_the_mending', 'mended'), holds({ echo: 'echo_tyrant_consent' }, 'consent was not granted')],
+  },
+  {
+    questId: 'q_weavers_dawn',
+    outcome: 'dawn',
+    name: "Loop 2 with the sign and Nyx's bond: her arc, the Heartstone exploited, her ask, the Apex and the hold's failing (ending C)",
+    classId: CLASS,
+    seed: 'quest:dawn:c',
+    profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nyx_bond', 'echo_weaver_sign', 'echo_apex_resonance'], bestLevel: 20 },
+    steps: weaversDawn,
+  },
+  {
+    questId: 'q_long_archive',
+    outcome: 'remembered',
+    name: "Loop 3 with Ilyra's bond: the Keeper, the Heartstone stabilized, Dray's ask, the vigil to the last dawn (ending E)",
+    classId: CLASS,
+    seed: 'quest:archive',
+    profile: { loop: 3, echoes: ['echo_ilyra_watchword', 'echo_crystal_location', 'echo_archive_door', 'echo_ilyra_bond', 'echo_ilyra_cost'], bestLevel: 17 },
+    steps: longArchive,
+  },
+  {
+    questId: 'q_unbound',
+    outcome: 'gone',
+    name: 'Loop 2 with the Tyrant\'s Echo: the road east, the communion with silence at the gaps, the tear stepped through (ending F)',
+    classId: CLASS,
+    seed: 'quest:unbound',
+    profile: { loop: 2, echoes: ['echo_tyrant_speaks', 'echo_apex_resonance'], bestLevel: 17 },
+    steps: unbound,
   },
 ];
 

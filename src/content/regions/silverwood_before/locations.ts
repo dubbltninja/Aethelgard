@@ -559,6 +559,17 @@ export const locations = [
         when: { all: [{ quest: { id: 'q_stop_the_ritual', stage: 'try' } }, { not: { flag: 'flag_scene_done_scene_ritual_break_cradle' } }] },
         effects: [{ startDialogue: 'scene_ritual_break_cradle' }],
       },
+      // U58 (STORY §13 `scene_anchor_in_the_conflux`, `q_the_mending` stage 2): the pin on the rim with Caelum beside you — his
+      // words, and the hour steadies by three days (the Anchor itself is the engine's `drop`, before.ts)
+      {
+        id: 'ev_conflux_pin',
+        trigger: 'interact',
+        label: 'Stand at the rim with Caelum',
+        text: "Hallow's second pin lies on the rim where you set it. Caelum is looking at it, not at you.",
+        once: false,
+        when: { all: [{ quest: { id: 'q_the_mending', stage: 'crossing' } }, { companion: { id: 'caelum', state: 'active' } }, { not: { flag: 'flag_scene_done_scene_anchor_in_the_conflux' } }] },
+        effects: [{ startDialogue: 'scene_anchor_in_the_conflux' }],
+      },
     ],
     // "rising light streams (Day 3: strobe to white)": motes, then static
     art: {

@@ -20,6 +20,8 @@ export const npcs = [
       { text: 'The whispers are louder each day, Wayfinder. You hear them too, I think?' },
       { text: 'Ink remembers what hands forget. That is the whole of my faith.' },
     ],
+    // U58 (STORY §11.6 E, D-102 schedules): while the Long Archive runs she is at the Depths too, to keep the vigil and set the stone
+    schedule: [{ when: { quest: { id: 'q_long_archive', status: 'active' } }, at: ['loc_whispering_ruins', 'loc_heartstone_depths'] }],
     age: 30,
     tags: ['legacy', 'companion_anchor', 'remnants'],
   },

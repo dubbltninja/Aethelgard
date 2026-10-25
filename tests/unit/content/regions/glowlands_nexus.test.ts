@@ -286,11 +286,13 @@ describe('the three locations vs WORLD §3.5 blocks', () => {
   });
 
   test('events: every WORLD event, its text verbatim, legacy ids with the ev_ prefix, once; WORLD’s conditions and grants', () => {
+    // U58: the Apex's two arrival scenes (the Tyrant's first words; the Weaver's Dawn) fire on every arrival (their own test holds them)
+    const U58_EVENTS = ['ev_apex_first_words', 'ev_apex_dawn'];
     for (const l of parsedLocations) {
-      const got = Object.fromEntries(l.events.map((e) => [e.id, e.text]));
+      const got = Object.fromEntries(l.events.filter((e) => !U58_EVENTS.includes(e.id)).map((e) => [e.id, e.text]));
       const expected = Object.fromEntries(Object.entries(WL[l.id]?.events ?? {}).map(([id, text]) => [id.startsWith('ev_') ? id : `ev_${id}`, text]));
       expect([l.id, got]).toEqual([l.id, expected]);
-      for (const e of l.events) expect([e.id, e.trigger, e.once]).toEqual([e.id, 'enter', true]);
+      for (const e of l.events) expect([e.id, e.trigger, e.once]).toEqual([e.id, 'enter', !U58_EVENTS.includes(e.id)]);
     }
     const ev = (l: string, id: string) => byId(loc(l).events, id);
     expect(ev(GLOWLANDS, 'ev_glowlands_leak').when).toEqual({ loop: { min: 2 } });
@@ -844,11 +846,13 @@ describe('the Unveiled Tyrant’s communion vs DESIGN §4.11, WORLD §6.8’s ta
     expect(flat(block(UNVEILED))).toContain(`\`tyr_hour_presses\` · "${cr(UNVEILED).moves['tyr_hour_presses']?.line}"`);
   });
 
-  test('three Movements mirroring the phases, with WORLD’s question ids and lines in WORLD’s order', () => {
+  test('three Movements mirroring the phases, with WORLD’s question ids in WORLD’s order; Movement II’s lines are STORY §8.3’s verbatim, I’s and III’s Veyran’s own (U58)', () => {
     expect(spec?.movements.map((m) => m.id)).toEqual(table.map((c) => /`(tyr_movement_\d)`/.exec(c[0] ?? '')?.[1]));
     spec?.movements.forEach((m, i) => {
       const questions = [...(table[i]?.[1] ?? '').matchAll(/`(tyr_q_[a-z]+)` "([^"]+)"/g)].map((q) => [q[1], q[2]]);
-      expect([m.id, m.questions.map((q) => [q.id, q.line])]).toEqual([m.id, questions]);
+      expect([m.id, m.questions.map((q) => q.id)]).toEqual([m.id, questions.map((q) => q[0])]);
+      // U58: the five askers' lines are WORLD's (STORY §8.3's quotes); the chorus's own questions (I, Hallow's gap, the choice) were rewritten in its voice
+      if (i === 1) for (const [id, line] of questions.slice(0, 5)) expect([id, m.questions.find((q) => q.id === id)?.line]).toEqual([id, line]);
     });
     expect(S411).toContain('Movement I has three questions, Movement II six (five askers plus Hallow\'s silence), Movement III one (the choice)');
   });
@@ -857,22 +861,24 @@ describe('the Unveiled Tyrant’s communion vs DESIGN §4.11, WORLD §6.8’s ta
     const answers = Object.fromEntries((spec?.movements ?? []).flatMap((m) => m.questions.map((q) => [q.id, q.answers.map((a) => [a.id, a.when, a.resolve, a.lie])])));
     const e = (echo: string, resolve = 1) => [echo.replace('echo_', ''), { echo }, resolve, false];
     expect(answers).toEqual({
+      // U58: every Echo-only question also takes silence (+0, STORY §8.2 "it falls silent at the gaps"); Movement III below 3 can be given up
       tyr_q_why: [e('echo_tyrant_jailer'), ['to_kill_you', { all: [] }, 1, false], ['lie_lost', { all: [] }, -2, true], e('echo_tyrant_never_struck')],
-      tyr_q_hour: [e('echo_thirtieth_dawn')],
-      tyr_q_before: [e('echo_seven_wayfinders')],
-      tyr_q_korr: [e('echo_litany_verse_2'), e('echo_korr_marginalia'), ['corruption', { corruption: { min: 3 } }, 1, false]],
-      tyr_q_vane: [e('echo_litany_verse_3'), e('echo_stone_hide_origin')],
-      tyr_q_aulde: [e('echo_litany_verse_5'), e('echo_spire_note')],
-      tyr_q_sallow: [e('echo_litany_verse_6'), e('echo_breathing_pool'), ['mireya_present', { companion: { id: 'mireya', state: 'active' } }, 1, false]],
+      tyr_q_hour: [e('echo_thirtieth_dawn'), ['hour_silence', { all: [] }, 0, false]],
+      tyr_q_before: [e('echo_seven_wayfinders'), ['before_silence', { all: [] }, 0, false]],
+      tyr_q_korr: [e('echo_litany_verse_2'), e('echo_korr_marginalia'), ['corruption', { corruption: { min: 3 } }, 1, false], ['korr_silence', { all: [] }, 0, false]],
+      tyr_q_vane: [e('echo_litany_verse_3'), e('echo_stone_hide_origin'), ['vane_silence', { all: [] }, 0, false]],
+      tyr_q_aulde: [e('echo_litany_verse_5'), e('echo_spire_note'), ['aulde_silence', { all: [] }, 0, false]],
+      tyr_q_sallow: [e('echo_litany_verse_6'), e('echo_breathing_pool'), ['mireya_present', { companion: { id: 'mireya', state: 'active' } }, 1, false], ['sallow_silence', { all: [] }, 0, false]],
       // U56 (STORY §11.4 `q_his_masters_sin` stage 2): Caelum answers Masque himself (pinned in companions_u56.test.ts)
       tyr_q_masque: [
         e('echo_litany_verse_7'),
         e('echo_eye_of_masque'),
         e('echo_ritual_inevitable', 2),
         ['caelum_answers', { all: [{ companion: { id: 'caelum', state: 'active' } }, { quest: { id: 'q_his_masters_sin', status: 'active' } }] }, 1, false],
+        ['masque_silence', { all: [] }, 0, false],
       ],
-      tyr_q_hallow: [e('echo_hallow_said_stop', 2), e('echo_litany_verse_4')],
-      tyr_q_choice: [['choose', { resolve: { min: 3 } }, 0, false]],
+      tyr_q_hallow: [e('echo_hallow_said_stop', 2), e('echo_litany_verse_4'), ['hallow_silence', { all: [] }, 0, false]],
+      tyr_q_choice: [['choose', { resolve: { min: 3 } }, 0, false], ['nothing_left', { resolve: { max: 2 } }, 0, false]],
     });
     const cell = (i: number): string => table[i]?.[2] ?? '';
     for (const s of ['`echo_tyrant_jailer` +1', 'the honest "to kill you" +1; a lie −2', '`echo_thirtieth_dawn` +1', '`echo_seven_wayfinders` +1', '`echo_tyrant_never_struck` also answers `tyr_q_why`, +1']) expect(cell(0)).toContain(s);
@@ -890,27 +896,32 @@ describe('the Unveiled Tyrant’s communion vs DESIGN §4.11, WORLD §6.8’s ta
   });
 
   test('Offer: DESIGN’s four items and values, never consumed; the anchor sets flag_anchor_offered', () => {
-    expect(spec?.offers).toEqual([
-      { itemId: 'item_chronos_lens', resolve: 1, effects: [] },
-      { itemId: 'item_stabilized_heartstone', resolve: 1, effects: [] },
-      { itemId: 'item_breach_anchor', resolve: 2, effects: [{ setFlag: 'flag_anchor_offered' }] },
-      { itemId: 'item_heartstone_core', resolve: -2, effects: [] },
+    expect(spec?.offers.map((o) => [o.itemId, o.resolve, o.effects[0] ?? null])).toEqual([
+      ['item_chronos_lens', 1, null],
+      ['item_stabilized_heartstone', 1, null],
+      ['item_breach_anchor', 2, { setFlag: 'flag_anchor_offered' }],
+      ['item_heartstone_core', -2, null],
     ]);
+    // U58: the iron shown with Brak beside you at the Iron Silence's last stage opens its last choice (quests/endings.test.ts)
+    expect(spec?.offers[2]?.effects[1]).toMatchObject({ onlyIf: { effects: [{ startDialogue: 'scene_ending_silence' }] } });
     expect(S411).toContain('`item_chronos_lens` +1; `item_stabilized_heartstone` +1; `item_breach_anchor` +2 (sets `flag_anchor_offered`); `item_heartstone_core` **−2**');
   });
 
   test('Listen speaks a codex fragment per Movement (STORY §14’s Tyrant entries); no lash rides on it (D-069.8, D-081)', () => {
-    expect(spec?.movements.map((m) => m.listen?.effects)).toEqual([[{ unlockCodex: 'codex_tyrant_holding' }], [{ unlockCodex: 'codex_tyrant_six' }], [{ unlockCodex: 'codex_veyran_thal' }]]);
+    expect(spec?.movements.map((m) => m.listen?.effects[0])).toEqual([{ unlockCodex: 'codex_tyrant_holding' }, { unlockCodex: 'codex_tyrant_six' }, { unlockCodex: 'codex_veyran_thal' }]);
+    // U58 (STORY §12 verse IX "The Tyrant gives it in the third movement at Resolve 6"): Movement III's Listen, at Resolve ≥ 6
+    expect(spec?.movements[2]?.listen?.effects[1]).toEqual({ onlyIf: { when: { resolve: { min: 6 } }, effects: [{ grantEcho: 'echo_litany_verse_9' }] } });
     for (const id of ['codex_tyrant_holding', 'codex_tyrant_six', 'codex_veyran_thal']) expect(STORY).toContain(`| \`${id}\` |`);
     expect(S411).toContain('no damage rider (D-069.8)');
   });
 
   test('the Resolution: pass into the Before or beyond (F) at ≥ 3, take its place (A) at ≥ 6 with the Litany, the Mending (B) at 8 with STORY §10.2’s requirements', () => {
+    // U58: each ending's outcome also enters its quest's outcome stage (the Resolution is that quest's last stage however you came)
     expect(spec?.outcomes.map((o) => [o.choiceId, o.minResolve, o.effects])).toEqual([
       ['pass_into_before', 3, []],
-      ['pass_beyond', 3, [{ setFlag: 'flag_refused_all_paths' }, { ending: 'ending_unbound' }]],
-      ['take_its_place', 6, [{ ending: 'ending_wardens_vigil' }]],
-      ['consent_mending', 8, [{ grantEcho: 'echo_tyrant_consent' }, { ending: 'ending_mending' }]],
+      ['pass_beyond', 3, [{ setFlag: 'flag_refused_all_paths' }, { questAdvance: { quest: 'q_unbound', stage: 'gone' } }, { ending: 'ending_unbound' }]],
+      ['take_its_place', 6, [{ questAdvance: { quest: 'q_wardens_vigil', stage: 'stepped_in' } }, { ending: 'ending_wardens_vigil' }]],
+      ['consent_mending', 8, [{ grantEcho: 'echo_tyrant_consent' }, { questAdvance: { quest: 'q_the_mending', stage: 'mended' } }, { ending: 'ending_mending' }]],
     ]);
     expect(spec?.outcomes[2]?.when).toEqual({ echo: 'echo_litany_complete' });
     // STORY §10.2's block, less what the Resolution itself is (Resolve 8, spared, at the Apex)
@@ -928,8 +939,18 @@ describe('the Unveiled Tyrant’s communion vs DESIGN §4.11, WORLD §6.8’s ta
     const withCodex = buildContentPack({ ...contentTables, codex: (['codex_tyrant_holding', 'codex_tyrant_six', 'codex_veyran_thal'] as const).map(stub) }, { incompleteTables: INCOMPLETE_TABLES });
     const prof: Profile = freshProfile({ loopCounter: 2, echoes: ['echo_apex_resonance'] });
     const s0 = makeState({ loop: 2, level: 18, locationId: NEXUS }, { content: withCodex, profile: prof });
-    let out = step(s0, { type: 'move', to: APEX }, withCodex, prof);
     const rejected = (events: readonly GameEvent[]) => events.filter((e) => e.t === 'actionRejected');
+    // U58: the step onto the Apex opens its first words (scene_tyrant_first_words; quests/endings.test.ts); Fight starts the fight
+    const firstWords = (from: GameState, p: Profile) => {
+      let r = step(from, { type: 'move', to: APEX }, withCodex, p);
+      expect(r.state.mode).toBe('dialogue');
+      for (let i = 0; i < 12 && r.state.mode === 'dialogue'; i++) {
+        const legal = legalActions(r.state, withCodex, r.profile);
+        r = step(r.state, legal.find((a) => a.type === 'choose' && a.choiceId === 'fight') ?? legal.find((a) => a.type === 'continue') ?? (legal[0] as Action), withCodex, r.profile);
+      }
+      return r;
+    };
+    let out = firstWords(s0, prof);
     expect(rejected(out.events)).toEqual([]);
     expect(out.state.mode).toBe('combat');
     const tyrant = () => (out.state.combat as CombatState).enemies[0] as Combatant;
@@ -945,7 +966,7 @@ describe('the Unveiled Tyrant’s communion vs DESIGN §4.11, WORLD §6.8’s ta
     expect(rejected(out.events)).toEqual([]);
     expect(out.state.combat?.communion).toMatchObject({ resolve: 3, answered: ['tyr_q_why'] });
     // Guard instead of a blow: it speaks again rather than strike first (D-067.12)
-    const guarded = step(s0, { type: 'move', to: APEX }, withCodex, prof);
+    const guarded = firstWords(s0, prof);
     const after = step(guarded.state, { type: 'guard' }, withCodex, guarded.profile);
     expect(rejected(after.events)).toEqual([]);
     expect(after.events.filter((e) => e.t === 'damageDealt' && e.sourceUid === ((after.state.combat as CombatState).enemies[0] as Combatant).uid)).toEqual([]);

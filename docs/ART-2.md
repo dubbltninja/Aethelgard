@@ -226,6 +226,11 @@ As in Part 1, if the test batch shows a better phrasing, update the lock here be
 | id | Subject line |
 |---|---|
 | `npc_tamsin_reed` | Scribe Tamsin Reed, a sharp middle-aged Remnant scribe with ink-stained fingers and a quill behind one ear, pale-blue accent. |
+| `npc_ansel_dray` | `portraits/npc_ansel_dray.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. White beard, round spectacles, ledger held to the chest, pale-blue rim light. |
+| `npc_kaelen_stonehand` | `portraits/npc_kaelen_stonehand.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Fur-trimmed coat, sharpest gaze of the four, orange ember glow. |
+| `npc_brak` | `portraits/npc_brak.webp` (+`@sm`) | — | g / G2 | — | Grok Bot. Shaved scarred head, chipped axe over the shoulder, ember sparks; matches his sprite's leather and scrap armour. |
+| `npc_borin_stonefist` | `portraits/npc_borin_stonefist.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Soot-dark beard and arms, leather apron, forge-orange glow. |
+| `npc_nyx` | `portraits/npc_nyx.webp` (+`@sm`) | — | g / G1 | — | Grok Bot. Grey threads over shadowed hair, violet starlit eyes. |
 | `npc_ansel_dray` | Keeper Ansel Dray, a Remnant keeper of about seventy with a white beard and spectacles, holding a heavy ledger, pale-blue accent. |
 | `npc_kaelen_stonehand` | Kaelen Stonehand, a broad-shouldered trader with weathered hands and a sharp gaze, a fur-trimmed coat, orange ember accent. |
 | `npc_brak` | Brak, a scarred Ironclad scout, shaved head, chipped axe over the shoulder, orange ember accent. |
@@ -342,6 +347,29 @@ As Part 1 §6, with these changes:
 | `cr_tide_clerk` | `sprites/cr_tide_clerk.webp` | medium | a / a1 | left / no | Waterlogged coat, ledger, aqua light. |
 | `cr_pale_diver` | `sprites/cr_pale_diver.webp` | medium | a / a1 | left / no | Brass helmet with the visor open, green-lit lamp. |
 | `cr_reed_stalker` | `sprites/cr_reed_stalker.webp` | large | a / a1 | left / no | 🟣 magenta key. Grey-green heron, violet breast-light. |
+| `cr_arcane_wisp` | `sprites/cr_arcane_wisp.webp` | small | b / b1 | left / no | Reroll with "with no body" added; round a came back with a creature shape. |
+| `cr_paradox_wisp` | `sprites/cr_paradox_wisp.webp` | small | b / b2 | left / no | Round a made a dark bird with two blue eyes. Reworded to "made only of pale-blue light with no body … two overlapping glowing cores side by side". |
+| `cr_stutter_hound` | `sprites/cr_stutter_hound.webp` | medium | a / a2 | left / no | Two overlapping heads, hourglass tags on the collar. |
+| `cr_glass_mote` | `sprites/cr_glass_mote.webp` | small | a / a4 | left / no | White crystal chip in a violet ring. |
+| `cr_steppe_harrier` | `sprites/cr_steppe_harrier.webp` | medium | a / a1 | left / no | Wings spread, talons out, ash-grey. |
+| `cr_lantern_toad` | `sprites/cr_lantern_toad.webp` | medium | a / a1 | left / no | 🟣 magenta key. Glowing yellow-green throat-sac. |
+| `cr_spore_drift` | `sprites/cr_spore_drift.webp` | small | a / a2 | left / no | 🟣 magenta key. Spore cloud with a skull face. |
+| `cr_hourglass_crawler` | `sprites/cr_hourglass_crawler.webp` | small | a / a4 | left / no | Hourglass body on spider legs; a3 had green ground. |
+| `cr_hour_leech` | `sprites/cr_hour_leech.webp` | small | a / a4 | left / no | Clockface rings, round toothed mouth; a3 had a green base. |
+| `cr_ley_hound` | `sprites/cr_ley_hound.webp` | medium | a / a2 | left / no | Silver-grey, blue veins, studded collar. |
+| `cr_brine_lamprey` | `sprites/cr_brine_lamprey.webp` | medium | a / a1 | left / no | Pale, mouths along the body, coiled in the air. |
+| `cr_ledger_choir` | `sprites/cr_ledger_choir.webp` | large | a / a3 | front / no | Five drowned figures round one glowing ledger. |
+| `cr_bell_ringer` | `sprites/cr_bell_ringer.webp` | large | a / a2 | left / no | Every candidate wore the cracked bell as a hood rather than lying inside it; kept, it reads well. |
+| `cr_salt_jackal` | `sprites/cr_salt_jackal.webp` | medium | a / a1 | left / no | Salt-white, teeth bared; a2 had green ground. |
+| `cr_cinderback` | `sprites/cr_cinderback.webp` | large | a / a1 | left / no | Ash hide, coals along the spine, smoke at the nostrils. |
+| `cr_starved_shadow` | `sprites/cr_starved_shadow.webp` | large | a / a1 | left / no | Starlit eye, swallowing a thread of violet light. |
+| `cr_hollow_lantern` | `sprites/cr_hollow_lantern.webp` | small | a / a2 | left / no | Black-glass lantern, violet rim, trailing shadow. |
+| `cr_null_mouth` | `sprites/cr_null_mouth.webp` | medium | a / a3 | left / no | Toothed void mouth, violet edge-light. |
+| `cr_barrow_light` | `sprites/cr_barrow_light.webp` | small | a / a1 | left / no | 🟣 magenta key. Hunched hooded mourner of yellow-green light. |
+| `cr_spire_loom` | `sprites/cr_spire_loom.webp` | large | a / a4 | left / no | Brass loom walking on its own legs, glass shuttles flying. |
+| `cr_gale_kite` | `sprites/cr_gale_kite.webp` | medium | a / a1 | left / no | Diamond kite, gold wind-tail. |
+| `cr_cloud_ray` | `sprites/cr_cloud_ray.webp` | large | a / a1 | left / no | Brass-and-sailcloth manta on its own cloud. |
+| `npc_tamsin_reed` | `portraits/npc_tamsin_reed.webp` (+`@sm`) | — | g / G3 | — | **Made with Grok Bot**, not Grok Imagine (see notes). Quill behind the ear, pen in an ink-stained hand, pale-blue glow; G4 had a "REED SCRIBE" tag painted on. |
 
 **Session notes (Tier 0, 2026-10-25).** Both locks worked as written. Aspect: **2:3** for upright figures, **1:1** for wide or
 seated ones and for portraits. Grok often ignores "facing right"; mirroring is cheap (Ranger). `tools/art/cutout.py` keys the
@@ -357,5 +385,9 @@ leaves olive moss and yellow-green glow alone. `tools/art/sheet.py` builds the b
   isn't person-shaped, replace that phrase with "the whole creature from end to end in three-quarter view".
 - **Cut-out additions:** the key is measured from the image border, because Grok sometimes paints a darker green.
   `--erode N` shaves a painted light outline (the "sticker" rim on the Temporal Aberration).
-- **Still to do:** `cr_arcane_wisp` (Tier 1) needs a reroll; the other 21 Tier 2 creatures and all 37 portraits have not
-  been made yet.
+- **Square creatures** (beasts, wisps, constructs) were made at **1:1**. For things made of light, add "with no body":
+  without it Grok gives the wisp a dark creature's body.
+- **Status:** all 67 sprites are done (Tier 0, 1 and 2). The 37 Tier 2 portraits are on hold; Tim's call (2026-10-25).
+- **Grok Bot as a second source (trial, 2026-10-25):** Tim's Grok Bot usage is metered separately from Grok Imagine. Sending
+  the same prompt word for word, with "make 4 separate images, each in 1:1 square aspect ratio", returns four 1024 px images
+  with the same pixel texture as Imagine's 1408 px ones. Round letter `g` marks Grok Bot images.

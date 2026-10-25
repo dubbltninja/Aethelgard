@@ -325,7 +325,7 @@ Conversion note: Grok's pixel art is ~3 screen px per art pixel at 2128 wide, so
 | `loc_blighted_outpost` | `scenes/loc_blighted_outpost.webp` (+`@sm`) | p / 1 | 0 |  |
 | `loc_voidscar_hollow` | `scenes/loc_voidscar_hollow.webp` (+`@sm`) | p / 3 | 0 | Gamma 1.15. |
 | `loc_shimmering_pass` | `scenes/loc_shimmering_pass.webp` (+`@sm`) | p / 2 | 0 |  |
-| `loc_sky_whisper_plateau` | `scenes/loc_sky_whisper_plateau.webp` (+`@sm`) | p / 3 | 0 | Picked over E2/E4, which carved glowing runes on the markers. |
+| `loc_sky_whisper_plateau` | `scenes/loc_sky_whisper_plateau.webp` (+`@sm`) | p / 3 | 0 | Picked over p2 and p4, which carved glowing runes on the markers. |
 | `loc_outer_walks` | `scenes/loc_outer_walks.webp` (+`@sm`) | w / 3 | 0 | Gate centred, new tablets along the path. Round w = a clean re-download of round p (a scroll glitch mixed rows). |
 | `loc_scholars_corridor` | `scenes/loc_scholars_corridor.webp` (+`@sm`) | p / 3 | 0 |  |
 | `loc_ninefold_hall` | `scenes/loc_ninefold_hall.webp` (+`@sm`) | p / 4 | 0 | Ring of tall chairs (≈9–10 visible) round a glowing floor map. |
@@ -353,7 +353,7 @@ Conversion note: Grok's pixel art is ~3 screen px per art pixel at 2128 wide, so
 | `loc_scar_shelf` | `scenes/loc_scar_shelf.webp` (+`@sm`) | p / 3 | 0 | Gamma 1.15. |
 | `loc_voidglass_gallery` | `scenes/loc_voidglass_gallery.webp` (+`@sm`) | p / 1 | 0 | Gamma 1.25. |
 | `loc_null_orchard` | `scenes/loc_null_orchard.webp` (+`@sm`) | p / 4 | 0 | Gamma 1.15. |
-| `loc_eye_of_the_scar` | `scenes/loc_eye_of_the_scar.webp` (+`@sm`) | p / 1 | 0 | A cast shadow with no one casting it (the brief); E2/E3 drew a figure and were rejected. Gamma 1.15. |
+| `loc_eye_of_the_scar` | `scenes/loc_eye_of_the_scar.webp` (+`@sm`) | p / 1 | 0 | A cast shadow with no one casting it (the brief); candidates p2 and p3 drew a standing figure and were rejected. Gamma 1.15. |
 | `loc_where_she_fell` | `scenes/loc_where_she_fell.webp` (+`@sm`) | p / 1 | 0 | Crater of starlit glass, a shadow-print at the centre. |
 | `loc_lantern_causeway` | `scenes/loc_lantern_causeway.webp` (+`@sm`) | p / 1 | 0 |  |
 | `loc_sporelight_shallows` | `scenes/loc_sporelight_shallows.webp` (+`@sm`) | p / 4 | 0 |  |

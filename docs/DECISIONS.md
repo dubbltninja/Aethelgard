@@ -2265,3 +2265,32 @@ owning unit (PLAN §9.1).
   the Wayfinder's voice (D-100), and `codex` off `INCOMPLETE_TABLES` when nothing is pending. It must stop and report if
   production JS would pass 590 kB (D-129).
 - **Art:** ART-2 has delivered all 67 sprites and 7 of 38 portraits so far, merged.
+
+### D-131 · U73 and U61 details; ART-2 complete; codex entries never unlock; the text budget → U62a, 2026-10-25
+- **U73 (af26ad6, 3a7c117, 3dfc5c9; Sonnet, spot-reviewed):**
+  - Art registry test: every item `art.icon` (12 glyphs added: bell, coat, badge, boots, moth, circlet, bloom, bowl, cake,
+    ingot, crystal, anchor), status, damage type, sigil and `IconKind` is drawn.
+  - Legibility: Slow is a snail, not an hourglass; Rewind is a counter-clockwise arrow round a clock hand; Shock's bolt is
+    larger than Storm's; glyphs under 20 px use stroke 2.25; Legendary frames have four solid corner diamonds.
+    These depart from DESIGN §17.5's Slow and Rewind for legibility.
+  - **The phone action bar** (closes D-129's open item): under 760 px, Attack · Guard · Item · Flee · Abilities (a sheet)
+    pinned in the dock with the player's HP and Focus; the communion takes the slot.
+  - Tests: 4,268 unit; full e2e 162 passed (10 skipped: phone-only and desktop-only cases).
+- **U61 (… 3554b9a; ✦ Fable, spot-reviewed):**
+  - Codex II, 48 entries (`codex/{places,creatures,magic,items,loops}.ts`). The codex is now **90** (STORY's 87 + D-101's
+    three). Voices: RA 15 · IT 11 · WN 13 · WF 9.
+  - All 103 Echo `codexLine`s are rewritten in the Wayfinder's voice (≤ 40 words, no tooltip numbers).
+  - `codex` leaves `INCOMPLETE_TABLES` (0 pending references); `dialogues`, `npcs` and `encounters` remain for D-127's
+    rule-16 Echoes.
+  - Hooks: the Dark Spellbook and Korr's marginalia unlock their entry on reading. Five §12 "codex" Echoes are added as
+    alternates (`echo_hadrek_clockwright` → the Nexus entry).
+  - `codex_breach_clock` is Wayfinder's Notes (§14.2's sample is first person; §14.1 says RA).
+  - Production JS **575.2 kB**.
+- **ART-2 complete:** 67 sprites and 38 portraits merged.
+- **Found at the merge — codex entries never unlock (high priority):** the engine unlocks an entry only through an
+  `unlockCodex` effect, and `unlockWhen` is documentation. Only 11 of 90 entries are an effect's target, so **79 can never
+  be unlocked in play**, most of Codex I included. → **U62a** Part A: the engine evaluates `unlockWhen`, indexed by atom.
+- **Budget:** production JS **577.7 kB** gzip of 600 after the portrait manifest; ~22 kB left, and U62 is text. → **U62a**
+  Part B: long prose (codex bodies, dialogue text, ending text) moves to lazily loaded JSON chunks; target ≤ 520 kB (D-115:
+  never raise the budget).
+- The lead added the missing `region` hint to `codexModel.ts`.

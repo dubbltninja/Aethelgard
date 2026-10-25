@@ -15,6 +15,7 @@ import { LiveRegion, type Announcement } from './a11y/LiveRegion';
 import { SkipLink } from './a11y/SkipLink';
 import { Button } from './components/Button';
 import { Callouts } from './components/Callouts';
+import { DOCK_SLOT_ID } from './components/DockPortal';
 import { KeyLegend } from './components/KeyLegend';
 import { Modal } from './components/Modal';
 import { TabBar } from './components/TabBar';
@@ -150,6 +151,7 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
           </main>
           <div className="dock">
             <Callouts />
+            <div id={DOCK_SLOT_ID} className="dock__slot" />
             {mode === 'explore' ? <TabBar /> : null}
             <footer className="legend-bar">
               <LegendFromRegistry />

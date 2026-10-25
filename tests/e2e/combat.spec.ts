@@ -130,7 +130,10 @@ test.describe('combat', () => {
     await expect(guard).toBeVisible();
     // no fleeing a boss; out of Focus, the abilities say why
     await expect(page.getByRole('button', { name: /^F: Flee/ })).toHaveCount(0);
+    // (on a phone the abilities are one tap away, in the sheet behind the pinned bar's Abilities button, U73)
+    if (mobile(info)) await press(page.getByRole('button', { name: /^Abilities, / }), info);
     await expect(page.getByRole('button', { name: /^2: Marked Shot, 8 Focus, Needs 8 Focus$/ })).toHaveAttribute('aria-disabled', 'true');
+    if (mobile(info)) await page.keyboard.press('Escape');
     // guard through the toll: the fight goes on and the round advances
     await press(guard, info);
     await expect.poll(async () => (await gameState(page)).combat?.phase).toBe('playerTurn');

@@ -1014,3 +1014,142 @@
     display: none;
   }
 }
+
+/* ---- the phone action bar (U73 part B, D-130): pinned in the Shell's dock under 760 px, above the key legend ---- */
+.dock__slot:empty {
+  display: none;
+}
+
+.phone-dock {
+  padding: var(--space-2) var(--gutter);
+  border-top: 1px solid var(--line-strong);
+  background: var(--surface-panel);
+}
+
+.phone-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  /* sticky is the fallback when there is no dock to sit in (tests) */
+  position: sticky;
+  bottom: 0;
+}
+
+.phone-bar__btn {
+  position: relative;
+  display: flex;
+  flex: 1 1 3.25rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 3rem;
+  padding: var(--space-1) 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.phone-bar__btn .icon {
+  color: var(--text-accent);
+}
+
+.phone-bar__btn:active:not([aria-disabled="true"]) {
+  background: var(--hover-wash);
+}
+
+.phone-bar__btn[aria-disabled="true"] {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.phone-bar__btn[aria-disabled="true"] .icon {
+  color: var(--text-muted);
+}
+
+.phone-bar__btn--danger {
+  border-color: var(--text-danger);
+}
+
+.phone-bar__label {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+/* how many abilities can be used now: a number, so it is not colour alone */
+.phone-bar__badge {
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  min-width: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--glyph-gold);
+  color: var(--surface-base);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1rem;
+  text-align: center;
+}
+
+.player-panel__guard-note {
+  color: var(--text-muted);
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+}
+
+/* the communion takes the bar's place: a short panel that scrolls inside itself, the stage stays in view above it */
+.phone-dock--communion {
+  max-height: 42dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.phone-dock--communion .communion {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* the abilities sheet is the ordinary grid in a bottom sheet (modal rules in components.css) */
+.ability-sheet .ability-bar {
+  margin: 0;
+}
+
+.phone-vitals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--type-small);
+}
+
+/* two lines per bar: the label and its numbers, then the track (half the width each) */
+.phone-vitals .meter {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label value" "track track";
+  gap: 2px var(--space-2);
+}
+
+.phone-vitals .meter__label {
+  grid-area: label;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-vitals .meter__value {
+  grid-area: value;
+}
+
+.phone-vitals .meter__track {
+  grid-area: track;
+}

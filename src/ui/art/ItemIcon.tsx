@@ -42,7 +42,20 @@ type Glyph =
   | 'spool'
   | 'pile'
   | 'nail'
-  | 'star';
+  | 'star'
+  // U73: the words the content used that had no glyph yet
+  | 'bell'
+  | 'coat'
+  | 'badge'
+  | 'boots'
+  | 'moth'
+  | 'circlet'
+  | 'bloom'
+  | 'bowl'
+  | 'cake'
+  | 'ingot'
+  | 'crystal'
+  | 'anchor';
 
 const GLYPHS: Readonly<Record<Glyph, ReactNode>> = {
   sword: <path d="M20 4 L9.5 14.5 M7 12.5 L11.5 17 M9.5 14.5 L5 19 M17.5 4 L20 4 L20 6.5" />,
@@ -99,6 +112,43 @@ const GLYPHS: Readonly<Record<Glyph, ReactNode>> = {
   pile: <path d="M4 19 C 8 12, 16 12, 20 19 Z M9 9 L9.01 9 M14 7 L14.01 7 M12 11 L12.01 11" />,
   nail: <path d="M7 5 L17 5 M12 5 L12 19 L10.5 21" />,
   star: <path d="M12 3 L14.6 9 L21 9.6 L16.2 13.8 L17.6 20.2 L12 16.9 L6.4 20.2 L7.8 13.8 L3 9.6 L9.4 9 Z" />,
+  bell: <path d="M12 3 L12 5.5 M6 16.5 C 6.5 11, 8 7.5, 12 5.5 C 16 7.5, 17.5 11, 18 16.5 L20 18 L4 18 Z M10.5 21 L13.5 21" />,
+  coat: <path d="M9 4 L4.5 8 L5.5 20 L18.5 20 L19.5 8 L15 4 L12 9 Z M12 9 L12 20 M5 15 L9.5 15 M14.5 15 L19 15" />,
+  badge: (
+    <>
+      <circle cx={12} cy={9} r={5.5} />
+      <path d="M9 13.5 L7.5 21 L12 18.5 L16.5 21 L15 13.5 M12 6.5 L12 11.5 M9.5 9 L14.5 9" />
+    </>
+  ),
+  boots: <path d="M7 3.5 L14 3.5 L14 12 C 14 14, 20 14.5, 20 18 L20 20.5 L6 20.5 L7 3.5 Z M7 8 L14 8 M6 17 L20 17" />,
+  moth: <path d="M12 6 L12 19 M12 6 L10 3 M12 6 L14 3 M12 11 C 9 4, 3 5.5, 4 11 C 5 16, 10 15.5, 12 13 M12 11 C 15 4, 21 5.5, 20 11 C 19 16, 14 15.5, 12 13" />,
+  circlet: (
+    <>
+      <ellipse cx={12} cy={14.5} rx={8.5} ry={4.5} />
+      <path d="M12 3.5 L15 7.5 L12 11 L9 7.5 Z" />
+    </>
+  ),
+  bloom: (
+    <>
+      <circle cx={12} cy={9.5} r={2} />
+      <path d="M12 7.5 C 9.5 3, 14.5 3, 12 7.5" />
+      <path d="M12 7.5 C 9.5 3, 14.5 3, 12 7.5" transform="rotate(72 12 9.5)" />
+      <path d="M12 7.5 C 9.5 3, 14.5 3, 12 7.5" transform="rotate(144 12 9.5)" />
+      <path d="M12 7.5 C 9.5 3, 14.5 3, 12 7.5" transform="rotate(216 12 9.5)" />
+      <path d="M12 7.5 C 9.5 3, 14.5 3, 12 7.5" transform="rotate(288 12 9.5)" />
+      <path d="M12 13.5 L12 21 M12 18 C 9 18, 7.5 16.5, 7.5 14.5" />
+    </>
+  ),
+  bowl: <path d="M3.5 11.5 L20.5 11.5 C 20.5 17, 16.5 20, 12 20 C 7.5 20, 3.5 17, 3.5 11.5 Z M8.5 8.5 C 8.5 6.5, 10.5 6.5, 9.5 4 M14.5 8.5 C 14.5 6.5, 16.5 6.5, 15.5 4" />,
+  cake: <path d="M4 20.5 L20 20.5 L20 12 L4 12 Z M4 16.5 C 7 19, 9 14, 12 16.5 C 15 19, 17 14, 20 16.5 M12 12 L12 7.5 M12 4.5 L12 5" />,
+  ingot: <path d="M3.5 18 L7.5 8.5 L16.5 8.5 L20.5 18 Z M8.5 13 L15.5 13 M7.5 8.5 L8.5 13 M16.5 8.5 L15.5 13" />,
+  crystal: <path d="M9 20.5 L9 8 L12 3 L15 8 L15 20.5 Z M9 15.5 L5.5 12 L4 20.5 L9 20.5 M15 15.5 L18.5 12 L20 20.5 L15 20.5" />,
+  anchor: (
+    <>
+      <circle cx={12} cy={5} r={2.2} />
+      <path d="M12 7.2 L12 20.5 M7.5 10.5 L16.5 10.5 M3.5 14 C 3.5 18.5, 8 20.5, 12 20.5 C 16 20.5, 20.5 18.5, 20.5 14 M3.5 14 L2 16.5 M20.5 14 L22 16.5" />
+    </>
+  ),
 };
 
 /** `art.icon` word → glyph. Words not listed use the item's type (TYPE_GLYPH). */
@@ -113,6 +163,10 @@ const GLYPH_OF: Readonly<Record<string, Glyph>> = {
   vellum: 'doc', primer: 'doc', tables: 'doc', tome: 'book', ledger: 'book', tally: 'book', key: 'key', lens: 'eye', mirror: 'eye', eye: 'eye',
   whistle: 'horn', horn: 'horn', lantern: 'lantern', mask: 'mask', heart: 'heart', whetstone: 'stone', thread: 'spool', spindle: 'spool',
   dust: 'pile', rivet: 'nail',
+  // U73: coverage — every `art.icon` word the content uses draws its own glyph (tests/unit/ui/art/registry.test.ts)
+  clapper: 'bell', bell: 'bell', coat: 'coat', badge: 'badge', boots: 'boots', brooch: 'moth', moth: 'moth', circlet: 'circlet',
+  bloom: 'bloom', broth: 'bowl', bowl: 'bowl', cake: 'cake', ash: 'pile', bronze: 'ingot', ingot: 'ingot', crystal: 'crystal',
+  amulet: 'amulet', anchor: 'anchor', book: 'book',
 };
 
 const TYPE_GLYPH: Readonly<Record<Item['type'], Glyph>> = {
@@ -126,6 +180,14 @@ const TYPE_GLYPH: Readonly<Record<Item['type'], Glyph>> = {
   recipe: 'doc',
   tome: 'book',
 };
+
+/** Every glyph this file draws, and every word that picks one (for the registry test and the glyph sheet). */
+export const ITEM_GLYPH_NAMES: readonly string[] = Object.keys(GLYPHS);
+export const ITEM_ICON_WORDS: Readonly<Record<string, string>> = GLYPH_OF;
+export const ITEM_TYPE_GLYPH: Readonly<Record<Item['type'], string>> = TYPE_GLYPH;
+export function itemGlyphPaths(glyph: string): ReactNode {
+  return GLYPHS[glyph as Glyph];
+}
 
 /** The glyph an item shows. */
 export function glyphFor(icon: string, type: Item['type']): string {
@@ -166,7 +228,12 @@ function Frame({ pattern }: { pattern: RarityPattern }): ReactNode {
         <>
           {outer}
           <rect x={5.5} y={5.5} width={37} height={37} rx={4} className="item-icon__frame item-icon__frame--inner" />
-          <path className="item-icon__frame item-icon__frame--marks" d="M2 9 L9 2 M39 2 L46 9 M2 39 L9 46 M39 46 L46 39" />
+          {/* four solid diamonds on the corners: the one rarity mark that survives at 32 px and without colour (DESIGN §16.7) */}
+          <path
+            className="item-icon__corners"
+            d="M2 -2.5 L6.5 2 L2 6.5 L-2.5 2 Z M46 -2.5 L50.5 2 L46 6.5 L41.5 2 Z M2 41.5 L6.5 46 L2 50.5 L-2.5 46 Z M46 41.5 L50.5 46 L46 50.5 L41.5 46 Z"
+            style={{ fill: 'var(--rarity)', stroke: 'var(--surface-base)', strokeWidth: 1 }}
+          />
         </>
       );
   }

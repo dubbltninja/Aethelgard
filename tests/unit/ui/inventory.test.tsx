@@ -416,7 +416,7 @@ describe('InventoryView, DetailView and the shared card', () => {
     expect(html('uncommon')).toContain('stroke-dasharray="0.1 4.2"');
     expect(html('rare')).toContain('stroke-dasharray="7 4"');
     expect(html('epic')).toContain('item-icon__frame--inner');
-    expect(html('legendary')).toContain('item-icon__frame--marks');
+    expect(html('legendary')).toContain('item-icon__corners');
     expect(html('rare')).toContain('item-icon__affix');
     expect(html('rare')).toContain('aria-hidden="true"');
     expect(html('rare', { title: 'A Rare sword' })).toContain('aria-label="A Rare sword"');

@@ -2,7 +2,7 @@
 """Cut a Grok Imagine sprite out of its flat key background (docs/ART-2.md §2).
 
 usage:
-  cutout.py SRC.jpg OUT.webp --size small|medium|large|huge [--key green|magenta] [--mirror] [--tol 60]
+  cutout.py SRC.jpg OUT.webp --size small|medium|large|huge [--key green|magenta] [--mirror] [--tol 60] [--erode 0]
 
 Steps: key out pixels near the key colour, erode a noisy 1 px fringe, pull key-tinted edge
 pixels toward their opaque neighbours (spill), trim to alpha + 4 px, resize to the size-class
@@ -41,11 +41,27 @@ def keyness(rgb: np.ndarray, key) -> np.ndarray:
     return np.clip(np.minimum(r, b) - g, 0, 255)
 
 
-def cut(src: str, key_name: str, tol: float) -> Image.Image:
+def cut(src: str, key_name: str, tol: float, erode: int = 0) -> Image.Image:
     key = KEYS[key_name]
     im = Image.open(src).convert("RGB")
     rgb = np.asarray(im).copy()
-    bg = key_mask(rgb, key, tol)
+    # Grok sometimes paints the "bright" key darker (e.g. 0,110,0). Measure the actual background
+    # from the image border and key against that as well as the nominal colour.
+    border = np.concatenate([rgb[:6].reshape(-1, 3), rgb[-6:].reshape(-1, 3), rgb[:, :6].reshape(-1, 3), rgb[:, -6:].reshape(-1, 3)])
+    kn = keyness(border[None, ...], key)[0]
+    if (kn > 40).mean() > 0.6:
+        actual = tuple(int(v) for v in np.median(border[kn > 40], axis=0))
+    else:
+        actual = key
+    bg = key_mask(rgb, key, tol) | (np.sqrt(((rgb.astype(np.int32) - np.array(actual)) ** 2).sum(-1)) < tol)
+    if actual != key:
+        # relative dominance test scaled to the darker key
+        r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+        if key == KEYS["green"]:
+            bg |= (g > 0.6 * actual[1]) & (g - np.maximum(r, b) > 0.55 * (actual[1] - max(actual[0], actual[2])))
+        else:
+            lo = np.minimum(r, b)
+            bg |= (lo > 0.6 * min(actual[0], actual[2])) & (lo - g > 0.55 * (min(actual[0], actual[2]) - actual[1]))
 
     # keep only the largest connected figure region? Too costly without scipy; instead remove
     # isolated specks with a median filter on the alpha.
@@ -94,6 +110,10 @@ def cut(src: str, key_name: str, tol: float) -> Image.Image:
         rgb[..., 0] = np.where(lean, np.minimum(r, tgt + (r - lo)), r).astype(np.uint8)
         rgb[..., 2] = np.where(lean, np.minimum(b, tgt + (b - lo)), b).astype(np.uint8)
 
+    if erode:
+        # strip a painted light outline ("sticker" rim) that Grok sometimes draws around the figure
+        a = np.asarray(Image.fromarray(a.astype(np.uint8)).filter(ImageFilter.MinFilter(2 * erode + 1))).copy()
+
     out = Image.fromarray(np.dstack([rgb, a]).astype(np.uint8), "RGBA")
     return out
 
@@ -132,8 +152,9 @@ def main():
     ap.add_argument("--key", default="green", choices=KEYS)
     ap.add_argument("--mirror", action="store_true")
     ap.add_argument("--tol", type=float, default=60)
+    ap.add_argument("--erode", type=int, default=0, help="extra px to shave off the outline")
     ns = ap.parse_args()
-    im = finish(cut(ns.src, ns.key, ns.tol), ns.size, ns.mirror)
+    im = finish(cut(ns.src, ns.key, ns.tol, ns.erode), ns.size, ns.mirror)
     q = 88
     while True:
         im.save(ns.out, "WEBP", lossless=False, quality=q, alpha_quality=100, method=6)

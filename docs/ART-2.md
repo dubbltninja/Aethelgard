@@ -301,9 +301,61 @@ As Part 1 §6, with these changes:
 | `cr_wildling_brute` | `sprites/cr_wildling_brute.webp` | large | a / C2 | left / no | Antler skull, ember-lit root cracks, knuckles down. |
 | `cr_bell_warden` | `sprites/cr_bell_warden.webp` | huge | a / D3 | left / no | Seated in a pool of lit black water (the pool is part of the figure). |
 | `npc_ilyra` | `portraits/npc_ilyra.webp` (+`@sm`) | — | a / E3 | — | Ink on the fingers at her collar, pale-blue rim light. |
+| `class_wizard` | `sprites/class_wizard.webp` | medium | a / a2 | right / no | Patched coat, chained grimoire, storm-light thread in the fingers. Enter was swallowed after the aspect menu; sent with the arrow. |
+| `class_elf` | `sprites/class_elf.webp` | medium | a / a2 | right / no | Silver-grey leathers, curved blade low, violet ley-light at the wrists. |
+| `class_ironclad_warden` | `sprites/class_ironclad_warden.webp` | medium | a / a1 | right / no | Tower shield and short hammer, dented scavenged plate. |
+| `class_shadow_weaver` | `sprites/class_shadow_weaver.webp` | medium | a / a1 | right / no | Grey thread robes, violet light from one bare hand. |
+| `companion_ilyra` | `sprites/companion_ilyra.webp` | medium | a / a2 | right / **mirrored** | Matches her Tier 0 portrait: hood, satchel of papers, pale-blue crystal staff. |
+| `companion_brak` | `sprites/companion_brak.webp` | medium | a / a1 | right / **mirrored** | Leather and scrap armour, chipped axe. |
+| `companion_nyx` | `sprites/companion_nyx.webp` | medium | a / a2 | front / no | Faces the camera; violet void-light at both hands. |
+| `companion_dask` | `sprites/companion_dask.webp` | medium | a / a1 | right / no | Long travelling coat, hourglass charm. |
+| `companion_caelum` | `sprites/companion_caelum.webp` | medium | a / a1 | right / no | Blue-and-white livery, satchel. Grok painted a darker key green (0,125,0); the cut-out measures the border. |
+| `companion_mireya` | `sprites/companion_mireya.webp` | medium | a / a1 | right / **mirrored** | 🟣 magenta key. Reed shawl, lantern pole, moss pouches. |
+| `cr_mistwood_prowler` | `sprites/cr_mistwood_prowler.webp` | medium | a / a3 | left / no | Low crouch, amber bark-light on the flanks. |
+| `cr_rootling` | `sprites/cr_rootling.webp` | small | a / a3 | left / no | Knot-hole face with an amber sap-glow. |
+| `cr_drowned_archivist` | `sprites/cr_drowned_archivist.webp` | medium | a / a2 | left / no | Dripping book, aqua lamp at the belt. |
+| `cr_stone_hide_golem` | `sprites/cr_stone_hide_golem.webp` | large | a / a3 | front / no | Slate plates, orange core. |
+| `cr_warding_pillar` | `sprites/cr_warding_pillar.webp` | medium | a / a1 | — / no | Cracked standing stone, orange ring-and-bar ward. |
+| `cr_void_touched_stalker` | `sprites/cr_void_touched_stalker.webp` | medium | a / a1 | left / no | Violet spine-light, star-white eyes. |
+| `cr_shimmering_phantom` | `sprites/cr_shimmering_phantom.webp` | medium | a / a1 | left / no | Fanged spectral figure, wavering outline. |
+| `cr_moment_moth` | `sprites/cr_moment_moth.webp` | small | a / a1 | left / no | Clockface wings. |
+| `cr_aetherial_weaver` | `sprites/cr_aetherial_weaver.webp` | medium | a / a4 | front / no | Crystal body, white strands between the fingers. |
+| `cr_sky_whisper_sentinel` | `sprites/cr_sky_whisper_sentinel.webp` | large | a / a4 | left / no | Cloud hood, wind-cut stone blade. |
+| `cr_glowfen_mireling` | `sprites/cr_glowfen_mireling.webp` | medium | a / a1 | left / no | 🟣 magenta key, `--tol 130 --erode 2`; a1 had the least pink fringe on the spines. |
+| `cr_temporal_aberration` | `sprites/cr_temporal_aberration.webp` | large | a / a4 | left / no | Hourglass torso. `--erode 3` strips a painted light outline; X2 had a green tint. |
+| `cr_horde_husk` | `sprites/cr_horde_husk.webp` | medium | a / a1 | left / no | Faceless hood unravelling into threads. |
+| `cr_unraveling_tide` | `sprites/cr_unraveling_tide.webp` | huge | a / a1 | left / no | Wall of grey threads, violet crest, reaching hands. |
+| `cr_chronos_tyrant_contained` | `sprites/cr_chronos_tyrant_contained.webp` | huge | a / a3 | front / no | One great eye, light bands spiralling round it. |
+| `cr_chronos_tyrant_unveiled` | `sprites/cr_chronos_tyrant_unveiled.webp` | huge | a / a2 | front / no | Crystal crown, five faces surfacing in the mass. |
+| `cr_tyrants_reach` | `sprites/cr_tyrants_reach.webp` | large | a / a4 | left / no | The only pick that is just an arm; the others grew legs or a body. |
+| `cr_unbroken_warden` | `sprites/cr_unbroken_warden.webp` | huge | a / a1 | left / no | Stands on a stair plinth (part of the figure); nine-sided shield. |
+| `cr_ashmaw` | `sprites/cr_ashmaw.webp` | huge | a / a1 | left / no | Fused bison mass, red-orange coal cracks. |
+| `cr_vells_umbra` | `sprites/cr_vells_umbra.webp` | huge | a / a1 | left / no | Woman's silhouette in shadow, violet edges. |
+| `cr_lantern_matron` | `sprites/cr_lantern_matron.webp` | huge | a / a1 | left / no | 🟣 magenta key. Hill of lanterns, sorrowful face; saved at q70 to stay under 120 kB. |
+| `cr_stormcrown` | `sprites/cr_stormcrown.webp` | huge | a / a2 | left / no | Storm-glass crown, lightning across the armour. |
+| `cr_unmade` | `sprites/cr_unmade.webp` | medium | a / a1 | left / no | Hooded void with violet seams. |
+| `cr_veil_sentry` | `sprites/cr_veil_sentry.webp` | medium | a / a4 | left / no | Thread-staff, hooded; a1 had green specks at the feet. |
+| `cr_orrery_knight` | `sprites/cr_orrery_knight.webp` | large | a / a1 | left / **mirrored** | Orrery chest with a gold core, tall halberd. |
+| `cr_ninefold_knight` | `sprites/cr_ninefold_knight.webp` | large | a / a1 | left / no | Empty silver plate, ring-and-bar shield. |
+| `cr_city_watch_halberdier` | `sprites/cr_city_watch_halberdier.webp` | medium | a / a1 | left / **mirrored** | Blue-and-white livery, steel cap, halberd. |
+| `cr_circle_adept` | `sprites/cr_circle_adept.webp` | medium | a / a1 | left / no | Grey robes, violet spell between the hands. |
+| `cr_tide_clerk` | `sprites/cr_tide_clerk.webp` | medium | a / a1 | left / no | Waterlogged coat, ledger, aqua light. |
+| `cr_pale_diver` | `sprites/cr_pale_diver.webp` | medium | a / a1 | left / no | Brass helmet with the visor open, green-lit lamp. |
+| `cr_reed_stalker` | `sprites/cr_reed_stalker.webp` | large | a / a1 | left / no | 🟣 magenta key. Grey-green heron, violet breast-light. |
 
 **Session notes (Tier 0, 2026-10-25).** Both locks worked as written. Aspect: **2:3** for upright figures, **1:1** for wide or
 seated ones and for portraits. Grok often ignores "facing right"; mirroring is cheap (Ranger). `tools/art/cutout.py` keys the
 background, erodes the fringe, then removes Grok's green *bounce light* within ~10 px of the outline using a hue-ratio test that
 leaves olive moss and yellow-green glow alone. `tools/art/sheet.py` builds the black/white screening sheets and
 `tools/art/portrait.py` the 512/160 crops.
+
+**Session notes (Tier 1 and the first Tier 2 sprites, 2026-10-25).**
+- **Facing is a hard rule:** heroes and companions face **right**, creatures face **left**, so the two sides face each other
+  on the combat stage. Grok's three-quarter view often turns the head the other way, so every cut is checked for facing and
+  mirrored in Pillow (`cutout.py --mirror`) when needed. A figure that faces the camera is left as it is.
+- **Non-humanoid lock:** "the whole figure from head to feet" makes beasts and things into robed people. For anything that
+  isn't person-shaped, replace that phrase with "the whole creature from end to end in three-quarter view".
+- **Cut-out additions:** the key is measured from the image border, because Grok sometimes paints a darker green.
+  `--erode N` shaves a painted light outline (the "sticker" rim on the Temporal Aberration).
+- **Still to do:** `cr_arcane_wisp` (Tier 1) needs a reroll; the other 21 Tier 2 creatures and all 37 portraits have not
+  been made yet.

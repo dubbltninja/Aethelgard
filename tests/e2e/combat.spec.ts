@@ -148,8 +148,9 @@ test.describe('combat', () => {
     await expect(korr).toHaveAttribute('aria-disabled', 'true');
     // the communion owns the number keys and the bar; the abilities are one toggle away
     await expect(page.getByRole('button', { name: /^1: Attack/ })).toHaveCount(0);
+    // focus lands on the first answer that can be given: since U58 every question has a silence ("I have not read it.")
+    await expect(bar.getByRole('button', { name: /^\d: Speak: I have not read it\.$/ })).toBeFocused();
     const listen = bar.getByRole('button', { name: /^\d: Listen$/ });
-    await expect(listen).toBeFocused();
     await press(listen, info);
     await expect(resolve).toHaveAttribute('aria-valuenow', '6');
     await expect(page.getByRole('log')).toContainText('You listen.');

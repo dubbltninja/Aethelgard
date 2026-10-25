@@ -1123,3 +1123,33 @@
 .ability-sheet .ability-bar {
   margin: 0;
 }
+
+.phone-vitals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--type-small);
+}
+
+/* two lines per bar: the label and its numbers, then the track (half the width each) */
+.phone-vitals .meter {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label value" "track track";
+  gap: 2px var(--space-2);
+}
+
+.phone-vitals .meter__label {
+  grid-area: label;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-vitals .meter__value {
+  grid-area: value;
+}
+
+.phone-vitals .meter__track {
+  grid-area: track;
+}

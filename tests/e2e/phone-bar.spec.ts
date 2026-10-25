@@ -89,6 +89,24 @@ test.describe('the phone action bar', () => {
     await expect(page.locator('.phone-bar')).toHaveCount(0);
   });
 
+  test('a boss with a banner: the stage, its intent and both HP bars are on screen with the bar', async ({ page }, info) => {
+    test.skip(!mobile(info), 'phones only');
+    await boot(page, 'combat_bell_warden_p2');
+    await dismissHint(page);
+    // the player's two bars ride in the dock (visual copies; the panel keeps the named meters)
+    const vitals = dock(page).locator('.phone-vitals');
+    await expect(vitals).toBeVisible();
+    await expect(vitals).toContainText('HP');
+    await expect(vitals).toContainText('Focus');
+    const top = (await box(dock(page))).top;
+    for (const part of [page.locator('.combat-stage'), page.locator('.combat__enemies .intent__chip').first(), page.getByRole('meter', { name: 'The Bell-Warden HP' })]) {
+      const b = await box(part.first());
+      expect(b.top).toBeGreaterThanOrEqual(0);
+      expect(b.bottom).toBeLessThanOrEqual(top + 1);
+    }
+    expect(await scrollY(page)).toBe(0);
+  });
+
   test('Guard and Flee work from the bar; a boss cannot be fled', async ({ page }, info) => {
     test.skip(!mobile(info), 'phones only');
     await boot(page, 'combat_bell_warden_p2');

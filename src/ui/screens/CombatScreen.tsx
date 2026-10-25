@@ -30,6 +30,7 @@ import { useBackdrop } from '../art/useBackdrop';
 import { Button } from '../components/Button';
 import { DockPortal } from '../components/DockPortal';
 import { Modal } from '../components/Modal';
+import { Meter } from '../components/StatusBar';
 import { AbilityBar } from '../components/combat/AbilityBar';
 import { CombatLog } from '../components/combat/CombatLog';
 import { CommunionBar } from '../components/combat/CommunionBar';
@@ -156,6 +157,11 @@ export function CombatView(p: CombatViewProps): ReactNode {
         </div>
       ) : (
         <div className="phone-dock">
+          {/* the player's two bars ride with the bar, so a boss's banner and cards never push them below the fold; the panel keeps the named meters */}
+          <div className="phone-vitals" aria-hidden="true">
+            <Meter kind="hp" label="HP" value={p.player.hp} max={p.player.hpMax} />
+            <Meter kind="mp" label={p.player.resourceName} value={p.player.mp} max={p.player.mpMax} />
+          </div>
           <PhoneBar
             model={phoneBarModel(p.tiles)}
             targetName={p.targetName}

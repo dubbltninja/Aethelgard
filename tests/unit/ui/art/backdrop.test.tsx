@@ -21,7 +21,7 @@ import {
   type PlacedLocation,
 } from '@ui/art/backdropChooser';
 import { Scene, type SceneState } from '@ui/art/Scene';
-import { LEGIBILITY_EDGE, SMALL_MEDIA, SceneBackdrop, TitleBackdrop } from '@ui/art/SceneBackdrop';
+import { LEGIBILITY_EDGE, SMALL_MEDIA, SceneBackdrop, TITLE_SMALL_MEDIA, TitleBackdrop } from '@ui/art/SceneBackdrop';
 import { EMPTY_MANIFEST, buildSceneManifest, hasPaintings, paintingCount, sceneManifest } from '@ui/art/sceneManifest';
 import { ART_CREDIT, CreditsView } from '@ui/screens/TitleScreen';
 import { buildContentPack, contentTables } from '@content/index';
@@ -230,7 +230,9 @@ describe('the painted view', () => {
   test('the Title backdrop: same picture treatment, its own error hook', () => {
     let failed = false;
     const nodes = expand(<TitleBackdrop files={{ lg: 'art/title.webp', sm: 'art/title@sm.webp' }} onError={() => (failed = true)} />);
-    expect(nodes.find((n) => n.type === 'source')?.props.srcSet).toBe('art/title@sm.webp');
+    const source = nodes.find((n) => n.type === 'source');
+    expect(source?.props.srcSet).toBe('art/title@sm.webp');
+    expect(source?.props.media).toBe(TITLE_SMALL_MEDIA);
     const img = nodes.find((n) => n.type === 'img');
     expect(img?.props.alt).toBe('');
     (img?.props.onError as () => void)();

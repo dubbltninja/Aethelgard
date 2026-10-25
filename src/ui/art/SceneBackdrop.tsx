@@ -93,12 +93,18 @@ export function SceneBackdrop({ location, region, art: artIn, state, reducedMoti
   );
 }
 
+/**
+ * The Title's art covers the whole window, so the small file serves only a small window at least as wide as 12:5: on a portrait
+ * phone, covering the height would blow the 300 px-tall file up about 7× (judged in a screenshot: mush), so it takes the large one.
+ */
+export const TITLE_SMALL_MEDIA = '(max-width: 759.98px) and (min-aspect-ratio: 12/5)';
+
 /** The Title's key art (ART §1): the same picture treatment behind the title card; null when there is none. */
 export function TitleBackdrop({ files, onError }: { files: { lg: string; sm: string }; onError: () => void }): ReactNode {
   return (
     <div className="title-backdrop" aria-hidden="true">
       <picture>
-        <source media={SMALL_MEDIA} srcSet={files.sm} />
+        <source media={TITLE_SMALL_MEDIA} srcSet={files.sm} />
         <img className="title-backdrop__painting" src={files.lg} alt="" width={LARGE_SIZE.width} height={LARGE_SIZE.height} decoding="async" draggable={false} onError={onError} />
       </picture>
     </div>

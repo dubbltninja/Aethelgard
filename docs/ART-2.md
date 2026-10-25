@@ -296,3 +296,14 @@ As Part 1 §6, with these changes:
 
 | id | file | size class | round / pick | facing / mirrored | notes |
 |---|---|---|---|---|---|
+| `cr_corrupted_shade` | `sprites/cr_corrupted_shade.webp` | medium | a / A4 | left / no | Hands raised, star-blue eyes; faint dark bounce-tint left in the hem. |
+| `class_ranger` | `sprites/class_ranger.webp` | medium | a / B4 | right / **mirrored** | All four came back facing left; bow, quiver, belt knives. |
+| `cr_wildling_brute` | `sprites/cr_wildling_brute.webp` | large | a / C2 | left / no | Antler skull, ember-lit root cracks, knuckles down. |
+| `cr_bell_warden` | `sprites/cr_bell_warden.webp` | huge | a / D3 | left / no | Seated in a pool of lit black water (the pool is part of the figure). |
+| `npc_ilyra` | `portraits/npc_ilyra.webp` (+`@sm`) | — | a / E3 | — | Ink on the fingers at her collar, pale-blue rim light. |
+
+**Session notes (Tier 0, 2026-10-25).** Both locks worked as written. Aspect: **2:3** for upright figures, **1:1** for wide or
+seated ones and for portraits. Grok often ignores "facing right"; mirroring is cheap (Ranger). `tools/art/cutout.py` keys the
+background, erodes the fringe, then removes Grok's green *bounce light* within ~10 px of the outline using a hue-ratio test that
+leaves olive moss and yellow-green glow alone. `tools/art/sheet.py` builds the black/white screening sheets and
+`tools/art/portrait.py` the 512/160 crops.

@@ -113,7 +113,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | Art | Grok Imagine backdrops: all 73 locations + 3 Heartstone states + title (pixel style), 11 MB — `docs/ART.md` | Tim + art session | ✅ merged (D-124, D-125) |
 | U72 | Overlays fitted to each painting: particles, focal glow, time-of-day tint, portal marker, infection — brief `briefs/u72.md` | Sonnet | ✅ 532f22f (spot-reviewed) — 76 overlay entries, portal marker, infection; full e2e 137 ✓; JS 537 kB; D-126 |
 | U59 | Class mini-quests (5) — brief `briefs/u59.md` | ✦ Fable | ✅ cf5ab23 (spot-reviewed) — 5 class quests; `quests` complete; 80/80 proofs; 4205 tests; D-127 |
-| U73a | The combat stage, creature/class/companion sprites, portraits, variant registry, fallbacks (D-128) — brief `briefs/u73a.md` | Opus | 🔄 running |
+| U73a | The combat stage, creature/class/companion sprites, portraits, variant registry, fallbacks (D-128) — brief `briefs/u73a.md` | Opus | ✅ 815cd8c (+ the lead's focus fix) — stage, sprites, portraits; 4247 tests; full e2e 155 ✓; JS 552 kB; D-129 |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
 | U54 | Companion arcs: Ilyra + Brak (6 quests) + camp scenes — brief `briefs/u54.md` | ✦ Fable | ✅ 6824137 (resumed after the cutoff) — 6 quests, 23 scenes, 11 proofs; 3613 tests; D-113 |
@@ -231,7 +231,7 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 1. Done since U69: U70 (D-121), U57 (D-122), U58 (D-123), U71 (D-125), the art (D-124/D-126), U72 (D-126), U59 (D-127).
    After every UI merge the lead runs the **full** e2e suite (D-120).
-2. **Figures (D-128, `docs/ART-2.md`):** **U73a** (Opus; the combat stage, sprites, portraits — brief ready) · the **art session
+2. **Figures (D-128, `docs/ART-2.md`):** ~~U73a~~ done (D-129) · the **art session
    part 2** on Tim's PC (*"Read docs/ART-2.md in dubbltninja/Aethelgard (branch `unraveling`) and run the art session"*; pushes
    to `wip/art`) · then **U73** (Sonnet; code glyphs only). **U74** (Opus; audio engine + 30 SFX, DESIGN §18).
 3. ✦ Fable units:

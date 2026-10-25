@@ -2225,3 +2225,31 @@ owning unit (PLAN §9.1).
     portraits in dialogue, Explore, the Bestiary and Class Select, the variant registry, fallbacks (`docs/briefs/u73a.md`).
     Builds with fixture art; runs before or alongside the art session.
   - **U73** (Sonnet) shrinks to the code glyphs (DESIGN §17.4–17.5) and the sigil polish; brief written after U73a.
+
+### D-129 · U73a details — the combat stage, sprites, portraits; the first real figures; a new screen starts at its top, 2026-10-25
+- **U73a (… 815cd8c; Opus, spot-reviewed):**
+  - New: `src/ui/art/{sprites,spriteManifest,Sprite,Portrait,stageLayout,stageMotion}`, `components/combat/{CombatStage,stageModel}`,
+    `styles/stage.css`.
+  - Wired into Combat, Dialogue, the Explore rows, the companion chip, the Bestiary and Class Select.
+  - The build reads each figure's size and warns when a height misses its size class.
+  - Fixtures: 19 figures in `tests/fixtures/art/`. `cr_rootling` is left out so the sigil fallback stays tested.
+  - Tests: 20 unit (4,247); `stage.spec.ts` 18; full e2e 155 passed, 3 skipped.
+- **Rulings:**
+  - Stage scale fits the tallest size class present, never below `large`.
+  - Sprite buttons are named like their cards and kept out of the Tab order; the cards remain the keyboard and screen-reader
+    control. `combat.spec` lookups are narrowed to `.combat__enemies`.
+  - Variant effects beyond the brief: Frayed Brute and Paired Aberration doubled; Rootbound Pack and One-Herd tripled; Seeding
+    Toad tinted. The Stutter Hound keeps its own sprite and also doubles.
+  - A test-only `?start=session` boot (behind `__DEV__ || __E2E__`) starts from a stored state, for four-enemy, companion and
+    anomaly fights that no content encounter makes.
+- **Art merged:** ART-2's Tier 0, Tier 1 and part of Tier 2 (45 sprites, 1 portrait). Production JS **552.4 kB** gzip of 600
+  (D-115 watch: **~48 kB left**).
+- **The lead's review with real figures:**
+  - The first fight, the Tyrant + Aberration and the Bell-Warden read well: heroes left, foes right, bosses large.
+  - **Fixed:** a boss fight or a phone opened scrolled down to the focused Attack button, with the stage off screen. `focusView`
+    now takes `fromTop`: a new screen scrolls to the top and focuses without scrolling (Shell; panels and sub-views unchanged).
+- **Open → fun review / polish:** on a phone, the abilities sit below the fold under the stage and cards (a sticky action bar
+  is worth trying).
+- **Budget warning → U61/U62:** about 48 kB of JS headroom is left, and Codex II, the Echo lines, the scenes and the epilogues
+  are mostly text. Before they push past 600 kB, split content per D-115 (e.g. lazy-load codex text and ending/epilogue text as
+  separate JSON chunks); do not raise the budget.

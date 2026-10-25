@@ -2140,3 +2140,21 @@ owning unit (PLAN §9.1).
   backdrops on `wip/art` are the pixel versions. For U71: the WebPs are ordinary 1440 × 600 / 720 × 300 images with the pixel
   grain baked in, so no `image-rendering` change is needed. U72's overlays (particles, glows) should stay soft and sparse so
   they sit on the pixel art without fighting it; U64's vector fallback will look smoother than its neighbours until painted.
+
+### D-125 · U71 details — the painted-backdrop scene system; art Tier 0–1 merged, 2026-10-25
+- **U71 (… 6ecc3e8; Opus, spot-reviewed):** `sceneManifest.ts`, `backdropChooser.ts` (fallback chooser, failure registry, exit
+  preload list), `sceneLayers.tsx`, `SceneBackdrop.tsx`, `useBackdrop.ts`; `<Scene backdrop>` keeps U64's parametric scene as the
+  fallback. Explore, Threshold, Ending and Title use it.
+  - Tests: 20 unit + `scene.spec.ts` (9 on both viewports); 4,182 unit tests; full e2e 127 passed, 3 skipped.
+- **Rulings:**
+  - The manifest is **inlined** as an esbuild define: < 2 kB gzip for all 77 images (a unit test holds it), so there is no fetch
+    and no SVG flash. `--e2e` builds use fixture art (`tests/fixtures/art/`); `--e2e --real-art` uses `public/art`.
+  - High contrast: paintings in the Explore and Threshold frames dim to brightness 0.45; paintings behind text (Title, Ending) hide.
+  - Smooth browser scaling is kept (scales are fractional; no `image-rendering: pixelated`). The Title uses the large file on a
+    portrait phone (the `@sm` file blew up ~7× and blurred).
+  - Under reduced motion the painted scene draws no particles. A failed image is not retried until reload.
+  - `tools/serve.mjs` serves `.webp`; `react.d.ts` gained `picture`/`source`/`srcSet` typings. No C1 changes.
+- **Art merged:** the art session's Tier 0 and Tier 1 (27 locations + title, 4.2 MB in `public/art`); the style is now
+  dark-fantasy pixel art (Tim's ruling, `docs/ART.md` §3). Production JS **533.0 kB** gzip of 600 (D-115 watch: ~67 kB left — the
+  growth since D-121 is mostly U57/U58's text). The lead's screenshots: the Title art and a borrowed region-mate backdrop
+  (the Wayfarer's Respite shows Mistwood Path's) read well.

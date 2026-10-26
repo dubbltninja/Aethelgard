@@ -119,7 +119,10 @@ export const endings = [
           caelum: 'Stays in the present; apprentices to Borin.',
         },
         'Trade and forge; the Respite stays neutral.',
-      ),
+      ).map((e) => (e.subject === 'mireya' ? { ...e, when: { all: [companionRecruited('mireya'), { not: { echo: 'echo_glowfen_dammed' } }, { not: { echo: 'echo_glowfen_let_run' } }] } satisfies Condition } : e)),
+      // U62 (STORY §12 `echo_glowfen_dammed` / `echo_glowfen_let_run`: "epilogue variants"): what she chose for the fen
+      { subject: 'mireya', when: { all: [companionRecruited('mireya'), { echo: 'echo_glowfen_dammed' }] }, text: 'Mireya: Lanternreed goes dim, as she chose; she tends the dark with real lanterns and says the sick sleep better.' },
+      { subject: 'mireya', when: { all: [companionRecruited('mireya'), { echo: 'echo_glowfen_let_run' }] }, text: 'Mireya: Lanternreed glows, as she chose; she tends the light and the ones it changes, and does not call either a mistake.' },
     ],
     achievementId: 'ach_vigil',
     credits: true,
@@ -485,7 +488,10 @@ export const endings = [
         dask: 'Watches you go and says "fair."',
         mireya: 'As chosen; she waves from the stilts.',
         caelum: 'Comes with you if asked; else returns to the stair.',
-      }),
+      }).map((e) => (e.subject === 'mireya' ? { ...e, when: { all: [companionRecruited('mireya'), { not: { echo: 'echo_glowfen_dammed' } }, { not: { echo: 'echo_glowfen_let_run' } }] } satisfies Condition } : e)),
+      // U62 (STORY §12): the fen as she chose it, seen once from the stilts
+      { subject: 'mireya', when: { all: [companionRecruited('mireya'), { echo: 'echo_glowfen_dammed' }] }, text: 'Mireya: The fen is dark, as she chose; she waves from the stilts with a real lantern in her hand.' },
+      { subject: 'mireya', when: { all: [companionRecruited('mireya'), { echo: 'echo_glowfen_let_run' }] }, text: 'Mireya: The fen glows, as she chose; she waves from the stilts, and the light waves with her.' },
     ],
     achievementId: 'ach_unbound',
     credits: true,

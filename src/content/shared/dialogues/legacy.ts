@@ -177,6 +177,11 @@ export const dialogues = [
         text: "The Shadow Weavers' influence stirs within you.",
         // Loop 2+ (STORY §13, new): the Amulet and the Crystal agree, and the Crystal can be heard
         textVariants: [
+          // U62 (STORY §12 `echo_crystal_seeded`): told in the Before what it would hear, it knows your voice before you Listen
+          {
+            when: { echo: 'echo_crystal_seeded' },
+            text: "The Shadow Weavers' influence stirs within you. The Crystal is warm against the Amulet before you touch it: it knows your voice. You told it, in a library that still had a roof, what it would hear.",
+          },
           {
             when: FROM_LOOP_2,
             text: "The Shadow Weavers' influence stirs within you. The Crystal is cold against the Amulet, and then it is not: two things that remember, agreeing.",

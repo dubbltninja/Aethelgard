@@ -153,6 +153,13 @@ export const dialogues = [
         tags: ['written'],
         speaker: CAELUM,
         text: "You said he stands there after. In the chamber, where the stone is, for five hundred years. I've been thinking about what you set on the rim, and how it was still there when the city wasn't.",
+        // U62 (STORY §12 `echo_caelum_stayed`): a loop in which he was asked and stayed; the pin is still his to lend
+        textVariants: [
+          {
+            when: { echo: 'echo_caelum_stayed' },
+            text: "You said he stands there after. In the chamber, where the stone is, for five hundred years. I think you asked me once whether I would stay, and I did, and it changed nothing but me. I'm not asking to come this time. I'm asking you to carry something down.",
+          },
+        ],
         onEnter: [DERIVE_LITANY, DERIVE_SCHEMA],
         next: 'pin',
       },
@@ -258,6 +265,13 @@ export const dialogues = [
         tags: ['written'],
         speaker: BORIN,
         text: 'Three Aetherium Shards for the draw. A piece of the Heartstone, stable or dead, for the heart. Three Void Shards so it does not want anything. Ember ore, and one length of heartwood to quench in. No fee; she would not take one for this. Bring them to the anvil and I will temper it while you watch.',
+        // U62 (STORY §12 `echo_heartstone_triune`: "Borin's anchor dialogue shortcut"): the three beats heard, any piece of the stone takes the temper
+        textVariants: [
+          {
+            when: { echo: 'echo_heartstone_triune' },
+            text: 'You have heard all three of its beats; the steady one, the hungry one, the one that stopped. Then the heart is simpler: any piece of the stone takes the temper from hands that know the three, and I will not make you wait on the Depths for it. Three Aetherium Shards for the draw, three Void Shards so it does not want, ember ore, heartwood to quench in. No fee. Bring them to the anvil.',
+          },
+        ],
         next: 'end',
       },
       {

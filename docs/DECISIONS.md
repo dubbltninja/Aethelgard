@@ -2504,3 +2504,19 @@ owning unit (PLAN §9.1).
   3. **U81b** (Opus; tuning every DESIGN §19 row, DESIGN edits first, then data) follows from `BALANCE.md`.
 - U79's traces must be recorded after U81a's merge, or re-recorded when U81a/U81b change hashes; each unit says so.
 - Ports: U79 4401, U81a 4402, U80 4403, U81b 4404.
+
+### D-142 · U79 details — saves frozen at v1, golden saves, fixture traces; the hand playthrough, 2026-10-26
+- **U79 (… 45ae02f; Opus, spot-reviewed):** `src/engine/saves/{problems,saveFile,profileFile}` carry v1 and empty migration
+  tables; a test fails on a version bump without a step.
+  - An unversioned file loads as v1 only if it fits v1 exactly; otherwise it is refused with a clear message. A future
+    version is refused without throwing.
+  - Three golden real-pack saves are never re-recorded.
+  - 24 traces (18 fixture, 6 real-pack) are replayed in bun (`traces.test.ts`) and in the browser (`replay.spec.ts`);
+    `tools/record-traces.ts` re-records them.
+  - 4,761 unit; e2e 343 passed, 15 skipped. **Saves are no longer disposable (D-058).**
+- **Ruling:** real-pack traces are committed too (PLAN/D-066 #18 said fixture only), because the browser build carries only
+  the real pack.
+- **Rule (D-141):** U81a and U81b re-record the real-pack traces in the commits that move them, with the reason.
+- **The hand playthrough** (`docs/REPORT.md`, U79 section): no blockers; 13 findings. → U81b: #7 (the Tyrant at L13), #6
+  (backtrack re-fights). → the fun review / U84: the rest. #3 belongs to U81a.
+- U79's sub-agent could not write the `.md` report; the lead wrote `docs/REPORT.md` from its reply.

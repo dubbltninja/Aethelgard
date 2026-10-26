@@ -12,6 +12,7 @@ import {
   legalActions,
   makeCtx,
   step,
+  upgradeAffixSlots,
   upgradeOffers,
   upgradeQuote,
   type Action,
@@ -217,6 +218,32 @@ describe('upgrades (DESIGN §8.3)', () => {
     expect(out.s.counters.itemsUpgraded).toBe(1);
     expect(refused(r, up(r, { affixId: 'affix_of_iron' }))).toBe("No affix slot opens on the Warrior's Sword at uncommon");
     expect(act(start({ gold: 17, items: [sword('common')], ...FAVOR }), up(r)).s.player.gold).toBe(0); // 20 × 0.85
+  });
+
+  test('U81a (D-118): an upgraded Uncommon is a rolled Uncommon without its affix; both reach Rare with one and Epic with two', () => {
+    expect([upgradeAffixSlots({ affixes: [] }, 'uncommon'), upgradeAffixSlots({ affixes: [] }, 'rare'), upgradeAffixSlots({ affixes: ['affix_of_iron'] }, 'rare')]).toEqual([0, 1, 0]);
+    expect([upgradeAffixSlots({ affixes: ['affix_of_iron'] }, 'epic'), upgradeAffixSlots({ affixes: ['affix_of_iron', 'affix_of_the_gale'] }, 'legendary')]).toEqual([1, 0]);
+    const rich = { gold: 500, reputation: { ironclad: 20 } };
+    // the upgraded one: Common → Uncommon (no affix), → Rare (one offered slot), → Epic (a second)
+    let a = start({ ...rich, items: [sword('common'), stack('mat_ember_ore', 5), stack('mat_slate_core', 2)] });
+    a = act(a, up(a));
+    expect(pieceOf(a, 'item_warriors_sword')).toMatchObject({ rarity: 'uncommon', affixes: [] });
+    const qa = upgradeQuote(a.s, pack, a.prof, pieceOf(a, 'item_warriors_sword').uid);
+    if (typeof qa === 'string') throw new Error(qa);
+    a = act(a, up(a, { affixId: qa.offers[0]! }));
+    expect(pieceOf(a, 'item_warriors_sword').affixes).toHaveLength(1);
+    // the rolled one: an Uncommon that drew its affix → Rare opens nothing (it already holds Rare's one)
+    let b = start({ ...rich, items: [sword('uncommon', ['affix_of_iron']), stack('mat_ember_ore', 5), stack('mat_slate_core', 2)] });
+    expect(refused(b, up(b, { affixId: 'affix_of_the_gale' }))).toBe("No affix slot opens on the Warrior's Sword at rare");
+    b = act(b, up(b));
+    expect(pieceOf(b, 'item_warriors_sword')).toMatchObject({ rarity: 'rare', affixes: ['affix_of_iron'] });
+    // Epic: both get the second slot
+    for (const r of [a, b]) {
+      const q = upgradeQuote(r.s, pack, r.prof, pieceOf(r, 'item_warriors_sword').uid);
+      if (typeof q === 'string') throw new Error(q);
+      expect([q.target, q.newSlots]).toEqual(['epic', 1]);
+      expect(pieceOf(act(r, up(r, { affixId: q.offers[0]! })), 'item_warriors_sword').affixes).toHaveLength(2);
+    }
   });
 
   test('Uncommon → Rare: 1.0 ×, Ember Ore ×2; the new slot takes one of three offered affixes (the player picks)', () => {

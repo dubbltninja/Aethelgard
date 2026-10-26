@@ -17,7 +17,8 @@
 // of a pair, the item's own kind first; a trinket may pay with a second Sky-Whisper Talisman instead, keeping one);
 // Legendary ember ore ×5 + Frayed Moment ×2 + one regional rare (Breach glass, Drowned pearl, heartwood, Tyrant shard,
 // the first held). Rep: Neutral to Rare, Trusted to Epic and Legendary. Nothing re-rolls; reaching Rare/Epic/Legendary
-// fills the new affix slots up to that tier's count (§7.3: 1/2/2), the first chosen by the player (`affixId`) from three
+// fills the new affix slots up to that tier's count (§7.3: 1/2/2; Uncommon none, U81a's D-118 ruling, `upgradeAffixSlots`), the
+// first chosen by the player (`affixId`) from three
 // offered — offers drawn from a stream of the item and its new tier, so the offer the UI shows is the one paid for.
 // salvage (DESIGN §8.4): a carried, unbound piece of gear is destroyed for its tier material (Common 1, Uncommon 2,
 // Rare 2, Epic/Legendary 3), ember ore (Rare 1, Epic/Legendary 2) and its affixes' material (`AFFIX_SALVAGE`: of the
@@ -329,6 +330,17 @@ export function upgradeOffers(s: GameState, content: ContentPack, inst: ItemInst
   return rng.shuffle(affixPool(content, def, inst.affixes)).slice(0, UPGRADE_OFFERS);
 }
 
+/**
+ * U81a (D-118) ruling: the affix slots a tier-up to `target` opens. Common → Uncommon opens none (DESIGN §8.3 as written: the
+ * first tier-up is gold only and fills nothing; only Rare, Epic and Legendary add slots). An upgraded Uncommon is the rolled
+ * Uncommon's no-affix half (§7.3: "50 % chance of one affix"), and from there both meet again: every later tier-up fills up to
+ * that tier's count (§7.3: Rare 1, Epic 2, Legendary 2), so a rolled Uncommon with its affix and an upgraded one without both
+ * reach Rare with one affix and Epic with two.
+ */
+export function upgradeAffixSlots(inst: Pick<ItemInstance, 'affixes'>, target: Rarity): number {
+  return target === 'common' || target === 'uncommon' ? 0 : Math.max(0, MAX_AFFIXES[target] - inst.affixes.length);
+}
+
 export function upgradeQuote(s: GameState, content: ContentPack, profile: Pr, uid: string): UpgradeQuote | string {
   const forge = forgeProblem(s, content, profile);
   if (forge !== null) return forge;
@@ -345,7 +357,7 @@ export function upgradeQuote(s: GameState, content: ContentPack, profile: Pr, ui
   if ('missing' in settled) return settled.missing;
   const fee = forgeFee(s, content, content.config.upgradeCostMult[target] * goldValue(def, inst.rarity, content));
   if (s.player.gold < fee) return `Borin's fee is ${fee} gold; you have ${s.player.gold}`;
-  const newSlots = target === 'uncommon' ? 0 : Math.max(0, MAX_AFFIXES[target] - inst.affixes.length);
+  const newSlots = upgradeAffixSlots(inst, target);
   const offers = newSlots > 0 ? upgradeOffers(s, content, inst, def, target) : [];
   return { inst, def, target, fee, pay: settled.pay, newSlots: Math.min(newSlots, offers.length), offers, watches: forgeWatches(s, UPGRADE_WATCHES) };
 }

@@ -181,9 +181,11 @@ describe('the seven locations vs WORLD §3.1 blocks', () => {
     const U54_EVENTS = ['ev_archives_first_drowned'];
     // U59 the class mini-quests' hooks (`q_class_elf` at the Archway and the Plaza, `q_class_wizard` at the fountain), interacts
     const U58_EVENTS = ['ev_archives_oriel_carrel', 'ev_depths_count_beats', 'ev_archway_follow', 'ev_plaza_ley_light', 'ev_plaza_duelling_ground'];
+    // U62 the Ruins' Loop 2 waking (STORY §13 scene_waking_loop_2; tests/unit/content/scenes.test.ts holds it)
+    const U62_EVENTS = ['ev_ruins_waking'];
     for (const l of parsedLocations) {
       const w = WL[l.id];
-      const got = Object.fromEntries(l.events.filter((e) => !U54_EVENTS.includes(e.id) && !U58_EVENTS.includes(e.id)).map((e) => [e.id, e.text]));
+      const got = Object.fromEntries(l.events.filter((e) => !U54_EVENTS.includes(e.id) && !U58_EVENTS.includes(e.id) && !U62_EVENTS.includes(e.id)).map((e) => [e.id, e.text]));
       const expected = Object.fromEntries(Object.entries(w?.events ?? {}).map(([id, text]) => [id.startsWith('ev_') ? id : `ev_${id}`, text]));
       expect([l.id, got]).toEqual([l.id, expected]);
       for (const e of l.events) {

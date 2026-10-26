@@ -749,8 +749,9 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
   test('the Resolution’s words, B (STORY §13 scene_ending_mending): with Caelum he answers for the pin and hears "I am sorry"; without him you do; hesitate goes back; the anchor driven is the Mending and his consent', () => {
     const withCaelum = resolution('scene_ending_mending', { items: ['item_breach_anchor'] }, ['echo_caelum_cannot'], 'caelum');
     const asked = drive(withCaelum.s, withCaelum.profile, ['let_go']);
-    expect(nodesSeen(withCaelum.events).concat(nodesSeen(asked.events))).toEqual(['both_ends_caelum', 'i_did', 'laugh', 'message', 'nobody', 'sorry', 'forgiving', 'will_you', 'drive_it', 'anchor']);
-    expect(textsSeen(asked.events)).toContain("Caelum: 'I don't forgive you, Master Thal.' The Tyrant: 'No. Set it anyway. That is the only kind of forgiving I was ever going to get.'");
+    expect(nodesSeen(withCaelum.events).concat(nodesSeen(asked.events))).toEqual(['both_ends_caelum', 'i_did', 'laugh', 'message', 'nobody', 'sorry', 'forgiving', 'set_anyway', 'will_you', 'drive_it', 'anchor']);
+    expect(textsSeen(asked.events)).toContain("I don't forgive you, Master Thal.");
+    expect(textsSeen(asked.events)).toContain('No. Set it anyway. That is the only kind of forgiving I was ever going to get.');
     const alone = resolution('scene_ending_mending', { items: ['item_breach_anchor'] });
     const told = drive(alone.s, alone.profile, ['a_boy', 'let_go']);
     expect(nodesSeen(alone.events).concat(nodesSeen(told.events))).toEqual(['both_ends', 'twice', 'will_you', 'drive_it', 'anchor']);
@@ -819,7 +820,9 @@ const WRITTEN = {
   variants: [
     'Close now. Two more dawns, perhaps three. Sit with me; the stone keeps better time than the sky does.',
     'The days are going by like pages turned in another room. I have been counting them on the plinths. Keep the vigil a little longer.',
-    "Caelum: 'I don't forgive you, Master Thal.' The Tyrant: 'No. Set it anyway. That is the only kind of forgiving I was ever going to get.'",
+    // U62: STORY §13's `echo_caelum_cannot` exchange, each line in its own mouth
+    "I don't forgive you, Master Thal.",
+    'No. Set it anyway. That is the only kind of forgiving I was ever going to get.',
   ],
   nodes: [
     'scene_dask_wardens_vigil_offer.nine',
@@ -860,6 +863,7 @@ const WRITTEN = {
     'scene_ending_vigil.not_yet',
     'scene_ending_mending.laugh',
     'scene_ending_mending.forgiving',
+    'scene_ending_mending.set_anyway',
     'scene_ending_mending.will_you',
     'scene_ending_mending.anchor',
     'scene_ending_unbound.quiet',

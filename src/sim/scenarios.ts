@@ -877,6 +877,7 @@ function playLoop1Out(run: Run): void {
   run.walkTo(PORTAL_LOCATION_ID, true, true);
   if (run.s.mode === 'explore') run.act({ type: 'enterPortal' });
   run.ackEndings();
+  run.settle(); // U62: Loop 2's first arrival opens STORY §13's waking scene (scene_waking_loop_2); click through it
   if (run.s.mode !== 'explore' || run.s.meta.loop !== 2) throw run.fail('the closer did not lead to Loop 2 Day 1');
 }
 

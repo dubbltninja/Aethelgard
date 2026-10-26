@@ -16,6 +16,7 @@ import { EQUIP_SLOTS, GEAR_SCRIPT, STAT_NAMES, itemScript, syncMaxima } from '..
 import { PREP_USE } from '../combat/gear';
 import { swapCompanion } from '../combat/companionAi';
 import { apply, applyAll, changeLimit, leaveOnGround } from '../effects';
+import { SPELLBOOKS_READ_COUNTER } from '../horde';
 import type { Enumerator } from '../legalActions';
 import { RESPEC_GOLD_PER_LEVEL, masteredFor, respecPlan, unlockCostHalf, unlockProblem, type RespecPlan } from '../progression';
 import type { Handler } from '../step';
@@ -364,7 +365,10 @@ function readBook(ctx: StepCtx, action: ActionOf<'readBook'>): void {
   }
   const counted = dark || itemScript(h.def, GEAR_SCRIPT.countsAsSpellbook) !== undefined;
   const total = (s.player.uses[USES_SPELLBOOKS]?.count ?? 0) + (counted ? 1 : 0);
-  if (counted) s.player.uses[USES_SPELLBOOKS] = { loop: s.meta.loop, count: total };
+  if (counted) {
+    s.player.uses[USES_SPELLBOOKS] = { loop: s.meta.loop, count: total };
+    s.counters.custom[SPELLBOOKS_READ_COUNTER] = total; // U62: content reads it (Ilyra's six-Spellbook lore at the portal)
+  }
   if (h.def.consumeOnUse) removeOne(ctx, h.inst);
   ctx.log(`You read the ${h.def.name}.`, 'event');
   applyAll(effects, ctx, { source: `item:${h.def.id}` });

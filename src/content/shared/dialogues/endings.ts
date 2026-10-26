@@ -626,17 +626,21 @@ export const dialogues = [
         text: 'Good. It said begin. I am sorry, boy. I say it to you because you are the only one here I am allowed to say it to.',
         next: 'forgiving',
       },
+      // U62: STORY §13's `echo_caelum_cannot` exchange in its two mouths (was one narrator line); without the Echo, two written joins
       {
         id: 'forgiving',
         tags: ['written'],
-        speaker: 'narrator',
-        text: 'Caelum does not answer that. He does not need to; he has already said what he had to say to this face, and it heard him.',
-        textVariants: [
-          {
-            when: { echo: 'echo_caelum_cannot' },
-            text: "Caelum: 'I don't forgive you, Master Thal.' The Tyrant: 'No. Set it anyway. That is the only kind of forgiving I was ever going to get.'",
-          },
-        ],
+        speaker: CAELUM,
+        text: "I heard you, Master Thal. Finish it; I'll stand where I can see.",
+        textVariants: [{ when: { echo: 'echo_caelum_cannot' }, text: "I don't forgive you, Master Thal." }],
+        next: 'set_anyway',
+      },
+      {
+        id: 'set_anyway',
+        tags: ['written'],
+        speaker: TYRANT,
+        text: 'Stand there, then. It is nearly done holding.',
+        textVariants: [{ when: { echo: 'echo_caelum_cannot' }, text: 'No. Set it anyway. That is the only kind of forgiving I was ever going to get.' }],
         next: 'will_you',
       },
       {

@@ -15,7 +15,7 @@ import { ENDING_LETTERS } from '@schema/ending';
 import { TICKS_PER_DAY, dayOf, evaluate, watchOf } from '../conditions';
 import { enterMode, type ContentPack, type StepCtx } from '../ctx';
 import { applyLoopStartEchoes } from '../echoes';
-import { LEFT_ON_GROUND, advanceTime, apply } from '../effects';
+import { LEFT_ON_GROUND, advanceTime, apply, openScene } from '../effects';
 import { HORDE_TEXT, grantKnownEcho, startHorde } from '../horde';
 import type { Enumerator } from '../legalActions';
 import { newRun } from '../newRun';
@@ -175,8 +175,10 @@ export function expireClock(ctx: StepCtx): void {
     ctx.log('The sky tears open above the Apex. The Breach is loose.', 'system');
     return;
   }
-  ctx.log(HORDE_TEXT.expiry, 'event');
+  const scripted = content.dialogues[CLOCK_EXPIRY_SCENE] !== undefined; // U62: STORY §13's scene says it, with whoever is present
+  if (!scripted) ctx.log(HORDE_TEXT.expiry, 'event');
   startHorde(ctx, 'expiry', content.config.clock.expiryHordeDelay);
+  if (scripted) openScene(ctx, CLOCK_EXPIRY_SCENE);
 }
 
 /** Expiry waits for a fight to end, and never applies outside play (ending, threshold, title). */
@@ -234,6 +236,10 @@ export const clockHook: PostStepHook = (ctx) => {
 
 export const ECHO_THIRTIETH_DAWN = 'echo_thirtieth_dawn';
 export const ECHO_AMULET_MEMORY = 'echo_amulet_memory';
+/** STORY §13's `scene_waking_loop_2` and `scene_clock_expiry` (U62): a pack that carries them has them say the engine's lines. */
+export const WAKING_SCENE = 'scene_waking_loop_2';
+export const WAKING_SCENE_LOOP = 2;
+export const CLOCK_EXPIRY_SCENE = 'scene_clock_expiry';
 /** D-047: the one object the reset never takes. */
 export const AMULET_ITEM_ID = 'item_amulet_of_echoes';
 /** DESIGN §10.3 / PLAN §4.3 `runHistory` cap. */
@@ -425,7 +431,9 @@ export function beginLoop(ctx: StepCtx): void {
   ctx.emit({ t: 'loopStarted', loop: s.meta.loop, classId: s.player.classId });
   if (s.meta.loop >= 2) {
     if (!ctx.profile.echoes.includes(ECHO_AMULET_MEMORY)) grantKnownEcho(ctx, ECHO_AMULET_MEMORY, 'waking');
-    if (s.player.inventory.some((i) => i.itemId === AMULET_ITEM_ID)) ctx.log(CLOSER_TEXT.amuletWarm, 'narration');
+    // U62: in Loop 2 a pack with STORY §13's waking scene says the Amulet's line there (the Ruins' arrival opens it)
+    const scripted = s.meta.loop === WAKING_SCENE_LOOP && ctx.content.dialogues[WAKING_SCENE] !== undefined;
+    if (!scripted && s.player.inventory.some((i) => i.itemId === AMULET_ITEM_ID)) ctx.log(CLOSER_TEXT.amuletWarm, 'narration');
   }
   applyLoopStartEchoes(ctx); // U32: rep starts, bond loyalty, shortcuts (echoes.ts)
   enterStartLocation(ctx);

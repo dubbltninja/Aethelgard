@@ -1,7 +1,7 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except scenes/endings text (U62), 18 Echo grant/read gaps (D-127); codex 90 (complete, unlocking by condition — D-133); all 44 quests authored — **C3 content**; UI U63–U70 done (every screen and panel, saves/settings, mobile tab bar, onboarding, toasts) — **C4 playable**; art (backdrops, sprites, portraits), the combat stage and audio SFX done — bundle 515 kB of 600 (prose in lazy chunks). Next: ✦ U62, U75, the balance unit when Fable allows. Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; **all content complete** (every table; validate 0 errors, 0 pending — D-136); codex 90 unlocking by condition (D-133); all 44 quests authored — **C3 content**; UI U63–U70 done (every screen and panel, saves/settings, mobile tab bar, onboarding, toasts) — **C4 playable**; art (backdrops, sprites, portraits), the combat stage and audio SFX done — bundle 515 kB of 600 (prose in lazy chunks). Next: the balance + bot unit (ending D first), then Playwright screen runs, fun reviews, the audit, deliverables when Fable allows. Unit list: PLAN §9.2.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-119), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
@@ -119,7 +119,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U62a | Codex entries unlock by `unlockWhen` (79 never could); long prose to lazy chunks (JS ≤ 520 kB) — brief `briefs/u62a.md` | Opus | ✅ 83fb881 (spot-reviewed) — codex unlocks live; prose chunked; JS 509 kB; 4405 tests; D-133 |
 | U74 | Audio engine + 30 synthesized SFX; volumes and mute live — brief `briefs/u74.md` | Opus | ✅ b105969 (spot-reviewed) — 30 SFX + combat percussion, live volumes; 4377 tests; JS 584 kB; D-132 |
 | U62 | Key scenes (5 missing + check all 21), ending sequences/epilogues, D-127's Echoes; all tables complete — brief `briefs/u62.md` | ✦ Fable | ✅ text done, c6cc489 on `wip/u62` (5 scenes, 8 endings with art/mood, Echo lines) — finisher U62b |
-| U62b | Finish U62: verify its engine edits, wire D-127's Echoes, tests/proofs, all tables complete (D-134) — brief `briefs/u62b.md` | Opus | 🔄 running |
+| U62b | Finish U62: verify its engine edits, wire D-127's Echoes, tests/proofs, all tables complete (D-134) — brief `briefs/u62b.md` | Opus | ✅ 1332ef0 (spot-reviewed) — Echoes wired, tables complete, slides over paintings; 4559 tests; JS 523 kB; D-136 |
 | U75 | Region ambience, Threshold drone, Tyrant theme — brief `briefs/u75.md` | Sonnet | ✅ 23d0c9c (spot-reviewed) — 14 ambient beds, Threshold drone, Tyrant theme; 4524 tests; JS 520 kB; D-134 |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |

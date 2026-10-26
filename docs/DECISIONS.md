@@ -2370,3 +2370,41 @@ owning unit (PLAN §9.1).
 - **Bug fixed:** `noise()` read the 1 s noise buffer from a random offset up to 0.5 s, so bursts longer than ~0.5 s ran dry
   (`sfx_breach_tear`'s 2 s layer went silent early). Noise sources now loop.
 - Process: sound drafts go to Tim on an audition page before they ship. Nobody can hear them in the container.
+
+### D-136 · U62 + U62b — the key scenes, the endings' text, D-127's Echoes; **every content table complete**, 2026-10-26
+- **U62 (✦ Fable, narrowed by D-134; 88b82d3 … c6cc489):**
+  - The five missing §13 scenes (`dialogues/scenes.ts`): the Tyrant's defeat (Loop 2+ "You knew."), Brak's stand, Ilyra's
+    portal, waking into Loop 2, the thirtieth dawn. Also 21 legacy Horde scenes.
+  - All eight endings' `sequence` and `epilogues` against STORY §10, every slide with `art` and `mood`.
+  - Echo variant lines.
+  - Fable's own §13 test passes line-for-line for all 21 key scenes.
+- **U62b (Opus finisher; … 1332ef0, spot-reviewed):**
+  - **Fable's engine edits:** kept the scenes opened by the Horde, the expiry, the Amulet skip, the spellbook counter, the
+    waking event and the portal arrival. Fixed `echo_ilyra_cost` (only when Ilyra isn't the active companion) and `pathBot`
+    (it broke the Tyrant's first-words adoption; it now walks through only scenes its target doesn't speak in).
+  - **Loop 2's first autosave:** a checkpoint reached inside a scene is now written when the scene closes.
+  - **D-127's Echoes are wired.**
+    - Grants:
+      - `breach_door`: a Nexus event with the Lens and verse 1.
+      - `hadrek_clockwright`: the Ninefold Hall on First Bell.
+      - `emberforge_vein`: the third Emberforge visit in a loop, plus a once-a-loop "Work the ember vein": 3 ore, or 8 with
+        the Echo.
+      - `nomad_signs`: Ferrin's scene at Ironclad Neutral or better.
+      - `hollow_path`: arriving at the Hollow.
+    - Reads:
+      - `heartstone_triune` → `recipe_breach_anchor_triune`, a 31st recipe: the anchor without a Heartstone piece.
+      - `caelum_stayed` → the Mending without Caelum (a pin scene alone, +3 days).
+      - `crystal_seeded` → the Library's Listen gives `nine_voices`.
+      - `ninth_verse_unfinished` and `breach_recoil` → Movement I answers, +1 each.
+      - `horde_path` → the map shows the Horde's next three moves.
+      - `breach_door` → the Breach-door route from Loop 2 without the Lens.
+  - **`INCOMPLETE_TABLES` is empty: every content table is complete.** `validate`: 0 errors, 0 pending.
+  - The Ending screen shows each slide over its painting. The ending proofs show every slide (7/7 N/N; D the known gap).
+  - Tests: 4,559 unit (`endingsText`, `echoHooks`); full e2e 176 passed, 10 skipped; 80/80 quest proofs. Production JS
+    **523.1 kB**; text chunks 75.0 kB.
+- **For the fun review / audit:**
+  - The `breach_recoil` answer ("I named nothing; I only held") reads as Veyran's voice more than the Wayfinder's; reread it.
+  - STORY §10.2's "Nyx, if present, closes his eyes" has no slide (slides aren't conditional).
+  - The Horde forecast is empty during the Horde's 3-move delay.
+- **Cost note:** U62b took ~1.6 h, the longest Opus unit so far. It reviewed another unit's engine edits, wired 18 features,
+  and ran the slow full suites. Next time, split a finisher this size in two.

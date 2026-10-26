@@ -313,6 +313,13 @@ export function useFieldAbility(ctx: StepCtx, action: ActionOf<'ability'>): void
   ctx.emit({ t: 'abilityUsed', uid: 'player', abilityId: ability.id });
   ctx.log(`You use ${ability.name}.`, 'event');
   applyAll(ability.outOfCombat, ctx, { source: `ability:${ability.id}` });
+  // Field Dressing's cleanse also applies on the road, just as it does in combat.
+  if (ability.id === 'rgr_field_dressing') {
+    const ids = ABILITY_SCRIPTS[ability.id]?.cleanse ?? [];
+    const gone = s.player.statuses.filter((st) => ids.includes(st.statusId));
+    s.player.statuses = s.player.statuses.filter((st) => !gone.includes(st));
+    for (const st of gone) ctx.emit({ t: 'statusExpired', targetUid: 'player', statusId: st.statusId });
+  }
   hooksOf(ability.special)?.field?.(ctx, ability.id);
 }
 

@@ -26,7 +26,11 @@ export function TabBarView({ tabs, onChoose }: TabBarViewProps): ReactNode {
               data-tab={tab.id}
               aria-current={tab.current ? 'page' : undefined}
               disabled={tab.disabled}
-              onClick={() => onChoose(tab)}
+              onClick={(event) => {
+                // Safari taps do not focus buttons; a panel must still return focus to its opener.
+                event.currentTarget.focus({ preventScroll: true });
+                onChoose(tab);
+              }}
             >
               <Icon kind={tab.icon} size={22} />
               <span className="tab-bar__label">{tab.label}</span>

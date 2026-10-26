@@ -70,6 +70,7 @@ export function CompanionCard({ companion, onStance, onCommand }: CompanionCardP
           <Icon kind="command" size={20} />
           <span className="combat-action__text">
             <span className="combat-action__label">Command: {sig.name}</span>
+            <span className="combat-action__detail">{sig.description}</span>
             <span className="combat-action__detail">{sig.reason ?? (sig.cooldown > 0 ? `Cooldown ${sig.cooldown}` : 'Uses your action')}</span>
           </span>
         </button>

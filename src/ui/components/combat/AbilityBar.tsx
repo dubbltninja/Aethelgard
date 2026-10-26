@@ -86,6 +86,12 @@ export function AbilityBar({ tiles, targetName, onUse, extra }: AbilityBarProps)
                     ) : null}
                     {tile.reason === null ? null : <span className="tile__reason">{tile.reason}</span>}
                   </button>
+                  {tile.description === '' ? null : (
+                    <details className="ability-effects">
+                      <summary aria-label={`${tile.name}: effects`}>Effects</summary>
+                      <p>{tile.description}</p>
+                    </details>
+                  )}
                 </li>
               ))}
             </ul>

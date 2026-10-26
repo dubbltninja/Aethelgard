@@ -196,7 +196,7 @@ export const rangerAbilities = [
     target: 'self_or_ally',
     heal: { base: 18, coef: 0.8, stat: 'maxStrAgi', target: 'ally' },
     // DESIGN §5.1 `field`. An effect heals a flat amount: 26 = 18 + 0.8·10, the formula at the Ranger's base STR (the least
-    // it heals in a fight); the road use cannot cleanse (no cleanse effect atom).
+    // it heals in a fight). The ability script also removes Bleed and Poison on the road.
     outOfCombat: [{ heal: { hp: 26 } }],
   },
   {

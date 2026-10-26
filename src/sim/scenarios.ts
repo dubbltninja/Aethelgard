@@ -1053,6 +1053,9 @@ function toApexPrompt(id: ScenarioId, content: ContentPack, seed: string, opts: 
   const contained = apex?.encounters.some((e) => e.groups.some((g) => g.creatureId === 'cr_chronos_tyrant_contained'));
   if (apex === undefined || !contained) throw new ScenarioUnavailable(id, "the pack has no Loop 1 encounter with the Contained Tyrant at the Apex");
   const run = startLoop1(id, content, seed, opts);
+  // Collect the ordinary opening's Amulet legally before leaving: every class can then answer Rewind.
+  const amulet = run.s.world.locationStates[run.s.world.currentLocationId]?.items.find((item) => item.itemId === 'item_amulet_of_echoes');
+  if (amulet !== undefined) run.act({ type: 'take', uid: amulet.uid });
   buildCharacter(run, opts.level ?? defaultLevel, opts, true);
   run.walkTo(APEX_LOCATION_ID, false);
   if (!isApexPromptOpen(run.s)) throw run.fail('the Apex prompt did not open');

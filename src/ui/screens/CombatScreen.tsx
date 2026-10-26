@@ -82,8 +82,8 @@ import {
   type TurnEntry,
 } from './combatModel';
 
-/** The one breakpoint (DESIGN §16.1): under it the turn's controls pin to the bottom as a bar (U73 part B). */
-const PHONE_QUERY = '(max-width: 759.98px)';
+/** Keep turn controls reachable on narrow screens and short touch-only landscape screens. */
+const PHONE_QUERY = '(max-width: 759.98px), (pointer: coarse) and (max-height: 500px)';
 
 /** Explanations kept for the log (the engine caps the log at 200 lines). */
 const EXPLAINED_CAP = 200;
@@ -148,6 +148,14 @@ export function CombatView(p: CombatViewProps): ReactNode {
   const communing = p.communion?.active === true && !p.showAbilities;
   const phone = p.phone === true && p.fallen === null;
   const pinnedCommunion = phone && communing && p.communion !== null;
+  const banner = p.banner === null ? null : (
+    <aside className="combat-banner" aria-label="What changed">
+      {p.banner.title === null ? null : <p className="combat-banner__title">{p.banner.title}</p>}
+      {p.banner.lines.map((line, i) => (
+        <p key={`${i}:${line}`} className="combat-banner__line">{line}</p>
+      ))}
+    </aside>
+  );
   // the pinned bar: the turn's actions, or the communion when it is on (DESIGN §4.11 "takes the bar's place")
   const pinned = !phone ? null : (
     <DockPortal>
@@ -190,21 +198,14 @@ export function CombatView(p: CombatViewProps): ReactNode {
           <TurnOrder entries={p.turns} round={p.round} />
         </header>
         {p.stage ?? null}
-        {p.banner === null ? null : (
-          <aside className="combat-banner" aria-label="What changed">
-            {p.banner.title === null ? null : <p className="combat-banner__title">{p.banner.title}</p>}
-            {p.banner.lines.map((line, i) => (
-              <p key={`${i}:${line}`} className="combat-banner__line">
-                {line}
-              </p>
-            ))}
-          </aside>
-        )}
+        {phone ? null : banner}
         <ul className="combat__enemies" aria-label="Enemies">
           {p.enemies.map((enemy) => (
             <EnemyCard key={enemy.uid} enemy={enemy} reducedMotion={p.reducedMotion} hit={p.hits[enemy.uid] ?? null} onSelect={p.onSelectTarget} />
           ))}
         </ul>
+        {/* On short phone viewports a long phase announcement must not displace the current intent. */}
+        {phone ? banner : null}
         {p.fallen === null ? null : (
           <section className="fallen" aria-labelledby="fallen-heading">
             <Icon kind="fallen" size={48} className="fallen__icon" />
@@ -271,6 +272,9 @@ export function ItemSheet({ items, onUse }: { items: readonly CombatItemModel[];
             {item.qty > 1 ? ` × ${item.qty}` : ''}
           </p>
           {item.description === '' ? null : <p className="item-sheet__desc">{item.description}</p>}
+          <ul className="plain-list">
+            {item.effects.map((effect) => <li key={effect}>{effect}</li>)}
+          </ul>
           <div className="button-row">
             {item.uses.map((use, j) => (
               <Button key={use.label} onClick={() => onUse(use.action)} aria-label={`${use.label}: ${item.name}`} data-autofocus={i === 0 && j === 0 ? '' : undefined}>

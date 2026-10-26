@@ -576,6 +576,7 @@
 /* ---- the main grid ---- */
 .combat__grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   min-width: 0;
 }
@@ -738,6 +739,25 @@
 
 .tile__icon {
   color: var(--branch, var(--text-accent));
+}
+
+/* Effects can be inspected by touch or keyboard without spending an action. */
+.ability-effects {
+  min-width: 0;
+  font-size: var(--type-small);
+  overflow-wrap: anywhere;
+}
+
+.ability-effects > summary {
+  min-height: var(--target-min);
+  display: list-item;
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-accent);
+  cursor: pointer;
+}
+
+.ability-effects > p {
+  padding: 0 var(--space-3) var(--space-3);
 }
 
 .tile__name {
@@ -984,7 +1004,24 @@
 }
 
 /* ---- phones (PLAN §6.8, DESIGN §16.5 mobile) ---- */
-@media (max-width: 759.98px) {
+@media (max-width: 759.98px), (pointer: coarse) and (max-height: 500px) {
+  .enemy-card__select {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .enemy-card__target {
+    grid-column: 2;
+  }
+
+  .player-panel__vitals .meter {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "label value" "track track";
+  }
+
+  .player-panel__vitals .meter__label { grid-area: label; }
+  .player-panel__vitals .meter__value { grid-area: value; }
+  .player-panel__vitals .meter__track { grid-area: track; }
+
   .combat__enemies {
     display: flex;
     overflow-x: auto;
@@ -1021,7 +1058,7 @@
 }
 
 .phone-dock {
-  padding: var(--space-2) var(--gutter);
+  padding: var(--space-2) max(var(--gutter), env(safe-area-inset-right)) max(var(--space-2), env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
   border-top: 1px solid var(--line-strong);
   background: var(--surface-panel);
 }

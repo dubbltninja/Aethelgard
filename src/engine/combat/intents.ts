@@ -649,7 +649,9 @@ export function interruptIntent(ctx: StepCtx, combat: CombatState, c: Combatant)
   }
   breakWindUp(c);
   combatLog(combat, isBoss(ctx.content, c) ? `${c.name} staggers: ${what} is lost.` : `${c.name}'s ${what} is interrupted.`, 'intent');
-  generateIntent(ctx, combat, c);
+  const next = generateIntent(ctx, combat, c);
+  const replacement = next === null ? null : next.hidden ? 'an unrevealed move' : (def.moves[next.moveId]?.name ?? next.moveId);
+  combatLog(combat, replacement === null ? `${c.name} has no replacement move ready.` : `${c.name} still acts: next is ${replacement}.`, 'intent');
   return true;
 }
 

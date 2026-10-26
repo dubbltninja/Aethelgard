@@ -290,7 +290,8 @@ describe('Remember once per phase, the pattern swap, the damage rows, Stagger (D
   test('Stagger (DESIGN §4.2): the Contained Tyrant is interruptible — its committed intent is lost, the next one comes from the next step', () => {
     const ctx = at(contained(), [D.yes]);
     expect(interruptIntent(ctx, C(ctx), boss(ctx))).toBe(true);
-    expect(C(ctx).log.at(-1)?.text).toBe('The Chronos Tyrant staggers: Brace is lost.');
+    expect(C(ctx).log.map((l) => l.text)).toContain('The Chronos Tyrant staggers: Brace is lost.');
+    expect(C(ctx).log.at(-1)?.text).toBe('The Chronos Tyrant still acts: next is Grasp.');
     expect(C(ctx).intents[boss(ctx).uid]?.moveId).toBe('tyr_grasp');
   });
 });

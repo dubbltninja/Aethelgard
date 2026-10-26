@@ -22,7 +22,7 @@ import { SCENARIO_IDS, loadScenario, type ScenarioId } from '@sim/scenarios';
 import { App } from './ui/App';
 import { mountAudition } from '@audio/sfx/audition';
 import { bootGame, type BootOptions, type Booted } from './ui/boot';
-import { sharedAudio } from './ui/hooks/useAudio';
+import { sharedAmbient, sharedAudio } from './ui/hooks/useAudio';
 import { GameProvider } from './ui/store/useGame';
 import { GAME_TITLE, applyRootAttributes } from './ui/theme';
 
@@ -63,8 +63,8 @@ export function scenarioStart(search: string): BootOptions['start'] {
 const container = typeof document === 'undefined' ? null : document.getElementById('root');
 if ((__DEV__ || __E2E__) && container && new URLSearchParams(window.location.search).has('audition')) {
   document.title = 'Sound audition · Echoes of Aethelgard';
-  mountAudition(container, sharedAudio());
-  if (__E2E__) (window as unknown as { __aethelgard: unknown }).__aethelgard = { audio: sharedAudio() };
+  mountAudition(container, sharedAudio(), sharedAmbient());
+  if (__E2E__) (window as unknown as { __aethelgard: unknown }).__aethelgard = { audio: sharedAudio(), ambient: sharedAmbient() };
 } else if (container) {
   const root = createRoot(container);
   let booted: Booted | null = null;
@@ -80,6 +80,7 @@ if ((__DEV__ || __E2E__) && container && new URLSearchParams(window.location.sea
       (window as unknown as { __aethelgard: unknown }).__aethelgard = {
         store,
         audio: sharedAudio(),
+        ambient: sharedAmbient(),
         dispatch: store.dispatch,
         get state() {
           return store.getState();

@@ -2427,3 +2427,22 @@ owning unit (PLAN §9.1).
   The last two print as `soft()` warnings on every test run.
 - **Ruling:** WORLD.md (line 11) allows one added sentence to a legacy location description, and 20 of 21 have one. The
   legacy test asserts "starts with the legacy text + ≤ 1 sentence". Creature and item descriptions stay string-equal.
+
+### D-138 · U77 details — Playwright flows, mobile, noNetwork, quota, replay (PLAN §8.3), 2026-10-26
+- **U77 (… 9a13b6d; Sonnet, spot-reviewed):** `tests/e2e/{flows,mobile,noNetwork,replay}.spec.ts`; the quota case in
+  `persistence.spec.ts`; `tests/e2e/helpers/{driver,recordTrace}.ts` (the `GameDriver`, plus a bun trace recorder). Full e2e
+  196 passed, 14 skipped.
+  - **The four flows through the UI:**
+    - the first day: the Shade, rest, save, reload, load, state equal;
+    - the Tyrant → the Horde → the Library portal → Loop 2 Day 1 (the waking scene);
+    - the Threshold → Loop 3;
+    - ending A's slides → "A game by Tim Dibert".
+  - **Replay parity:** bun records 300 melee-bot steps on the real pack at test time, and the browser replays them to the same
+    `finalStateHash`. A new loop's seed derives from `profileId`, so the recorder takes the browser's profile id (by design).
+  - **noNetwork:** zero foreign requests over 50 steps (the game's own chunks and art allowed).
+  - One e2e/dev hook: `?scenario=<id>&level=<n>`.
+- **Finding → U81 (Tyrant numbers, D-101):** a button-pressing player at L13, the Contained Tyrant's tuning level (D-051,
+  D-066 #1), loses to it on the scenario's seed, and the melee bot does too, depending on the seed. Flow 2 boots at L20 to stay
+  a UI test.
+- Note: the explore tab bar and the combat menu are both `nav` "Game menu". Fine for screen readers per screen, but U78's
+  audit may want distinct names.

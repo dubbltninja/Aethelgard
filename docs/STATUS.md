@@ -121,7 +121,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U62 | Key scenes (5 missing + check all 21), ending sequences/epilogues, D-127's Echoes; all tables complete — brief `briefs/u62.md` | ✦ Fable | ✅ text done, c6cc489 on `wip/u62` (5 scenes, 8 endings with art/mood, Echo lines) — finisher U62b |
 | U62b | Finish U62: verify its engine edits, wire D-127's Echoes, tests/proofs, all tables complete (D-134) — brief `briefs/u62b.md` | Opus | ✅ 1332ef0 (spot-reviewed) — Echoes wired, tables complete, slides over paintings; 4559 tests; JS 523 kB; D-136 |
 | U76 | Content test suite (PLAN §8.2) — brief `briefs/u76.md` | Sonnet | ✅ 7cd7f7f (spot-reviewed) — §8.2 suite; 4689 tests, 3 todo; findings → U81; D-137 |
-| U77 | Playwright flows, mobile, noNetwork, quota, replay (PLAN §8.3) — brief `briefs/u77.md` | Sonnet | 🔄 running (4395) |
+| U77 | Playwright flows, mobile, noNetwork, quota, replay (PLAN §8.3) — brief `briefs/u77.md` | Sonnet | ✅ 9a13b6d (spot-reviewed) — 4 flows, mobile, noNetwork, quota, replay parity; e2e 196 ✓; D-138 |
 | U78 | In-repo a11y on every screen, gallery, screenshots (PLAN §8.4) — brief `briefs/u78.md` | Sonnet | 🔄 running (4396) |
 | U75 | Region ambience, Threshold drone, Tyrant theme — brief `briefs/u75.md` | Sonnet | ✅ 23d0c9c (spot-reviewed) — 14 ambient beds, Threshold drone, Tyrant theme; 4524 tests; JS 520 kB; D-134 |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
@@ -249,7 +249,7 @@ Done since U69: U70, U57, U58, U71, the art (both sessions), U72, U59, U73a, U73
 2. **U79** (Opus; integration checkpoint: saves frozen at `version: 1`, fixture traces, Loop 1 → Loop 2 by hand).
 3. **Balance:** U80 (Sonnet; 2,000-run batch → `BALANCE.md`) → U81 (Opus; tuning against DESIGN §19). Open flags:
    - **ending D unreachable by play** (D-123);
-   - bots guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain (D-109); Tyrant numbers (D-101); Warden vs
+   - bots guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain (D-109); Tyrant numbers (D-101; a button-pressing L13 player loses to the Contained Tyrant, D-138); Warden vs
      bosses (D-089);
    - Ilyra's loyalty arithmetic for E (D-113); the affix on Uncommon upgrade (D-118);
    - the achievement engine and 13 `tally_*` counters (D-119); the first fight's forced intents (D-121);

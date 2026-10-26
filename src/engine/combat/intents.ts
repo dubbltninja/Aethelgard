@@ -77,7 +77,7 @@ import type { Combatant, CombatState, DamageType, Intent } from '../types/state'
 import { damageRange, hasStatus, resolveHeal, resolveHit, roundHalfUp, type HitResult, type HitSpec, type RangeOptions } from './damage';
 import { REVEAL_KEY, beginMove, finishMove, hooksOf, moveHits, replaceMove, type CombatOps, type HitKind } from './specials';
 import { STATUS, applyStatus, applyStatusRows, cleanse, isBoss, skipsTurn, tauntedBy, type WhenEval } from './statuses';
-import { MAX_ENEMIES, combatLog, combatantByUid, enemyCombatant, isActive, sortTurnOrder } from './turnOrder';
+import { FORCED_TAG, MAX_ENEMIES, combatLog, combatantByUid, enemyCombatant, isActive, sortTurnOrder } from './turnOrder';
 
 /** DESIGN §4.8: a `random` intent picks the player 60 % of the time when a companion also stands. */
 export const RANDOM_PLAYER_SHARE = 0.6;
@@ -536,8 +536,7 @@ export function forceIntent(ctx: StepCtx, combat: CombatState, c: Combatant, mov
 const forcedOf = (r: IntentRead, combat: CombatState, c: Combatant, moveId: string, move: Move): Intent =>
   move.power ? makeIntent(r, combat, c, moveId, move, 'single', pickFoe(combat, c, 'player')) : makeIntent(r, combat, c, moveId, move, 'self', c);
 
-/** A forced move waits in `forced:<moveId>` until it is played, so a later generation (its own turn's end) keeps it. */
-export const FORCED_TAG = 'forced:';
+// A forced move waits in `forced:<moveId>` until it is played (FORCED_TAG, turnOrder.ts since U81a: the first fight's intents).
 
 function forcedIntent(ctx: StepCtx, combat: CombatState, c: Combatant): Intent | null {
   const tag = c.pattern.firedOnce.find((t) => t.startsWith(FORCED_TAG));

@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { ConditionSchema } from './condition';
 import { Effects } from './effect';
-import { Base, CreatureId, Pct } from './primitives';
+import { Base, CreatureId, Id, Pct } from './primitives';
 
 export const EncounterGroupSchema = z.object({ creatureId: CreatureId, count: z.number().int().min(1).max(3).default(1) }).strict();
 
@@ -28,6 +28,12 @@ export const EncounterSchema = Base.extend({
   onFleeEffects: Effects,
   /** Horde Rising modifier upgrades non-elites. */
   elite: z.boolean().default(false),
+  /**
+   * U81a (D-121, DESIGN §16.8; C1 addition): the opening intents of this fight, in order, when `when` holds as it starts —
+   * each enemy that has the move shows it as its next intent (the first Shade: Wail, then Rake, so Guard visibly halves the
+   * second); its own pattern then runs from its start.
+   */
+  forcedIntents: z.object({ when: ConditionSchema.optional(), moves: z.array(Id).min(1) }).strict().optional(),
 })
   .strict()
   .superRefine((e, ctx) => {

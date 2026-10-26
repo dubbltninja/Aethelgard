@@ -78,7 +78,8 @@ test.describe('combat', () => {
     await expect(attack).toBeFocused(); // the screen's first control takes focus
     // U73a: the stage's sprite carries the same name, so this reads the card's button
     await expect(page.locator('.combat__enemies').getByRole('button', { name: /^Target Corrupted Shade/ })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByRole('img', { name: /^Intent: Rake, physical, \d+ to \d+ damage, targeting you/ })).toBeVisible();
+    // U81a (D-121, DESIGN §16.8): Loop 1's first Shade opens with Wail (then Rake)
+    await expect(page.getByRole('img', { name: /^Intent: Wail, void, \d+ to \d+ damage, targeting you/ })).toBeVisible();
     await expect(page.getByRole('meter', { name: 'Corrupted Shade HP' })).toHaveAttribute('aria-valuenow', '36');
     await expect(page.getByRole('button', { name: /^F: Flee, \d+% chance/ })).toBeVisible();
 

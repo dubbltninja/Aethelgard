@@ -11,12 +11,12 @@
   "stopReason": "max_steps",
   "final": {
     "loop": 44,
-    "day": 1,
+    "day": 2,
     "level": 1,
     "mode": "explore",
     "locationId": "loc_whispering_ruins"
   },
-  "finalStateHash": "f80fbb48",
+  "finalStateHash": "336dcb0d",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"wizard","seed":"u79:fixture:2"},
     {"type":"unlockAbility","abilityId":"wiz_fireball"},
@@ -28,10 +28,8 @@
     {"type":"choose","choiceId":"yes"},
     {"type":"move","to":"loc_shattered_library"},
     {"type":"ability","abilityId":"wiz_fireball","targetUid":"c7"},
-    {"type":"ability","abilityId":"wiz_fireball","targetUid":"c7"},
     {"type":"ability","abilityId":"wiz_fireball","targetUid":"c8"},
-    {"type":"ability","abilityId":"wiz_fireball","targetUid":"c8"},
-    {"type":"ability","abilityId":"wiz_fireball","targetUid":"c8"},
+    {"type":"attack","targetUid":"c8"},
     {"type":"takeAll"},
     {"type":"allocateStat","stat":"magic"},
     {"type":"unlockAbility","abilityId":"wiz_echo_bolt"},
@@ -1517,6 +1515,8 @@
     {"type":"acceptQuest","questId":"q_echo_crystal"},
     {"type":"choose","choiceId":"yes"},
     {"type":"talk","npcId":"npc_ilyra"},
-    {"type":"choose","choiceId":"yes"}
+    {"type":"choose","choiceId":"yes"},
+    {"type":"move","to":"loc_chronos_nexus"},
+    {"type":"flee"}
   ]
 }

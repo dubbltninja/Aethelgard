@@ -384,3 +384,24 @@
 :root[data-theme="high-contrast"] .npc-sigil__warmth {
   display: none;
 }
+
+/* U62a: a line whose words are in a text chunk still on its way (src/ui/text/TextLoading.tsx; also the codex and the
+   ending slides). Quiet: a dim ellipsis that breathes, still under reduced motion. */
+.text-loading {
+  color: var(--text-muted);
+  min-height: 1.55em;
+}
+
+.text-loading__dots {
+  display: inline-block;
+  animation: text-loading-breathe 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes text-loading-breathe {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-loading__dots { animation: none; }
+}

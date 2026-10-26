@@ -33,6 +33,7 @@ import { PANEL_KEYS, PANEL_TITLES, legalPanels, type PanelId } from './panels/pa
 import { ShellContext, type ConfirmOptions, type ShellApi } from './shellContext';
 import type { GameStore } from './store/gameStore';
 import { useGame, useGameEvents, useNotices, useProfile, useStore } from './store/useGame';
+import { useProsePreload } from './text/prose';
 import { applyRootAttributes, documentTitle } from './theme';
 
 interface PendingConfirm {
@@ -63,6 +64,10 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
   useEffect(() => {
     document.title = documentTitle(mode, place);
   }, [mode, place]);
+
+  // ---- text chunks (U62a): the region's conversations and the endings, loaded ahead of need ----
+  const regionId = useGame((s) => (s.mode === 'title' ? null : (store.getContent().locations[s.world.currentLocationId]?.regionId ?? null)));
+  useProsePreload(regionId);
 
   // ---- focus: a new screen takes focus, so screen readers announce it (sub-views use useViewFocus) ----
   useEffect(() => {

@@ -22,6 +22,7 @@ import {
 import type { DialogueChoice, DialogueNode } from '@schema/dialogue';
 import type { SigilSpec } from '../art/CreatureSigil';
 import { legalSet } from './exploreModel';
+import { proseText, type ProseResolver } from '../text/prose';
 
 type Pr = Readonly<Profile>;
 type ChoiceTag = DialogueChoice['tags'][number];
@@ -156,7 +157,7 @@ export interface BacklogLine {
  * The nodes of the open scene already passed, oldest first, with the answer taken at each (read from the dialogue state's
  * `visitedNodes` and `choicesTaken`, so a reloaded save still has its back-log). Variants are read as they hold now.
  */
-export function backlog(state: GameState, content: ContentPack, profile: Pr): BacklogLine[] {
+export function backlog(state: GameState, content: ContentPack, profile: Pr, text: ProseResolver = proseText): BacklogLine[] {
   const d = state.dialogue;
   const scene = d === null ? undefined : content.dialogues[d.sceneId];
   if (d === null || scene === undefined) return [];
@@ -170,7 +171,7 @@ export function backlog(state: GameState, content: ContentPack, profile: Pr): Ba
     out.push({
       key: nodeId,
       speaker: speakerModel(speakerOf(state, node), state, content),
-      text: nodeText(state, profile, content, node),
+      text: text(nodeText(state, profile, content, node)) ?? '…',
       chose: choice?.text ?? null,
     });
   }
@@ -188,7 +189,10 @@ export interface DialogueModel {
   place: string;
   regionId: string;
   speaker: SpeakerModel;
+  /** The line ('' while `loading`). */
   text: string;
+  /** U62a: the line's words are in a text chunk still on its way (the view shows a quiet loading line). */
+  loading: boolean;
   mood: Mood;
   choices: ChoiceRow[];
   /** A node with nothing to answer: its Continue button. */
@@ -213,8 +217,14 @@ function listenerOf(state: GameState, content: ContentPack): DialogueModel['list
       : { name: def.name, sigil: npc.portrait.sigil, accent: npc.portrait.accent, npcId: npc.id };
 }
 
+/** U62a: the open node's text as the pack holds it (a text-chunk reference in a split build): the container loads its chunk. */
+export function rawLine(state: GameState, content: ContentPack, profile: Pr): string | null {
+  const node = state.mode === 'dialogue' ? currentNode(state, content) : undefined;
+  return node === undefined ? null : nodeText(state, profile, content, node);
+}
+
 /** The screen's model, or null when no scene is open (or its scene is no longer in the pack: an old save). */
-export function dialogueModel(state: GameState, content: ContentPack, profile: Pr, legal: readonly Action[]): DialogueModel | null {
+export function dialogueModel(state: GameState, content: ContentPack, profile: Pr, legal: readonly Action[], text: ProseResolver = proseText): DialogueModel | null {
   const d = state.dialogue;
   if (d === null || state.mode !== 'dialogue') return null;
   const loc = content.locations[state.world.currentLocationId];
@@ -230,6 +240,7 @@ export function dialogueModel(state: GameState, content: ContentPack, profile: P
       regionId,
       speaker: NARRATOR,
       text: APEX_PROMPT_TEXT,
+      loading: false,
       mood: 'grim',
       choices: apexChoices(legal),
       canContinue: false,
@@ -243,6 +254,7 @@ export function dialogueModel(state: GameState, content: ContentPack, profile: P
   if (scene === undefined || node === undefined) return null;
   const speaker = speakerModel(speakerOf(state, node), state, content);
   const talkedTo = d.npcId === null ? null : (content.npcs[d.npcId]?.name ?? null);
+  const line = text(nodeText(state, profile, content, node));
   return {
     sceneId: scene.id,
     nodeId: node.id,
@@ -250,12 +262,13 @@ export function dialogueModel(state: GameState, content: ContentPack, profile: P
     place,
     regionId,
     speaker,
-    text: nodeText(state, profile, content, node),
+    text: line ?? '',
+    loading: line === null,
     mood: node.mood,
     choices: contentChoices(state, content, profile),
     canContinue: legalSet(legal)({ type: 'continue' }),
     endsScene: node.next === undefined || node.next === 'end',
-    backlog: backlog(state, content, profile),
+    backlog: backlog(state, content, profile, text),
     listener,
   };
 }

@@ -13,6 +13,9 @@ import { useListNav } from '../hooks/useListNav';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { sharedCodexReadStore, takeCodexRequest } from '../store/codexRead';
 import { useContent, useProfile } from '../store/useGame';
+import { useProse } from '../text/prose';
+import { TextLoading } from '../text/TextLoading';
+import { CODEX_CHUNK } from '@content/prose';
 import { NO_FILTER, codexModel, inlineRuns, rowName, type Category, type CodexFilter, type CodexModel, type CodexRow, type Voice } from './codexModel';
 
 export interface CodexViewProps {
@@ -69,11 +72,15 @@ export function EntryDetail({ row, onSelect }: { row: CodexRow; onSelect: (id: s
         {row.title}
       </h3>
       <div className="codex-entry__body">
-        {row.paragraphs.map((p, i) => (
-          <p key={i}>
-            <Runs text={p} />
-          </p>
-        ))}
+        {row.loading ? (
+          <TextLoading />
+        ) : (
+          row.paragraphs.map((p, i) => (
+            <p key={i}>
+              <Runs text={p} />
+            </p>
+          ))
+        )}
       </div>
       {row.source === null ? null : <p className="codex-entry__source">{row.source}</p>}
       {row.related.length === 0 ? null : (
@@ -197,7 +204,9 @@ export function CodexPanel(): ReactNode {
   const [view, setView] = useState<LoreView>(() => (selected === null ? 'list' : 'detail'));
   const narrow = useMediaQuery(NARROW_QUERY);
   const rootRef = useRef<HTMLDivElement>(null);
-  const model = useMemo(() => codexModel(content, profile, read, filter), [content, profile, read, filter]);
+  // U62a: the bodies live in the codex text chunk, loaded when the panel opens; its arrival re-runs the model
+  const prose = useProse([], [CODEX_CHUNK]);
+  const model = useMemo(() => codexModel(content, profile, read, filter), [content, profile, read, filter, prose]);
   const chosen = model.shown.find((r) => r.id === selected) ?? model.shown[0] ?? null;
   useListNav(rootRef, '[data-list-item]', 'Codex');
   useLoreFocus(rootRef, view, narrow);

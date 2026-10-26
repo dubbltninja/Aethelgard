@@ -6,11 +6,15 @@
 import { endingSlides, evaluate, type Action, type ContentPack, type GameState, type Profile } from '@engine/index';
 import { panelAction, type PanelAction } from '../panels/panelAction';
 import { cap, factionName, idWords, outcomeText, type OutcomeText } from './runSummaryModel';
+import { proseText, type ProseResolver } from '../text/prose';
 
 export type SlideKind = 'lead' | 'scene' | 'epilogue';
 
 export interface EndingSlide {
+  /** The slide's words ('' while `loading`). */
   text: string;
+  /** U62a: the words are in the endings text chunk still on its way (the view shows a quiet loading line). */
+  loading: boolean;
   kind: SlideKind;
   /** "Epilogue · Brak" for an epilogue with a subject; null otherwise. */
   label: string | null;
@@ -29,24 +33,31 @@ function subjectName(subject: string, content: ContentPack): string | null {
   return content.locations[subject]?.name ?? (subject.includes('_') ? idWords(subject) : cap(subject));
 }
 
-/** The slides with their kinds. Its texts are exactly the engine's `endingSlides` (a test holds the two together). */
-export function endingSlideList(s: GameState, content: ContentPack, profile: Readonly<Profile>): EndingSlide[] {
+/**
+ * The slides with their kinds. Its texts are exactly the engine's `endingSlides` (a test holds the two together), read
+ * through the text chunks (U62a: a split build's slides are references until the endings chunk is loaded).
+ */
+export function endingSlideList(s: GameState, content: ContentPack, profile: Readonly<Profile>, resolve: ProseResolver = proseText): EndingSlide[] {
   const pending = s.pendingEnding;
   if (pending === null) return [];
+  const words = (raw: string): { text: string; loading: boolean } => {
+    const found = resolve(raw);
+    return found === null ? { text: '', loading: true } : { text: found, loading: false };
+  };
   const texts = endingSlides(s, content, profile);
   const def = content.endings[pending.outcome];
   if (def === undefined) {
     // No record in the pack: the engine's own lines (a closer's last threshold, then the shear)
-    return texts.map((text, i) => ({ text, kind: i === 0 ? 'lead' : 'scene', label: null, mood: null }));
+    return texts.map((text, i) => ({ ...words(text), kind: i === 0 ? 'lead' : 'scene', label: null, mood: null }));
   }
   const lead = pending.outcome === 'closer_fall' ? 1 : 0;
   const out: EndingSlide[] = [];
-  if (lead === 1) out.push({ text: texts[0] ?? '', kind: 'lead', label: null, mood: null });
-  for (const seq of def.sequence) out.push({ text: seq.text, kind: 'scene', label: null, mood: seq.mood ?? seq.art ?? null });
+  if (lead === 1) out.push({ ...words(texts[0] ?? ''), kind: 'lead', label: null, mood: null });
+  for (const seq of def.sequence) out.push({ ...words(seq.text), kind: 'scene', label: null, mood: seq.mood ?? seq.art ?? null });
   for (const ep of def.epilogues) {
     if (ep.when !== undefined && !evaluate(ep.when, s, profile, content)) continue;
     const who = subjectName(ep.subject, content);
-    out.push({ text: ep.text, kind: 'epilogue', label: who === null ? 'Epilogue' : `Epilogue · ${who}`, mood: null });
+    out.push({ ...words(ep.text), kind: 'epilogue', label: who === null ? 'Epilogue' : `Epilogue · ${who}`, mood: null });
   }
   return out;
 }
@@ -73,10 +84,10 @@ export interface EndingModel {
   advance: PanelAction;
 }
 
-export function endingModel(s: GameState, content: ContentPack, profile: Readonly<Profile>, isLegal: (a: Action) => boolean): EndingModel | null {
+export function endingModel(s: GameState, content: ContentPack, profile: Readonly<Profile>, isLegal: (a: Action) => boolean, resolve: ProseResolver = proseText): EndingModel | null {
   const pending = s.pendingEnding;
   if (pending === null) return null;
-  const slides = endingSlideList(s, content, profile);
+  const slides = endingSlideList(s, content, profile, resolve);
   if (slides.length === 0) return null;
   const index = Math.min(Math.max(0, pending.slideIndex), slides.length - 1);
   const slide = slides[index] as EndingSlide;

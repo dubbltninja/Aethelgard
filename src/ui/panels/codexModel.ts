@@ -2,11 +2,13 @@
 // has unlocked, by category and by voice (D-020: the Remnant Archive, the Ironclad Telling, the Weaver Fragments and the
 // Wayfinder's Notes each read differently), the ones not yet found as silhouettes with a hint that spoils nothing, which
 // are new, where an opened entry came from, and the entries it points to. An entry is unlocked when the profile lists it
-// (the `unlockCodex` effect, which Echoes and scenes apply) or the content marks it unlocked at the start; `unlockWhen`
-// is documentation of the trigger and is read only to word the source and the hint. Pure.
+// or the content marks it unlocked at the start. The engine puts it in the profile (U62a, D-131): its `unlockWhen` is
+// evaluated at the end of every step (engine/codexUnlock.ts), and an entry without one unlocks only through the
+// `unlockCodex` effect that Echoes and scenes apply. Here `unlockWhen` is read only to word the source and the hint. Pure.
 import type { ContentPack, Profile } from '@engine/index';
 import type { Condition } from '@schema/condition';
 import { CODEX_CATEGORIES, type CodexEntry } from '@schema/codex';
+import { proseText, type ProseResolver } from '../text/prose';
 
 type Pr = Readonly<Profile>;
 export type Voice = CodexEntry['voice'];
@@ -58,8 +60,10 @@ export interface CodexRow {
   /** Unlocked and not yet opened. */
   isNew: boolean;
   date: string | null;
-  /** Paragraphs of the body (blank-line separated); empty while locked. */
+  /** Paragraphs of the body (blank-line separated); empty while locked or `loading`. */
   paragraphs: string[];
+  /** U62a: unlocked, and its body is in the codex text chunk still on its way (the view shows a quiet loading line). */
+  loading: boolean;
   /** "Learned through: …" for an unlocked entry whose trigger the profile can name. */
   source: string | null;
   /** A hint for a locked entry; it names no Echo, quest or place. */
@@ -146,8 +150,9 @@ export function inlineRuns(text: string): { text: string; em: boolean }[] {
     .map((part) => (part.startsWith('*') && part.endsWith('*') && part.length > 2 ? { text: part.slice(1, -1), em: true } : { text: part, em: false }));
 }
 
-export function codexRow(entry: CodexEntry, content: ContentPack, profile: Pr, read: ReadonlySet<string>): CodexRow {
+export function codexRow(entry: CodexEntry, content: ContentPack, profile: Pr, read: ReadonlySet<string>, text: ProseResolver = proseText): CodexRow {
   const unlocked = isUnlocked(entry, profile);
+  const body = unlocked ? text(entry.body) : null;
   return {
     id: entry.id,
     title: unlocked ? entry.title : null,
@@ -159,7 +164,8 @@ export function codexRow(entry: CodexEntry, content: ContentPack, profile: Pr, r
     unlocked,
     isNew: unlocked && !read.has(entry.id),
     date: unlocked ? (entry.date ?? null) : null,
-    paragraphs: unlocked ? paragraphsOf(entry.body) : [],
+    paragraphs: body === null ? [] : paragraphsOf(body),
+    loading: unlocked && body === null,
     source: unlocked ? unlockSource(entry, profile, content) : null,
     hint: unlocked ? null : unlockHint(entry),
     related: unlocked
@@ -191,12 +197,12 @@ export interface CodexModel {
   voices: { id: Voice | 'all'; label: string; found: number; total: number }[];
 }
 
-export function codexModel(content: ContentPack, profile: Pr, read: ReadonlySet<string>, filter: CodexFilter = NO_FILTER): CodexModel {
+export function codexModel(content: ContentPack, profile: Pr, read: ReadonlySet<string>, filter: CodexFilter = NO_FILTER, text: ProseResolver = proseText): CodexModel {
   const catOrder = new Map<string, number>(CODEX_CATEGORIES.map((c, i) => [c, i]));
   const rows = Object.values(content.codex)
     .filter((e): e is CodexEntry => e !== undefined)
     .sort((a, b) => (catOrder.get(a.category) ?? 0) - (catOrder.get(b.category) ?? 0) || a.order - b.order || a.title.localeCompare(b.title))
-    .map((e) => codexRow(e, content, profile, read));
+    .map((e) => codexRow(e, content, profile, read, text));
   const keep = (r: CodexRow): boolean => (filter.category === 'all' || r.category === filter.category) && (filter.voice === 'all' || r.voice === filter.voice);
   const count = (pick: (r: CodexRow) => boolean): { found: number; total: number } => {
     const list = rows.filter(pick);

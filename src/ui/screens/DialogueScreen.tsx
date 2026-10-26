@@ -31,7 +31,9 @@ import { useHotkeys } from '../hooks/useHotkeys';
 import { useReducedMotion } from '../hooks/useMediaQuery';
 import { useViewFocus } from '../hooks/useViewFocus';
 import { useContent, useGame, useLegal, useProfile, useStore } from '../store/useGame';
-import { choiceName, dialogueModel, type BacklogLine, type ChoiceRow, type DialogueModel, type SpeakerModel } from './dialogueModel';
+import { useProse } from '../text/prose';
+import { TextLoading } from '../text/TextLoading';
+import { choiceName, dialogueModel, rawLine, type BacklogLine, type ChoiceRow, type DialogueModel, type SpeakerModel } from './dialogueModel';
 
 const TAG_ICONS: Readonly<Record<string, IconKind>> = { echo: 'echo', class: 'ability', faction: 'crown', companion: 'npc' };
 
@@ -198,7 +200,11 @@ export function DialogueView({ model, backdrop = null, reducedMotion = true, onC
           <div className="dialogue__body">
             <div className="dialogue__line" aria-live="polite" aria-atomic="true" data-mood={model.mood} data-speaker-kind={speaker.kind}>
               {speaker.name === null ? null : <p className="dialogue__speaker">{speaker.name}</p>}
-              <p className="dialogue__text">{model.text}</p>
+              {model.loading ? (
+                <TextLoading className="dialogue__text" />
+              ) : (
+                <p className="dialogue__text">{model.text}</p>
+              )}
             </div>
             {anyChoices ? (
               <ul className="choice-list" aria-label="Your answers">
@@ -247,7 +253,9 @@ export function DialogueScreen(): ReactNode {
   const legal = useLegal();
   const reducedMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
-  const model = useMemo(() => dialogueModel(state, content, profile, legal), [state, content, profile, legal]);
+  // U62a: the line's words may be in a text chunk; the cache version re-runs the model when it lands
+  const prose = useProse([rawLine(state, content, profile)]);
+  const model = useMemo(() => dialogueModel(state, content, profile, legal), [state, content, profile, legal, prose]);
   const backdrop = useBackdrop(content.locations[state.world.currentLocationId], state.world.heartstone, content.locations);
   useViewFocus(rootRef, model === null ? 'lost' : `${model.sceneId}:${model.nodeId}`);
 

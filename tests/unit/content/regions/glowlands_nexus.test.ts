@@ -287,8 +287,10 @@ describe('the three locations vs WORLD §3.5 blocks', () => {
   test('events: every WORLD event, its text verbatim, legacy ids with the ev_ prefix, once; WORLD’s conditions and grants', () => {
     // U58: the Apex's two arrival scenes (the Tyrant's first words; the Weaver's Dawn) fire on every arrival (their own test holds them)
     const U58_EVENTS = ['ev_apex_first_words', 'ev_apex_dawn'];
+    // U62b: the Breach-door remembered (STORY §12 `echo_breach_door`; tests/unit/content/echoHooks.test.ts holds it)
+    const U62B_EVENTS = ['ev_nexus_breach_door'];
     for (const l of parsedLocations) {
-      const got = Object.fromEntries(l.events.filter((e) => !U58_EVENTS.includes(e.id)).map((e) => [e.id, e.text]));
+      const got = Object.fromEntries(l.events.filter((e) => !U58_EVENTS.includes(e.id) && !U62B_EVENTS.includes(e.id)).map((e) => [e.id, e.text]));
       const expected = Object.fromEntries(Object.entries(WL[l.id]?.events ?? {}).map(([id, text]) => [id.startsWith('ev_') ? id : `ev_${id}`, text]));
       expect([l.id, got]).toEqual([l.id, expected]);
       for (const e of l.events) expect([e.id, e.trigger, e.once]).toEqual([e.id, 'enter', !U58_EVENTS.includes(e.id)]);
@@ -396,7 +398,8 @@ describe('WORLD §11 map data', () => {
     const exit = (from: string, to: string) => loc(from).exits.find((e) => e.to === to)?.when;
     expect(exit(NEXUS, APEX)).toEqual(worldCondition(gates['gate_apex'] ?? ''));
     expect(exit(NEXUS, APEX)).toEqual(gameConfig.apexGate);
-    expect(exit(NEXUS, 'loc_silver_gate')).toEqual(worldCondition(gates['gate_breach_door'] ?? ''));
+    // U62b (STORY §12 `echo_breach_door`: "Route to Silverwood Before"): WORLD's condition, or the Echo from Loop 2
+    expect(exit(NEXUS, 'loc_silver_gate')).toEqual({ any: [worldCondition(gates['gate_breach_door'] ?? ''), { all: [{ loop: { min: 2 } }, { echo: 'echo_breach_door' }] }] });
     expect(exit(APEX, 'loc_conflux_chamber')).toEqual(worldCondition(gates['gate_tyrant_tear'] ?? ''));
   });
 
@@ -861,7 +864,15 @@ describe('the Unveiled Tyrant’s communion vs DESIGN §4.11, WORLD §6.8’s ta
     const e = (echo: string, resolve = 1) => [echo.replace('echo_', ''), { echo }, resolve, false];
     expect(answers).toEqual({
       // U58: every Echo-only question also takes silence (+0, STORY §8.2 "it falls silent at the gaps"); Movement III below 3 can be given up
-      tyr_q_why: [e('echo_tyrant_jailer'), ['to_kill_you', { all: [] }, 1, false], ['lie_lost', { all: [] }, -2, true], e('echo_tyrant_never_struck')],
+      // U62b (STORY §12: `echo_ninth_verse_unfinished` "Communion Movement I answer", `echo_breach_recoil` "answers Vell in communion")
+      tyr_q_why: [
+        e('echo_tyrant_jailer'),
+        ['to_kill_you', { all: [] }, 1, false],
+        ['lie_lost', { all: [] }, -2, true],
+        e('echo_tyrant_never_struck'),
+        e('echo_ninth_verse_unfinished'),
+        e('echo_breach_recoil'),
+      ],
       tyr_q_hour: [e('echo_thirtieth_dawn'), ['hour_silence', { all: [] }, 0, false]],
       tyr_q_before: [e('echo_seven_wayfinders'), ['before_silence', { all: [] }, 0, false]],
       tyr_q_korr: [e('echo_litany_verse_2'), e('echo_korr_marginalia'), ['corruption', { corruption: { min: 3 } }, 1, false], ['korr_silence', { all: [] }, 0, false]],

@@ -46,7 +46,9 @@ const pack = buildContentPack();
 const parsedLocations: Location[] = locations.map((l) => LocationSchema.parse(l));
 const parsedCreatures: Creature[] = creatures.map((c) => CreatureSchema.parse(c));
 /** U59 hooked the class mini-quests on interacts here: the Ranger's ground at the Path, the Warden's gap at the Camp (tests/unit/content/quests/classes.test.ts pins them). */
-const U59_HOOKS = ['ev_mistwood_read_ground', 'ev_camp_barricade_gap'];
+/** U62b hooked D-127's `echo_emberforge_vein` on the Emberforge: the visits counted, the third shows the vein, the vein worked (tests/unit/content/echoHooks.test.ts pins them). */
+const U62B_HOOKS = ['ev_forge_vein_shown', 'ev_forge_regular', 'ev_forge_vein', 'ev_forge_vein_known'];
+const U59_HOOKS = ['ev_mistwood_read_ground', 'ev_camp_barricade_gap', ...U62B_HOOKS];
 const byId = <T extends { id: string }>(rows: readonly T[], id: string): T => {
   const found = rows.find((r) => r.id === id);
   if (!found) throw new Error(`no record ${id}`);
@@ -820,7 +822,7 @@ describe('the real pack with the region registered (D-090)', () => {
     const text = out.join('\n');
     expect(text).toMatch(/ regions \d+ · locations \d+ · creatures \d+ · /);
     expect(text).not.toMatch(/pending rule-01: /); // U61: the codex was the last table a region referred to; nothing is pending now
-    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
+    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)$/m);
   });
 
   test('this region’s pending references name only ids WORLD/STORY/DESIGN spell (other regions’ locations, items, quests, Echoes, the Husk, codex entries); the Ruins and the Path now resolve', () => {

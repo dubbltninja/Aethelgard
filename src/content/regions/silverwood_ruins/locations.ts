@@ -65,6 +65,14 @@ export const locations = [
         text: 'The crystals in the trees go dark one by one. Somewhere east, something lets go.',
         when: { all: [{ watch: 'dusk' }, { clock: { daysLeft: { max: 0 } } }] },
       },
+      // U62 (STORY §13 `scene_waking_loop_2`): Loop 2's first arrival — the twist lands (shared/dialogues/scenes.ts). Last, since a
+      // scene ends the arrival's events; the engine leaves the Amulet's line to it in this loop (reducers/loop.ts `beginLoop`).
+      {
+        id: 'ev_ruins_waking',
+        text: 'The Amulet of Echoes is warm against your throat. You did not pick it up. It is simply there, as it was, as it will be. Your hands remember a portal. The stones remember nothing.',
+        when: { loop: { min: 2, max: 2 } },
+        effects: [{ startDialogue: 'scene_waking_loop_2' }],
+      },
     ],
     art: { template: 'ruins', horizon: 0.62, silhouettes: ['crystal_tree', 'tablet_row', 'half_arch'], particles: 'motes', timeOfDay: 'dusk' },
     rest: { kind: 'camp', text: 'You make camp beneath the twisted trees. The whispers keep you company.' },
@@ -218,6 +226,24 @@ export const locations = [
         id: 'ev_library_seam',
         text: 'The seam in the air widens a hair when you look at it. It knows you.',
         when: { all: [{ loop: { min: 2 } }, { not: { flag: 'flag_horde_active' } }] },
+      },
+      // U62b (STORY §5.1, §12 `echo_amulet_memory` "Listen action"; `echo_crystal_seeded`: "Listen in the Library yields
+      // `echo_nine_voices` whether or not the Crystal was kept"): the Amulet's *Listen* here, once the Crystal was told in the Before
+      {
+        id: 'ev_library_listen',
+        trigger: 'interact',
+        label: 'Listen',
+        text: 'You hold the Amulet to the dark where the Crystal lay. It answers before you ask: it knows your voice, because you told it. Nine voices, one over another, and the last of them still reading.',
+        when: {
+          all: [
+            { loop: { min: 2 } },
+            { echo: 'echo_amulet_memory' },
+            { echo: 'echo_crystal_seeded' },
+            { not: { echo: 'echo_nine_voices' } },
+            { not: { flag: 'flag_horde_active' } },
+          ],
+        },
+        effects: [{ grantEcho: 'echo_nine_voices' }],
       },
     ],
     art: {

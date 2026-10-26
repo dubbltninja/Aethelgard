@@ -17,8 +17,6 @@ import type { TableName } from '@schema/contentPack';
 // was pending when the list was cut.
 // U61 (2026-10-25): `codex` is complete — STORY §14.1's 87 plus D-101's three (Codex I and II); no reference into it was
 // pending when the list was cut.
-export const INCOMPLETE_TABLES: readonly TableName[] = [
-  'dialogues',
-  'npcs',
-  'encounters',
-];
+// U62b (2026-10-26): `dialogues`, `npcs` and `encounters` are complete — STORY §13's 21 key scenes, D-127's Echoes all granted
+// and read (rule 16 strict); no reference into the three was pending when the list was cut. Every content table is complete.
+export const INCOMPLETE_TABLES: readonly TableName[] = [];

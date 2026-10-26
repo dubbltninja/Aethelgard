@@ -24,10 +24,16 @@
 //
 // Engine-granted Echoes are granted only when the pack defines them (`grantKnownEcho`), so a partial pack never
 // carries an Echo id it cannot describe.
+//
+// U62 (STORY §13's key scenes): a pack that carries `scene_tyrant_defeat` has the defeat sequence said by that scene — the
+// hook opens it after Brak's stand and the Horde's start, and logs none of `HORDE_TEXT`'s lines (the scene carries them
+// verbatim, with its Loop 2+ line and the choice to stay and watch Brak's stand). Likewise `scene_ilyra_portal` replaces
+// the trimmed `ilyraAtPortal` line on arrival: Ilyra says the whole of it when spoken to. A pack without them (the test
+// fixtures) keeps the engine's lines.
 import type { Exit } from '@schema/location';
 import { evaluate } from './conditions';
 import type { ContentPack, StepCtx } from './ctx';
-import { apply, locationState } from './effects';
+import { apply, locationState, openScene } from './effects';
 import type { Enumerator } from './legalActions';
 import type { ArrivalHook } from './reducers/explore';
 import type { PostStepHook } from './step';
@@ -62,6 +68,13 @@ export const ILYRA_NPC_ID = 'npc_ilyra';
 export const ECHO_HORDE_PATH = 'echo_horde_path';
 export const ECHO_BRAK_DEATH = 'echo_brak_death';
 export const ECHO_BRAK_LIVES = 'echo_brak_lives';
+/** STORY §12 `echo_ilyra_cost`: "watch the Library fall after passing the portal (2+)" — the portal, from Loop 2, while she holds it. */
+export const ECHO_ILYRA_COST = 'echo_ilyra_cost';
+/** STORY §13's `scene_tyrant_defeat` and `scene_ilyra_portal` (U62): when the pack has them, they say the Horde's lines. */
+export const TYRANT_DEFEAT_SCENE = 'scene_tyrant_defeat';
+export const PORTAL_SCENE = 'scene_ilyra_portal';
+/** `counters.custom` mirror of the tomes read this loop (reducers/inventory.ts), for content's `{ counter: { name } }`. */
+export const SPELLBOOKS_READ_COUNTER = 'spellbooks_read';
 /** WORLD §10.7: the spread never reaches the Before or the Threshold (they lie behind portal edges). */
 export const NEVER_INFECTED_REGIONS: readonly string[] = ['region_silverwood_before', 'region_threshold'];
 /**
@@ -183,21 +196,23 @@ function brakStand(ctx: StepCtx): void {
  * defeated, plays the legacy defeat sequence (Brak's stand where it applies) and starts the Horde with the legacy delay.
  */
 export const hordePostStep: PostStepHook = (ctx) => {
-  const { s } = ctx;
+  const { s, content } = ctx;
   if (s.flags[FLAG_TYRANT_DEAD] !== true || s.world.tyrant === 'defeated' || s.combat !== null || s.mode !== 'explore') return;
   s.world.tyrant = 'defeated';
   ctx.emit({ t: 'tyrantResolved', outcome: 'defeated' });
-  for (const line of HORDE_TEXT.tyrantFalls) ctx.log(line, 'event');
+  const scripted = content.dialogues[TYRANT_DEFEAT_SCENE] !== undefined; // U62: the scene says the lines
+  if (!scripted) for (const line of HORDE_TEXT.tyrantFalls) ctx.log(line, 'event');
   const brak = brakComesToApex(s);
-  if (brak) ctx.log(HORDE_TEXT.brakArrives, 'event');
-  for (const line of HORDE_TEXT.collapse) ctx.log(line, 'event');
+  if (brak && !scripted) ctx.log(HORDE_TEXT.brakArrives, 'event');
+  if (!scripted) for (const line of HORDE_TEXT.collapse) ctx.log(line, 'event');
   if (brak) {
     brakStand(ctx);
-    for (const line of HORDE_TEXT.brakSpeech) ctx.log(line, 'dialogue');
+    if (!scripted) for (const line of HORDE_TEXT.brakSpeech) ctx.log(line, 'dialogue');
   }
   const fresh = !s.world.hordeActive;
   startHorde(ctx, 'tyrant', TYRANT_HORDE_DELAY);
-  if (fresh && !brak) ctx.log(HORDE_TEXT.portalPulse, 'event');
+  if (scripted) openScene(ctx, TYRANT_DEFEAT_SCENE);
+  else if (fresh && !brak) ctx.log(HORDE_TEXT.portalPulse, 'event');
 };
 
 // ---- spread ---------------------------------------------------------------------------------------------------------
@@ -303,7 +318,7 @@ export const hordeArrivalHook: ArrivalHook = (ctx, arrival) => {
     const library = locationState(ctx, PORTAL_LOCATION_ID);
     if (library.flags[MARK_ILYRA_BRIEFED] !== true) {
       library.flags[MARK_ILYRA_BRIEFED] = true;
-      ctx.log(HORDE_TEXT.ilyraAtPortal, 'dialogue');
+      if (ctx.content.dialogues[PORTAL_SCENE] === undefined) ctx.log(HORDE_TEXT.ilyraAtPortal, 'dialogue'); // U62: else she says it when spoken to
     }
   }
 };
@@ -325,6 +340,10 @@ export function enterPortalHandler(ctx: StepCtx): void {
   const why = portalProblem(ctx.s);
   if (why !== null) ctx.reject(why);
   ctx.emit({ t: 'portalEntered' });
+  // U62 (STORY §12): from Loop 2, passing the portal she holds is watching the Library fall — what the door costs (she holds
+  // it unless she walks beside you: the Library's own text, silverwood_ruins/locations.ts, and closer_escape's epilogue agree)
+  const holding = ctx.s.world.npcOverrides[ILYRA_NPC_ID]?.location === PORTAL_LOCATION_ID && ctx.s.companions.activeId !== 'ilyra';
+  if (ctx.s.meta.loop >= 2 && holding) grantKnownEcho(ctx, ECHO_ILYRA_COST, 'portal');
   apply({ endLoop: { closer: 'closer_escape' } }, ctx, { source: 'portal' });
 }
 

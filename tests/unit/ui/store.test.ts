@@ -8,6 +8,7 @@ import {
   memoryStorage,
   serializeSettingsMirror,
   slotKey,
+  step,
   type GameState,
   type StepFn,
   type StoragePort,
@@ -75,6 +76,30 @@ describe('dispatch', () => {
     expect(store.getState()).toBe(before);
     expect(changed).not.toHaveBeenCalled();
     expect(store.shell.newGame('Ann', 'no_such_class').ok).toBe(false);
+  });
+
+  test('U62b: a checkpoint reached while a scene is open (Loop 2’s waking) is written when the scene closes, once', () => {
+    const storage = memoryStorage();
+    // the real step, except `wait` opens a scene with a checkpoint (an arrival that opens one) and `continue` closes it
+    let base: GameState | null = null;
+    const fake: StepFn = (s, action, c, p) => {
+      if (action.type === 'wait' && base !== null) {
+        const dialogue = { sceneId: 'scene_x', nodeId: 'a', npcId: null, visitedNodes: [], choicesTaken: [], returnMode: 'explore' as const };
+        return { state: { ...base, mode: 'dialogue', dialogue }, profile: p, events: [{ t: 'autosaveCheckpoint', reason: 'arrival' }] } as never;
+      }
+      if (action.type === 'continue' && base !== null) return { state: { ...base, meta: { ...base.meta, playerName: 'After' } }, profile: p, events: [] };
+      return step(s, action, c, p);
+    };
+    const { store } = started({ step: fake }, storage);
+    base = store.getState();
+    storage.removeItem(slotKey('auto'));
+    store.dispatch({ type: 'wait' });
+    expect(storage.getItem(slotKey('auto'))).toBeNull(); // not inside the scene
+    store.dispatch({ type: 'continue' });
+    expect(storage.getItem(slotKey('auto'))).toContain('"playerName":"After"');
+    storage.removeItem(slotKey('auto'));
+    store.dispatch({ type: 'continue' });
+    expect(storage.getItem(slotKey('auto'))).toBeNull(); // written once
   });
 
   test('autosave off: checkpoints write nothing', () => {

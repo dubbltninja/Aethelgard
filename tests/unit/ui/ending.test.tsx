@@ -98,6 +98,19 @@ describe('a true ending', () => {
     expect(last.newGamePlus).toMatchObject({ id: 'new-game-plus', danger: true, enabled: true });
     expect(last.newGamePlus?.confirm).toContain('You keep every Echo');
   });
+
+  test('U62b: each slide carries the painting its record names; an epilogue keeps the last scene’s, the Fall’s lead the first’s', () => {
+    const at = trueEndingAt();
+    const def = pack.endings[at.state.pendingEnding!.outcome]!;
+    const slides = endingSlideList(at.state, pack, at.profile);
+    const scenes = slides.filter((s) => s.kind === 'scene');
+    expect(scenes.map((s) => s.art)).toEqual(def.sequence.map((x) => x.art ?? null));
+    for (const s of slides.filter((x) => x.kind === 'epilogue')) expect(s.art).toBe(def.sequence.at(-1)?.art ?? null);
+    const fall = closerEndingAt();
+    const fallSlides = endingSlideList(fall.state, pack, fall.profile);
+    expect(fallSlides[0]?.art).toBe(pack.endings.closer_fall?.sequence[0]?.art ?? null);
+    expect(fallSlides.every((s) => s.art === 'loc_still_shore')).toBe(true);
+  });
 });
 
 describe('the Run Summary', () => {

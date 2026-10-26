@@ -38,12 +38,14 @@ import { dialogues as classes } from './classes';
 import { dialogues as companionsU54 } from './companions_u54';
 import { dialogues as companionsU55 } from './companions_u55';
 import { dialogues as companionsU56 } from './companions_u56';
+import { dialogues as echoHooks } from './echoes';
 import { dialogues as endings } from './endings';
 import { dialogues as factions } from './factions';
 import { dialogues as legacy } from './legacy';
 import { dialogues as loop } from './loop';
 import { dialogues as regional } from './regional';
+import { dialogues as scenes } from './scenes';
 import { dialogues as tyrant } from './tyrant';
 
-/** Every shared scene. U52: the legacy quests' scenes. U53: the faction chain quests' scenes. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs and camps. U56: Mireya's and Caelum's arcs and camps. U57: the regional quests' scenes. U58: the loop-only and ending quests' scenes, and the Tyrant's first words. U59: the five class mini-quests' scenes. */
-export const dialogues: readonly DialogueSceneInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56, ...regional, ...loop, ...endings, ...tyrant, ...classes];
+/** Every shared scene. U52: the legacy quests' scenes. U53: the faction chain quests' scenes. U54: Ilyra's and Brak's arcs. U55: Nyx's and Dask's arcs and camps. U56: Mireya's and Caelum's arcs and camps. U57: the regional quests' scenes. U58: the loop-only and ending quests' scenes, and the Tyrant's first words. U59: the five class mini-quests' scenes. U62: the key scenes no quest owns (the Tyrant's fall, Brak's stand, the portal, the waking, the thirtieth dawn) and the Horde's line. U62b: two scenes D-127's Echoes needed (Ferrin's trail-signs; the pin set alone). */
+export const dialogues: readonly DialogueSceneInput[] = [...legacy, ...factions, ...companionsU54, ...companionsU55, ...companionsU56, ...regional, ...loop, ...endings, ...tyrant, ...classes, ...scenes, ...echoHooks];

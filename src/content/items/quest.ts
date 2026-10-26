@@ -79,7 +79,7 @@ export const questItems = [
     type: 'quest',
     tier: 0,
     value: 0,
-    sources: ['craft:recipe_breach_anchor'],
+    sources: ['craft:recipe_breach_anchor', 'craft:recipe_breach_anchor_triune'],
     art: { icon: 'anchor' },
   },
   {

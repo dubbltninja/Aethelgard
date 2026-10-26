@@ -79,14 +79,15 @@ describe('the fixture pack', () => {
     expect(() => buildContentPack(broken, { validate: false })).not.toThrow();
   });
 
-  test('the real pack (regions still being authored, D-090) has no errors and passes strict with the rest pending', () => {
+  test('the real pack (complete since U62b, D-090) has no errors and passes strict with nothing pending', () => {
     const pack = buildContentPack(contentTables);
     expect(validateContent(pack, { incompleteTables: INCOMPLETE_TABLES }).errors).toEqual([]);
     const strict = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
     expect(strict.errors).toEqual([]);
     const pending = strict.warnings.filter((w) => w.message.startsWith('pending — content not yet authored'));
-    // U61: with the codex complete no reference into a table still being authored is pending; rule 16's Echo checks still are
-    expect(pending.length).toBeGreaterThan(0);
+    // U61: with the codex complete no reference into a table still being authored is pending; U62b: rule 16's Echo checks are
+    // done too (D-127's Echoes are all granted and read), so nothing is pending at all
+    expect(pending).toEqual([]);
     expect(pending.some((w) => w.message.startsWith('pending — content not yet authored (reference): '))).toBe(false);
     // the only real warnings are flags later units set (rule 2) and WORLD's deliberately out-of-band placements (rule 11)
     expect(strict.warnings.filter((w) => !pending.includes(w)).every((w) => w.rule === 'rule-02' || w.rule === 'rule-11')).toBe(true);
@@ -940,17 +941,19 @@ function run(argv: string[], tables?: Partial<ContentTables>): { code: number; o
 }
 
 describe('the validate CLI', () => {
-  test('the real pack is still being authored (D-090): strict, exit 0, completeness rules and references pending', () => {
+  test('the real pack is complete (D-090, U62b): strict, exit 0, nothing pending', () => {
     const { code, out } = run([]);
     expect(code).toBe(0);
     expect(out).toContain('validate: 22 rules, strict');
     expect(out).toMatch(/ locations [1-9]\d* · /); // U42 landed the first region
     // U61: the codex is complete, so rule-21 has no pending count left and no reference into a table still being authored is
     // pending; rule-16's Echo completeness checks (the Echoes still ungranted or unread, D-127) are the remaining pending lines
-    expect(out).toMatch(/pending rule-16: \d+ completeness check\(s\) — content not yet authored/);
+    // U62b: …and with D-127's Echoes all granted and read, rule-16 has none left either: nothing is pending
+    expect(out).not.toMatch(/pending rule-16: /);
+    expect(out).not.toContain('pending');
     expect(out).not.toMatch(/pending rule-21: /);
     expect(out).not.toMatch(/pending rule-01: /);
-    expect(out).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\) \(\d+ table\(s\) still being authored\)/);
+    expect(out).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)$/m);
     expect(out).not.toContain('  error ');
   });
 

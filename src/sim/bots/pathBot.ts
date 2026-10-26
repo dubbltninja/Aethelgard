@@ -155,9 +155,20 @@ function fight(t: Turn, step: { fight: FightPolicy }): Answer {
   return t.s.mode === 'combat' ? { act: fightAction(t) } : 'next';
 }
 
+/** The open dialogue is `who`'s: theirs by npc, or a scene in which they speak. */
+function voicedBy(t: Turn, who: string): boolean {
+  const d = t.s.dialogue;
+  if (d === null) return false;
+  if (d.npcId === who) return true;
+  return t.content.dialogues[d.sceneId]?.nodes.some((n) => n.speaker === who) ?? false;
+}
+
 function talk(t: Turn, step: { talk: string; pick: string[] }): Answer {
   const label = `talk ${step.talk}`;
   if (t.s.mode === 'dialogue') {
+    // U62: a dialogue that wandered in before the talk began and is not theirs (Loop 2's waking at the Ruins: nobody in it
+    // speaks as `step.talk`) is walked through; a scene they speak in is adopted (the Tyrant's first words, U58)
+    if (!t.p.talking && !voicedBy(t, step.talk)) return act(dialogueAction(t), `${label}: a dialogue offers no way on`);
     t.p.talking = true;
     const want = step.pick[t.p.k];
     const choice = want === undefined ? undefined : t.legal.find((a) => a.type === 'choose' && a.choiceId === want);

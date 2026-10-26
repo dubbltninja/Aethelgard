@@ -567,7 +567,14 @@ describe('the ten locations vs WORLD §3.11 blocks', () => {
     expect(pack.locations['loc_silverwood_plaza']?.events.find((e) => e.id === 'ev_plaza_bells_before')?.when).toEqual({ flag: 'flag_visited_before' });
     expect(pack.locations[APEX]?.events.find((e) => e.id === 'ev_apex_names')?.when).toEqual({ flag: 'flag_visited_before' });
     // the two options: the Library's "Loop 3+ option" and the Plaza's drawn weapon
-    const options = parsedLocations.flatMap((l) => l.events.filter((e) => e.trigger === 'interact').map((e) => [l.id, e.id, e.label, e.once, e.when, e.effects]));
+    // U62b (STORY §12 `echo_hadrek_clockwright`: "Hadrek in the Ninefold Hall, First Bell"): held on its own below
+    expect(ev(NH, 'ev_hall_hadrek')).toMatchObject({
+      trigger: 'interact',
+      label: 'Ask Hadrek about the orrery',
+      when: { all: [bell(1), { not: { echo: 'echo_hadrek_clockwright' } }] },
+      effects: [{ grantEcho: 'echo_hadrek_clockwright' }],
+    });
+    const options = parsedLocations.flatMap((l) => l.events.filter((e) => e.trigger === 'interact' && e.id !== 'ev_hall_hadrek').map((e) => [l.id, e.id, e.label, e.once, e.when, e.effects]));
     const attempt = (scene: string) => ({ all: [{ quest: { id: 'q_stop_the_ritual', stage: 'try' } }, { not: { flag: `flag_scene_done_${scene}` } }] });
     expect(options).toEqual([
       [GL, 'ev_library_cradle_seed', 'Tell it what it will hear', true, { loop: { min: 3 } }, [{ grantEcho: 'echo_crystal_seeded' }]],
@@ -583,6 +590,22 @@ describe('the ten locations vs WORLD §3.11 blocks', () => {
         false,
         { all: [{ quest: { id: 'q_the_mending', stage: 'crossing' } }, { companion: { id: 'caelum', state: 'active' } }, { not: { flag: 'flag_scene_done_scene_anchor_in_the_conflux' } }] },
         [{ startDialogue: 'scene_anchor_in_the_conflux' }],
+      ],
+      // U62b (STORY §12 `echo_caelum_stayed`): the pin set without him, after a loop in which he stayed
+      [
+        CX,
+        'ev_conflux_pin_alone',
+        'Stand at the rim alone',
+        false,
+        {
+          all: [
+            { quest: { id: 'q_the_mending', stage: 'crossing' } },
+            { echo: 'echo_caelum_stayed' },
+            { not: { companion: { id: 'caelum', state: 'active' } } },
+            { not: { flag: 'flag_scene_done_scene_pin_alone' } },
+          ],
+        },
+        [{ startDialogue: 'scene_pin_alone' }],
       ],
     ]);
     expect(WL[GL]?.block).toContain('— once; Loop 3+ option grants `echo_crystal_seeded`');
@@ -664,7 +687,8 @@ describe('WORLD §11 map data, reachability and traversal', () => {
     expect(exit(GT, NEXUS)).toEqual(worldCondition(gates['gate_breach_door_back'] ?? ''));
     expect(exit(CX, APEX)).toEqual(worldCondition(gates['gate_tyrant_tear_back'] ?? ''));
     // the doors in are U45's, with WORLD's conditions
-    expect(pack.locations[NEXUS]?.exits.find((x) => x.to === GT)?.when).toEqual(worldCondition(gates['gate_breach_door'] ?? ''));
+    // U62b (STORY §12 `echo_breach_door`: "Route to Silverwood Before"): WORLD's condition, or the Echo from Loop 2
+    expect(pack.locations[NEXUS]?.exits.find((x) => x.to === GT)?.when).toEqual({ any: [worldCondition(gates['gate_breach_door'] ?? ''), { all: [{ loop: { min: 2 } }, { echo: 'echo_breach_door' }] }] });
     expect(pack.locations[APEX]?.exits.find((x) => x.to === CX)?.when).toEqual(worldCondition(gates['gate_tyrant_tear'] ?? ''));
     // DESIGN §10.1: "The engine mirrors the day into `flag_before_day_1..3` … conditions read it as `{ beforeDay: n }`"
     expect(flat(DESIGN)).toContain('The engine mirrors the day into `flag_before_day_1..3` for WORLD\'s world-state variants; conditions read it as `{ beforeDay: n }`');
@@ -1150,7 +1174,7 @@ describe('the real pack with the region registered (D-090)', () => {
     expect(validateCli([], (line) => out.push(line))).toBe(0);
     const text = out.join('\n');
     expect(text).toMatch(/ regions \d+ · locations \d+ · creatures \d+ · /);
-    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
+    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)$/m);
   });
 
   test('this region’s pending references name only ids WORLD/STORY/DESIGN spell (items, quests, Echoes, the companion, the merchant, codex entries); the Nexus, the Apex and the Pillar resolve', () => {
@@ -1455,20 +1479,30 @@ describe('authored words outside the documents are few and short; coined ids are
       'enc_conflux_warden', 'enc_conflux_pillars',
     ]);
     const wordedEvents = new Set(Object.values(WL).flatMap((w) => Object.keys(w.events)));
-    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual(['ev_library_cradle_seed', 'ev_plaza_blade', 'ev_archives_fair_copy', 'ev_conflux_cradle', 'ev_conflux_pin']);
+    expect(parsedLocations.flatMap((l) => l.events.map((e) => e.id)).filter((id) => !wordedEvents.has(id))).toEqual([
+      'ev_library_cradle_seed', 'ev_plaza_blade', 'ev_hall_hadrek', 'ev_archives_fair_copy', 'ev_conflux_cradle', 'ev_conflux_pin', 'ev_conflux_pin_alone',
+    ]);
     const flags = ids(JSON.stringify(locations), 'flag').sort();
-    // the three `flag_scene_done_*` are C-58's engine-written scene flags (U58's attempts, once a loop each; the Mending's pin scene)
+    // the four `flag_scene_done_*` are C-58's engine-written scene flags (U58's attempts, once a loop each; the Mending's pin scene,
+    // with Caelum and, U62b, alone)
     expect(flags).toEqual([
       'flag_before_gate_whole',
       'flag_entered_before_via_apex',
       'flag_entered_before_via_nexus',
       'flag_scene_done_scene_anchor_in_the_conflux',
+      'flag_scene_done_scene_pin_alone',
       'flag_scene_done_scene_ritual_break_cradle',
       'flag_scene_done_scene_ritual_steal_record',
       'flag_visited_before',
       'flag_wanted_in_silverwood',
     ]);
-    expect(flags.filter((f) => !WORLD.includes(f))).toEqual(['flag_before_gate_whole', 'flag_scene_done_scene_anchor_in_the_conflux', 'flag_scene_done_scene_ritual_break_cradle', 'flag_scene_done_scene_ritual_steal_record']);
+    expect(flags.filter((f) => !WORLD.includes(f))).toEqual([
+      'flag_before_gate_whole',
+      'flag_scene_done_scene_anchor_in_the_conflux',
+      'flag_scene_done_scene_pin_alone',
+      'flag_scene_done_scene_ritual_break_cradle',
+      'flag_scene_done_scene_ritual_steal_record',
+    ]);
     expect(cr(WARDEN).phases.map((p) => p.id)).toEqual(['uw_keep_the_line', 'uw_without_fear', 'uw_the_last_order']);
     for (const c of parsedCreatures) for (const id of Object.keys(c.moves)) expect([c.id, id, WORLD.includes(`\`${id}\``)]).toEqual([c.id, id, true]);
     expect(parsedLocations.map((l) => l.art.silhouettes.length)).toEqual([3, 3, 3, 3, 3, 3, 3, 3, 4, 4]);

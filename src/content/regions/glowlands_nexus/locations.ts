@@ -103,7 +103,9 @@ export const locations = [
       {
         dir: 'east',
         to: 'loc_silver_gate',
-        when: { all: [{ loop: { min: 2 } }, { item: { id: 'item_chronos_lens' } }, { echo: 'echo_litany_verse_1' }] },
+        // U62b (STORY §12 `echo_breach_door`: "Route to Silverwood Before"): once the door has opened for you, you know it
+        // without the glass
+        when: { any: [{ all: [{ loop: { min: 2 } }, { item: { id: 'item_chronos_lens' } }, { echo: 'echo_litany_verse_1' }] }, { all: [{ loop: { min: 2 } }, { echo: 'echo_breach_door' }] }] },
         travelWatches: 0,
         hidden: true,
         label: 'the Breach-door',
@@ -163,6 +165,13 @@ export const locations = [
         id: 'ev_nexus_door',
         text: 'The door with no handle warms when the Lens is near it. Through the stone you hear bells.',
         when: { item: { id: 'item_chronos_lens' } },
+      },
+      // U62b (STORY §12 `echo_breach_door`: "Nexus with Lens + verse 1"): the door opens, and is remembered
+      {
+        id: 'ev_nexus_breach_door',
+        text: 'The first verse is in your mouth before you mean it. The door with no handle hears it, and the stone around it gives like a held breath let go. You will know this door again, Lens or no Lens.',
+        when: { all: [{ loop: { min: 2 } }, { item: { id: 'item_chronos_lens' } }, { echo: 'echo_litany_verse_1' }, { not: { echo: 'echo_breach_door' } }] },
+        effects: [{ grantEcho: 'echo_breach_door' }],
       },
       { id: 'ev_nexus_moor', text: 'A brass plate on the orrery reads: H. MOOR, CLOCKWRIGHT TO THE CIRCLE. It has been polished recently.' },
       // once per loop, with the Lens or the key; STORY §12 "discovery at the Nexus with Lens". WORLD's second grant,

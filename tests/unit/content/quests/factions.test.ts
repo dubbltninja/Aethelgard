@@ -366,7 +366,9 @@ describe('the scenes (the conventions of src/content/shared/dialogues/index.ts; 
         if (tag === 'story') expect([s.id, n.id, inStory(n.text)]).toEqual([s.id, n.id, true]);
         else expect([s.id, n.id, tag, WRITTEN.nodes.includes(n.text)]).toEqual([s.id, n.id, 'written', true]);
         // a variant appends STORY's sentence to the line
+        // (U62: or a whole line of its own, pinned in WRITTEN.variants)
         for (const v of n.textVariants) {
+          if (WRITTEN.variants.includes(v.text)) continue;
           expect([s.id, n.id, v.text.startsWith(`${n.text} `)]).toEqual([s.id, n.id, true]);
           expect([s.id, n.id, inStory(v.text.slice(n.text.length + 1))]).toEqual([s.id, n.id, true]);
         }
@@ -439,6 +441,10 @@ describe('the scenes (the conventions of src/content/shared/dialogues/index.ts; 
 
 /** Every word U53 wrote (the reply lists them). */
 const WRITTEN = {
+  // U62 (STORY §12 `echo_day_of_teeth`: "Hadda keeps Nomads from the Apex"): her standing order, once the Telling is told true
+  variants: [
+    'You carry the Day of Teeth, and you carried it back true. Then hear the order that came of it: no rider of mine goes up to the Apex while that thing holds. Twenty went once. I keep the other twenty.',
+  ],
   nodes: [
     // Dray
     'The Ledger of Wayfinders. Seven entries, Year 44 to Year 430. The eighth line is ruled and empty, and I would rather write it before it is needed than after.',

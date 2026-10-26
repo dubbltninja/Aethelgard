@@ -15,9 +15,17 @@ describe('INCOMPLETE_TABLES', () => {
   test('names real tables, once each; the finished shared tables are not on it', () => {
     for (const t of INCOMPLETE_TABLES) expect(TABLE_NAMES).toContain(t);
     expect(new Set(INCOMPLETE_TABLES).size).toBe(INCOMPLETE_TABLES.length);
-    for (const done of ['classes', 'statuses', 'affixes', 'abilities', 'regions', 'locations', 'echoes', 'achievements', 'attunements', 'modifiers', 'endings', 'factions', 'quests', 'codex'] as const) {
+    for (const done of ['classes', 'statuses', 'affixes', 'abilities', 'regions', 'locations', 'echoes', 'achievements', 'attunements', 'modifiers', 'endings', 'factions', 'quests', 'codex', 'dialogues', 'npcs', 'encounters'] as const) {
       expect(INCOMPLETE_TABLES).not.toContain(done);
     }
+  });
+
+  test('U62b: every content table is complete — the list is empty, and the real pack validates strict with nothing pending', () => {
+    expect(INCOMPLETE_TABLES).toEqual([]);
+    const report = validateContent(buildContentPack(), { strict: true, incompleteTables: INCOMPLETE_TABLES });
+    expect(report.errors).toEqual([]);
+    expect(report.warnings.filter((w) => w.message.startsWith('pending')).map((w) => `${w.rule} ${w.id}`)).toEqual([]);
+    expect(report.warnings.filter((w) => w.rule === 'rule-16').map((w) => `${w.id}: ${w.message}`)).toEqual([]);
   });
 });
 
@@ -53,15 +61,17 @@ describe('the real pack uses INCOMPLETE_TABLES by default; other packs do not', 
     })();
     expect(thrown).toBeInstanceOf(ContentError);
     expect(daggerIssue(thrown?.report.errors.map((e) => e.message) ?? []).length).toBeGreaterThan(0);
-    expect(() => buildContentPack(withoutDagger(), { incompleteTables: ['items'] })).toThrow(ContentError);
-    // (U50 completed the items table, so the dagger is no longer a pending reference: relaxing it takes 'items' as well)
+    // (U50 completed the items table, so the dagger is no longer a pending reference: relaxing it takes 'items'; since U62b
+    // nothing else is pending, so 'items' alone is enough)
+    expect(() => buildContentPack(withoutDagger(), { incompleteTables: ['items'] })).not.toThrow();
     expect(() => buildContentPack(withoutDagger(), { incompleteTables: [...INCOMPLETE_TABLES, 'items'] })).not.toThrow();
   });
 
-  test('the validate CLI: the authored tables report pending references; a test table set stays strict', () => {
+  test('the validate CLI: the authored tables pass with nothing pending (U62b); a test table set stays strict', () => {
     const out: string[] = [];
     expect(main([], (l) => out.push(l))).toBe(0);
-    expect(out.join('\n')).toMatch(/\d+ pending reference\(s\) \(\d+ table\(s\) still being authored\)/);
+    expect(out.join('\n')).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)$/m);
+    expect(out.join('\n')).not.toContain('pending');
 
     const strictOut: string[] = [];
     expect(main(['--lenient'], (l) => strictOut.push(l), withoutDagger())).toBe(1);

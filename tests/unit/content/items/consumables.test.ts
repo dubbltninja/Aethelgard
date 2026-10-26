@@ -615,6 +615,10 @@ const PROSE_SOURCES: Record<string, string[]> = {
   item_veil_sigil: ['loc:loc_sanctum_of_threads'],
   // the Grave's first clear is the Ashmaw fight, and the Steppe unit (regions/ashen_steppe/creatures.ts) pays the ledger from the boss too
   item_dreyls_pyre_ledger: ['drop:cr_ashmaw'],
+  // U62b (STORY §12 `echo_heartstone_triune`): the Three Beats' anchor recipe, beside WORLD's
+  item_breach_anchor: ['craft:recipe_breach_anchor_triune'],
+  // "Emberforge vein 3/loop (8 with `echo_emberforge_vein`)": the vein is the Emberforge's `ev_forge_vein` (U62b)
+  mat_ember_ore: ['loc:loc_emberforge'],
 };
 
 describe('sources', () => {

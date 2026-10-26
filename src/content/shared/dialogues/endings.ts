@@ -153,6 +153,13 @@ export const dialogues = [
         tags: ['written'],
         speaker: CAELUM,
         text: "You said he stands there after. In the chamber, where the stone is, for five hundred years. I've been thinking about what you set on the rim, and how it was still there when the city wasn't.",
+        // U62 (STORY §12 `echo_caelum_stayed`): a loop in which he was asked and stayed; the pin is still his to lend
+        textVariants: [
+          {
+            when: { echo: 'echo_caelum_stayed' },
+            text: "You said he stands there after. In the chamber, where the stone is, for five hundred years. I think you asked me once whether I would stay, and I did, and it changed nothing but me. I'm not asking to come this time. I'm asking you to carry something down.",
+          },
+        ],
         onEnter: [DERIVE_LITANY, DERIVE_SCHEMA],
         next: 'pin',
       },
@@ -175,6 +182,13 @@ export const dialogues = [
         tags: ['written'],
         speaker: CAELUM,
         text: "It's on my cot, under the Litany. Take it; I'm not meant to have it. The stair opens on Last Bell, or to the ward seal, and the chamber will let us down if I'm with you.",
+        // U62b (STORY §7.6 B, §12 `echo_caelum_stayed`): he is not coming down; the stair on Last Bell, past the Warden, is yours
+        textVariants: [
+          {
+            when: { all: [{ echo: 'echo_caelum_stayed' }, { not: { companion: { id: 'caelum', state: 'active' } } }] },
+            text: "It's on my cot, under the Litany. Take it; I'm not meant to have it. I won't come down. The stair opens on Last Bell, and the Warden stands on it; go past him, and set it where you set it before.",
+          },
+        ],
         next: 'end',
       },
       { id: 'refused', tags: ['written'], speaker: CAELUM, text: "Then he stands there a while longer. He's used to it. I'm not sure that's a comfort.", next: 'end' },
@@ -258,6 +272,13 @@ export const dialogues = [
         tags: ['written'],
         speaker: BORIN,
         text: 'Three Aetherium Shards for the draw. A piece of the Heartstone, stable or dead, for the heart. Three Void Shards so it does not want anything. Ember ore, and one length of heartwood to quench in. No fee; she would not take one for this. Bring them to the anvil and I will temper it while you watch.',
+        // U62 (STORY §12 `echo_heartstone_triune`: "Borin's anchor dialogue shortcut"): the three beats heard, any piece of the stone takes the temper
+        textVariants: [
+          {
+            when: { echo: 'echo_heartstone_triune' },
+            text: 'You have heard all three of its beats; the steady one, the hungry one, the one that stopped. Then the heart is simpler: any piece of the stone takes the temper from hands that know the three, and I will not make you wait on the Depths for it. Three Aetherium Shards for the draw, three Void Shards so it does not want, ember ore, heartwood to quench in. No fee. Bring them to the anvil.',
+          },
+        ],
         next: 'end',
       },
       {
@@ -626,17 +647,21 @@ export const dialogues = [
         text: 'Good. It said begin. I am sorry, boy. I say it to you because you are the only one here I am allowed to say it to.',
         next: 'forgiving',
       },
+      // U62: STORY §13's `echo_caelum_cannot` exchange in its two mouths (was one narrator line); without the Echo, two written joins
       {
         id: 'forgiving',
         tags: ['written'],
-        speaker: 'narrator',
-        text: 'Caelum does not answer that. He does not need to; he has already said what he had to say to this face, and it heard him.',
-        textVariants: [
-          {
-            when: { echo: 'echo_caelum_cannot' },
-            text: "Caelum: 'I don't forgive you, Master Thal.' The Tyrant: 'No. Set it anyway. That is the only kind of forgiving I was ever going to get.'",
-          },
-        ],
+        speaker: CAELUM,
+        text: "I heard you, Master Thal. Finish it; I'll stand where I can see.",
+        textVariants: [{ when: { echo: 'echo_caelum_cannot' }, text: "I don't forgive you, Master Thal." }],
+        next: 'set_anyway',
+      },
+      {
+        id: 'set_anyway',
+        tags: ['written'],
+        speaker: TYRANT,
+        text: 'Stand there, then. It is nearly done holding.',
+        textVariants: [{ when: { echo: 'echo_caelum_cannot' }, text: 'No. Set it anyway. That is the only kind of forgiving I was ever going to get.' }],
         next: 'will_you',
       },
       {

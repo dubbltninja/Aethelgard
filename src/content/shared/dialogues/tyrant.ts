@@ -53,7 +53,18 @@ export const dialogues = [
       },
       { id: 'nobody_said', tags: ['story'], speaker: TYRANT, text: "...Nobody has said that here. Say it again, or don't. Both will hurt.", choices: FIGHT_LISTEN_LEAVE },
       // ---- Loop 3–4 (STORY §8.2): a check on the verses, by where you stop ----
-      { id: 'again', tags: ['story'], speaker: TYRANT, text: 'Again. You carry more of the words each time. Say the ones you have; I will know which are missing by where you stop.', choices: FIGHT_LISTEN_LEAVE },
+      {
+        id: 'again',
+        tags: ['story'],
+        speaker: TYRANT,
+        text: 'Again. You carry more of the words each time. Say the ones you have; I will know which are missing by where you stop.',
+        // U62 (STORY §12): what it remembers of you from another loop — the consent it gave once, or the blade it sent away
+        textVariants: [
+          { when: { echo: 'echo_tyrant_consent' }, text: 'Again. You have had my word once; I remember giving it, which is more than I remember of most things. Say the words you have. I will know by where you stop whether it is still the same you.' },
+          { when: { echo: 'echo_tyrant_rejected' }, text: 'Again. The last of you came with a blade in your mouth, and I sent it to find a real one. Say the words you have instead; I will know which are missing by where you stop.' },
+        ],
+        choices: FIGHT_LISTEN_LEAVE,
+      },
       // ---- Loop 5+ (STORY §8.2) ----
       {
         id: 'count_by_you',

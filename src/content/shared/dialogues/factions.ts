@@ -61,7 +61,7 @@ const offer = (questId: `q_${string}`, yes: string, no: string, afterYes: string
 ];
 
 /** Loop 1: STORY's line for every new giver; Loop 2+: a line of the giver's own while nothing else applies (the idle band). */
-const idle = (id: `scene_${string}`, npcId: `npc_${string}`, later: string): DialogueSceneInput => ({
+const idle = (id: `scene_${string}`, npcId: `npc_${string}`, later: string, variants: { when: Condition; text: string }[] = []): DialogueSceneInput => ({
   id,
   npcId,
   when: { all: [NOT_IN_HORDE] },
@@ -72,7 +72,7 @@ const idle = (id: `scene_${string}`, npcId: `npc_${string}`, later: string): Dia
   ],
   nodes: [
     { id: 'come_back', tags: ['story'], speaker: npcId, text: COME_BACK, next: 'end' },
-    { id: 'later', tags: ['written'], speaker: npcId, text: later, next: 'end' },
+    { id: 'later', tags: ['written'], speaker: npcId, text: later, textVariants: variants, next: 'end' },
   ],
 });
 
@@ -357,7 +357,13 @@ export const dialogues = [
       { id: 'horns', tags: ['written'], speaker: 'npc_hadda_ironvow', text: 'My scouts are east. If they find where it bleeds, you will hear the horns.', next: 'end' },
     ],
   },
-  idle('scene_hadda_idle', 'npc_hadda_ironvow', 'The fire does not know you yet. Carry iron for us before you ask it anything.'),
+  idle('scene_hadda_idle', 'npc_hadda_ironvow', 'The fire does not know you yet. Carry iron for us before you ask it anything.', [
+    // U62 (STORY §12 `echo_day_of_teeth`: "Hadda keeps Nomads from the Apex"): the Telling, told true, changes her standing order
+    {
+      when: { echo: 'echo_day_of_teeth' },
+      text: 'You carry the Day of Teeth, and you carried it back true. Then hear the order that came of it: no rider of mine goes up to the Apex while that thing holds. Twenty went once. I keep the other twenty.',
+    },
+  ]),
 
   // ==== Sethe the Unlidded · q_hollow_choir ===================================================================================
 

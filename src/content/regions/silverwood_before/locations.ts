@@ -337,6 +337,15 @@ export const locations = [
     ],
     npcs: ['npc_veyran_thal', 'npc_nyxaria_vell_before', 'npc_haldric_vane', 'npc_hadrek', 'npc_tobrin_vask'],
     events: [
+      // U62b (STORY §12 `echo_hadrek_clockwright`: "Hadrek in the Ninefold Hall, First Bell"): where the second Orrery Key sits
+      {
+        id: 'ev_hall_hadrek',
+        trigger: 'interact',
+        label: 'Ask Hadrek about the orrery',
+        text: "Hadrek does not look up from the floor-map. 'My winding key? In his chair, always. Remember where it sits.'",
+        when: { all: [bell(1), { not: { echo: 'echo_hadrek_clockwright' } }] },
+        effects: [{ grantEcho: 'echo_hadrek_clockwright' }],
+      },
       {
         id: 'ev_hall_veyran',
         text: "Veyran Thal looks at you the way a man looks at a letter he has not opened. 'You are not from the city,' he says. 'You are not from the year.'",
@@ -569,6 +578,24 @@ export const locations = [
         once: false,
         when: { all: [{ quest: { id: 'q_the_mending', stage: 'crossing' } }, { companion: { id: 'caelum', state: 'active' } }, { not: { flag: 'flag_scene_done_scene_anchor_in_the_conflux' } }] },
         effects: [{ startDialogue: 'scene_anchor_in_the_conflux' }],
+      },
+      // U62b (STORY §7.6 B, §12 `echo_caelum_stayed`: "Harder Mending (player places pin)"): he stayed with his city, so the pin
+      // is set without him (the Conflux stair on Last Bell, past the Warden) and the scene is the place's (dialogues/echoes.ts)
+      {
+        id: 'ev_conflux_pin_alone',
+        trigger: 'interact',
+        label: 'Stand at the rim alone',
+        text: "Hallow's second pin lies on the rim where you set it.",
+        once: false,
+        when: {
+          all: [
+            { quest: { id: 'q_the_mending', stage: 'crossing' } },
+            { echo: 'echo_caelum_stayed' },
+            { not: { companion: { id: 'caelum', state: 'active' } } },
+            { not: { flag: 'flag_scene_done_scene_pin_alone' } },
+          ],
+        },
+        effects: [{ startDialogue: 'scene_pin_alone' }],
       },
     ],
     // "rising light streams (Day 3: strobe to white)": motes, then static

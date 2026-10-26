@@ -40,6 +40,43 @@ function fates(row: Record<'ilyra' | 'brak' | 'nyx' | 'dask' | 'mireya' | 'caelu
 
 const atApex: Condition = { location: 'loc_temporal_breach_apex' };
 
+/**
+ * U62 (STORY §12 `echo_glowfen_dammed` / `echo_glowfen_let_run`: "epilogue variants"): Mireya's fate as she chose the fen. This
+ * loop's choice wins (`q_preserve_or_heal`'s outcome); else the one choice ever made; the two Echoes are exclusive only per loop,
+ * so a profile holding both with no choice this loop keeps STORY §7.7's own line.
+ */
+const PRESERVE = 'q_preserve_or_heal';
+const DAMMED_NOW: Condition = { any: [{ quest: { id: PRESERVE, stage: 'dammed' } }, { quest: { id: PRESERVE, stage: 'dammed_dark' } }] };
+const RUN_NOW: Condition = { quest: { id: PRESERVE, stage: 'let_run' } };
+const FEN_DAMMED: Condition = { all: [{ echo: 'echo_glowfen_dammed' }, { not: RUN_NOW }, { any: [DAMMED_NOW, { not: { echo: 'echo_glowfen_let_run' } }] }] };
+const FEN_RUNS: Condition = { all: [{ echo: 'echo_glowfen_let_run' }, { not: DAMMED_NOW }, { any: [RUN_NOW, { not: { echo: 'echo_glowfen_dammed' } }] }] };
+type Epilogue = NonNullable<EndingInput['epilogues']>[number];
+/** Replaces the §7.7 Mireya line's condition (shown when neither choice applies) and adds the two chosen-fen lines after it. */
+function withFen(list: Epilogue[], dammed: string, runs: string): Epilogue[] {
+  const recruited = companionRecruited('mireya');
+  return [
+    ...list.map((e) => (e.subject === 'mireya' ? { ...e, when: { all: [recruited, { not: { any: [FEN_DAMMED, FEN_RUNS] } }] } satisfies Condition } : e)),
+    { subject: 'mireya', when: { all: [recruited, FEN_DAMMED] }, text: dammed },
+    { subject: 'mireya', when: { all: [recruited, FEN_RUNS] }, text: runs },
+  ];
+}
+
+// U62: the paintings behind the slides (docs/ART.md §5 location ids; the Ending screen shows them, U71) and a mood where
+// STORY §10 implies one (the dialogue Mood words: grim, cold, warm, urgent, afraid, wry).
+const APEX = 'loc_temporal_breach_apex';
+const NEXUS = 'loc_chronos_nexus';
+const CONFLUX = 'loc_conflux_chamber';
+const DEPTHS = 'loc_heartstone_depths';
+const RUINS = 'loc_whispering_ruins';
+const LIBRARY = 'loc_shattered_library';
+const PLAZA = 'loc_silverwood_plaza';
+const SPIRES = 'loc_aetherium_spires';
+const GLOWLANDS = 'loc_veridian_glowlands';
+const CHASM = 'loc_chasm_of_whispers';
+const EMBERFORGE = 'loc_emberforge';
+const SHORE = 'loc_still_shore';
+const FAR_LIGHT = 'loc_far_light';
+
 export const endings = [
   // ---- A · The Warden's Vigil (STORY §10.1) --------------------------------------------------------------------------------
   {
@@ -55,15 +92,34 @@ export const endings = [
       { when: { not: { resolve: { min: 6 } } }, text: 'It must hear you out: Resolve 6 or more in the communion.' },
       { when: { not: atApex }, text: 'Stand at the Temporal Breach Apex.' },
     ],
+    // U62: STORY §10.1's six steps, its words verbatim, the joins in the house voice; art: the Apex, then the Nexus for the sky
     sequence: [
-      { text: 'Veyran: "You have all nine. You could say them. You understand that whoever says the ninth must stay in it."' },
-      { text: 'The Wayfinder speaks the Litany, verse by verse; at each the matching member of the Nine surfaces in the mass and goes still.' },
-      { text: '"Hour, stay. Be as you are, and do not become. I hold you. I hold you."' },
-      { text: 'Veyran, for the first time in five hundred years, stops speaking.' },
+      {
+        text: 'The chorus goes under, and the one voice beneath it says the thing it has never been able to say to anyone: "You have all nine. You could say them. You understand that whoever says the ninth must stay in it."',
+        art: APEX,
+        mood: 'grim',
+      },
+      {
+        text: 'You speak the Litany, verse by verse. At each the matching member of the Nine surfaces in the mass and goes still: Oriel with ink on her hands, Korr, Vane, Hallow with his palms open. At the seventh, Masque, from his far side: "Tell us true." You tell him. "It failed." "Thank you."',
+        art: APEX,
+        mood: 'grim',
+      },
+      {
+        text: 'Verse nine. "Hour, stay. Be as you are, and do not become. I hold you. I hold you." Veyran, for the first time in five hundred years, stops speaking. "—I hold you," you finish, and the mass is yours.',
+        art: APEX,
+        mood: 'cold',
+      },
       {
         text: 'Veyran Thal steps out of the tear as a man, old, and sits down on the Apex floor. "It is heavier than it looks. It is lighter than it was." He dies in the next watch, in no pain.',
+        art: APEX,
+        mood: 'warm',
       },
-      { text: 'The sky over the Apex steadies. The Breach Clock stops at the current day and does not restart.' },
+      {
+        text: 'Whoever came up with you is let go, gently; you have the hands for it now, and nothing else to do with them. Dask, if he came this far, is gathered into one instant, and rests.',
+        art: APEX,
+        mood: 'warm',
+      },
+      { text: 'The sky over the Apex steadies. The Breach Clock stops at the current day and does not restart.', art: NEXUS, mood: 'cold' },
     ],
     epilogues: [
       { subject: 'world', text: 'World: Aethelgard is saved; the Breach is held, not sealed; wild magic quiets to a murmur.' },
@@ -74,7 +130,7 @@ export const endings = [
         subject: 'wayfinder',
         text: 'Wayfinder: "You hold. You are not in pain. You can hear every bell in Silverwood, ringing back a note." No more Wayfinders are born: the symptom has a cause that is now content.',
       },
-      ...fates(
+      ...withFen(fates(
         {
           ilyra: 'Writes the eighth name in the Ledger; never tears another portal.',
           brak: 'Lives; names a wagon-child Stonehand.',
@@ -84,6 +140,10 @@ export const endings = [
           caelum: 'Stays in the present; apprentices to Borin.',
         },
         'Trade and forge; the Respite stays neutral.',
+      ),
+        // U62 (STORY §12 `echo_glowfen_dammed` / `echo_glowfen_let_run`: "epilogue variants"): what she chose for the fen
+        'Mireya: Lanternreed goes dim, as she chose; she tends the dark with real lanterns and says the sick sleep better.',
+        'Mireya: Lanternreed glows, as she chose; she tends the light and the ones it changes, and does not call either a mistake.',
       ),
     ],
     achievementId: 'ach_vigil',
@@ -125,15 +185,26 @@ export const endings = [
       { when: { not: { flag: 'flag_cradle_pin_anchored' } }, text: "The cradle's second pin must be set on its rim in the Before." },
       { when: { not: atApex }, text: 'Stand at the Temporal Breach Apex.' },
     ],
+    // U62: STORY §10.2's six steps (the companions' lines of step 1 are the scene's reactions, dialogues/endings.ts)
     sequence: [
-      { text: 'Communion, Movement III, with the Breach-anchor in hand. Veyran: "Both ends. You found the other end."' },
-      { text: '"Then I will say the word I have not been able to say."' },
       {
-        text: "The player drives the Breach-anchor into the Apex floor. In the Before, at the same instant, the cradle-pin set on the rim takes the Heartstone's weight that Hallow's iron could not.",
+        text: 'Movement III, the Breach-anchor cold in your hands and the line it was made for humming under the floor. "Both ends. You found the other end."',
+        art: APEX,
+        mood: 'grim',
       },
-      { text: 'Veyran speaks the ninth verse\'s ending: "Hour, go."' },
-      { text: 'The Nine come out of the mass one by one as the dead, lie down, and are dead. Veyran last, standing, then not.' },
-      { text: 'Time flows forward. The Breach Clock reads "Day 1" and then, for the first time, "Day 31."' },
+      { text: 'Consent. "Then I will say the word I have not been able to say."', art: APEX, mood: 'warm' },
+      {
+        text: "You drive the Breach-anchor into the Apex floor. In the Before, at the same instant, the cradle-pin set on the rim takes the Heartstone's weight that Hallow's iron could not.",
+        art: CONFLUX,
+        mood: 'urgent',
+      },
+      { text: 'Veyran speaks the ninth verse\'s ending: "Hour, go."', art: APEX, mood: 'cold' },
+      {
+        text: 'The Nine come out of the mass one by one as the dead, lie down, and are dead. Oriel, Korr, Vane, Hallow, Aulde, Sallow, Masque, and the empty place where Nyxaria stood. Veyran last, standing, then not.',
+        art: APEX,
+        mood: 'grim',
+      },
+      { text: 'Time flows forward. The Breach Clock reads "Day 1" and then, for the first time, "Day 31."', art: PLAZA, mood: 'warm' },
     ],
     epilogues: [
       {
@@ -194,26 +265,41 @@ export const endings = [
       { when: { flag: 'flag_tyrant_dead' }, text: 'The Tyrant must still be alive.' },
       { when: { not: atApex }, text: 'Stand at the Temporal Breach Apex.' },
     ],
+    // U62: STORY §10.3's six steps; the last slide is its one black line, on the Ruins
     sequence: [
       {
         text: 'The Apex. Nyx, for the first time, looks at the Tyrant\'s face. "Veyran. It\'s me. I\'m going to fix it." The chorus says her name in eight voices and his.',
-      },
-      { text: 'The Horde does not wait for the Tyrant to die; it comes as the hold fails, and the present unravels behind them as they step through' },
-      {
-        text: 'Silverwood Before, Last Bell, dusk, the ninth bell. Nyx runs down the Archive stair past Caelum.',
+        art: APEX,
+        mood: 'afraid',
       },
       {
-        text: 'The circle is closed; she cannot enter it; she speaks the sixth verse\'s warning from the edge and Hallow turns, and says "Stop," and Veyran says "It holds."',
+        text: 'With the Heartstone Core you and Nyx tear the hold open. The Horde does not wait for the Tyrant to die; it comes as the hold fails, and the present unravels behind you as you step through.',
+        art: APEX,
+        mood: 'urgent',
       },
-      { text: 'It fails identically. The recoil, finding the one mind that has named the dark twice, does not throw her forward. It keeps her. She becomes one of the shards.' },
       {
-        text: 'The tear widens. Veyran steps in. The mass forms. Among the skeletal limbs and crystalline shards there is a face the player knows, because it is theirs.',
+        text: 'Silverwood Before, Last Bell, dusk, the ninth bell. Nyx runs down the Archive stair past Caelum. You follow. The circle is closed; she cannot enter it; she speaks the sixth verse\'s warning from the edge and Hallow turns, and says "Stop," and Veyran says "It holds."',
+        art: CONFLUX,
+        mood: 'urgent',
       },
-      { text: '"Five hundred years later, something pulls at the edge of the Whispering Ruins."' },
+      {
+        text: 'It fails identically. The recoil, finding the one mind that has named the dark twice, does not throw her forward. It keeps her. She becomes one of the shards.',
+        art: CONFLUX,
+        mood: 'grim',
+      },
+      {
+        text: 'The tear widens. Veyran steps in. The mass forms. Among the skeletal limbs and crystalline shards there is a face you know, because it is yours.',
+        art: APEX,
+        mood: 'cold',
+      },
+      { text: 'Five hundred years later, something pulls at the edge of the Whispering Ruins.', art: RUINS, mood: 'cold' },
     ],
     epilogues: [
       { subject: 'world', text: 'World: unravelled, then remade identically, with one more in the Tyrant.' },
-      { subject: 'factions', text: '"They form again. They are wrong again, in the same three ways."' },
+      // STORY §10.3 "Factions: one line each" — the same line, three times, as the circle closes
+      { subject: 'remnants', text: 'Remnants: they form again. They are wrong again, in the same three ways.' },
+      { subject: 'weavers', text: 'Weavers: they form again. They are wrong again, in the same three ways.' },
+      { subject: 'ironclad', text: 'Ironclad: they form again. They are wrong again, in the same three ways.' },
       { subject: 'wayfinder', text: 'Wayfinder: "You hold. You are in pain that does not vary. You are waiting for someone to cross."' },
       ...fates(
         {
@@ -256,18 +342,29 @@ export const endings = [
       { when: { not: { companion: { id: 'brak', state: 'active' } } }, text: 'Brak must stand at your shoulder.' },
       { when: { not: atApex }, text: 'Stand at the Temporal Breach Apex.' },
     ],
+    // U62: STORY §10.4's five steps; step 4 "in one slide per place", each on its painting
     sequence: [
-      { text: '"Iron that does not wish. He made that for me once. I see."' },
       {
-        text: 'The player drives the Breach-anchor into the Apex floor and Brak hammers it home with the flat of his axe. The ley line under the Apex parts with a sound like a bell cracking.',
+        text: 'The Apex, Brak at your shoulder; he insisted, and this is the one loop he is allowed. The thing in the mass looks at what you carry. "Iron that does not wish. He made that for me once. I see."',
+        art: APEX,
+        mood: 'grim',
+      },
+      {
+        text: 'You drive the Breach-anchor into the Apex floor and Brak hammers it home with the flat of his axe. The ley line under the Apex parts with a sound like a bell cracking.',
+        art: APEX,
+        mood: 'urgent',
       },
       {
         text: "The Breach, fed by nothing, closes like a mouth with nothing to say. The Tyrant's mass goes to dust without a scream; it does not unravel, because there is nothing left for it to unravel through. A man is briefly visible, and then is not.",
+        art: APEX,
+        mood: 'cold',
       },
-      {
-        text: "The Spires stop humming; the Glowlands go dark; the Chasm's murmurs end; Ilyra, in the Ruins, puts a hand to her ear; the Emberforge's fire burns as an ordinary fire.",
-      },
-      { text: 'Brak: "Quiet. I thought I\'d like it."' },
+      { text: 'The Spires stop humming. The glass goes still in the frames, and stays glass.', art: SPIRES, mood: 'cold' },
+      { text: 'The Glowlands go dark. The reeds are reeds; the water is water.', art: GLOWLANDS, mood: 'cold' },
+      { text: "The Chasm's murmurs end. The void remembers nothing, and says so.", art: CHASM, mood: 'cold' },
+      { text: 'Ilyra, in the Ruins, puts a hand to her ear. The whispers are not louder today. They are not there.', art: RUINS, mood: 'cold' },
+      { text: "The Emberforge's fire burns as an ordinary fire. Borin feeds it anyway.", art: EMBERFORGE, mood: 'warm' },
+      { text: 'Brak: "Quiet. I thought I\'d like it."', art: APEX, mood: 'wry' },
     ],
     epilogues: [
       { subject: 'world', text: 'World: magic dies; no more Wayfinders; a mundane world with ruins in it.' },
@@ -321,16 +418,24 @@ export const endings = [
       { when: { not: { location: 'loc_heartstone_depths' } }, text: 'Stand in the Heartstone Depths.' },
       { when: { not: { clock: { daysLeft: { max: 1 } } } }, text: 'It comes on the last dawn before the thirtieth.' },
     ],
+    // U62: STORY §10.5's five steps; the choice itself is the scene's (Stay / Leave), so the last slide holds both roads
     sequence: [
       {
         text: "The Heartstone Depths on the last dawn before the thirtieth. Ilyra sets the Stabilized Heartstone back in the cradle's broken rim; the resonance climbs the ley line to the Apex.",
+        art: DEPTHS,
+        mood: 'warm',
       },
-      { text: "The Apex (seen through the Lens from the Nexus): the Tyrant's mass eases, the limbs sink, the chorus drops to a hum." },
-      { text: '"Ah. The archivist\'s blood. She would do this. Tell her it is not nothing."' },
-      { text: 'The thirtieth dawn comes up and goes down and comes up again as the first. Nothing unravels. Ilyra, alone of everyone, remembers.' },
-      { text: 'Ilyra: "I will keep it. All of it. Every time. Go or stay; I\'ll know which you chose, and I\'ll be kind about it."' },
       {
-        text: 'The player chooses: stay in the ring (fade on the Ruins, Day 1 again, the Amulet warm) or step through the portal she tears without pain (the same door, a different shore).',
+        text: "The Apex, seen through the Lens from the Nexus: the Tyrant's mass eases, the limbs sink, the chorus drops to a hum. Under it, once: \"Ah. The archivist's blood. She would do this. Tell her it is not nothing.\"",
+        art: NEXUS,
+        mood: 'warm',
+      },
+      { text: 'The thirtieth dawn comes up and goes down and comes up again as the first. Nothing unravels. Ilyra, alone of everyone, remembers.', art: RUINS, mood: 'cold' },
+      { text: 'Ilyra: "I will keep it. All of it. Every time. Go or stay; I\'ll know which you chose, and I\'ll be kind about it."', art: RUINS, mood: 'warm' },
+      {
+        text: 'Stay, and you fade on the Ruins, Day 1 again, the Amulet warm, Ilyra smiling before she has seen you. Go, and she tears a portal without pain: the same door, a different shore.',
+        art: LIBRARY,
+        mood: 'cold',
       },
     ],
     epilogues: [
@@ -378,11 +483,18 @@ export const endings = [
       { when: { not: atApex }, text: 'Stand at the Temporal Breach Apex.' },
       { when: { not: { flag: 'flag_refused_all_paths' } }, text: 'Turn down every other path the Tyrant offers.' },
     ],
+    // U62: STORY §10.6's three steps; the last is the legacy line, now literally true
     sequence: [
-      { text: 'Communion to the end of Movement III; the Tyrant, spared: "Or go. The tear is open. I will not stop you. I have never been able to stop anyone."' },
-      { text: 'The player steps past it, into the Breach, toward somewhere that is not Aethelgard.' },
+      {
+        text: 'Communion to the end of Movement III. Spared, it says the only thing it has left to offer: "Or go. The tear is open. I will not stop you. I have never been able to stop anyone."',
+        art: APEX,
+        mood: 'cold',
+      },
+      { text: 'You step past it, into the Breach, toward somewhere that is not Aethelgard. Nothing reaches after you.', art: APEX, mood: 'cold' },
       {
         text: 'The journey through the Temporal Breach is disorienting, a maelstrom of fractured realities. When you finally emerge, the air is still, the world unfamiliar.',
+        art: FAR_LIGHT,
+        mood: 'cold',
       },
     ],
     epilogues: [
@@ -391,7 +503,7 @@ export const endings = [
       { subject: 'weavers', text: 'Weavers: "They sang."' },
       { subject: 'ironclad', text: 'Ironclad: "Twenty held the Nexus for a day. It was not enough and they knew."' },
       { subject: 'wayfinder', text: 'Wayfinder: "You remember all of it. Nobody where you are knows what an Echo is."' },
-      ...fates({
+      ...withFen(fates({
         ilyra: 'Holds the portal; you go; she does not know where.',
         brak: 'Lives; the thirtieth dawn comes after you are gone, and he holds the Nexus for a day.',
         nyx: 'Goes to the Apex at last and looks at his face.',
@@ -399,6 +511,10 @@ export const endings = [
         mireya: 'As chosen; she waves from the stilts.',
         caelum: 'Comes with you if asked; else returns to the stair.',
       }),
+        // U62 (STORY §12): the fen as she chose it, seen once from the stilts
+        'Mireya: The fen is dark, as she chose; she waves from the stilts with a real lantern in her hand.',
+        'Mireya: The fen glows, as she chose; she waves from the stilts, and the light waves with her.',
+      ),
     ],
     achievementId: 'ach_unbound',
     credits: true,
@@ -415,10 +531,14 @@ export const endings = [
       {
         // STORY §4.2 step 1: the legacy paragraph, lightly trimmed (= reducers/loop.ts CLOSER_TEXT.lastThreshold)
         text: "The Last Threshold. You plunge through the shimmering portal, the screams of Aethelgard's final moments echoing behind you. The journey through the Temporal Breach is disorienting, a maelstrom of fractured realities. When you finally emerge, the air is still, the world unfamiliar. The Wayfinder's true journey has just begun...",
+        art: LIBRARY,
+        mood: 'urgent',
       },
       {
         // STORY §4.2 step 3: the Breach shear (= CLOSER_TEXT.shear)
         text: 'The stillness breaks. Something behind you has not finished speaking. The Breach does not lead beyond. It leads back.',
+        art: SHORE,
+        mood: 'cold',
       },
     ],
     epilogues: [
@@ -427,6 +547,13 @@ export const endings = [
         subject: 'world',
         when: { all: [{ flag: 'flag_clock_expired' }, { not: { flag: 'flag_tyrant_dead' } }] },
         text: 'You did not kill it. It happened anyway.',
+      },
+      // U62 (STORY §12 `echo_ilyra_cost`: "watch the Library fall after passing the portal"): from Loop 2, what the door costs
+      {
+        subject: 'ilyra',
+        // she holds the door only when she is not walking beside you (horde.ts `enterPortalHandler` grants the Echo the same way)
+        when: { all: [{ loop: { min: 2 } }, { flag: 'flag_horde_active' }, { not: { companion: { id: 'ilyra', state: 'active' } } }] },
+        text: 'From the far side you see it for the length of one breath: the Library going, and Ilyra still holding the door when it takes her. That is what the door costs. Now you know.',
       },
     ],
     achievementId: 'ach_the_escape',
@@ -438,7 +565,7 @@ export const endings = [
     tagline: 'The Still Shore: grey water, no horizon, a far light.',
     reasons: ['death', 'expiry', 'rejected', 'released'],
     requirements: { all: [] },
-    sequence: [{ text: 'The stillness breaks. Something behind you has not finished speaking. The Breach does not lead beyond. It leads back.' }],
+    sequence: [{ text: 'The stillness breaks. Something behind you has not finished speaking. The Breach does not lead beyond. It leads back.', art: SHORE, mood: 'cold' }],
     epilogues: [
       {
         subject: 'world',

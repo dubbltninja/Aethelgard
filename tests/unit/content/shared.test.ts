@@ -106,10 +106,10 @@ describe('the real pack (U40 tables)', () => {
     expect(strict.warnings.filter((w) => w.rule === 'rule-21' && (w.table === 'classes' || w.table === 'statuses'))).toEqual([]);
   });
 
-  test('`npm run validate` passes on the partial pack (counts and references pending while tables are still being authored)', () => {
+  test('`npm run validate` passes on the real pack (complete since U62b: nothing pending)', () => {
     const out: string[] = [];
     expect(validateCli([], (line) => out.push(line))).toBe(0);
-    expect(out.join('\n')).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\) \(\d+ table\(s\) still being authored\)/);
+    expect(out.join('\n')).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)$/m);
   });
 });
 

@@ -26,6 +26,8 @@ export const ENGINE_GRANTED_ECHOES: readonly string[] = [
   'echo_ironclad_oath', 'echo_weaver_sign', 'echo_before_route', 'echo_anchor_mechanic',
   // U34e (D-101): three Dark Spellbooks read in one loop (WORLD §7.10; Korr's Marginalia counts as one)
   'echo_litany_verse_2',
+  // U62 (STORY §12): the Library portal passed from Loop 2 while Ilyra holds it (horde.ts `enterPortalHandler`)
+  'echo_ilyra_cost',
 ];
 
 export const EchoSchema = Base.extend({

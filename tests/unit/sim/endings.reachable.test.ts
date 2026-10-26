@@ -36,6 +36,11 @@ describe('the real ending scripts (STORY §10, §10.7)', () => {
           expect(proof.result.errors).toEqual([]);
           expect(proof.result.softLock.detected).toBe(false);
           if (!isCloser(script.endingId)) expect(proof.result.stopReason).toBe('ending');
+          // U62b (PLAN: "ending scripts show all slides"): every slide of the ending was shown, its sequence and more
+          const seen = proof.result.slides?.find((x) => x.outcome === script.endingId);
+          expect([script.endingId, seen !== undefined && seen.shown === seen.total]).toEqual([script.endingId, true]);
+          expect((seen?.total ?? 0) >= (pack.endings[script.endingId]?.sequence.length ?? 1)).toBe(true);
+          expect(proof.detail).toContain(`${seen?.total}/${seen?.total} slides shown`);
         } else {
           // the road as far as it goes, then the pinned failure: Hadda's ask is reached, the ending is not
           expect(proof.reached).toBe(false);

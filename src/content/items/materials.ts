@@ -183,7 +183,7 @@ export const materials = [
     type: 'material',
     tier: 2,
     value: 15,
-    sources: ['loc:loc_scorched_gate', 'drop:cr_ashmaw', 'drop:cr_cinderback', 'merchant:npc_tessaly_varr'],
+    sources: ['loc:loc_emberforge', 'loc:loc_scorched_gate', 'drop:cr_ashmaw', 'drop:cr_cinderback', 'merchant:npc_tessaly_varr'],
     art: { icon: 'ore' },
   },
   {

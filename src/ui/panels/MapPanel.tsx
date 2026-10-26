@@ -246,7 +246,7 @@ function MapLegend(): ReactNode {
           <Icon kind="infected" size={14} /> The Horde has reached it · <Icon kind="door" size={14} /> the way out
         </li>
         <li>
-          <span className="legend-swatch legend-swatch--forecast" aria-hidden="true" /> Light hatch: the Horde is forecast to reach it (from five dawns before the limit)
+          <span className="legend-swatch legend-swatch--forecast" aria-hidden="true" /> Light hatch: the Horde is forecast to reach it (from five dawns before the limit; in a Horde, its next moves, once you have seen one)
         </li>
       </ul>
     </details>

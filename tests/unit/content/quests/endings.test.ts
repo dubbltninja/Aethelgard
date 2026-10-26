@@ -253,7 +253,11 @@ describe('the six ending quests (STORY §11.1, §11.6; DESIGN §6.2)', () => {
     expect(stage('q_wardens_vigil', 'go_and_see').objectives.map((o) => o.when)).toEqual([{ location: APEX }]);
     expect(quest('q_the_mending').stages.map((s) => s.id)).toEqual(['both_ends', 'anchor_the_conflux', 'crossing', 'forge', 'apex', 'mended']);
     expect(STORY).toContain('Stage order is fixed (REVIEW #3, D-067.8): the Before first, then the forge, then the Apex.');
-    expect(stage('q_the_mending', 'both_ends').objectives.map((o) => o.when)).toEqual([{ item: { id: 'item_caelums_anchor_token' } }, { all: [{ location: 'loc_conflux_chamber' }, { companion: { id: 'caelum', state: 'active' } }] }]);
+    // U62b (STORY §7.6 B, §12 `echo_caelum_stayed`): after a loop in which he stayed, without him
+    expect(stage('q_the_mending', 'both_ends').objectives.map((o) => o.when)).toEqual([
+      { item: { id: 'item_caelums_anchor_token' } },
+      { all: [{ location: 'loc_conflux_chamber' }, { any: [{ companion: { id: 'caelum', state: 'active' } }, { echo: 'echo_caelum_stayed' }] }] },
+    ]);
     expect(stage('q_the_mending', 'anchor_the_conflux').objectives.map((o) => o.when)).toEqual([{ flag: 'flag_cradle_pin_anchored' }]);
     expect(stage('q_the_mending', 'forge').objectives.map((o) => o.when)).toEqual([{ item: { id: 'item_breach_anchor' } }]);
     expect(node('scene_anchor_in_the_conflux', 'steadies').onEnter).toEqual([{ clockWatches: 12 }, { questAdvance: { quest: 'q_the_mending', stage: 'forge' } }]);
@@ -749,8 +753,9 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
   test('the Resolution’s words, B (STORY §13 scene_ending_mending): with Caelum he answers for the pin and hears "I am sorry"; without him you do; hesitate goes back; the anchor driven is the Mending and his consent', () => {
     const withCaelum = resolution('scene_ending_mending', { items: ['item_breach_anchor'] }, ['echo_caelum_cannot'], 'caelum');
     const asked = drive(withCaelum.s, withCaelum.profile, ['let_go']);
-    expect(nodesSeen(withCaelum.events).concat(nodesSeen(asked.events))).toEqual(['both_ends_caelum', 'i_did', 'laugh', 'message', 'nobody', 'sorry', 'forgiving', 'will_you', 'drive_it', 'anchor']);
-    expect(textsSeen(asked.events)).toContain("Caelum: 'I don't forgive you, Master Thal.' The Tyrant: 'No. Set it anyway. That is the only kind of forgiving I was ever going to get.'");
+    expect(nodesSeen(withCaelum.events).concat(nodesSeen(asked.events))).toEqual(['both_ends_caelum', 'i_did', 'laugh', 'message', 'nobody', 'sorry', 'forgiving', 'set_anyway', 'will_you', 'drive_it', 'anchor']);
+    expect(textsSeen(asked.events)).toContain("I don't forgive you, Master Thal.");
+    expect(textsSeen(asked.events)).toContain('No. Set it anyway. That is the only kind of forgiving I was ever going to get.');
     const alone = resolution('scene_ending_mending', { items: ['item_breach_anchor'] });
     const told = drive(alone.s, alone.profile, ['a_boy', 'let_go']);
     expect(nodesSeen(alone.events).concat(nodesSeen(told.events))).toEqual(['both_ends', 'twice', 'will_you', 'drive_it', 'anchor']);
@@ -817,9 +822,18 @@ const WRITTEN = {
     'The Tyrant, spared, has opened the tear. Nothing is stopping you from stepping past it, into somewhere that is not Aethelgard.',
   ],
   variants: [
+    // U62b (STORY §7.6 B): Caelum lending the pin when he will not come down
+    "It's on my cot, under the Litany. Take it; I'm not meant to have it. I won't come down. The stair opens on Last Bell, and the Warden stands on it; go past him, and set it where you set it before.",
+    // U62 (STORY §12): Caelum when he stayed; Borin's shortcut with the three beats; the Tyrant remembering consent or rejection
+    "You said he stands there after. In the chamber, where the stone is, for five hundred years. I think you asked me once whether I would stay, and I did, and it changed nothing but me. I'm not asking to come this time. I'm asking you to carry something down.",
+    'You have heard all three of its beats; the steady one, the hungry one, the one that stopped. Then the heart is simpler: any piece of the stone takes the temper from hands that know the three, and I will not make you wait on the Depths for it. Three Aetherium Shards for the draw, three Void Shards so it does not want, ember ore, heartwood to quench in. No fee. Bring them to the anvil.',
+    'Again. You have had my word once; I remember giving it, which is more than I remember of most things. Say the words you have. I will know by where you stop whether it is still the same you.',
+    'Again. The last of you came with a blade in your mouth, and I sent it to find a real one. Say the words you have instead; I will know which are missing by where you stop.',
     'Close now. Two more dawns, perhaps three. Sit with me; the stone keeps better time than the sky does.',
     'The days are going by like pages turned in another room. I have been counting them on the plinths. Keep the vigil a little longer.',
-    "Caelum: 'I don't forgive you, Master Thal.' The Tyrant: 'No. Set it anyway. That is the only kind of forgiving I was ever going to get.'",
+    // U62: STORY §13's `echo_caelum_cannot` exchange, each line in its own mouth
+    "I don't forgive you, Master Thal.",
+    'No. Set it anyway. That is the only kind of forgiving I was ever going to get.',
   ],
   nodes: [
     'scene_dask_wardens_vigil_offer.nine',
@@ -860,6 +874,7 @@ const WRITTEN = {
     'scene_ending_vigil.not_yet',
     'scene_ending_mending.laugh',
     'scene_ending_mending.forgiving',
+    'scene_ending_mending.set_anyway',
     'scene_ending_mending.will_you',
     'scene_ending_mending.anchor',
     'scene_ending_unbound.quiet',

@@ -163,6 +163,14 @@ export const locations = [
       },
     ],
     events: [
+      // U62b (STORY §12 `echo_hollow_path`: "Cross the Chasm bridge once"; the Hollow is reached only over it, the Veil only
+      // through the Hollow): the bridge is remembered, and opens without Nyx's errand in the loops after
+      {
+        id: 'ev_hollow_bridge_held',
+        text: 'Behind you the rope bridge sways and settles. It held. Your feet will remember which boards took your weight.',
+        when: { not: { echo: 'echo_hollow_path' } },
+        effects: [{ grantEcho: 'echo_hollow_path' }],
+      },
       { id: 'ev_voidscar_thrum', text: 'The air tastes of ash and frost. Something in the hollow hisses your name.' },
       {
         id: 'ev_hollow_curtain',

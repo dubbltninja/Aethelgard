@@ -68,7 +68,7 @@ export function EndingView({ phase, model, summary, scene, reducedMotion, onNext
           </header>
           {phase === 'slides' ? (
             <>
-              <figure className="ending__slide" key={model.index} data-kind={slide.kind} data-mood={slide.mood ?? undefined}>
+              <figure className="ending__slide" key={model.index} data-kind={slide.kind} data-mood={slide.mood ?? undefined} data-art={slide.art ?? undefined}>
                 {slide.label === null ? null : <figcaption className="ending__label">{slide.label}</figcaption>}
                 {slide.loading ? <TextLoading className="ending__text" /> : <p className="ending__text">{slide.text}</p>}
               </figure>
@@ -130,7 +130,8 @@ export function EndingScreen(): ReactNode {
   }, [state, content, profile]);
   useViewFocus(rootRef, phase);
 
-  const location = content.locations[state.world.currentLocationId];
+  // U62b: each slide over the painting its record names (`art`, a location id), else the place where the loop ended
+  const location = (model === null || model.slide.art === null ? undefined : content.locations[model.slide.art]) ?? content.locations[state.world.currentLocationId];
   const backdrop = useBackdrop(location, state.world.heartstone, content.locations);
   const scene: EndingSceneProps | null =
     location === undefined

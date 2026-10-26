@@ -111,6 +111,7 @@ function wantOf(c: string[]): Want {
   return want;
 }
 
+const TRIUNE = 'recipe_breach_anchor_triune';
 const ROWS = tableRows(section(WORLD, '### 8.2 ', '### 8.3 ')).filter((c) => /^`recipe_/.test(c[0] ?? ''));
 const WANT = ROWS.map(wantOf);
 
@@ -123,12 +124,30 @@ function conditionOf(w: Want): Condition | undefined {
 }
 
 describe('the recipes (shared/recipes.ts) against WORLD §8.2', () => {
-  test('30 recipes, every WORLD row a record in its order and none extra; registered once in contentTables', () => {
+  // U62b (STORY §12 `echo_heartstone_triune`: "Borin's anchor dialogue shortcut"): one recipe beyond WORLD's thirty, after the anchor
+  const ORDER = (): string[] => {
+    const ids = WANT.map((w) => w.id);
+    ids.splice(ids.indexOf('recipe_breach_anchor') + 1, 0, TRIUNE);
+    return ids;
+  };
+
+  test('30 WORLD recipes and the Three Beats’ anchor, every WORLD row a record in its order and none extra; registered once in contentTables', () => {
     expect(ROWS).toHaveLength(30);
-    expect(recipes).toHaveLength(30);
-    expect(recipes.map((r) => r.id)).toEqual(WANT.map((w) => w.id));
-    expect(contentTables.recipes.map((r) => r.id)).toEqual(WANT.map((w) => w.id));
-    expect(Object.keys(pack.recipes)).toEqual(WANT.map((w) => w.id));
+    expect(recipes).toHaveLength(31);
+    expect(recipes.map((r) => r.id)).toEqual(ORDER());
+    expect(contentTables.recipes.map((r) => r.id)).toEqual(ORDER());
+    expect(Object.keys(pack.recipes)).toEqual(ORDER());
+  });
+
+  test('U62b: the Three Beats’ Breach-anchor is the anchor’s bill without a piece of the Heartstone, the same story gates, and needs the Echo too', () => {
+    const anchor = pack.recipes.recipe_breach_anchor as Recipe;
+    const triune = pack.recipes[TRIUNE] as Recipe;
+    expect(triune.output).toEqual(anchor.output);
+    expect(triune.inputs).toEqual(anchor.inputs);
+    expect(triune.anyOf).toEqual([]);
+    expect([triune.story, triune.gold, triune.repTier, triune.repTierWhileActive, triune.category]).toEqual([anchor.story, anchor.gold, anchor.repTier, anchor.repTierWhileActive, anchor.category]);
+    expect(canon(triune.requires)).toBe(canon({ all: [{ echo: 'echo_anchor_schema' }, { echo: 'echo_heartstone_triune' }] }));
+    expect(item('item_breach_anchor').sources).toEqual(['craft:recipe_breach_anchor', `craft:${TRIUNE}`]);
   });
 
   test('output: the item and count of every row; gear comes out Common (the Bell-Warden\'s Clapper item is a fixed Rare, so its recipe says so)', () => {

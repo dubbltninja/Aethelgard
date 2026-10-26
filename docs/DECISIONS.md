@@ -2547,3 +2547,20 @@ owning unit (PLAN §9.1).
   - **A fixed group that drops an item a quest objective needs is `hold`, never `scatter`:** it waits wounded until dawn,
     then resets.
   - A content test forbids `scatter` on such groups; DESIGN §4.7 is amended.
+
+### D-144 · Flee ruling, revised: quest-drop groups regroup at dawn (U81c), 2026-10-26
+- U81c's first pass used `hold` for quest-drop groups. It found that `hold` blocks roads: the Hollow pair cut the pacifist off
+  from 7 locations (Veil, Where She Fell), and literal "any chance" coverage would cut the Apex road. **The lead re-ruled:**
+  - **New `onFlee: 'regroup'`** (C1 addition: `EncounterSchema`, `CombatState`): a fled group is gone **until the next dawn
+    you could walk back for** (the flight, the road back, the Before's 4-watch charge all counted), then returns at full HP
+    with its drops. A first-visit group re-fires without its chance roll.
+  - Fleeing one group at a node keeps the node's other fled groups away with it, so the Hollow opens.
+  - **All 34 fixed groups that drop a quest-objective item, at any chance, `regroup`.** They include the Hollow, Chasm and
+    Shelf Stalkers, the Drowned clerks and choir, the Bell-Ringer, the Nexus Aberration (the Aberrant Eye) and the Apex-road
+    mireling. `hold` stays for the two unfleeable bosses, and plain `scatter` for everything else.
+  - **Every successful flee falls back to the previous node** (D-143).
+- `fleeRules.test` enforces it. `q_void_shards` is played with a flight: gone that day, back at dawn, beaten, three shards,
+  turned in.
+- **The pacifist reaches 26 locations** (the original 25 plus Eye of the Scar). Quests 81/81; `sim:endings` 8/8. Six quest
+  seeds and ending C's are new; `trained` no longer sleeps to dawn while a fled group is away.
+- U81c (4164430, 7565887; Opus, spot-reviewed); 4,866 unit; full e2e 343 passed. `real-weaver` trace re-recorded.

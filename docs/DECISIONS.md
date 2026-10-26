@@ -2466,3 +2466,29 @@ owning unit (PLAN §9.1).
     Inventory).
   - The ending screen stacks four notifications under the slide.
   - On the mobile Emberforge, a toast overlaps the tutorial callout.
+
+### D-140 · An independent Codex playtest — fixes integrated, 2026-10-26
+- Tim had a Codex (6.1) instance play-test the game and fix what it found, on `origin/codex/playtest-audit` (57c335d, on
+  baseline 8606584 = `unraveling` at the time). The lead reviewed the diff (23 files: engine, content and sim in detail) and
+  integrated it as one squash commit, `fa974bb`, credited to Codex. A squash keeps the history verified; the branch stays on
+  origin for reference.
+- **Accepted:**
+  - **Engine:** Field Dressing's cleanse (Bleed, Poison) also works on the road; it is special-cased by id in
+    `useFieldAbility` from `ABILITY_SCRIPTS`. An interrupt logs the replacement move; hidden intents read "an unrevealed move",
+    and no RNG or mechanics change.
+  - **Sim:** pre-Tyrant scenarios take the opening Amulet legally.
+  - **UI:**
+    - an "Effects" disclosure on every ability tile (touch inspection);
+    - the companion command's description; consumable revive and granted-ability lines;
+    - the flee chance and reason on the phone bar;
+    - Guard previews keyed by index;
+    - the boss banner moved below the intents;
+    - the phone bar also on short coarse-pointer screens (landscape iPhone);
+    - Safari focus on tab taps;
+    - enlarged-text reflow and narrow-overflow CSS.
+  - **Tests:** `playtest-regressions.spec.ts` and unit additions. `worker.test` now forces a defeat explicitly instead of
+    relying on a seed.
+- **Open design questions Codex raised → the fun review / U81:** Ilyra revisit cues (does the player know to come back?),
+  the Stone-Hide Golem's pacing, and ability-rotation balance.
+- Codex: all 26 remaining WebKit a11y failures also fail on the untouched baseline (our suite runs Chromium only). **Physical
+  device testing remains Tim's.**

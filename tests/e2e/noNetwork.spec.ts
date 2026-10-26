@@ -75,8 +75,12 @@ test.describe('no network', () => {
     await fightOut(g, () => steps++);
 
     // back to the camp, rest, save (6)
-    await step(() => g.moveTo('Crumbling Archway', 'Crumbling Archway'));
-    await step(() => g.moveTo('Whispering Ruins', 'Whispering Ruins'));
+    // (a wanderer may meet the way back: since U81a's forced first intents the seed's later rolls differ, so fight it out)
+    for (const place of ['Crumbling Archway', 'Whispering Ruins']) {
+      await step(() => g.moveTo(place));
+      if ((await g.mode()) === 'combat') await fightOut(g, () => steps++);
+      await expect(g.placeHeading(place)).toBeVisible();
+    }
     await step(() => g.shortRest());
     await step(() => g.saveToSlot(1), 3);
 

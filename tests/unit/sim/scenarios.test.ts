@@ -17,6 +17,7 @@ import {
   GameStateSchema,
   isApexPromptOpen,
   legalActions,
+  knownAbilities,
   playerOf,
   step,
   type Action,
@@ -242,6 +243,15 @@ describe.each(['pre_tyrant_l11_ranger', 'pre_tyrant_l13_ranger'] as const)('%s',
 
 // D-092: the Tyrant scenarios wear the band's best Common gear (WORLD "Tiers": T1 1–4 · T2 5–8 · T3 9–13 · T4 14–15 · T5 16–18).
 describe('the Tyrant scenarios\' gear (D-092)', () => {
+  test('real pre-Tyrant kits collect the opening Amulet and expose Echo Bolt', () => {
+    const pack = buildContentPack();
+    for (const id of ['pre_tyrant_l11_ranger', 'pre_tyrant_l13_ranger'] as const) {
+      const { state } = loadScenario(id, pack);
+      expect(knownAbilities(state, pack)).toContain('itm_echo_bolt');
+      expect(state.world.locationStates[pack.config.startLocationId]?.items.some((item) => item.itemId === 'item_amulet_of_echoes')).toBe(false);
+    }
+  }, 60_000);
+
   test('the tier of a level band', () => {
     const tiers = [1, 4, 5, 8, 9, 13, 14, 15, 16, 18].map(gearTierOf);
     expect(tiers).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);

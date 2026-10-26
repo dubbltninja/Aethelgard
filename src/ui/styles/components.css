@@ -223,7 +223,8 @@ details > summary {
 }
 
 .key-legend__item {
-  white-space: nowrap;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 /* ---- help (the ? overlay) ---- */

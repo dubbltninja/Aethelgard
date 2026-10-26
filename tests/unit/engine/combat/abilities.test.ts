@@ -263,6 +263,17 @@ describe('Ranger (DESIGN §5.2) through the reducer', () => {
     expect(step(field, ability('rgr_rend'), content, profile).events[0]).toMatchObject({ t: 'actionRejected', reason: 'Rend can only be used in a fight' });
   });
 
+  test('Field Dressing on the road cleanses Bleed and Poison at full HP, preserves other statuses and spends 10 MP', () => {
+    const field = state({ abilities: ['rgr_field_dressing'] });
+    field.player.statuses = [status('status_bleed', { tick: 2 }), status('status_poison', { tick: 3 }), status('status_weaken')];
+    const out = act(field, ability('rgr_field_dressing'));
+    expect(out.state.player.hp).toBe(field.player.hp);
+    expect(out.state.player.mp).toBe(field.player.mp - 10);
+    expect(out.state.player.statuses.map((st) => st.statusId)).toEqual(['status_weaken']);
+    expect(ofType(out.events, 'statusExpired').map((e) => e.statusId)).toEqual(['status_bleed', 'status_poison']);
+    expect(field.player.statuses).toHaveLength(3);
+  });
+
   test('Snare Trap (trap): set out of combat, it springs when the next fight at that node opens — Stun on a non-boss, the intent cancelled', () => {
     const set = act(state({ abilities: ['rgr_snare_trap'] }), ability('rgr_snare_trap'));
     const ruins = set.state.world.currentLocationId;

@@ -260,6 +260,8 @@ export function useLines(def: Item, content: ContentPack): string[] {
       const { hp, mp } = e.heal;
       if (hp !== undefined) out.push(hp === 'full' ? 'Restores all HP.' : `Restores ${hp} HP.`);
       if (mp !== undefined) out.push(mp === 'full' ? 'Restores all MP.' : `Restores ${mp} MP.`);
+    } else if ('revive' in e) {
+      out.push(`Revives a companion with ${pct(e.revive)} of their maximum HP.`);
     } else if ('damage' in e) {
       const hp = (e.damage as { hp?: number }).hp;
       if (typeof hp === 'number') out.push(`Costs ${hp} HP.`);
@@ -268,7 +270,13 @@ export function useLines(def: Item, content: ContentPack): string[] {
     }
   }
   // a consumable's cleansing and prepared effects are scripts on its passives
-  for (const p of def.passives) if (p.kind === 'custom') out.push(scriptLine(p.scriptId, p.params, content));
+  for (const p of def.passives) {
+    if (p.kind === 'custom') out.push(scriptLine(p.scriptId, p.params, content));
+    if (p.kind === 'grantAbility' && def.type === 'consumable') {
+      const ability = content.abilities[p.abilityId];
+      if (ability !== undefined) out.push(ability.description);
+    }
+  }
   return out;
 }
 

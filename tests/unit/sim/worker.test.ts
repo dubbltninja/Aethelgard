@@ -105,7 +105,18 @@ describe('runJob', () => {
   test('a scenario the pack cannot express, or the class cannot get through, is skipped; an unknown bot or pack fails', async () => {
     const cannot = await runJob(job({ scenario: 'pre_tyrant_l11_ranger' }), cache);
     expect(cannot.kind === 'skipped' && cannot.reason).toContain('unavailable');
-    const lost = await runJob(job({ pack: 'fixture:horde', classId: 'elf', scenario: 'pre_tyrant_l11_ranger', stopAt: 'loop_end', maxSteps: 2500 }), cache);
+    // Make defeat explicit instead of depending on a seed losing with yesterday's scenario kit.
+    const impossible = structuredClone(await loadPack('fixture:horde'));
+    for (const creature of Object.values(impossible.creatures)) {
+      creature.stats.hp = 100_000;
+      creature.stats.atk = 10_000;
+      creature.stats.armor = 10_000;
+      creature.stats.ward = 10_000;
+    }
+    class DefeatCache extends PackCache {
+      override get(): ReturnType<PackCache['get']> { return Promise.resolve(impossible); }
+    }
+    const lost = await runJob(job({ pack: 'fixture:horde', classId: 'elf', scenario: 'pre_tyrant_l11_ranger', stopAt: 'loop_end', maxSteps: 2500 }), new DefeatCache());
     expect(lost.kind === 'skipped' && lost.reason).toContain('the Wayfinder fell');
     expect(await runJob(job({ bot: 'nobody' }), cache)).toMatchObject({ kind: 'failed', message: "unknown bot 'nobody'" });
     const noPack = await runJob(job({ pack: 'fixture:nothing' }), cache);

@@ -27,6 +27,7 @@ interface BarButtonProps {
   action: string;
   icon: IconKind;
   label: string;
+  detail?: string | null;
   name: string;
   keys?: string | undefined;
   disabled: boolean;
@@ -36,7 +37,7 @@ interface BarButtonProps {
   onClick: () => void;
 }
 
-function BarButton({ action, icon, label, name, keys, disabled, danger = false, badge, autoFocus = false, onClick }: BarButtonProps): ReactNode {
+function BarButton({ action, icon, label, detail, name, keys, disabled, danger = false, badge, autoFocus = false, onClick }: BarButtonProps): ReactNode {
   return (
     <button
       type="button"
@@ -52,6 +53,7 @@ function BarButton({ action, icon, label, name, keys, disabled, danger = false, 
     >
       <Icon kind={icon} size={22} />
       <span className="phone-bar__label">{label}</span>
+      {detail == null ? null : <span className="phone-bar__label">{detail}</span>}
       {badge === undefined || badge === 0 ? null : (
         <span className="phone-bar__badge" aria-hidden="true">
           {badge}
@@ -88,7 +90,7 @@ export function PhoneBar({ model, targetName, guard, flee, itemCount, canItem, o
         onClick={onItems}
       />
       {flee.shown ? (
-        <BarButton action="flee" icon="flee" label={flee.leave ? 'Leave' : 'Flee'} name={fleeName(flee)} keys="F" disabled={!flee.enabled} danger={flee.leave} onClick={onFlee} />
+        <BarButton action="flee" icon="flee" label={flee.leave ? 'Leave' : `Flee ${flee.chance}%`} detail={flee.reason} name={fleeName(flee)} keys="F" disabled={!flee.enabled} danger={flee.leave} onClick={onFlee} />
       ) : null}
       {model.abilities.length === 0 ? null : (
         <BarButton action="abilities" icon="ability" label="Abilities" name={abilitiesName(model)} disabled={false} badge={model.ready} onClick={onAbilities} />

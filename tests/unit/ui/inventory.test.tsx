@@ -33,6 +33,7 @@ import {
   rowLabel,
   signed,
   typeLine,
+  useLines,
 } from '@ui/panels/itemModel';
 import { notExploring, panelAction } from '@ui/panels/panelAction';
 import { all, byName, call, expand, nameOf } from './tree';
@@ -45,6 +46,18 @@ const named = (state: ReturnType<typeof place>['state'], name: string) => {
 };
 
 describe('itemModel: the words', () => {
+  test('consumables explain numerical heals and thrown ability effects, as well as flavor', () => {
+    expect(useLines(pack.items.item_ley_touched_tonic!, pack)).toEqual(['Restores 25 HP.', 'Restores 15 MP.']);
+    expect(useLines(pack.items.item_lanternreed_salts!, pack)).toContain('Revives a companion with 30% of their maximum HP.');
+    for (const id of ['item_ember_flask', 'item_storm_jar']) {
+      const def = pack.items[id]!;
+      const grant = def.passives.find((p) => p.kind === 'grantAbility');
+      if (grant?.kind !== 'grantAbility') throw new Error('expected a thrown ability');
+      expect(useLines(def, pack)).toContain(pack.abilities[grant.abilityId]!.description);
+      expect(useLines(def, pack).join(' ')).toMatch(/\d+/);
+    }
+  });
+
   test('rarity: five words, five frame patterns, none of them colour', () => {
     expect(Object.values(RARITY_LABEL)).toEqual(['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary']);
     expect(new Set(Object.values(RARITY_PATTERN)).size).toBe(5);

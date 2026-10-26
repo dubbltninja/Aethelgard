@@ -60,7 +60,9 @@ describe('TabBarView', () => {
     expect(all(tree, 'nav').map((n) => n.props['aria-label'])).toEqual(['Game menu']);
     expect(all(tree, 'button').map(nameOf)).toEqual(['Explore', 'Journal', 'Pack', 'Map', 'Menu']);
     expect(all(tree, 'button').filter((b) => b.props['aria-current'] === 'page').map(nameOf)).toEqual(['Map']);
-    for (const name of ['Explore', 'Journal', 'Pack', 'Map', 'Menu']) call(byName(tree, 'button', name), 'onClick');
+    const focus = mock(() => undefined);
+    for (const name of ['Explore', 'Journal', 'Pack', 'Map', 'Menu']) call(byName(tree, 'button', name), 'onClick', { currentTarget: { focus } });
+    expect(focus).toHaveBeenCalledTimes(5);
     expect(chosen).toEqual(['explore', 'journal', 'pack', 'map', 'menu']);
   });
 

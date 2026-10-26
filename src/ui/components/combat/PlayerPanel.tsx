@@ -59,8 +59,9 @@ export function PlayerPanel({ player, guard, flee, itemCount, canItem, onGuard, 
               {guard.previews.length === 0 ? (
                 <span className="combat-action__detail">Halves the next hits</span>
               ) : (
-                guard.previews.map((p) => (
-                  <span key={p} className="combat-action__detail">
+                // Identical enemies can have identical text. These stateless spans need distinct keys.
+                guard.previews.map((p, i) => (
+                  <span key={i} className="combat-action__detail">
                     {p}
                   </span>
                 ))

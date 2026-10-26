@@ -527,6 +527,25 @@ describe('hidden intents (DESIGN §4.2 "?")', () => {
 // ---- Stun, interrupt ---------------------------------------------------------------------------------------------------------
 
 describe('Stun and interrupt skip the step (DESIGN §4.2)', () => {
+  test('replacement feedback respects a hidden next intent', () => {
+    const { ctx, combat, foe } = setup(one(C.flicker));
+    openingIntents(ctx, combat);
+    combat.intents[foe.uid]!.hidden = false;
+    foe.pattern.pointer = 0;
+    expect(interruptIntent(ctx, combat, foe)).toBe(true);
+    expect(combat.intents[foe.uid]?.hidden).toBe(true);
+    expect(combat.log.at(-1)?.text).toBe('Test Flicker still acts: next is an unrevealed move.');
+  });
+
+  test('an interrupt explicitly names the replacement even when the pattern chooses the same move again', () => {
+    const { ctx, combat, foe } = setup(one(C.cycle));
+    openingIntents(ctx, combat);
+    foe.pattern.pointer = 0;
+    expect(interruptIntent(ctx, combat, foe)).toBe(true);
+    expect(combat.intents[foe.uid]?.moveId).toBe('t_jab');
+    expect(combat.log.at(-1)?.text).toBe('Test Cycle still acts: next is Jab.');
+  });
+
   const stunned = (duration: number) => {
     const { state } = fightAt(one(C.cycle)); // opening Jab; the pointer is on Slam
     const ctx = scriptedCtx(state, [], pack, profile);
@@ -563,7 +582,8 @@ describe('Stun and interrupt skip the step (DESIGN §4.2)', () => {
     openingIntents(ctx, combat);
     expect(interruptIntent(ctx, combat, foe)).toBe(true);
     expect(combat.intents[foe.uid]?.moveId).toBe('t_slam');
-    expect(combat.log.at(-1)?.text).toBe("Test Cycle's Jab is interrupted.");
+    expect(combat.log.map((l) => l.text)).toContain("Test Cycle's Jab is interrupted.");
+    expect(combat.log.at(-1)?.text).toBe('Test Cycle still acts: next is Slam.');
     expect(ofType(ctx.events, 'intentRevealed').map((e) => e.intent.moveId)).toEqual(['t_jab', 't_slam']);
     delete combat.intents[foe.uid];
     expect(interruptIntent(ctx, combat, foe)).toBe(false);
@@ -575,7 +595,8 @@ describe('Stun and interrupt skip the step (DESIGN §4.2)', () => {
     const tyrant = setup(one(TYRANT), { loop: 2 });
     openingIntents(tyrant.ctx, tyrant.combat);
     expect(interruptIntent(tyrant.ctx, tyrant.combat, tyrant.foe)).toBe(true); // Stagger
-    expect(tyrant.combat.log.at(-1)?.text).toBe('The Chronos Tyrant staggers: Speak is lost.');
+    expect(tyrant.combat.log.map((l) => l.text)).toContain('The Chronos Tyrant staggers: Speak is lost.');
+    expect(tyrant.combat.log.at(-1)?.text).toBe('The Chronos Tyrant still acts: next is Time Lash.');
     expect(tyrant.combat.intents[tyrant.foe.uid]?.moveId).toBe('tyr_time_lash');
   });
 });

@@ -51,6 +51,7 @@ import {
   type StatusInstance,
 } from '@engine/index';
 import type { Ability } from '@schema/ability';
+import { useLines } from '../panels/itemModel';
 import { damageIcon, statusIcon, type IconKind } from '../art/Icon';
 import type { SigilSpec } from '../art/CreatureSigil';
 import { legalSet } from './exploreModel';
@@ -607,6 +608,7 @@ export interface CombatItemModel {
   name: string;
   qty: number;
   description: string;
+  effects: string[];
   /** One button per way to use it now (on yourself, on the companion, at the target). */
   uses: ItemChoiceModel[];
 }
@@ -627,7 +629,7 @@ export function combatItems(s: GameState, content: ContentPack, legal: Legal, ta
     }
     if (uses.length === 0) continue;
     const def = content.items[inst.itemId];
-    out.push({ uid: inst.uid, name: def?.name ?? inst.itemId, qty: inst.qty, description: def?.description ?? '', uses });
+    out.push({ uid: inst.uid, name: def?.name ?? inst.itemId, qty: inst.qty, description: def?.description ?? '', effects: def === undefined ? [] : useLines(def, content), uses });
   }
   return out;
 }

@@ -12,7 +12,7 @@
 // Pure and deterministic: no Rng, the order is the pack's.
 import type { Condition } from '@schema/condition';
 import type { CodexEntry } from '@schema/codex';
-import { evaluate, isFlagSet, itemCount } from './conditions';
+import { evaluate, isFlagSet } from './conditions';
 import type { ContentPack, StepCtx } from './ctx';
 import type { Action } from './types/actions';
 import type { Profile } from './types/profile';
@@ -38,6 +38,12 @@ export interface CodexUnlockIndex {
   companion: ReadonlyMap<string, readonly string[]>;
   flag: ReadonlyMap<string, readonly string[]>;
   item: ReadonlyMap<string, readonly string[]>;
+  /** Position of each indexed item id in `itemCounts` (one inventory scan per state instead of one per item). */
+  itemSlot: ReadonlyMap<string, number>;
+  /** Scratch counts of the indexed items, before and after (reused: the pass is synchronous). */
+  itemCounts: [Float64Array, Float64Array];
+  /** The keyed maps as arrays, for the per-step comparison (no iterator allocations on the hot path). */
+  lists: Readonly<Record<'flag' | 'item' | 'killed' | 'quest' | 'companion', readonly (readonly [string, readonly string[]])[]>>;
 }
 
 /** Every (atom, id) a condition reads (`all`, `any`, `not` unwrapped); `id` is null for atoms without one. */
@@ -88,7 +94,16 @@ export function codexUnlockIndex(content: ContentPack): CodexUnlockIndex {
       } else add(always, entry.id);
     }
   }
-  const index: CodexUnlockIndex = { entries, order: new Map(entries.map((e, i) => [e.id, i])), echo, corruption, always, ...keyed };
+  const lists = {
+    flag: [...keyed.flag],
+    item: [...keyed.item],
+    killed: [...keyed.killed],
+    quest: [...keyed.quest],
+    companion: [...keyed.companion],
+  };
+  const itemSlot = new Map(lists.item.map(([id], i) => [id, i] as const));
+  const itemCounts: [Float64Array, Float64Array] = [new Float64Array(itemSlot.size), new Float64Array(itemSlot.size)];
+  const index: CodexUnlockIndex = { entries, order: new Map(entries.map((e, i) => [e.id, i])), echo, corruption, always, ...keyed, itemSlot, itemCounts, lists };
   cache.set(content, index);
   return index;
 }
@@ -106,15 +121,37 @@ const FULL_SWEEP: ReadonlySet<Action['type']> = new Set(['newGame', 'load', 'new
 
 const regionOf = (content: ContentPack, locationId: string): string | undefined => content.locations[locationId]?.regionId;
 
-function companionKey(s: GameState, id: string): string {
-  const c = s.companions.recruited[id];
-  if (c === undefined) return '';
-  return `${c.recruited ? 1 : 0}${c.dead ? 1 : 0}${c.ko ? 1 : 0}${s.companions.activeId === id ? 1 : 0}${c.waitingAt ?? ''}`;
+/** Counts of the indexed items carried (inventory and equipped, as `itemCount`) into `out`. */
+function countIndexedItems(s: GameState, slot: ReadonlyMap<string, number>, out: Float64Array): void {
+  out.fill(0);
+  const inventory = s.player.inventory;
+  for (let i = 0; i < inventory.length; i++) {
+    const stack = inventory[i]!;
+    const at = slot.get(stack.itemId);
+    if (at !== undefined) out[at]! += stack.qty;
+  }
+  const eq = s.player.equipment;
+  for (const key in eq) {
+    const item = eq[key as keyof typeof eq];
+    const at = item == null ? undefined : slot.get(item.itemId);
+    if (at !== undefined) out[at]! += item!.qty;
+  }
 }
 
-function questKey(s: GameState, id: string): string {
-  const q = s.quests[id];
-  return q === undefined ? '' : `${q.status}:${q.stage ?? ''}`;
+/** Whether what the `companion` atom reads of `id` differs (recruited, dead, knocked out, in the party, waiting). */
+function companionChanged(a: GameState, b: GameState, id: string): boolean {
+  const x = a.companions.recruited[id];
+  const y = b.companions.recruited[id];
+  if (x === undefined || y === undefined) return x !== y;
+  return x.recruited !== y.recruited || x.dead !== y.dead || x.ko !== y.ko || x.waitingAt !== y.waitingAt || (a.companions.activeId === id) !== (b.companions.activeId === id);
+}
+
+/** Whether what the `quest` atom reads of `id` differs (status, stage). */
+function questChanged(a: GameState, b: GameState, id: string): boolean {
+  const x = a.quests[id];
+  const y = b.quests[id];
+  if (x === undefined || y === undefined) return x !== y;
+  return x.status !== y.status || x.stage !== y.stage;
 }
 
 /**
@@ -124,9 +161,11 @@ function questKey(s: GameState, id: string): string {
 export function dirtyCodexEntries(index: CodexUnlockIndex, before: GameState, beforeProfile: Readonly<Profile>, after: GameState, afterProfile: Readonly<Profile>, content: ContentPack, full = false): string[] {
   if (index.entries.length === 0) return [];
   if (full) return index.entries.map((e) => e.id);
-  const marked = new Set<string>(index.always);
+  let marked: Set<string> | null = index.always.length === 0 ? null : new Set(index.always);
   const mark = (ids: readonly string[] | undefined): void => {
-    if (ids !== undefined) for (const id of ids) marked.add(id);
+    if (ids === undefined) return;
+    marked ??= new Set();
+    for (const id of ids) marked.add(id);
   };
   const fromLoc = before.world.currentLocationId;
   const toLoc = after.world.currentLocationId;
@@ -142,15 +181,32 @@ export function dirtyCodexEntries(index: CodexUnlockIndex, before: GameState, be
   }
   if (before.echoesThisLoop.length !== after.echoesThisLoop.length || beforeProfile.echoes.length !== afterProfile.echoes.length) mark(index.echo);
   if (before.player.corruption !== after.player.corruption) mark(index.corruption);
-  for (const [flag, ids] of index.flag) if (isFlagSet(before, flag) !== isFlagSet(after, flag)) mark(ids);
-  for (const [item, ids] of index.item) if (itemCount(before, item) !== itemCount(after, item)) mark(ids);
-  for (const [creature, ids] of index.killed) {
-    if ((before.counters.kills[creature] ?? 0) !== (after.counters.kills[creature] ?? 0) || (beforeProfile.bestiary[creature]?.killed ?? 0) !== (afterProfile.bestiary[creature]?.killed ?? 0)) mark(ids);
+  const { flag, item, killed, quest, companion } = index.lists;
+  for (let i = 0; i < flag.length; i++) {
+    const [id, ids] = flag[i]!;
+    if (isFlagSet(before, id) !== isFlagSet(after, id)) mark(ids);
   }
-  for (const [quest, ids] of index.quest) if (questKey(before, quest) !== questKey(after, quest)) mark(ids);
-  for (const [companion, ids] of index.companion) if (companionKey(before, companion) !== companionKey(after, companion)) mark(ids);
-  if (marked.size === 0) return [];
-  return [...marked].sort((a, b) => (index.order.get(a) ?? 0) - (index.order.get(b) ?? 0));
+  if (item.length > 0) {
+    const [was, now] = index.itemCounts;
+    countIndexedItems(before, index.itemSlot, was);
+    countIndexedItems(after, index.itemSlot, now);
+    for (let i = 0; i < item.length; i++) if (was[i] !== now[i]) mark(item[i]![1]);
+  }
+  for (let i = 0; i < killed.length; i++) {
+    const [id, ids] = killed[i]!;
+    if ((before.counters.kills[id] ?? 0) !== (after.counters.kills[id] ?? 0) || (beforeProfile.bestiary[id]?.killed ?? 0) !== (afterProfile.bestiary[id]?.killed ?? 0)) mark(ids);
+  }
+  for (let i = 0; i < quest.length; i++) {
+    const [id, ids] = quest[i]!;
+    if (questChanged(before, after, id)) mark(ids);
+  }
+  for (let i = 0; i < companion.length; i++) {
+    const [id, ids] = companion[i]!;
+    if (companionChanged(before, after, id)) mark(ids);
+  }
+  if (marked === null) return [];
+  const out = [...(marked as Set<string>)];
+  return out.length < 2 ? out : out.sort((a, b) => (index.order.get(a) ?? 0) - (index.order.get(b) ?? 0));
 }
 
 /**

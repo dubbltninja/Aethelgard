@@ -227,6 +227,51 @@ test.describe('saves', () => {
   });
 });
 
+test.describe('storage quota', () => {
+  // U77 (PLAN §8.3): a full browser store. `addInitScript` wraps `Storage.prototype.setItem` so it throws a QuotaExceededError once
+  // the page flips `window.__quotaFull`; the game says so in words and the player can still get the run out as a file.
+  test('a full browser store: the quota message appears, the game plays on, and export still works', async ({ page }, info) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __quotaFull?: boolean };
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (this: Storage, key: string, value: string): void {
+        if (w.__quotaFull === true) throw new DOMException(`Failed to execute 'setItem' on 'Storage': Setting the value of '${key}' exceeded the quota.`, 'QuotaExceededError');
+        setItem.call(this, key, value);
+      };
+    });
+    const problems = watch(page);
+    await newGame(page);
+    await openSavesInGame(page, info);
+    await press(slotCard(page, '1').getByRole('button', { name: 'Save to slot 1' }), info);
+    await expect(slotCard(page, '1')).toHaveAttribute('data-status', 'ok');
+    await close(page, 'Saves', info);
+    const exportable = JSON.parse((await stored(page, 'aethelgard.run.slot1')) ?? 'null') as object;
+
+    // the store fills up: the next checkpoint (a move autosaves) cannot be written, and the game says why — once, in words
+    await page.evaluate(() => {
+      (window as unknown as { __quotaFull: boolean }).__quotaFull = true;
+    });
+    const storageFull = page.getByText(/The browser’s storage is full, so the game could not be saved\. Export your save from the Saves panel to keep it\./);
+    await press(page.getByRole('navigation', { name: 'Ways on' }).getByRole('button', { name: /^South: Sunken Archives/ }), info);
+    await expect(page.getByRole('heading', { level: 1, name: 'Sunken Archives' })).toBeVisible();
+    await expect(storageFull.first()).toBeVisible();
+    expect((await gameState(page)).mode).toBe('explore'); // the run itself carries on
+
+    // a manual save says it too, and leaves the old slot untouched
+    await openSavesInGame(page, info);
+    await press(slotCard(page, '2').getByRole('button', { name: 'Save to slot 2' }), info);
+    await expect(storageFull.nth(0)).toBeVisible();
+    await expect(slotCard(page, '2')).toHaveAttribute('data-status', 'empty');
+    expect(JSON.parse((await stored(page, 'aethelgard.run.slot1')) ?? 'null')).toEqual(exportable);
+
+    // export still works: the slot that was saved comes out as a file, whole
+    const [download] = await Promise.all([page.waitForEvent('download'), press(slotCard(page, '1').getByRole('button', { name: 'Export of slot 1' }), info)]);
+    expect(download.suggestedFilename()).toMatch(/^aethelgard-run-slot1-\d{8}-\d{4}\.json$/);
+    expect(JSON.parse(await readFile(await download.path(), 'utf8'))).toMatchObject({ kind: 'run', version: 1 });
+    expect(problems.filter((p) => !/quota|storage/i.test(p))).toEqual([]);
+  });
+});
+
 test.describe('settings', () => {
   test('survive a reload, reach the page, and a profile that cannot be read keeps them', async ({ page }, info) => {
     const problems: string[] = [];

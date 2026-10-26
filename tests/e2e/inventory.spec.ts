@@ -281,7 +281,8 @@ test.describe('inventory and the other management panels', () => {
   test('rest at a camp: the Camp panel offers the two rests with their time, a full rest passes the night', async ({ page }, info) => {
     const problems = watch(page);
     await boot(page, 'loop1_emberforge');
-    await press(page.getByRole('button', { name: /^\d: Camp/ }), info);
+    // U62b: the Emberforge's vein (`ev_forge_vein`) is one more row, so the Camp may be past the ninth numbered key
+    await press(page.getByRole('button', { name: /^(\d: )?Camp\b/ }), info);
     const panel = dialog(page, 'Camp');
     await expect(panel).toBeVisible();
     await expect(panel.getByText(/Restores .* of your HP and MP/).first()).toBeVisible();
@@ -297,7 +298,7 @@ test.describe('inventory and the other management panels', () => {
 
   test('the camp’s respec is behind a question; the Abilities panel opens from the Camp', async ({ page }, info) => {
     await boot(page, 'loop1_emberforge');
-    await press(page.getByRole('button', { name: /^\d: Camp/ }), info);
+    await press(page.getByRole('button', { name: /^(\d: )?Camp\b/ }), info);
     const camp = dialog(page, 'Camp');
     await press(camp.getByRole('button', { name: 'Open Abilities' }), info);
     const panel = dialog(page, 'Abilities');

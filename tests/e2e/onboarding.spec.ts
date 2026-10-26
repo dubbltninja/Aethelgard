@@ -21,6 +21,16 @@ async function gameState(page: Page): Promise<GameWindow['__aethelgard']['state'
   return page.evaluate(() => (window as unknown as GameWindow).__aethelgard.state);
 }
 
+/**
+ * U62b: Continue through a scene the engine opened (STORY §13: the thirtieth dawn's `scene_clock_expiry`, Loop 2's waking at the
+ * Ruins) back to the place.
+ */
+async function throughScene(page: Page): Promise<void> {
+  const mode = (): Promise<string> => page.evaluate(() => (window as unknown as { __aethelgard: { state: { mode: string } } }).__aethelgard.state.mode);
+  for (let i = 0; i < 12 && (await mode()) === 'dialogue'; i++) await page.getByRole('button', { name: /^(Continue|End the conversation)/ }).first().click();
+  await expect.poll(mode).toBe('explore');
+}
+
 const mobile = (info: TestInfo): boolean => info.project.name.startsWith('mobile');
 
 async function press(target: Locator, info: TestInfo): Promise<void> {
@@ -225,6 +235,7 @@ test.describe('the Breach on the map', () => {
     });
     await press(page.getByRole('button', { name: /^\d: Wait/ }), info);
     await expect.poll(async () => (await gameState(page)).world.hordeActive).toBe(true);
+    await throughScene(page); // the thirtieth dawn (STORY §13 `scene_clock_expiry`)
     await press(tabBar(page).getByRole('button', { name: 'Map' }), info);
     await expect(map.locator('.map-node--infected').first()).toBeVisible();
     await expect(map.getByRole('button', { name: /^The Temporal Breach Apex, .*infected/ })).toBeVisible();
@@ -282,12 +293,14 @@ test.describe('C4: a fresh Loop 1, from the Title to its first loop end, through
     for (let i = 0; i < 40; i++) {
       const s = await gameState(page);
       if (s.world.hordeActive) break;
+      if (s.mode === 'dialogue') await throughScene(page); // a scene a rest's dawn opened
       expect(s.mode).toBe('explore');
       const ticks = s.clock.ticks;
       await page.keyboard.press('Shift+R');
       await expect.poll(async () => (await gameState(page)).clock.ticks).toBeGreaterThan(ticks);
     }
     expect((await gameState(page)).world.hordeActive).toBe(true);
+    await throughScene(page); // the thirtieth dawn (STORY §13 `scene_clock_expiry`)
     await expect(chip).toContainText('Day 30');
 
     // the way out is the Shattered Library: Ruins → Crumbling Archway → Darkened Corridor, where the Horde stands

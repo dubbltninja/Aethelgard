@@ -8,6 +8,16 @@
 // each carry their own glow, the Library marks Ilyra's portal once a Horde runs, and an infected place is darkened and hatched.
 import { expect, test, type Page, type TestInfo } from 'playwright/test';
 
+/**
+ * U62b: Continue through a scene the engine opened (STORY §13: the thirtieth dawn's `scene_clock_expiry`, Loop 2's waking at the
+ * Ruins) back to the place.
+ */
+async function throughScene(page: Page): Promise<void> {
+  const mode = (): Promise<string> => page.evaluate(() => (window as unknown as { __aethelgard: { state: { mode: string } } }).__aethelgard.state.mode);
+  for (let i = 0; i < 12 && (await mode()) === 'dialogue'; i++) await page.getByRole('button', { name: /^(Continue|End the conversation)/ }).first().click();
+  await expect.poll(mode).toBe('explore');
+}
+
 interface GameWindow {
   __aethelgard: {
     store: {
@@ -220,6 +230,7 @@ test.describe('painted scenes', () => {
       await expect(layer(page, 'portal')).toHaveCount(0);
       await page.goto('./?scenario=expiry_minus_1');
       await page.getByRole('button', { name: /^\d: Short rest/ }).click();
+      await throughScene(page); // the thirtieth dawn (STORY §13 `scene_clock_expiry`)
       await expect.poll(() => page.evaluate(() => document.querySelector('[data-screen="explore"]') !== null)).toBe(true);
       await teleport(page, 'loc_shattered_library');
       await expect(page.getByRole('heading', { level: 1, name: 'Shattered Library' })).toBeVisible();

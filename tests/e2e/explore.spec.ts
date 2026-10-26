@@ -16,6 +16,16 @@ async function gameState(page: Page): Promise<GameWindow['__aethelgard']['state'
   return page.evaluate(() => (window as unknown as GameWindow).__aethelgard.state);
 }
 
+/**
+ * U62b: Continue through a scene the engine opened (STORY §13: the thirtieth dawn's `scene_clock_expiry`, Loop 2's waking at the
+ * Ruins) back to the place.
+ */
+async function throughScene(page: Page): Promise<void> {
+  const mode = (): Promise<string> => page.evaluate(() => (window as unknown as { __aethelgard: { state: { mode: string } } }).__aethelgard.state.mode);
+  for (let i = 0; i < 12 && (await mode()) === 'dialogue'; i++) await page.getByRole('button', { name: /^(Continue|End the conversation)/ }).first().click();
+  await expect.poll(mode).toBe('explore');
+}
+
 const mobile = (info: TestInfo): boolean => info.project.name.startsWith('mobile');
 
 /** A tap on touch devices, a click elsewhere. */
@@ -149,6 +159,7 @@ test.describe('explore', () => {
 
     await page.getByRole('button', { name: /^\d: Short rest/ }).click();
     await expect.poll(async () => (await gameState(page)).world.hordeActive).toBe(true);
+    await throughScene(page); // the thirtieth dawn (STORY §13 `scene_clock_expiry`)
     await expect(clock).toContainText('Day 30 · Dawn');
     await expect(page.getByRole('button', { name: /Short rest/ })).toHaveCount(0); // no rest while the Horde runs
 

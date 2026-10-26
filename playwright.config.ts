@@ -5,7 +5,8 @@
 import { defineConfig, devices } from 'playwright/test';
 
 export const BASE_PATH = '/Aethelgard/';
-const PORT = 4173;
+// E2E_PORT lets parallel worktrees run e2e without testing each other's build (D-132; reuseExistingServer reuses any server on the port).
+const PORT = Number(process.env.E2E_PORT ?? 4173);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({

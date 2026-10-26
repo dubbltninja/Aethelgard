@@ -10,7 +10,8 @@
 // Volumes are 0..1 per bus, heard as v² (perceptual, §18.5); the ui bus follows the effects volume. Mute sets master to 0
 // at once, and a muted (or silent) bus schedules nothing at all. SFX are fire-and-forget voices: at most MAX_VOICES at
 // once (the oldest is faded out and stolen), and the same sound is not started twice within THROTTLE seconds.
-// Reduced motion drops the combat hat ticks (§18.5; U75 drops the ambient pulse). Hidden tab → suspend; shown → resume.
+// Reduced motion drops the combat hat ticks (§18.5; the ambient layer drops its pulse, U75). Hidden tab → suspend; shown →
+// resume. U75's ambient layer (src/audio/ambient) builds on `context()`, `levels()`, `reducedMotion()` and `subscribe()`.
 import { audioRng, noiseBuffer, type Voice } from '../synth/synth';
 import { RECIPES, type SoundId, type SoundParams } from '../sfx/sfx';
 import type { Cue } from '../map/map';
@@ -43,6 +44,12 @@ export interface AudioEngine {
   resume(): void;
   /** A bus to connect to (U75's ambient and music), or null before the context exists. */
   bus(name: BusName): GainNode | null;
+  /** The context once a gesture has made it (U75's ambient layer builds its own graph on it), else null. */
+  context(): AudioContext | null;
+  levels(): Levels;
+  reducedMotion(): boolean;
+  /** Called after the context starts running (or resumes) and after any change of levels, reduced motion or disposal. */
+  subscribe(listener: () => void): () => void;
   /** The last sounds scheduled, newest last (the e2e spy and the audition page read it). */
   played(): readonly SoundId[];
   voices(): number;
@@ -94,6 +101,16 @@ export function createAudioEngine(options: EngineOptions = {}): AudioEngine {
   let live: Live[] = [];
   const lastStart = new Map<SoundId, number>();
   const history: SoundId[] = [];
+  const listeners = new Set<() => void>();
+  const changed = (): void => {
+    for (const l of [...listeners]) {
+      try {
+        l();
+      } catch {
+        // a listener's error never reaches the engine or the UI
+      }
+    }
+  };
 
   const gainOf = (bus: BusName | 'master'): number => {
     if (bus === 'master') return levels.muted ? 0 : clamp01(levels.volumes.master) ** 2;
@@ -156,6 +173,7 @@ export function createAudioEngine(options: EngineOptions = {}): AudioEngine {
           starting = true;
           await ctx.resume().finally(() => (starting = false));
         }
+        if (ctx.state === 'running') changed();
         return ctx.state === 'running';
       } catch {
         return false;
@@ -208,22 +226,33 @@ export function createAudioEngine(options: EngineOptions = {}): AudioEngine {
     setLevels(next) {
       levels = { volumes: { ...next.volumes }, muted: next.muted };
       applyLevels(false);
+      changed();
     },
     setReducedMotion(on) {
       reduced = on;
+      changed();
     },
     suspend() {
       if (ctx?.state === 'running') void ctx.suspend().catch(() => undefined);
     },
     resume() {
-      if (ctx?.state === 'suspended' && !disposed) void ctx.resume().catch(() => undefined);
+      if (ctx?.state === 'suspended' && !disposed) void ctx.resume().then(changed, () => undefined);
     },
     bus: (name) => (buses === null ? null : buses[name]),
+    context: () => (disposed ? null : ctx),
+    levels: () => levels,
+    reducedMotion: () => reduced,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => void listeners.delete(listener);
+    },
     played: () => history,
     voices: () => (ctx === null ? 0 : live.filter((v) => v.end > (ctx as AudioContext).currentTime).length),
     dispose() {
       disposed = true;
       live = [];
+      changed();
+      listeners.clear();
       if (ctx !== null && ctx.state !== 'closed') void ctx.close().catch(() => undefined);
     },
   };

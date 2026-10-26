@@ -9,9 +9,17 @@ interface AudioSpy {
   played(): string[];
   bus(name: string): { gain: { value: number } } | null;
 }
-interface GameWindow {
-  __aethelgard: { audio: AudioSpy; state: { mode: string; combat: { phase: string } | null } };
+interface AmbientSpy {
+  current(): { bed: string | null; interior: boolean; infected: boolean; theme: { phase: number; purity: number } | null; ducked: boolean; layers: number };
 }
+interface GameWindow {
+  __aethelgard: { audio: AudioSpy; ambient: AmbientSpy; dispatch(action: unknown): void; state: { mode: string; combat: { phase: string } | null; world: { currentLocationId: string } } };
+}
+type Status = ReturnType<AmbientSpy['current']>;
+
+const ambientNow = (page: Page): Promise<Status> => page.evaluate(() => (window as unknown as GameWindow).__aethelgard.ambient.current());
+const travel = (page: Page, to: string): Promise<void> => page.evaluate((t) => (window as unknown as GameWindow).__aethelgard.dispatch({ type: 'move', to: t }), to);
+const where = (page: Page): Promise<string> => page.evaluate(() => (window as unknown as GameWindow).__aethelgard.state.world.currentLocationId);
 
 const audioState = (page: Page): Promise<string> => page.evaluate(() => (window as unknown as GameWindow).__aethelgard.audio.state());
 const played = (page: Page): Promise<string[]> => page.evaluate(() => [...(window as unknown as GameWindow).__aethelgard.audio.played()]);
@@ -110,6 +118,85 @@ test.describe('sound', () => {
     expect(await played(page)).toEqual(['sfx_echo_gain']);
     await press(page.locator('button[data-sound="sfx_status_apply"]').nth(1), info);
     await expect(page.getByRole('status')).toContainText('sfx_status_apply (burn)');
+    expect(problems).toEqual([]);
+  });
+
+  test('ambient: silent on the Title; a region’s bed starts on the first gesture and switches when the region changes', async ({ page }, info) => {
+    const problems = watch(page);
+    await page.goto('./');
+    await expect(page.getByRole('navigation', { name: 'Main menu' })).toBeVisible();
+    await press(page.getByRole('heading', { level: 1 }), info);
+    await expect.poll(() => audioState(page)).toBe('running');
+    expect(await ambientNow(page)).toMatchObject({ bed: null, theme: null, layers: 0 }); // the Title plays nothing
+
+    await page.goto('./?scenario=loop1_day1');
+    await expect(page.getByRole('heading', { level: 1, name: 'Whispering Ruins' })).toBeVisible();
+    expect(await ambientNow(page)).toMatchObject({ bed: null, layers: 0 }); // nothing before the first gesture
+    await press(page.getByRole('heading', { level: 1, name: 'Whispering Ruins' }), info);
+    await expect.poll(async () => (await ambientNow(page)).bed).toBe('ambient_silverwood_ruins');
+
+    // an interior in the same region darkens the bed in place: still one layer, the same bed
+    await travel(page, 'loc_sunken_archives');
+    await expect.poll(() => where(page)).toBe('loc_sunken_archives');
+    expect(await ambientNow(page)).toMatchObject({ bed: 'ambient_silverwood_ruins', interior: true, layers: 1 });
+    await travel(page, 'loc_whispering_ruins');
+    await expect.poll(() => where(page)).toBe('loc_whispering_ruins');
+    expect(await ambientNow(page)).toMatchObject({ bed: 'ambient_silverwood_ruins', interior: false, layers: 1 });
+
+    // another region: the bed crossfades (two layers for about two seconds), then only the new one remains
+    await travel(page, 'loc_mistwood_path');
+    await expect.poll(async () => (await ambientNow(page)).bed).toBe('ambient_mistwood_ironclad_reach');
+    expect((await ambientNow(page)).layers).toBe(2);
+    await expect.poll(async () => (await ambientNow(page)).layers, { timeout: 8000 }).toBe(1);
+    expect(problems).toEqual([]);
+  });
+
+  test('ambient: the Tyrant’s fight plays the theme, thinned by the communion; mute stops both', async ({ page }, info) => {
+    const problems = watch(page);
+    await page.goto('./?scenario=combat_tyrant_contained_p2');
+    await expect(page.locator('[data-screen="combat"]')).toBeVisible();
+    expect(await ambientNow(page)).toMatchObject({ theme: null });
+    await press(page.getByRole('heading', { level: 1, name: 'The Chronos Tyrant' }), info);
+    await expect.poll(async () => (await ambientNow(page)).theme?.phase).toBe(1); // the second phase
+    expect(await ambientNow(page)).toMatchObject({ bed: 'ambient_temporal_breach_apex', ducked: true, theme: { purity: 0 } });
+
+    await page.keyboard.press('Control+m');
+    await expect(page.getByText('Sound muted. Ctrl+M turns it back on.')).toBeVisible();
+    expect(await ambientNow(page)).toMatchObject({ bed: null, theme: null }); // both stop at once
+    await page.keyboard.press('Control+m');
+    await expect.poll(async () => (await ambientNow(page)).theme?.phase).toBe(1);
+    expect((await ambientNow(page)).bed).toBe('ambient_temporal_breach_apex');
+
+    // the communion (Resolve 5 in Movement II) thins the same theme
+    await page.goto('./?scenario=communion_movement_2');
+    await expect(page.locator('[data-screen="combat"]')).toBeVisible();
+    await press(page.getByRole('heading', { level: 1 }), info);
+    await expect.poll(async () => (await ambientNow(page)).theme?.purity ?? 0).toBeGreaterThan(0.4);
+    expect((await ambientNow(page)).theme?.phase).toBe(1);
+    expect(problems).toEqual([]);
+  });
+
+  test('the audition page plays each bed and the Tyrant theme', async ({ page }, info) => {
+    const problems = watch(page);
+    await page.goto('./?audition');
+    const beds = page.locator('button[data-bed]:not([data-bed=""])');
+    await expect(beds).toHaveCount(14);
+    await press(beds.first(), info);
+    await expect.poll(async () => (await ambientNow(page)).bed).toBe('ambient_silverwood_ruins');
+    await press(page.locator('button[data-bed="ambient_threshold"]'), info);
+    await expect.poll(async () => (await ambientNow(page)).bed).toBe('ambient_threshold');
+    await press(page.getByLabel(/Infected/), info);
+    await expect.poll(async () => (await ambientNow(page)).infected).toBe(true);
+    await press(page.locator('button[data-theme="play"]'), info);
+    await expect.poll(async () => (await ambientNow(page)).theme?.phase).toBe(0);
+    await page.getByRole('combobox').selectOption('3');
+    await expect.poll(async () => (await ambientNow(page)).theme?.phase).toBe(3);
+    await page.getByRole('slider', { name: /Communion resolve/ }).fill('8');
+    await expect.poll(async () => (await ambientNow(page)).theme?.purity).toBe(1);
+    await press(page.locator('button[data-theme="stop"]'), info);
+    await expect.poll(async () => (await ambientNow(page)).theme).toBeNull();
+    await press(page.locator('button[data-bed=""]'), info);
+    await expect.poll(async () => (await ambientNow(page)).bed).toBeNull();
     expect(problems).toEqual([]);
   });
 });

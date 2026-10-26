@@ -16,7 +16,7 @@
     "mode": "explore",
     "locationId": "loc_shattered_library"
   },
-  "finalStateHash": "b5ecfd32",
+  "finalStateHash": "749179ff",
   "trace": [
     {"type":"unlockAbility","abilityId":"rgr_rend"},
     {"type":"talk","npcId":"npc_ilyra"},

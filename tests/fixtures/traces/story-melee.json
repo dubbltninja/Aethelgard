@@ -16,7 +16,7 @@
     "mode": "explore",
     "locationId": "loc_whispering_ruins"
   },
-  "finalStateHash": "1a76ae8c",
+  "finalStateHash": "e399d944",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"ranger","seed":"u79:story:1"},
     {"type":"unlockAbility","abilityId":"rgr_rend"},
@@ -1117,10 +1117,10 @@
     {"type":"ability","abilityId":"rgr_marked_shot","targetUid":"c11"},
     {"type":"guard"},
     {"type":"guard"},
+    {"type":"ability","abilityId":"itm_echo_bolt","targetUid":"c12"},
     {"type":"guard"},
     {"type":"guard"},
-    {"type":"guard"},
-    {"type":"guard"},
+    {"type":"ability","abilityId":"itm_echo_bolt","targetUid":"c12"},
     {"type":"guard"},
     {"type":"guard"},
     {"type":"acknowledgeEnding"},

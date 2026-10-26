@@ -16,7 +16,7 @@
     "mode": "combat",
     "locationId": "loc_shattered_library"
   },
-  "finalStateHash": "c43d2888",
+  "finalStateHash": "daaa542a",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"ranger","seed":"u79:before:1"},
     {"type":"unlockAbility","abilityId":"rgr_rend"},

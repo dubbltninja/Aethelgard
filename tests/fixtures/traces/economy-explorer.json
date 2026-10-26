@@ -11,12 +11,12 @@
   "stopReason": "max_steps",
   "final": {
     "loop": 12,
-    "day": 32,
+    "day": 33,
     "level": 2,
     "mode": "explore",
     "locationId": "loc_whispering_ruins"
   },
-  "finalStateHash": "6aed1ff1",
+  "finalStateHash": "ca2f86be",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"ranger","seed":"u79:economy:2"},
     {"type":"unlockAbility","abilityId":"rgr_rend"},
@@ -573,8 +573,7 @@
     {"type":"item","uid":"i15"},
     {"type":"guard"},
     {"type":"guard"},
-    {"type":"guard"},
-    {"type":"guard"},
+    {"type":"ability","abilityId":"rgr_marked_shot","targetUid":"c59"},
     {"type":"acknowledgeEnding"},
     {"type":"acknowledgeEnding"},
     {"type":"thresholdGo","to":"far_light"},
@@ -989,6 +988,7 @@
     {"type":"move","to":"loc_heartstone_depths"},
     {"type":"interact","eventId":"ev_heartstone_stabilize"},
     {"type":"move","to":"loc_whispering_ruins"},
+    {"type":"rest","kind":"full"},
     {"type":"rest","kind":"full"},
     {"type":"rest","kind":"full"},
     {"type":"rest","kind":"full"},

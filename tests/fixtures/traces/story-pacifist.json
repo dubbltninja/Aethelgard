@@ -16,7 +16,7 @@
     "mode": "ending",
     "locationId": "loc_temporal_breach_apex"
   },
-  "finalStateHash": "82a9db97",
+  "finalStateHash": "5e56b09c",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"ranger","seed":"u79:story:2"},
     {"type":"takeAll"},

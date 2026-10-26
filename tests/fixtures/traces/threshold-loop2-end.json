@@ -16,7 +16,7 @@
     "mode": "explore",
     "locationId": "loc_whispering_ruins"
   },
-  "finalStateHash": "d5b81b58",
+  "finalStateHash": "d203fb7d",
   "trace": [
     {"type":"thresholdGo","to":"loom"},
     {"type":"thresholdSpend","attunementId":"att_full_purse"},

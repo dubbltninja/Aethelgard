@@ -16,7 +16,7 @@
     "mode": "explore",
     "locationId": "loc_whispering_ruins"
   },
-  "finalStateHash": "13b90481",
+  "finalStateHash": "813250ca",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"ranger","seed":"u79:horde:1"},
     {"type":"unlockAbility","abilityId":"rgr_rend"},

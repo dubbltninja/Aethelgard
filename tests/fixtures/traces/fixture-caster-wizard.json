@@ -16,7 +16,7 @@
     "mode": "explore",
     "locationId": "loc_chronos_nexus"
   },
-  "finalStateHash": "e494a2e9",
+  "finalStateHash": "c20e3997",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"wizard","seed":"u79:fixture:2"},
     {"type":"unlockAbility","abilityId":"wiz_fireball"},

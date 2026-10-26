@@ -16,7 +16,7 @@
     "mode": "explore",
     "locationId": "loc_whispering_ruins"
   },
-  "finalStateHash": "0113e0a5",
+  "finalStateHash": "94bfff61",
   "trace": [
     {"type":"unlockAbility","abilityId":"rgr_rend"},
     {"type":"talk","npcId":"npc_ilyra"},

@@ -16,7 +16,7 @@
     "mode": "explore",
     "locationId": "loc_silverwood_plaza"
   },
-  "finalStateHash": "9383dd60",
+  "finalStateHash": "7c9911b1",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"ranger","seed":"u79:before-economy:1"},
     {"type":"unlockAbility","abilityId":"rgr_rend"},

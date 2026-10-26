@@ -16,7 +16,7 @@
     "mode": "combat",
     "locationId": "loc_ironclad_camp"
   },
-  "finalStateHash": "381ac686",
+  "finalStateHash": "2298022c",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"ironclad_warden","seed":"u79:real:warden"},
     {"type":"unlockAbility","abilityId":"wrd_crushing_blow"},

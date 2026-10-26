@@ -104,7 +104,9 @@ describe('the pacifist', () => {
       for (const seed of ['a', 'b', 'c']) {
         const r = play('pacifist', pack, `u38:p:${seed}`);
         clean(r);
-        if (r.fights.every((f) => f.result !== 'victory')) {
+        // U81a: "never had to fight" is no blow landed, not only no victory — a forced fight (now from round 20) can kill one
+        // foe and still be lost
+        if (r.fights.every((f) => f.result !== 'victory' && f.damageDealt === 0)) {
           quiet += 1;
           expect(Object.values(r.creaturesKilled).reduce((x, y) => x + y, 0)).toBe(0);
         }

@@ -20,7 +20,7 @@
 // Heartstone, the Peaks, the Outpost, the shards), so each story gate is met at the level the route brings; a Loop 2+ proof
 // starts at the carry-over level of the constructed profile's `bestLevel` (D-067.2). No proof hands play to a policy bot: one
 // would take the quests itself.
-import type { Action, ContentPack } from '@engine/index';
+import type { Action, ContentPack, GameState } from '@engine/index';
 import type { Condition } from '@schema/condition';
 import { pathBot } from '../bots/pathBot';
 import { MELEE_TRADE, bestDrink, meleeUnlockRank, notesOf, pickEquip, pickStat, pickTrade, pickUnlock, type Env, type TradeCfg } from '../bots/policy';
@@ -577,6 +577,22 @@ const communing = (outcome: string): Bot => ({
     return pick('resist') ?? legal.find((a) => a.type === 'guard') ?? (legal[0] as Action);
   },
 });
+
+/** U81a (D-123): the communion opened (Commune, else Listen), then the Breach-anchor offered as soon as it is listed; Guard meanwhile. */
+const anchorShown: Bot = {
+  name: 'anchor-shown',
+  choose: (_s, legal) => {
+    const commune = legal.filter((a): a is Extract<Action, { type: 'commune' }> => a.type === 'commune');
+    return (
+      commune.find((a) => a.act === 'offer' && a.itemId === 'item_breach_anchor') ??
+      commune.find((a) => a.act === 'toggle') ??
+      commune.find((a) => a.act === 'listen') ??
+      legal.find((a) => a.type === 'continue') ??
+      legal.find((a) => a.type === 'guard') ??
+      (legal[0] as Action)
+    );
+  },
+};
 
 /**
  * Loop 3 with the bond and the verses: Dask's sentence (loyalty 25 + 25: Loyal), his third quest taken at the Pass, Support
@@ -1157,21 +1173,26 @@ export const longArchive: ScriptStep[] = [
   done('q_long_archive', 'remembered'),
 ];
 
+/** The Echoes ending D's Loop 3 brings (the oath, the iron, both halves of the design, Brak's survival, the roads). */
+export const IRON_SILENCE_ECHOES: readonly `echo_${string}`[] = ['echo_ironclad_oath', 'echo_stone_hide_origin', 'echo_tyrant_jailer', 'echo_iron_that_does_not_wish', 'echo_anchor_half_a', 'echo_anchor_half_b', 'echo_brak_lives', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_high_mark', 'echo_hollow_path', 'echo_steppe_waystones', 'echo_heartstone_path', 'echo_crystal_location'];
+
 /**
- * D, as far as the clock lets a proof go: Loop 3 with the oath, the iron and both halves — two quick quests for the heartbeat
- * (the Crystal kept; the Peaks, after which Brak joins), the Heartstone destroyed (a dead fragment, Ironclad +20, and ten dawns
- * gone: nineteen remain), the Gate's ore, Hadda's ask at Hearthring (Ironclad Sworn; the design derived). The anchor's other
- * materials — three Aetherium Shards (the Spires and the Crown), three Void Shards (the Hollow), heartwood (Kaelen) — and the
- * forge, the Nexus and the Apex take a carry-over party past the nineteenth dawn on every order tried (22–25 days): the ending
- * is reachable in data (scene_ending_silence from the anchor's Offer, tested on a built state) but not by a played route
- * within the Heartstone's silence — a balance flag, listed in the U58 reply.
+ * D (U81a, D-123: ending D by play). Loop 3 with the oath, the iron and both halves of the design: two quick quests for the
+ * heartbeat (the Crystal kept; the Peaks, after which Brak joins, and the Outpost by the warder's word). Then the anchor's bill
+ * gathered BEFORE the stone is broken — the Destroy's ten dawns are the clock's price, and what a returning Wayfinder knows is
+ * where the iron's makings lie: Kaelen's offcut of heartwood at the Respite, the Hollow's three Void Shards (one loose, two from
+ * its Stalkers), arrivals fought, not fled. Then the Heartstone destroyed (a dead fragment, Ironclad Sworn; nineteen dawns left),
+ * the Spires and their Crown on the road east (three Aetherium Shards), Hadda's ask at Hearthring (the design derived from both
+ * halves), the Gate's ore and Borin's vein, the forge (the Neutral gate while the quest runs), the Nexus, and the Apex with Brak:
+ * the Tyrant heard and shown the iron (`scene_ending_silence`), "Now." Day 13 of the twenty the Destroy leaves (U58 gathered
+ * the makings after Hadda's ask and fled every arrival: 22–25 days).
  */
-export const ironSilenceAsked: ScriptStep[] = [
+export const ironSilence: ScriptStep[] = [
   ...crystalToIlyra(true),
   { talk: 'npc_ilyra', pick: ['keep', 'leave'] },
   done('q_echo_crystal', 'kept'),
   ...clearPath,
-  ...outpostAccepted, // the legacy offer wins the tie; then the hub: he joins
+  ...outpostAccepted,
   { talk: 'npc_brak', pick: ['come'] },
   holds(BRAK_RECRUITED, 'Brak did not join'),
   { fight: 'flee' },
@@ -1179,16 +1200,43 @@ export const ironSilenceAsked: ScriptStep[] = [
   { goto: 'loc_ironclad_camp' },
   { talk: 'npc_brak', pick: [] },
   done('q_blighted_outpost', 'done'),
+  // the makings first, while the stone still beats
+  { fight: 'melee' },
+  { goto: 'loc_wayfarers_respite' },
+  { until: { item: { id: 'mat_silverwood_heartwood' } }, do: buyer('mat_silverwood_heartwood'), maxSteps: 4 },
+  { goto: 'loc_voidscar_hollow' },
+  takeAll,
+  { until: { item: { id: 'item_void_shard', count: 3 } }, do: 'melee', maxSteps: 60 },
+  holds({ all: [{ item: { id: 'item_void_shard', count: 3 } }, { item: { id: 'mat_silverwood_heartwood' } }] }, 'the Hollow did not give three Void Shards, or Kaelen no heartwood'),
   { goto: 'loc_sunken_archives' },
   { type: 'move', to: 'loc_heartstone_depths' },
   { until: { flag: 'flag_heartstone_destroyed' }, do: chooser('destroy'), maxSteps: 4 },
   holds({ all: [{ flag: 'flag_heartstone_destroyed' }, { item: { id: 'item_heartstone_fragment_dead' } }] }, 'the Heartstone was not destroyed'),
-  { goto: 'loc_scorched_gate' },
-  { type: 'gather' }, // the slag-heap's ore (the Gate's one gathering node)
+  // the road east: the Spires, the Crown's two shards
+  { goto: 'loc_aetherium_spires' },
+  takeAll,
+  { goto: 'loc_spire_crown' },
+  takeAll,
+  holds({ item: { id: 'item_aetherium_shard', count: 3 } }, 'the Spires and the Crown did not give three Aetherium Shards'),
   { goto: 'loc_hearthring' },
   holds({ all: [{ rep: { faction: 'ironclad', min: 60 } }, { not: { flag: 'flag_clock_expired' } }] }, 'the Ironclad are not Sworn, or the thirtieth dawn came first'),
-  { talk: 'npc_hadda_ironvow', pick: ['yes'] }, // scene_hadda_iron_silence_offer (ahead of her other asks)
-  holds({ all: [{ quest: { id: 'q_iron_silence', stage: 'cut_the_line' } }, { echo: 'echo_anchor_schema' }, { item: { id: 'mat_ember_ore' } }] }, 'q_iron_silence did not start, or the design was not derived'),
+  { talk: 'npc_hadda_ironvow', pick: ['yes'] }, // scene_hadda_iron_silence_offer
+  holds({ all: [{ quest: { id: 'q_iron_silence', stage: 'cut_the_line' } }, { echo: 'echo_anchor_schema' }] }, 'q_iron_silence did not start, or the design was not derived'),
+  { goto: 'loc_scorched_gate' },
+  { type: 'gather' }, // the slag-heap's ore, on the way back west
+  { goto: 'loc_emberforge' },
+  interact('ev_forge_vein'), // Borin's vein: three more
+  holds({ item: { id: 'mat_ember_ore', count: 3 } }, 'the ore for the anchor is short'),
+  { type: 'craft', recipeId: 'recipe_breach_anchor' },
+  holds({ quest: { id: 'q_iron_silence', stage: 'apex' } }, 'the Breach-anchor was not forged'),
+  { goto: 'loc_chronos_nexus' },
+  holds({ all: [{ companion: { id: 'brak', state: 'active' } }, { not: { flag: 'flag_clock_expired' } }] }, 'Brak is not beside you, or the thirtieth dawn came first'),
+  // the talk branch (STORY §11.6 D): the Tyrant heard, then shown the iron
+  { type: 'move', to: APEX },
+  firstWords('listen'),
+  { until: { flag: 'flag_anchor_offered' }, do: anchorShown, maxSteps: 40 },
+  { talk: 'cr_chronos_tyrant_unveiled', pick: ['now'] }, // scene_ending_silence → "Now."
+  done('q_iron_silence', 'silence'),
 ];
 
 // ---- U59: the five class mini-quests (Loop 2+, each played by its class; the hooks are the givers' scenes and the regions' events) ----
@@ -2031,6 +2079,15 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     steps: weaversDawn,
   },
   {
+    questId: 'q_iron_silence',
+    outcome: 'silence',
+    name: "Loop 3 with the oath, the iron and the design: the makings first, the Heartstone destroyed, Hadda's ask, the forge, the Apex with Brak (ending D)",
+    classId: 'ironclad_warden',
+    seed: 'quest:silence',
+    profile: { loop: 3, echoes: IRON_SILENCE_ECHOES, bestLevel: 20 },
+    steps: ironSilence,
+  },
+  {
     questId: 'q_long_archive',
     outcome: 'remembered',
     name: "Loop 3 with Ilyra's bond: the Keeper, the Heartstone stabilized, Dray's ask, the vigil to the last dawn (ending E)",
@@ -2131,6 +2188,9 @@ export const TRAINED_REST_BELOW = 0.75;
 export const TRAINED_DRINK_BELOW = 0.5;
 /** `melee`'s trade rows, except that nothing is ever sold (a quest's materials — the Void Shards — stay in the pack). */
 export const TRAINED_TRADE: TradeCfg = { ...MELEE_TRADE, sellBelowGold: 0 };
+/** U81a (D-123): while the anchor is to be forged (`q_the_mending`, `q_iron_silence` active), no upgrade spends its ember ore. */
+const ANCHOR_QUESTS: readonly string[] = ['q_the_mending', 'q_iron_silence'];
+const tradeFor = (s: GameState): TradeCfg => (ANCHOR_QUESTS.some((q) => s.quests[q]?.status === 'active') ? { ...TRAINED_TRADE, upgrade: false } : TRAINED_TRADE);
 
 /**
  * `bot` with `melee`'s character rows in front, in explore mode only (the head of every policy bot's turn, policy.ts `head`):
@@ -2147,7 +2207,7 @@ export function trained(bot: Bot): Bot {
         const hp = healthFraction(state);
         const rest = legal.find((a) => a.type === 'rest' && a.kind === 'full') ?? legal.find((a) => a.type === 'rest' && a.kind === 'short');
         const mend = hp < TRAINED_REST_BELOW ? (rest ?? (hp < TRAINED_DRINK_BELOW ? bestDrink(env) : undefined)) : undefined;
-        const own = pickStat(legal, 'strength') ?? pickUnlock(env, meleeUnlockRank) ?? pickEquip(env) ?? mend ?? pickTrade(env, TRAINED_TRADE);
+        const own = pickStat(legal, 'strength') ?? pickUnlock(env, meleeUnlockRank) ?? pickEquip(env) ?? mend ?? pickTrade(env, tradeFor(state));
         if (own !== undefined) return own;
       }
       return bot.choose(state, legal, content, memory, ctx);

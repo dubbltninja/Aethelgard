@@ -84,7 +84,8 @@ test.describe('onboarding', () => {
     // what was read stays read
     await page.reload();
     await expect(page.locator('[data-screen="combat"]')).toBeVisible();
-    await expect(page.getByRole('img', { name: /^Intent: Rake/ })).toBeVisible();
+    // the reload boots the scenario again: the first Shade's opening intent, Wail (U81a, D-121)
+    await expect(page.getByRole('img', { name: /^Intent: Wail/ })).toBeVisible();
     await expect(hint(page, 'Reading an intent')).toHaveCount(0);
     await press(page.getByRole('button', { name: /^1: Attack, at Corrupted Shade/ }), info);
     await expect.poll(async () => (await gameState(page)).combat?.round ?? 0).toBeGreaterThanOrEqual(2);

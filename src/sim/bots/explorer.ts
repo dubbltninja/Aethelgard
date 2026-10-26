@@ -50,7 +50,7 @@ import {
   type Notes,
   type SocialCfg,
 } from './policy';
-import { bfsPath, firstOf, healthFraction, nearestUnvisited, questHints, questSignature, stepAlong, type PathOptions } from './shared';
+import { bfsPath, firstOf, healthFraction, nearestUnvisited, pressOn, questHints, questSignature, stepAlong, type PathOptions } from './shared';
 import type { Bot, BotMemory } from './types';
 
 export const EXPLORER = {
@@ -129,7 +129,7 @@ export function explorerBot(): Bot {
       const env: Env = { s: state, legal, content, profile: ctx.profile, n };
       switch (state.mode) {
         case 'combat':
-          return meleeFight(env, (e) => foeLevel(e.s) >= e.s.player.level + EXPLORER.fleeMargin);
+          return pressOn(memory, state, legal, content, meleeFight(env, (e) => foeLevel(e.s) >= e.s.player.level + EXPLORER.fleeMargin));
         case 'dialogue':
           return talkThrough(env, DIALOGUE);
         case 'threshold':

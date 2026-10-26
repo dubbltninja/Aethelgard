@@ -185,7 +185,8 @@ describe('the live region in a fight', () => {
 
   test('the first turn: the fight and the enemy’s intent', () => {
     const say = announceStep([{ t: 'intentRevealed', uid: Object.keys(at.state.combat!.intents)[0] as string, intent: Object.values(at.state.combat!.intents)[0]! }], at.state, pack);
-    expect(say).toMatch(/^The Corrupted Shade readies Rake, \d+( to \d+)? damage, at you\./);
+    // U81a (D-121, DESIGN §16.8): Loop 1's first Shade opens with Wail, then Rake
+    expect(say).toMatch(/^The Corrupted Shade readies Wail, \d+( to \d+)? damage, at you\./);
     const hidden = announceStep([{ t: 'intentRevealed', uid: Object.keys(at.state.combat!.intents)[0] as string, intent: { ...Object.values(at.state.combat!.intents)[0]!, hidden: true } }], at.state, pack);
     expect(hidden).toBe('The Corrupted Shade readies something unseen.');
   });
@@ -195,11 +196,11 @@ describe('the live region in a fight', () => {
     const r = step(at.state, attack, pack, at.profile);
     const said = announceStep(r.events, r.state, pack) ?? '';
     expect(said).toMatch(/^(You hit the Corrupted Shade for \d+|You miss the Corrupted Shade)/);
-    expect(said).toContain('The Corrupted Shade uses Rake on you, for');
-    expect(said).toMatch(/The Corrupted Shade readies Wail, \d+( to \d+)? damage, at you\./);
+    expect(said).toContain('The Corrupted Shade uses Wail on you, for');
+    expect(said).toMatch(/The Corrupted Shade readies Rake, \d+( to \d+)? damage, at you\./);
     expect(said.endsWith('Your turn.')).toBe(true);
     const quiet = announceStep(r.events, r.state, pack, { intentNumbers: false }) ?? '';
-    expect(quiet).toContain('The Corrupted Shade readies Wail, at you.');
+    expect(quiet).toContain('The Corrupted Shade readies Rake, at you.');
   });
 
   test('Guard is spoken; a critical hit says so; a defeat and the victory name their results', () => {

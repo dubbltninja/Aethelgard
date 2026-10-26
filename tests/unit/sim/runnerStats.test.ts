@@ -15,7 +15,8 @@ import { storyPack } from '@tests/fixtures/storyContent';
 const story = storyPack();
 
 describe('the record of a real run', () => {
-  const run = runLoop({ seed: 'bal:0', classId: 'shadow_weaver', bot: casterBot(), stopAt: 'ending' }, story);
+  // U81a (D-110): a seed whose run reaches the communion and pays a Blood price (bal:0 did so only while the bots guarded forever)
+  const run = runLoop({ seed: 'bal:8', classId: 'shadow_weaver', bot: casterBot(), stopAt: 'ending' }, story);
 
   test('each loop knows its own steps, deaths and gold', () => {
     expect(run.loops.length).toBeGreaterThanOrEqual(2);

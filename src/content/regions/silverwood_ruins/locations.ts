@@ -161,7 +161,13 @@ export const locations = [
         intro: 'Two shapes come apart and together in the doorway ahead.',
       },
       // legacy: the Corrupted Shade (100 %, first visit; drops a Dark Spellbook, D-055)
-      { id: 'enc_corridor_shade', groups: [{ creatureId: 'cr_corrupted_shade' }], intro: 'The growl ahead was never a growl. Something steps out of the wall.' },
+      {
+        id: 'enc_corridor_shade',
+        groups: [{ creatureId: 'cr_corrupted_shade' }],
+        intro: 'The growl ahead was never a growl. Something steps out of the wall.',
+        // U81a (D-121, DESIGN §16.8): Loop 1's first fight shows Wail, then Rake, so Guard visibly halves the second
+        forcedIntents: { when: { loop: { max: 1 } }, moves: ['shade_wail', 'shade_rake'] },
+      },
     ],
     events: [
       { id: 'ev_corridor_hand', text: 'The scorch-hand on the wall is at the height of your own. You do not put yours in it.' },

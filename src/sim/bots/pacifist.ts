@@ -11,8 +11,8 @@
 //              only blow it strikes by choice); a rejected communion is left (`flee`). Otherwise: order the companion to hold
 //              (free); `flee` whenever it is listed (but see `walledIn` under routing); with no way out, Guard while the telegraphed
 //              blows (the intents' numbers, halved by Guard) leave HP standing — after a draught below 50 % when it covers
-//              the blow — and only when even Guard would not survive them (or after 40 rounds of Guarding, U38's stall
-//              breaker), the strike promising the most damage: a forced fight, counted in `forced`. Its hp-below-30 % draught
+//              the blow — and only when even Guard would not survive them (or after 20 rounds of Guarding, U38's stall
+//              breaker; 40 before U81a), the strike promising the most damage: a forced fight, counted in `forced`. Its hp-below-30 % draught
 //              and Field Dressing are melee's.
 //   dialogue   the Loop 1 Apex prompt: *Face it* only where no fight would start (U38), else *Not yet*; accepts a quest only
 //              when no objective, branch or advance condition of it names a kill; a choice that starts a fight is worth −10 and
@@ -70,8 +70,11 @@ import type { Bot, BotMemory } from './types';
 export const PACIFIST = {
   /** Drink a draught that covers the coming blow below this fraction of max HP while Guarding (the Guard-and-heal loop). */
   drinkBelow: 0.5,
-  /** Rounds of Guarding with no way out before it strikes (a stall breaker: PLAN §7.6 rule 4 calls round 60 a soft-lock). */
-  guardRounds: 40,
+  /**
+   * Rounds of Guarding with no way out before it strikes (a stall breaker: PLAN §7.6 rule 4 calls round 60 a soft-lock). U81a
+   * (D-110): 40 left a Warden 20 rounds to win a forced fight, and it ran past 60 on the economy pack; 20 leaves it 40.
+   */
+  guardRounds: 20,
   /** Worth of a choice that starts a fight, and of starting a quest that needs a kill. */
   fightScore: -10,
   killQuestScore: -8,

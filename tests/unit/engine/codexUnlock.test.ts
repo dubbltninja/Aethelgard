@@ -170,7 +170,8 @@ describe('through step', () => {
   const from = pack.locations[target]!.exits.find((x) => x.when === undefined && pack.locations[x.to] !== undefined)?.to;
 
   test('a move into the place unlocks its entry once, with the event, and the pass is the last hook', () => {
-    expect(POST_STEP_HOOKS.at(-1)).toBe(codexUnlockPass);
+    // U81a: the achievement hook follows it, so that codex unlocks count toward The Long Reading the same step
+    expect(POST_STEP_HOOKS.at(-2)).toBe(codexUnlockPass);
     expect(from).toBeDefined();
     const s = makeState({ locationId: from! }, { content: pack });
     const out = step(s, { type: 'move', to: target } as never, pack, freshProfile());

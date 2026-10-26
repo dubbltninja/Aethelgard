@@ -58,6 +58,26 @@ export interface EncounterSpec {
   elite?: boolean;
   /** Horde Rising (U34b, reducers/combat.ts): which enemies, in slot order, fight as elite variants. */
   elites?: readonly boolean[];
+  /** U81a (D-121): the record's opening intents (DESIGN §16.8's first fight). */
+  forcedIntents?: Encounter['forcedIntents'];
+}
+
+/** A forced move waits in `forced:<moveId>` (`pattern.firedOnce`) until it is played, so a later generation keeps it (intents.ts). */
+export const FORCED_TAG = 'forced:';
+
+/**
+ * U81a (D-121, DESIGN §16.8): an encounter's `forcedIntents`, when its `when` holds as the fight starts, queue on each enemy
+ * that has the move as forced intents (`forced:<move>` in `pattern.firedOnce`, the same queue `hpLines` uses, intents.ts):
+ * the first one is its opening intent, each next one follows when the one before is played, then its pattern from the start.
+ * No draw: deterministic.
+ */
+function forceOpening(ctx: StepCtx, spec: EncounterSpec, enemies: readonly Combatant[]): void {
+  const forced = spec.forcedIntents;
+  if (forced === undefined || (forced.when !== undefined && !evaluate(forced.when, ctx.s, ctx.profile, ctx.content))) return;
+  for (const e of enemies) {
+    const moves = ctx.content.creatures[e.refId]?.moves ?? {};
+    for (const id of forced.moves) if (moves[id] !== undefined && !e.pattern.firedOnce.includes(`${FORCED_TAG}${id}`)) e.pattern.firedOnce.push(`${FORCED_TAG}${id}`);
+  }
 }
 
 /** An encounter record (location or table) as a fight spec. */
@@ -74,6 +94,7 @@ export function encounterSpec(enc: Encounter): EncounterSpec {
   };
   if (enc.intro !== undefined) spec.intro = enc.intro;
   if (enc.elite) spec.elite = true;
+  if (enc.forcedIntents !== undefined) spec.forcedIntents = enc.forcedIntents;
   return spec;
 }
 
@@ -467,6 +488,7 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
   if (spec.ambush) addTag(party[0] as Combatant, AMBUSH_TAG); // U34e: the onset hazards read it (reducers/combat.ts)
   shareInitiative(content, enemies); // U34e: the One Herd
   enemies.forEach((e, i) => void (spec.elites?.[i] && makeEliteVariant(e))); // Horde Rising (U34b)
+  forceOpening(ctx, spec, enemies); // U81a (D-121): the first fight's Wail, then Rake
   const canFlee = spec.fleeable && creatureIds.every((id) => content.creatures[id]?.fleeable ?? true);
 
   const combat: CombatState = {

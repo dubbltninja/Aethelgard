@@ -58,7 +58,7 @@ import {
   type RestCfg,
   type SocialCfg,
 } from './policy';
-import { bfsPath, firstOf, healthFraction, nearestUnvisited, pendingFights, stepAlong, type PathOptions } from './shared';
+import { bfsPath, firstOf, healthFraction, nearestUnvisited, pendingFights, pressOn, stepAlong, type PathOptions } from './shared';
 import type { Bot, BotMemory } from './types';
 
 export const SPEEDRUNNER = {
@@ -147,7 +147,7 @@ export function speedrunnerBot(): Bot {
       const env: Env = { s: state, legal, content, profile: ctx.profile, n };
       switch (state.mode) {
         case 'combat':
-          return fight(env, memory);
+          return pressOn(memory, state, legal, content, fight(env, memory));
         case 'dialogue':
           return talkThrough(env, DIALOGUE);
         case 'threshold':

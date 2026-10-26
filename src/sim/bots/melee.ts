@@ -57,6 +57,7 @@ import {
   manaFraction,
   nearestUnvisited,
   nearestWhere,
+  pressOn,
   questHints,
   questSignature,
   restAvailable,
@@ -171,7 +172,8 @@ function fight(s: GameState, legal: readonly Action[], content: ContentPack): Ac
     return foe !== undefined && (foe.resistances.physical === 'weak' || enemyWeakness(content, foe.refId).includes('physical'));
   };
   const hpOf = (uid: string | undefined): number => foes.find((f) => f.uid === uid)?.hp ?? Number.POSITIVE_INFINITY;
-  const target = [...foes].sort((a, b) => Number(weak(b.uid)) - Number(weak(a.uid)) || a.hp - b.hp)[0];
+  // U81a: the creatures the fight is about before what they summoned (a summoner calls more; D-110)
+  const target = [...foes].sort((a, b) => Number(a.isAdd) - Number(b.isAdd) || Number(weak(b.uid)) - Number(weak(a.uid)) || a.hp - b.hp)[0];
   const strikes = legal.filter((a) => {
     if (a.type === 'attack') return true;
     if (a.type !== 'ability') return false;
@@ -426,7 +428,7 @@ export function meleeBot(): Bot {
       if (state.combat !== null) n.lastFightAt = state.combat.locationId;
       switch (state.mode) {
         case 'combat':
-          return fight(state, legal, content);
+          return pressOn(memory, state, legal, content, fight(state, legal, content));
         case 'dialogue':
           return talkThrough(state, legal, content, ctx.profile, n);
         case 'threshold':

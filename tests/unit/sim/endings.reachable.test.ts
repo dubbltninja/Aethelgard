@@ -1,7 +1,7 @@
 // U58: the real pack's ending proofs (src/sim/scripts/endings/index.ts; PLAN §7.8) — the six true endings (STORY §10 A–F) and
 // the two loop closers (§10.7), each played by `pathBot` through `runEndingScript` on `buildContentPack()`. Every script reaches
-// its ending, except the ones `KNOWN_GAPS` names, whose failure is pinned here so that a route that starts working is noticed
-// (ending D: the Heartstone's silence leaves nineteen dawns, and the anchor's road takes a carry-over party longer).
+// its ending. `KNOWN_GAPS` is empty since U81a (D-123): ending D is reached by play, the anchor's makings gathered before the
+// Heartstone is destroyed. A gap added there again would be pinned here as a failure, so a route that starts working is noticed.
 import { describe, expect, test } from 'bun:test';
 import { buildContentPack } from '@content/index';
 import { evaluate } from '@engine/index';
@@ -28,7 +28,7 @@ describe('the real ending scripts (STORY §10, §10.7)', () => {
     for (const s of ENDING_SCRIPTS) expect([s.endingId, pack.endings[s.endingId] !== undefined]).toEqual([s.endingId, true]);
     // a Loop 2+ script starts from a constructed profile (its Echoes exist) or from a scenario
     for (const s of ENDING_SCRIPTS) for (const e of s.profile?.echoes ?? []) expect([s.endingId, e, pack.echoes[e] !== undefined]).toEqual([s.endingId, e, true]);
-    expect(Object.keys(KNOWN_GAPS)).toEqual(['ending_iron_silence']);
+    expect(Object.keys(KNOWN_GAPS)).toEqual([]); // U81a (D-123): 8/8, no known gap
   });
 
   for (const script of ENDING_SCRIPTS) {
@@ -49,11 +49,9 @@ describe('the real ending scripts (STORY §10, §10.7)', () => {
           expect((seen?.total ?? 0) >= (pack.endings[script.endingId]?.sequence.length ?? 1)).toBe(true);
           expect(proof.detail).toContain(`${seen?.total}/${seen?.total} slides shown`);
         } else {
-          // the road as far as it goes, then the pinned failure: Hadda's ask is reached, the ending is not
+          // a known gap: the road as far as it goes, then a pinned failure (none since U81a)
           expect(proof.reached).toBe(false);
           expect(proof.result.errors).toEqual([]);
-          expect(proof.detail).toBe("script_assert: ending D's road: the anchor's materials, Borin and the Apex lie past the nineteenth dawn");
-          expect(proof.result.questsCompleted).not.toContain('q_iron_silence');
         }
       },
       PROOF_MS,
@@ -152,7 +150,7 @@ describe('ending requirements are honest (PLAN §8.2 endings.reachable)', () => 
 
   for (const id of TRUE_ENDING_IDS) {
     if (KNOWN_GAPS[id] !== undefined) {
-      test.todo(`${id}: requirements true at the script's final state — ending D is the known gap (D-123): its script stops at the nineteenth dawn, so no final state to test`);
+      test.todo(`${id}: requirements true at the script's final state — a known gap: ${KNOWN_GAPS[id]}`);
       continue;
     }
     test(

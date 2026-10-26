@@ -50,9 +50,31 @@ export const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
-/** Visible, enabled, tabbable elements inside `root`, in DOM order. */
+/** Inside a closed <details> but not in its <summary>: Chrome keeps boxes for such content, yet Tab skips it (U78). */
+function inClosedDetails(el: HTMLElement): boolean {
+  for (let d = el.closest('details'); d !== null; d = d.parentElement?.closest('details') ?? null) {
+    if (!d.open && d.querySelector(':scope > summary')?.contains(el) !== true) return true;
+  }
+  return false;
+}
+
+/** A radio that Tab skips: the group has a checked radio and this is not it, or none is checked and this is not the first. */
+function skippedRadio(el: HTMLElement, root: ParentNode): boolean {
+  if (!(el instanceof HTMLInputElement) || el.type !== 'radio' || el.name === '') return false;
+  const group = [...root.querySelectorAll<HTMLInputElement>('input[type="radio"]')].filter((r) => r.name === el.name && !r.disabled);
+  const stop = group.find((r) => r.checked) ?? group[0];
+  return stop !== el;
+}
+
+/**
+ * Visible, enabled, tabbable elements inside `root`, in DOM order: what Tab and Shift+Tab can land on, so a trap's first
+ * and last are real stops. Roving-tabindex members (`tabindex="-1"`: the inactive tabs of a tab row), the radios of a group
+ * other than its stop, and the contents of a closed <details> are not (U78: Tab left the Quest journal past its last tab).
+ */
 export function focusablesIn(root: ParentNode): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)].filter((el) => !el.closest('[inert]') && el.getClientRects().length > 0);
+  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)].filter(
+    (el) => !el.closest('[inert]') && el.getAttribute('tabindex') !== '-1' && el.getClientRects().length > 0 && !inClosedDetails(el) && !skippedRadio(el, root),
+  );
 }
 
 /**

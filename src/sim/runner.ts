@@ -22,6 +22,7 @@ import {
   ProfileSchema,
   canAutosave,
   dayOf,
+  endingSlides,
   legalActions,
   newRun,
   playerAbilityCost,
@@ -63,6 +64,11 @@ export interface RunConfig {
   modifiers?: string[];
   /** Keep the full action trace (memory!). */
   record?: boolean;
+  /**
+   * U62b (PLAN: "ending scripts show all slides"): a stop at an ending or a loop's end waits until the bot has gone through the
+   * ending's slides (the mode leaves 'ending'); `RunResult.slides` counts what was shown. Default false.
+   */
+  showSlides?: boolean;
   /** Start from `loadScenario(id)` (PLAN §4.13) instead of the title screen. */
   scenario?: ScenarioId;
   /** U39: a recruited companion who travels with the Wayfinder from the scenario's start (DESIGN §19 #19 "with a companion"); only with `scenario`. */
@@ -185,6 +191,8 @@ export interface RunResult {
   fallen: number;
   /** U37: where the run stood at the end. */
   final: { loop: number; day: number; level: number; mode: Mode; locationId: string };
+  /** U62b (`showSlides`): each ending or closer met, with the slides shown of the slides it had (`endingSlides`). */
+  slides?: { outcome: string; shown: number; total: number }[];
   /** U39: accepted actions played in combat, by action type (shell actions excluded). */
   combatActions: Record<string, number>;
   /** U39: ability casts whose MP cost was partly paid in HP (the Shadow Weaver's Blood price, DESIGN §5.6). */
@@ -511,6 +519,10 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
   const lastActions: Action[] = [];
   const trace: Action[] | undefined = cfg.record === true ? [] : undefined;
   let pending: GameEvent[] = [];
+  const showSlides = cfg.showSlides === true;
+  /** U62b: a stop met at an ending, held until its slides are through (`showSlides`). */
+  let stopAfterSlides: StopReason | null = null;
+  const slides: { outcome: string; shown: Set<number>; total: number }[] = [];
 
   const fail = (message: string, e?: unknown, action?: Action): void => {
     errors.push({
@@ -583,22 +595,31 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
       lock(detected);
       return false;
     }
-    for (const e of out.events) {
-      if (e.t === 'endingReached' && stopAt === 'ending') {
-        stopReason = 'ending';
-        return false;
+    const stop = (reason: StopReason): boolean => {
+      if (showSlides && s.mode === 'ending') {
+        stopAfterSlides ??= reason;
+        return true;
       }
+      stopReason = reason;
+      return false;
+    };
+    for (const e of out.events) {
+      if (e.t === 'endingSlide') {
+        if (e.index === 0) slides.push({ outcome: e.endingId, shown: new Set(), total: endingSlides(s, content, profile).length });
+        slides.at(-1)?.shown.add(e.index);
+      }
+    }
+    for (const e of out.events) {
+      if (e.t === 'endingReached' && stopAt === 'ending') return stop('ending');
       if (e.t === 'loopEnded') {
         loopsEnded += 1;
-        if (stopAt === 'loop_end') {
-          stopReason = 'loop_end';
-          return false;
-        }
-        if (stopAt === 'ending' && loopsEnded >= maxLoops) {
-          stopReason = 'max_loops';
-          return false;
-        }
+        if (stopAt === 'loop_end') return stop('loop_end');
+        if (stopAt === 'ending' && loopsEnded >= maxLoops) return stop('max_loops');
       }
+    }
+    if (stopAfterSlides !== null && s.mode !== 'ending') {
+      stopReason = stopAfterSlides;
+      return false;
     }
     return true;
   };
@@ -698,6 +719,7 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
     ...(trace === undefined ? {} : { trace }),
     stopReason,
     ...(stopMessage === undefined ? {} : { stopMessage }),
+    ...(showSlides ? { slides: slides.map((x) => ({ outcome: x.outcome, shown: x.shown.size, total: x.total })) } : {}),
     fallen,
     final: { loop: s.meta.loop, day: dayOf(s.clock.ticks), level: s.player.level, mode: s.mode, locationId: s.world.currentLocationId },
     combatActions: rec.combatActions,

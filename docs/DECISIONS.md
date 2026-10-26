@@ -2564,3 +2564,26 @@ owning unit (PLAN §9.1).
 - **The pacifist reaches 26 locations** (the original 25 plus Eye of the Scar). Quests 81/81; `sim:endings` 8/8. Six quest
   seeds and ending C's are new; `trained` no longer sleeps to dawn while a fled group is away.
 - U81c (4164430, 7565887; Opus, spot-reviewed); 4,866 unit; full e2e 343 passed. `real-weaver` trace re-recorded.
+
+### D-145 · U80 details — the first real batch; U81b split into fair bots (U81b1) and tuning (U81b2), 2026-10-26
+- **U80 (… 2c30985; Sonnet, spot-reviewed):** 4,835 runs on the real pack (4,000 main, 779 scenario, 48 ending scripts), run in
+  7 foreground chunks merged with the new `sim:batch --merge`. 0 engine errors; determinism 248/248. `docs/BALANCE.md` has a
+  human summary, the §1.2 gates, all 20 §19 rows, the top 10 problems and every open flag folded in with data.
+- **Result: 3 of 20 rows pass** (#1 Escape, worst Weaver 61%; #4 endings; #13). 15 fail; #18 (variance) is unmeasurable
+  without an engine hook, and #20's fight path is unmeasured.
+  - **Gates:** Bots-complete fails (458 FALLEN stops); soft-locks fail (33 combat stalls, 31 of them the pacifist);
+    coverage fails (quests 38/49, locations 59/73).
+  - **The worst rows:**
+    - deaths per loop 5–10× over target;
+    - Blood price never used;
+    - `elf_ambush` at 63% and `rgr_piercing_arrow` at 47% of their class's damage;
+    - the speedrunner at 33 days with 58% of its loops expiring;
+    - Contained Tyrant scenario wins far under target for the Warden and the Weaver;
+    - end-of-Loop-1 gold at a median of 596 (no gold sink);
+    - the Drowned Reach and the Highlands too lethal for their bands;
+    - Vell's Umbra as a wall (1% wins);
+    - fodder fights too short.
+- **The bots distort several rows:** the non-caster bots cast in 0–5% of Wizard and Weaver actions; the speedrunner is no
+  faster than the explorer; the pacifist attacks what it can't kill. → **U81b1** (Opus, `docs/briefs/u81b1.md`): fair bots, the
+  scenario kits, the communion scenario crash, a mid-size re-batch. No balance changes. **U81b2** (the old U81b brief) tunes
+  from U81b1's numbers.

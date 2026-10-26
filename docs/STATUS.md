@@ -126,8 +126,9 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U79 | Integration checkpoint: saves v1 + migrations, fixture traces, Loop 1 → 2 by hand — brief `briefs/u79.md` | Opus | ✅ 45ae02f (spot-reviewed) — saves v1, goldens, 24 traces; no blockers, 13 findings in REPORT.md; D-142 |
 | U81a | Structural fixes: bots stop guarding, ending D by play, achievement engine, first-fight intents, Uncommon affix (D-141) — brief `briefs/u81a.md` | Opus | ✅ be8cbbf (spot-reviewed) — bots press on, D by play (8/8, no gap), achievements, first-fight intents, Uncommon ruling; D-143 |
 | U81c | Flee: always fall back; quest-drop groups hold, never scatter (Tim's bugs, D-143) — brief `briefs/u81c.md` | Opus | ✅ 7565887 (spot-reviewed) — fall back on every flee; 34 quest-drop groups regroup at dawn; pacifist 26 locations; D-144 |
-| U80 | 2,000-run balance batch → `BALANCE.md` — brief `briefs/u80.md` | Sonnet | 🔄 running (4403) |
-| U81b | Tune every DESIGN §19 row from `BALANCE.md` — brief `briefs/u81b.md` | Opus | ⏳ after U80 |
+| U80 | 2,000-run balance batch → `BALANCE.md` — brief `briefs/u80.md` | Sonnet | ✅ 2c30985 (spot-reviewed) — 4,835 runs; 3/20 §19 rows pass; BALANCE.md; D-145 |
+| U81b1 | Fair bots (class-aware casting, Blood price, a real speedrunner, danger, pacifist stalls, quest following, scenario kits) + mid batch (D-145) — brief `briefs/u81b1.md` | Opus | 🔄 running (4406) |
+| U81b2 | Tune every DESIGN §19 row from BALANCE.md's after-U81b1 numbers — brief `briefs/u81b.md` | Opus | ⏳ after U81b1 |
 | U75 | Region ambience, Threshold drone, Tyrant theme — brief `briefs/u75.md` | Sonnet | ✅ 23d0c9c (spot-reviewed) — 14 ambient beds, Threshold drone, Tyrant theme; 4524 tests; JS 520 kB; D-134 |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |

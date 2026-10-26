@@ -2294,3 +2294,20 @@ owning unit (PLAN §9.1).
   Part B: long prose (codex bodies, dialogue text, ending text) moves to lazily loaded JSON chunks; target ≤ 520 kB (D-115:
   never raise the budget).
 - The lead added the missing `region` hint to `codexModel.ts`.
+
+### D-132 · U74 details — the audio engine and 30 synthesized SFX; e2e ports per worktree, 2026-10-26
+- **U74 (… b105969; Opus, spot-reviewed):** `src/audio/{synth,sfx,map,engine}` and `ui/hooks/useAudio.ts`. The sounds are
+  synthesized in Web Audio, with no audio files.
+  - Buses: sfx, ui (follows the effects volume, since `Settings` has none), music and ambient (left for U75).
+  - The event map has a row for every engine event kind, and an exhaustiveness test fails on any new kind without one.
+  - Sounds follow the combat stage's 420 ms beats. A repeat within a beat plays once, a step plays at most 10, and at most 8
+    voices sound at once.
+  - Reduced motion only drops the combat hat ticks. Ctrl+M mutes.
+  - The Settings volumes and mute are live, with a test sound 250 ms after a change.
+  - The 30-sound table is at the top of `src/audio/sfx/sfx.ts`. DESIGN §18.3's combat kick and hat are two extra sounds.
+  - `?audition` (dev/e2e builds only) plays every sound. A private artifact, "Aethelgard Sound Audition", lets Tim listen;
+    nobody has heard them yet, so Tim's ear is the review.
+  - Tests: 4,377 unit; `audio.spec.ts` 6; full e2e 168 passed, 10 skipped. Production JS **583.7 kB** (+6.0).
+- **Process (D-106):** parallel worktrees shared e2e port 4173, and `reuseExistingServer` silently tested whichever build was
+  already served. `playwright.config.ts` now reads **`E2E_PORT`**. Parallel units must each set their own; the lead uses
+  4380.

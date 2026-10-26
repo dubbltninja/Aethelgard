@@ -215,8 +215,9 @@ export class GameDriver {
 
   /**
    * Fights the current combat through the buttons: the strongest ready damaging ability (`abilities`) else Attack, a healing
-   * item below `healBelow` of HP. Stops at the Victory summary (not dismissed), at the end of combat mode ('left'), at the
-   * Fallen screen ('defeat'), or after `maxActions` ('defeat').
+   * item below `healBelow` of HP. Returns 'victory' when the Victory summary is up over the map (not dismissed: call
+   * `continueVictory`), 'left' when the fight ended in a scene instead (the Tyrant's fall), 'defeat' at the Fallen screen or
+   * after `maxActions`.
    */
   async fight(opts: { healBelow?: number; abilities?: boolean; maxActions?: number } = {}): Promise<FightEnd> {
     const healBelow = opts.healBelow ?? 0.35;

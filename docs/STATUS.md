@@ -118,7 +118,8 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U61 | Codex II (to 87) + the 103 Echo codex lines rewritten — brief `briefs/u61.md` | ✦ Fable | ✅ 3554b9a (spot-reviewed) — codex 90, 103 Echo lines; `codex` complete; JS 575 kB; D-131 |
 | U62a | Codex entries unlock by `unlockWhen` (79 never could); long prose to lazy chunks (JS ≤ 520 kB) — brief `briefs/u62a.md` | Opus | ✅ 83fb881 (spot-reviewed) — codex unlocks live; prose chunked; JS 509 kB; 4405 tests; D-133 |
 | U74 | Audio engine + 30 synthesized SFX; volumes and mute live — brief `briefs/u74.md` | Opus | ✅ b105969 (spot-reviewed) — 30 SFX + combat percussion, live volumes; 4377 tests; JS 584 kB; D-132 |
-| U62 | Key scenes (5 missing + check all 21), ending sequences/epilogues, D-127's Echoes; all tables complete — brief `briefs/u62.md` | ✦ Fable | 🔄 running — narrowed to writing only (D-134); an Opus finisher (U62b) follows |
+| U62 | Key scenes (5 missing + check all 21), ending sequences/epilogues, D-127's Echoes; all tables complete — brief `briefs/u62.md` | ✦ Fable | ✅ text done, c6cc489 on `wip/u62` (5 scenes, 8 endings with art/mood, Echo lines) — finisher U62b |
+| U62b | Finish U62: verify its engine edits, wire D-127's Echoes, tests/proofs, all tables complete (D-134) — brief `briefs/u62b.md` | Opus | 🔄 running |
 | U75 | Region ambience, Threshold drone, Tyrant theme — brief `briefs/u75.md` | Sonnet | ✅ 23d0c9c (spot-reviewed) — 14 ambient beds, Threshold drone, Tyrant theme; 4524 tests; JS 520 kB; D-134 |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |

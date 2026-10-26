@@ -2520,3 +2520,30 @@ owning unit (PLAN §9.1).
 - **The hand playthrough** (`docs/REPORT.md`, U79 section): no blockers; 13 findings. → U81b: #7 (the Tyrant at L13), #6
   (backtrack re-fights). → the fun review / U84: the rest. #3 belongs to U81a.
 - U79's sub-agent could not write the `.md` report; the lead wrote `docs/REPORT.md` from its reply.
+
+### D-143 · U81a details; flee rulings from Tim's play (U81c), 2026-10-26
+- **U81a (b861765 … be8cbbf; Opus, spot-reviewed):**
+  1. **Bots press on** (`pressOn` in `sim/bots/shared.ts`): at most two Guards in a row; the summoner before its adds; from
+     round 30 an unfinished fight is fled or played with best attacks only; the communion is never cut short; the pacifist's
+     stall breaker moves from round 40 to 20. `guardStall.test` (34) and a stall fixture pack.
+  2. **Ending D by play: no data change, the route was the gap.** The script gathers the heartwood and three shards before
+     Destroy and shows the anchor on Day 13 of the 20 left. **`sim:endings` 8/8 with no known gap**; `q_iron_silence` has a
+     proof. U58's "22–25 days" was wrong.
+  3. **The achievement engine** (`engine/achievements.ts`, a post-step hook): the 13 `tally_*` counters, each of the 40
+     awarded once with `achievementUnlocked`. `achievements.test` (49).
+  4. **The first fight's forced intents:** C1 addition `Encounter.forcedIntents { when?, moves }`. The corridor Shade, in
+     Loop 1, shows Wail then Rake.
+  5. **Ruling (D-118 closed): Common → Uncommon offers no affix** (DESIGN §8.3). An upgraded Uncommon is the no-affix half of
+     a rolled one, and both reach Rare with one affix and Epic with two (`upgradeAffixSlots`).
+  - Batch: 214 runs, 0 soft-locks, 0 errors, determinism 90/90, 6/6 endings. 4,853 unit tests after the merge.
+  - The lead re-recorded all 24 traces in 0413ac9 (D-141).
+- **Tim's play (2026-10-26) found two flee bugs:**
+  - A flee from a location's fixed group left him standing at that node. DESIGN §4.7's `scatter` rule did this on purpose
+    for pacifist passability, but players expect to fall back.
+  - Fleeing the Hollow's Stalkers scattered them for the loop with no loot, so `q_void_shards`' two Stalker shards were lost.
+    The quest still pointed east to an empty Hollow: **uncompletable for the loop.**
+- **Ruling (→ U81c, before U80):**
+  - **Every successful flee falls back to the previous node.** Scatter still scatters, so the node stays passable.
+  - **A fixed group that drops an item a quest objective needs is `hold`, never `scatter`:** it waits wounded until dawn,
+    then resets.
+  - A content test forbids `scatter` on such groups; DESIGN §4.7 is amended.

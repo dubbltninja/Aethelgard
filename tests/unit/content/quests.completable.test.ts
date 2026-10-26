@@ -6,8 +6,8 @@
 // each quest, which is a full proof that the quest is completable (~10 s for all 48 on an idle box); every script, outcome by
 // outcome, is run by tests/unit/sim/questScripts.test.ts, so nothing is dropped from `npm test`.
 //
-// `q_iron_silence` (ending D) has no proof: it is D-123's known gap (the Heartstone's silence leaves nineteen dawns, and the
-// anchor's road takes a carry-over party longer). Its `test.todo` below names the reason.
+// `q_iron_silence` (ending D) was D-123's known gap until U81a: its proof now gathers the anchor's makings before the Heartstone is
+// destroyed and reaches the Apex on Day 13 of twenty. Every quest has a proof; `KNOWN_QUEST_GAPS` is empty.
 import { describe, expect, test } from 'bun:test';
 import { buildContentPack } from '@content/index';
 import { QUEST_SCRIPTS, runQuestScript } from '@sim/scripts/quests';
@@ -17,7 +17,7 @@ const pack = buildContentPack();
 const BUDGET_MS = 10_000;
 
 /** Quests whose completion is the known gap of an ending (D-123), by quest id. */
-const KNOWN_QUEST_GAPS: Record<string, string> = { q_iron_silence: 'ending D (Iron Silence) is the known gap of D-123: the nineteenth dawn passes before the anchor, Borin and the Apex are done' };
+const KNOWN_QUEST_GAPS: Record<string, string> = {};
 
 const firstScript = new Map<string, (typeof QUEST_SCRIPTS)[number]>();
 for (const s of QUEST_SCRIPTS) if (!firstScript.has(s.questId)) firstScript.set(s.questId, s);
@@ -30,7 +30,7 @@ describe('every quest has a passing proof (PLAN §8.2)', () => {
     }
     const without = Object.keys(pack.quests).filter((id) => !firstScript.has(id));
     expect(without).toEqual(Object.keys(KNOWN_QUEST_GAPS));
-    expect(Object.keys(KNOWN_GAPS)).toEqual(['ending_iron_silence']);
+    expect(Object.keys(KNOWN_GAPS)).toEqual([]);
   });
 
   for (const quest of Object.values(pack.quests)) {

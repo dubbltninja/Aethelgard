@@ -12,14 +12,13 @@
 //                     played route (the Before's pin with Caelum, the forge, the Apex) needs the Unbroken Warden beaten or the ward
 //                     seal, which lies behind the stair it unlocks (listed in the U58 reply)
 //   C  weavers_dawn   Loop 2 with the sign and Nyx's bond: her arc, the Heartstone exploited, her ask, the Apex (quest proof C)
-//   D  iron_silence   Loop 3 with the oath, the iron and the design, as far as the nineteen dawns the Heartstone's silence leaves
-//                     reach (quest proof D) — the full road (the anchor's six materials, Borin, the Apex) is 22–25 days on every
-//                     order tried: ending D is reachable in data (scene_ending_silence from the anchor's Offer, tested on a built
-//                     state) and not yet by a played route; a KNOWN GAP the reachability test pins (a balance flag)
+//   D  iron_silence   Loop 3 with the oath, the iron and the design: the anchor's makings gathered before the Heartstone is
+//                     destroyed, Hadda's ask, the forge, the Apex with Brak, the iron shown in communion (quest proof D; U81a,
+//                     D-123: by play, on Day 13 of the twenty the Destroy leaves)
 //   E  long_archive   Loop 3 with Ilyra's bond: the Keeper, the Heartstone stabilized, Dray's ask, the vigil (quest proof E)
 //   F  unbound        Loop 2 with the Tyrant's Echo: the road east, the communion with silence at the gaps, the tear (quest proof F)
 import type { Action, ContentPack } from '@engine/index';
-import { SIN_ECHOES, ironSilenceAsked, keepersPrice, longArchive, unbound, wardensVigil, weaversDawn } from '../quests';
+import { IRON_SILENCE_ECHOES, SIN_ECHOES, ironSilence, keepersPrice, longArchive, unbound, wardensVigil, weaversDawn } from '../quests';
 import { runEndingScript } from '../run';
 import type { EndingScript } from '../types';
 
@@ -82,11 +81,11 @@ export const ENDING_SCRIPTS: readonly EndingScript[] = [
   },
   {
     endingId: 'ending_iron_silence',
-    name: "Loop 3 with the oath, the iron and the design: Brak, the Heartstone destroyed, Hadda's ask — the road past it outruns the clock (KNOWN GAP)",
+    name: "Loop 3 with the oath, the iron and the design: the makings first, the Heartstone destroyed, Hadda's ask, the forge, the Apex with Brak",
     classId: 'ironclad_warden',
     seed: 'quest:silence',
-    profile: { loop: 3, echoes: ['echo_ironclad_oath', 'echo_stone_hide_origin', 'echo_tyrant_jailer', 'echo_iron_that_does_not_wish', 'echo_anchor_half_a', 'echo_anchor_half_b', 'echo_brak_lives', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_high_mark', 'echo_hollow_path', 'echo_steppe_waystones', 'echo_heartstone_path', 'echo_crystal_location'], bestLevel: 20 },
-    loops: [[...ironSilenceAsked, { assert: { quest: { id: 'q_iron_silence', status: 'completed' } }, message: "ending D's road: the anchor's materials, Borin and the Apex lie past the nineteenth dawn" }]],
+    profile: { loop: 3, echoes: IRON_SILENCE_ECHOES, bestLevel: 20 },
+    loops: [ironSilence],
   },
   {
     endingId: 'ending_long_archive',
@@ -107,9 +106,7 @@ export const ENDING_SCRIPTS: readonly EndingScript[] = [
 ];
 
 /** The scripts that do not reach their ending yet, with why (tests pin them so a fix is noticed). */
-export const KNOWN_GAPS: Readonly<Record<string, string>> = {
-  ending_iron_silence: "the Heartstone's silence leaves nineteen dawns; the anchor's six materials, Borin and the Apex take a carry-over party 22–25",
-};
+export const KNOWN_GAPS: Readonly<Record<string, string>> = {}; // U81a (D-123): ending D is reached by play; no gap is left
 
 /**
  * `npm run sim:endings [-- <endingId>…] [--pack <spec>]` (src/sim/cli.ts `endings`): runs the ending proofs (all, or those of the

@@ -818,6 +818,11 @@ const WRITTEN = {
     'The Tyrant, spared, has opened the tear. Nothing is stopping you from stepping past it, into somewhere that is not Aethelgard.',
   ],
   variants: [
+    // U62 (STORY §12): Caelum when he stayed; Borin's shortcut with the three beats; the Tyrant remembering consent or rejection
+    "You said he stands there after. In the chamber, where the stone is, for five hundred years. I think you asked me once whether I would stay, and I did, and it changed nothing but me. I'm not asking to come this time. I'm asking you to carry something down.",
+    'You have heard all three of its beats; the steady one, the hungry one, the one that stopped. Then the heart is simpler: any piece of the stone takes the temper from hands that know the three, and I will not make you wait on the Depths for it. Three Aetherium Shards for the draw, three Void Shards so it does not want, ember ore, heartwood to quench in. No fee. Bring them to the anvil.',
+    'Again. You have had my word once; I remember giving it, which is more than I remember of most things. Say the words you have. I will know by where you stop whether it is still the same you.',
+    'Again. The last of you came with a blade in your mouth, and I sent it to find a real one. Say the words you have instead; I will know which are missing by where you stop.',
     'Close now. Two more dawns, perhaps three. Sit with me; the stone keeps better time than the sky does.',
     'The days are going by like pages turned in another room. I have been counting them on the plinths. Keep the vigil a little longer.',
     // U62: STORY §13's `echo_caelum_cannot` exchange, each line in its own mouth

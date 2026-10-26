@@ -46,6 +46,7 @@ const plain = (s: string): string => s.replace(/[`*]/g, '').replace(/\s+/g, ' ')
 /** For "is this text STORY's?": no markup, one line, lower case. */
 const norm = (s: string): string => s.replace(/[*_]/g, '').replace(/\s+/g, ' ').toLowerCase().trim();
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+const ILYRA_COST_SLIDE = 'From the far side you see it for the length of one breath: the Library going, and Ilyra still holding the door when it takes her. That is what the door costs. Now you know.';
 
 // ---- Factions (BIBLE §6.3) ---------------------------------------------------------------------------------------------------
 
@@ -355,20 +356,8 @@ describe('endings', () => {
     }
   });
 
-  test('the sequences and epilogues are STORY §10 text, word for word; the tag line is its "Tone"', () => {
-    for (const e of trueEndings) {
-      const section = norm(storySection(e.letter as string));
-      for (const s of e.sequence) expect([e.id, s.text, section.includes(norm(s.text))]).toEqual([e.id, s.text, true]);
-      for (const ep of e.epilogues ?? []) {
-        // the companion fates are held to the §7.7 table below
-        if (['world', 'remnants', 'weavers', 'ironclad', 'wayfinder', 'factions'].includes(ep.subject)) {
-          expect([e.id, ep.text, section.includes(norm(ep.text))]).toEqual([e.id, ep.text, true]);
-        }
-      }
-      const tone = (storySection(e.letter as string).match(/\*\*Tone:\*\* ([^\n]+)/) as RegExpMatchArray)[1] as string;
-      expect(norm(e.tagline)).toBe(norm(tone));
-    }
-  });
+  // U62b: the sequences, the epilogues and the tag lines against STORY §10 are tests/unit/content/endingsText.test.ts (U62 wrote
+  // the final slides: STORY's words verbatim where given, the joins in the house voice, each slide with its painting).
 
   test('the companion fates are the §7.7 table: one line per companion, shown for a companion recruited this loop', () => {
     const table = tableRows(cut(STORY, '### 7.7 Companion × ending', '\n---'), /^\*\*/);
@@ -380,7 +369,8 @@ describe('endings', () => {
       for (const [i, l] of letters.entries()) {
         const e = trueEndings.find((x) => x.letter === l) as (typeof trueEndings)[number];
         const cell = plain((row[i + 1] as string).replace(/\s*\([^)]*\)/g, '')); // "(he was at your shoulder …)" is a stage direction
-        const have = (e.epilogues ?? []).filter((x) => x.subject === subject);
+        // U62: Mireya's two chosen-fen lines (STORY §12) stand beside her §7.7 line in A and F (endingsText.test.ts holds them)
+        const have = (e.epilogues ?? []).filter((x) => x.subject === subject && !x.text.includes(', as she chose'));
         const label = name === 'Kaelen / Borin' ? 'Kaelen and Borin' : name;
         if (cell === 'One line each.') {
           expect([e.id, subject, have]).toEqual([e.id, subject, []]);
@@ -392,7 +382,9 @@ describe('endings', () => {
           ]);
         } else {
           expect([e.id, subject, have.map((x) => x.text)]).toEqual([e.id, subject, [`${label}: ${cell}`]]);
-          expect(have[0]?.when).toEqual(subject === 'kaelen_borin' ? undefined : { companion: { id: subject, state: 'recruited' } });
+          const when = have[0]?.when as Condition | undefined;
+          const first = when !== undefined && 'all' in when ? when.all[0] : when; // Mireya's: recruited, and no fen chosen
+          expect(first).toEqual(subject === 'kaelen_borin' ? undefined : { companion: { id: subject, state: 'recruited' } });
         }
       }
     }
@@ -421,7 +413,8 @@ describe('endings', () => {
     const escape = pack.endings.closer_escape;
     const fall = pack.endings.closer_fall;
     expect(escape?.sequence.map((s) => s.text)).toEqual([CLOSER_TEXT.lastThreshold, CLOSER_TEXT.shear]);
-    expect(escape?.epilogues.map((x) => x.text)).toEqual([CLOSER_TEXT.shearUntouched]);
+    // U62 (STORY §12 `echo_ilyra_cost`): from Loop 2, the Library seen falling from the far side
+    expect(escape?.epilogues.map((x) => x.text)).toEqual([CLOSER_TEXT.shearUntouched, ILYRA_COST_SLIDE]);
     expect(fall?.sequence.map((s) => s.text)).toEqual([CLOSER_TEXT.shear]);
     expect(fall?.reasons).toEqual(['death', 'expiry', 'rejected', 'released']);
     expect([...FallReason.options]).toEqual(fall?.reasons);

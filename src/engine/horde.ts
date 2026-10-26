@@ -340,8 +340,10 @@ export function enterPortalHandler(ctx: StepCtx): void {
   const why = portalProblem(ctx.s);
   if (why !== null) ctx.reject(why);
   ctx.emit({ t: 'portalEntered' });
-  // U62 (STORY §12): from Loop 2, passing the portal she holds is watching the Library fall — what the door costs
-  if (ctx.s.meta.loop >= 2 && ctx.s.world.npcOverrides[ILYRA_NPC_ID]?.location === PORTAL_LOCATION_ID) grantKnownEcho(ctx, ECHO_ILYRA_COST, 'portal');
+  // U62 (STORY §12): from Loop 2, passing the portal she holds is watching the Library fall — what the door costs (she holds
+  // it unless she walks beside you: the Library's own text, silverwood_ruins/locations.ts, and closer_escape's epilogue agree)
+  const holding = ctx.s.world.npcOverrides[ILYRA_NPC_ID]?.location === PORTAL_LOCATION_ID && ctx.s.companions.activeId !== 'ilyra';
+  if (ctx.s.meta.loop >= 2 && holding) grantKnownEcho(ctx, ECHO_ILYRA_COST, 'portal');
   apply({ endLoop: { closer: 'closer_escape' } }, ctx, { source: 'portal' });
 }
 

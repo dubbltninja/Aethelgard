@@ -465,7 +465,8 @@ describe('the scenes (STORY §13; legacy handle_* lines; the conventions of src/
         // a variant appends STORY's sentence to the legacy line
         for (const v of n.textVariants ?? []) {
           expect(v.text.startsWith(`${n.text} `)).toBe(true);
-          expect(inStory(v.text.slice(n.text.length + 1))).toBe(true);
+          const added = v.text.slice(n.text.length + 1);
+          expect([s.id, n.id, inStory(added) || WRITTEN.variants.includes(added)]).toEqual([s.id, n.id, true]);
         }
       }
     }
@@ -578,6 +579,8 @@ const WRITTEN = {
   choices: ['Leave it be.', 'Wait.', 'Give her the scroll.', 'Not yet.', 'Read it to her.', 'Not now.', 'Listen.'],
   journals: ["You read Oriel's scroll to Nyx.", "Go to the Blighted Outpost and speak the warder's word.", 'Return to Nyx with the three shards.'],
   other: ["You know the warder's word that stills Vane's golems.", 'Ilyra asks you to recover an Echo Crystal.'],
+  // U62 (STORY §12 `echo_crystal_seeded`): appended to the legacy line, as STORY's Loop 2+ sentence is
+  variants: ['The Crystal is warm against the Amulet before you touch it: it knows your voice. You told it, in a library that still had a roof, what it would hear.'],
 };
 
 // ---- Played through the engine on the real pack ---------------------------------------------------------------------------------
@@ -643,7 +646,7 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect(legalActions(out.state, pack, freshProfile())).toContainEqual(go);
     const s2 = at({ locationId: 'loc_whispering_ruins', items: ['item_echo_crystal'], quests: { q_echo_crystal: 'return' } }, 2);
     const two = run(s2, [talk('npc_ilyra'), pick('keep'), go], 2);
-    expect(two.events.at(-1)).toMatchObject({ t: 'dialogueNode', nodeId: 'kept_stirs', text: node('scene_echo_crystal', 'kept_stirs').textVariants[0]?.text });
+    expect(two.events.at(-1)).toMatchObject({ t: 'dialogueNode', nodeId: 'kept_stirs', text: node('scene_echo_crystal', 'kept_stirs').textVariants.at(-1)?.text });
     const heard = run(two.state, [pick('listen'), go], 2);
     for (const echo of ['echo_litany_verse_1', 'echo_nine_voices']) expect(heard.state.echoesThisLoop).toContain(echo);
   });

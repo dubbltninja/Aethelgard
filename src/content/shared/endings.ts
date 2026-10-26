@@ -40,6 +40,27 @@ function fates(row: Record<'ilyra' | 'brak' | 'nyx' | 'dask' | 'mireya' | 'caelu
 
 const atApex: Condition = { location: 'loc_temporal_breach_apex' };
 
+/**
+ * U62 (STORY §12 `echo_glowfen_dammed` / `echo_glowfen_let_run`: "epilogue variants"): Mireya's fate as she chose the fen. This
+ * loop's choice wins (`q_preserve_or_heal`'s outcome); else the one choice ever made; the two Echoes are exclusive only per loop,
+ * so a profile holding both with no choice this loop keeps STORY §7.7's own line.
+ */
+const PRESERVE = 'q_preserve_or_heal';
+const DAMMED_NOW: Condition = { any: [{ quest: { id: PRESERVE, stage: 'dammed' } }, { quest: { id: PRESERVE, stage: 'dammed_dark' } }] };
+const RUN_NOW: Condition = { quest: { id: PRESERVE, stage: 'let_run' } };
+const FEN_DAMMED: Condition = { all: [{ echo: 'echo_glowfen_dammed' }, { not: RUN_NOW }, { any: [DAMMED_NOW, { not: { echo: 'echo_glowfen_let_run' } }] }] };
+const FEN_RUNS: Condition = { all: [{ echo: 'echo_glowfen_let_run' }, { not: DAMMED_NOW }, { any: [RUN_NOW, { not: { echo: 'echo_glowfen_dammed' } }] }] };
+type Epilogue = NonNullable<EndingInput['epilogues']>[number];
+/** Replaces the §7.7 Mireya line's condition (shown when neither choice applies) and adds the two chosen-fen lines after it. */
+function withFen(list: Epilogue[], dammed: string, runs: string): Epilogue[] {
+  const recruited = companionRecruited('mireya');
+  return [
+    ...list.map((e) => (e.subject === 'mireya' ? { ...e, when: { all: [recruited, { not: { any: [FEN_DAMMED, FEN_RUNS] } }] } satisfies Condition } : e)),
+    { subject: 'mireya', when: { all: [recruited, FEN_DAMMED] }, text: dammed },
+    { subject: 'mireya', when: { all: [recruited, FEN_RUNS] }, text: runs },
+  ];
+}
+
 // U62: the paintings behind the slides (docs/ART.md §5 location ids; the Ending screen shows them, U71) and a mood where
 // STORY §10 implies one (the dialogue Mood words: grim, cold, warm, urgent, afraid, wry).
 const APEX = 'loc_temporal_breach_apex';
@@ -109,7 +130,7 @@ export const endings = [
         subject: 'wayfinder',
         text: 'Wayfinder: "You hold. You are not in pain. You can hear every bell in Silverwood, ringing back a note." No more Wayfinders are born: the symptom has a cause that is now content.',
       },
-      ...fates(
+      ...withFen(fates(
         {
           ilyra: 'Writes the eighth name in the Ledger; never tears another portal.',
           brak: 'Lives; names a wagon-child Stonehand.',
@@ -119,10 +140,11 @@ export const endings = [
           caelum: 'Stays in the present; apprentices to Borin.',
         },
         'Trade and forge; the Respite stays neutral.',
-      ).map((e) => (e.subject === 'mireya' ? { ...e, when: { all: [companionRecruited('mireya'), { not: { echo: 'echo_glowfen_dammed' } }, { not: { echo: 'echo_glowfen_let_run' } }] } satisfies Condition } : e)),
-      // U62 (STORY §12 `echo_glowfen_dammed` / `echo_glowfen_let_run`: "epilogue variants"): what she chose for the fen
-      { subject: 'mireya', when: { all: [companionRecruited('mireya'), { echo: 'echo_glowfen_dammed' }] }, text: 'Mireya: Lanternreed goes dim, as she chose; she tends the dark with real lanterns and says the sick sleep better.' },
-      { subject: 'mireya', when: { all: [companionRecruited('mireya'), { echo: 'echo_glowfen_let_run' }] }, text: 'Mireya: Lanternreed glows, as she chose; she tends the light and the ones it changes, and does not call either a mistake.' },
+      ),
+        // U62 (STORY §12 `echo_glowfen_dammed` / `echo_glowfen_let_run`: "epilogue variants"): what she chose for the fen
+        'Mireya: Lanternreed goes dim, as she chose; she tends the dark with real lanterns and says the sick sleep better.',
+        'Mireya: Lanternreed glows, as she chose; she tends the light and the ones it changes, and does not call either a mistake.',
+      ),
     ],
     achievementId: 'ach_vigil',
     credits: true,
@@ -481,17 +503,18 @@ export const endings = [
       { subject: 'weavers', text: 'Weavers: "They sang."' },
       { subject: 'ironclad', text: 'Ironclad: "Twenty held the Nexus for a day. It was not enough and they knew."' },
       { subject: 'wayfinder', text: 'Wayfinder: "You remember all of it. Nobody where you are knows what an Echo is."' },
-      ...fates({
+      ...withFen(fates({
         ilyra: 'Holds the portal; you go; she does not know where.',
         brak: 'Lives; the thirtieth dawn comes after you are gone, and he holds the Nexus for a day.',
         nyx: 'Goes to the Apex at last and looks at his face.',
         dask: 'Watches you go and says "fair."',
         mireya: 'As chosen; she waves from the stilts.',
         caelum: 'Comes with you if asked; else returns to the stair.',
-      }).map((e) => (e.subject === 'mireya' ? { ...e, when: { all: [companionRecruited('mireya'), { not: { echo: 'echo_glowfen_dammed' } }, { not: { echo: 'echo_glowfen_let_run' } }] } satisfies Condition } : e)),
-      // U62 (STORY §12): the fen as she chose it, seen once from the stilts
-      { subject: 'mireya', when: { all: [companionRecruited('mireya'), { echo: 'echo_glowfen_dammed' }] }, text: 'Mireya: The fen is dark, as she chose; she waves from the stilts with a real lantern in her hand.' },
-      { subject: 'mireya', when: { all: [companionRecruited('mireya'), { echo: 'echo_glowfen_let_run' }] }, text: 'Mireya: The fen glows, as she chose; she waves from the stilts, and the light waves with her.' },
+      }),
+        // U62 (STORY §12): the fen as she chose it, seen once from the stilts
+        'Mireya: The fen is dark, as she chose; she waves from the stilts with a real lantern in her hand.',
+        'Mireya: The fen glows, as she chose; she waves from the stilts, and the light waves with her.',
+      ),
     ],
     achievementId: 'ach_unbound',
     credits: true,
@@ -528,7 +551,8 @@ export const endings = [
       // U62 (STORY §12 `echo_ilyra_cost`: "watch the Library fall after passing the portal"): from Loop 2, what the door costs
       {
         subject: 'ilyra',
-        when: { all: [{ loop: { min: 2 } }, { flag: 'flag_horde_active' }] },
+        // she holds the door only when she is not walking beside you (horde.ts `enterPortalHandler` grants the Echo the same way)
+        when: { all: [{ loop: { min: 2 } }, { flag: 'flag_horde_active' }, { not: { companion: { id: 'ilyra', state: 'active' } } }] },
         text: 'From the far side you see it for the length of one breath: the Library going, and Ilyra still holding the door when it takes her. That is what the door costs. Now you know.',
       },
     ],

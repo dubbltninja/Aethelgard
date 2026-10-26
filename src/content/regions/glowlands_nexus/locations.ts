@@ -117,7 +117,9 @@ export const locations = [
       { itemId: 'item_orrery_key', when: { loop: { min: 2 } } },
     ],
     encounters: [
-      // legacy: the Temporal Aberration (100 %, first visit); the elite one step from the finale (WORLD §10.4); `scatter`
+      // legacy: the Temporal Aberration (100 %, first visit); the elite one step from the finale (WORLD §10.4); `scatter`.
+      // It is the Aberrant Eye's only source (`q_unlidded_eye`), but every road to the Apex runs through the Nexus, so it keeps
+      // `scatter` (U81c's Apex-road exemption to D-143, the contentRules test): fled, the Eye waits for the next loop.
       { id: 'enc_nexus_aberration', groups: [{ creatureId: 'cr_temporal_aberration' }], intro: 'By the orrery something flickers between where it stood and where it will stand.' },
       // Loop 4+ (WORLD §12.1 `ws_loop_4`): the Hour Leech, 15 % — first among the return rolls so its 15 % is WORLD's
       {

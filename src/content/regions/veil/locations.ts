@@ -210,6 +210,7 @@ export const locations = [
       {
         id: 'enc_shelf_stalkers',
         groups: [{ creatureId: 'cr_void_touched_stalker', count: 2 }],
+        onFlee: 'hold', // D-143: a certain drop of a quest item (the Void Shard); never scatters
         chance: 0.6,
         intro: 'Two shapes come over the lip of the ledge, eyes like cold stars.',
       },

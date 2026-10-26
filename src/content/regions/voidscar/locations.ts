@@ -6,7 +6,9 @@
 //
 // The Hollow's two groups (WORLD §3.3, §10.4: "two groups; R10-1 rules the Stalkers `scatter`"): group A ×2 and group B ×1 are two
 // fixed encounters. The engine fires one fixed group per arrival (reducers/combat.ts `arrivalEncounter`), so A is the first
-// visit's fight and B the next arrival's; a flight from A scatters A alone and B stands for the next arrival. Weavers Wary
+// visit's fight and B the next arrival's. D-143 (Tim's play): the Stalkers drop a shard each, certainly (two of `q_void_shards`'
+// three), so every Stalker group here and at the Chasm is `hold`, not `scatter` (a Sentry's 15 % is not a certain drop): a
+// flight from A falls back to the Chasm and A waits, wounded, to re-fire on the next arrival until dawn, then whole. Weavers Wary
 // or Hostile in Loop 2+, B is the same stalker with a Veil Sentry beside it (WORLD §12.1 `ws_weavers_wary`); the plain B
 // waits on `not` that, and a victory in either B scatters the other, so the slot is paid once however the standing moves.
 //
@@ -76,6 +78,7 @@ export const locations = [
       {
         id: 'enc_chasm_stalker',
         groups: [{ creatureId: 'cr_void_touched_stalker' }],
+        onFlee: 'hold', // D-143: a certain drop of a quest item; never scatters
         chance: 0.12 / 0.92,
         when: WEAVERS_WARY,
         once: false,
@@ -121,16 +124,18 @@ export const locations = [
     // U34e (D-105): "Heartstone exploited: the Hollow's crystal glows brighter (Void-touched +1 level variant encounters)"
     levelBonus: [{ when: { flag: 'flag_heartstone_exploited' }, creatures: ['cr_void_touched_stalker'], levels: 1 }],
     encounters: [
-      // first: group A ×2 (100 %), the legacy three's first two (the legacy fight, scatter: WORLD §10.4)
+      // first: group A ×2 (100 %), the legacy three's first two (the legacy fight; WORLD §10.4 had `scatter`, D-143 `hold`)
       {
         id: 'enc_hollow_stalkers_a',
         groups: [{ creatureId: 'cr_void_touched_stalker', count: 2 }],
+        onFlee: 'hold', // D-143: a certain drop of a quest item; never scatters
         intro: 'Two shapes pull loose from the scree, eyes like cold stars.',
       },
       // then group B ×1 (100 %): with a sentry beside it in Loop 2+ while the Weavers are Wary or Hostile, else alone
       {
         id: 'enc_hollow_group_b_sentry',
         groups: [{ creatureId: 'cr_void_touched_stalker' }, { creatureId: 'cr_veil_sentry' }],
+        onFlee: 'hold', // D-143: a certain drop of a quest item; never scatters
         when: SENTRY_JOINS_B,
         onVictory: [{ scatter: { location: 'loc_voidscar_hollow' } }],
         intro: 'A Weaver in grey thread stands beside it, counting.',
@@ -138,6 +143,7 @@ export const locations = [
       {
         id: 'enc_hollow_group_b',
         groups: [{ creatureId: 'cr_void_touched_stalker' }],
+        onFlee: 'hold', // D-143: a certain drop of a quest item; never scatters
         when: { not: SENTRY_JOINS_B },
         onVictory: [{ scatter: { location: 'loc_voidscar_hollow' } }],
         intro: 'A third comes down the slope behind them, unhurried.',
@@ -146,6 +152,7 @@ export const locations = [
       {
         id: 'enc_hollow_stalker',
         groups: [{ creatureId: 'cr_void_touched_stalker' }],
+        onFlee: 'hold', // D-143: a certain drop of a quest item; never scatters
         chance: 0.35,
         once: false,
         respawn: 'on_return',

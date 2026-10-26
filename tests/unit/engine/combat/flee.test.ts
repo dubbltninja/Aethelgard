@@ -88,24 +88,37 @@ describe('flee% and the attempt (DESIGN §3.2, §4.1 `F`)', () => {
 });
 
 describe('what a successful flee does (DESIGN §4.7, D-066 #11)', () => {
-  test('scatter (fixed non-boss groups, the default): 3 watches in all, no XP or loot, the party stays, the node stays passable for the loop', () => {
+  test('scatter (fixed non-boss groups, the default): 3 watches in all, no XP or loot, the party falls back (D-143), the node stays passable for the loop', () => {
     const s = act(state(), { type: 'move', to: LIBRARY }, [D.d4(4), D.d4(1), D.d4(1)]).state;
     const ticks = s.clock.ticks;
     const out = act(s, FLEE, [D.pct(0)]);
     const after = out.state;
     expect(after.mode).toBe('explore');
     expect(after.combat).toBeNull();
-    expect(after.world.currentLocationId).toBe(LIBRARY);
+    expect(after.world.currentLocationId).toBe(RUINS); // D-143: back the way it came, not left standing at the Library
+    expect(after.world.previousLocationId).toBe(LIBRARY);
+    expect(ofType(out.events, 'locationEntered').map((e) => e.locationId)).toEqual([RUINS]);
     expect(after.clock.ticks).toBe(ticks + 3);
     expect(after.world.locationStates[LIBRARY]?.scattered).toEqual(['enc_library_shades']);
     expect(ofType(out.events, 'encounterScattered')).toEqual([{ t: 'encounterScattered', locationId: LIBRARY, encounterId: 'enc_library_shades' }]);
     expect(after.player.xp).toBe(0);
     expect(after.counters).toMatchObject({ fled: 1, fightsWon: 0, kills: {} });
-    expect(ofType(out.events, 'autosaveCheckpoint')).toEqual([{ t: 'autosaveCheckpoint', reason: 'combatEnded' }]);
-    // the group does not gather again this loop: out and back in, no fight
-    const back = play(after, [{ type: 'move', to: RUINS }, { type: 'move', to: LIBRARY }], { content });
+    // one checkpoint per step: the arrival's (the fall back), as a `previous` flee has always had
+    expect(ofType(out.events, 'autosaveCheckpoint')).toEqual([{ t: 'autosaveCheckpoint', reason: 'locationEntered' }]);
+    // the group does not gather again this loop: the party walks back in and passes (D-037's pacifist reachability)
+    const back = play(after, [{ type: 'move', to: LIBRARY }], { content });
     expect(back.state.mode).toBe('explore');
     expect(back.state.world.currentLocationId).toBe(LIBRARY);
+  });
+
+  test('scatter with no previous node (or the previous node is this one): the party stays where it is', () => {
+    for (const prev of [null, MISTWOOD]) {
+      const s0 = state({ locationId: MISTWOOD, patch: (st) => void (st.world.previousLocationId = prev) });
+      const out = act(fight(s0, spec([{ creatureId: BRUTE, count: 1 }])), FLEE, [D.pct(0)]);
+      expect(out.state.world.currentLocationId).toBe(MISTWOOD);
+      expect(ofType(out.events, 'locationEntered')).toEqual([]);
+      expect(out.state.world.locationStates[MISTWOOD]?.scattered).toEqual(['enc_test']);
+    }
   });
 
   test('previous (wandering and return encounters): 1 watch, placed at the previous node with no encounter roll there; the encounter is gone', () => {
@@ -138,6 +151,17 @@ describe('what a successful flee does (DESIGN §4.7, D-066 #11)', () => {
     expect(rested.state.world.locationStates[MISTWOOD]?.encounterHp).toEqual({});
   });
 
+  test('D-143: every mode falls back to the previous node — previous, scatter and hold alike', () => {
+    for (const onFlee of ['previous', 'scatter', 'hold'] as const) {
+      const s0 = state({ locationId: MISTWOOD, patch: (st) => void (st.world.previousLocationId = RUINS) });
+      const s = fight(s0, spec([{ creatureId: BRUTE, count: 1 }], { id: `enc_${onFlee}`, onFlee }));
+      const out = act(s, FLEE, [D.pct(0)]);
+      expect([onFlee, out.state.world.currentLocationId, out.state.world.previousLocationId]).toEqual([onFlee, RUINS, MISTWOOD]);
+      expect([onFlee, out.state.clock.ticks - s.clock.ticks]).toEqual([onFlee, onFlee === 'scatter' ? 3 : 1]);
+      expect(ofType(out.events, 'combatStarted')).toEqual([]); // no roll on the arrival
+    }
+  });
+
   test('a spawned group that scatters is gone; the encounter\'s onFleeEffects apply', () => {
     const s0 = state({
       patch: (st) => void (st.world.pendingEncounters[RUINS] = [{ id: 'spawn_1', groups: [{ creatureId: SHADE, count: 1 }], once: true, onFlee: 'scatter' }]),
@@ -147,6 +171,81 @@ describe('what a successful flee does (DESIGN §4.7, D-066 #11)', () => {
     expect(out.state.world.pendingEncounters[RUINS]).toBeUndefined();
     expect(out.state.flags.flag_ran).toBe(true);
     expect(ofType(out.events, 'encounterScattered')).toEqual([]);
+  });
+});
+
+describe('a held quest-drop group (D-143, DESIGN §4.7)', () => {
+  /** The Library's pair of Shades as a quest-drop group (`hold`), at `chance`. */
+  const heldPack = (chance = 1) =>
+    combatPack(({ locations }) => {
+      const lib = locations.find((l) => l.id === LIBRARY)!;
+      lib.encounters = lib.encounters!.map((e) => ({ ...e, onFlee: 'hold' as const, chance }));
+    });
+  const INIT = [D.d4(4), D.d4(1), D.d4(1)];
+  const enter = (pack: ReturnType<typeof heldPack>, s: GameState, draws: readonly number[]) => {
+    const out = scriptedStep(s, { type: 'move', to: LIBRARY }, draws, pack, profile);
+    expect(out.rejected).toBeNull();
+    expect(out.left).toBe(0);
+    return out;
+  };
+  const flee = (pack: ReturnType<typeof heldPack>, s: GameState) => {
+    const out = scriptedStep(s, FLEE, [D.pct(0)], pack, profile);
+    expect(out.rejected).toBeNull();
+    return out;
+  };
+
+  test('it falls back, keeps each wound until dawn and re-fires on the next arrival showing the stored HP; at dawn it is whole', () => {
+    const pack = heldPack();
+    const s0 = makeState({}, { content: pack });
+    const met = enter(pack, s0, INIT).state;
+    expect(met.combat).toMatchObject({ encounterId: 'enc_library_shades', onFlee: 'hold' });
+    const wounded = patched(met, (c) => {
+      c.enemies[0]!.hp = 7;
+      c.enemies[1]!.hp = 11;
+    });
+    const out = flee(pack, wounded);
+    expect(out.state.world.currentLocationId).toBe(RUINS);
+    expect(out.state.clock.ticks).toBe(met.clock.ticks + 1); // a hold costs the one watch, not a scatter's three
+    expect(out.state.world.locationStates[LIBRARY]).toMatchObject({ scattered: [], encounterHp: { enc_library_shades: { [SHADE]: 7, [`${SHADE}#2`]: 11 } } });
+    expect(ofType(out.events, 'encounterScattered')).toEqual([]);
+    // back in: the same pair, wounded as it was left
+    const again = enter(pack, out.state, INIT).state;
+    expect(again.combat?.encounterId).toBe('enc_library_shades');
+    expect(again.combat?.enemies.map((e) => e.hp)).toEqual([7, 11]);
+    // flee again, rest to dawn at the Ruins: the wounds are gone and the pair stands whole on the next arrival
+    const fledAgain = flee(pack, again).state;
+    const rested = play(fledAgain, [{ type: 'rest', kind: 'full' }], { content: pack, profile });
+    expect(rested.state.world.locationStates[LIBRARY]?.encounterHp).toEqual({});
+    const fresh = enter(pack, rested.state, INIT).state;
+    expect(fresh.combat?.enemies.map((e) => e.hp)).toEqual(fresh.combat?.enemies.map((e) => e.hpMax));
+  });
+
+  test('a creature felled before the flight stands again whole (its drop was never taken); a win clears the held HP', () => {
+    const pack = heldPack();
+    const met = enter(pack, makeState({}, { content: pack }), INIT).state;
+    const oneDown = patched(met, (c) => {
+      c.enemies[0]!.hp = 0;
+      c.enemies[0]!.alive = false;
+      c.enemies[1]!.hp = 9;
+    });
+    const out = flee(pack, oneDown);
+    expect(out.state.world.locationStates[LIBRARY]?.encounterHp).toEqual({ enc_library_shades: { [`${SHADE}#2`]: 9 } });
+    const again = enter(pack, out.state, INIT).state;
+    const [first, second] = again.combat!.enemies;
+    expect([first!.hp, second!.hp]).toEqual([first!.hpMax, 9]);
+  });
+
+  test('a held group skips its first-visit rule and its chance: a 50 % first-visit group re-fires on the next arrival without a roll', () => {
+    const pack = heldPack(0.5);
+    const met = enter(pack, makeState({}, { content: pack }), [D.yes, ...INIT]).state;
+    const out = flee(pack, patched(met, (c) => void (c.enemies[0]!.hp = 5)));
+    const again = enter(pack, out.state, INIT).state; // no chance draw
+    expect(again.combat?.enemies[0]?.hp).toBe(5);
+    // after dawn the group's own rule is back: a later visit does not roll a first-visit group
+    const rested = play(flee(pack, again).state, [{ type: 'rest', kind: 'full' }], { content: pack, profile });
+    const later = scriptedStep(rested.state, { type: 'move', to: LIBRARY }, [], pack, profile);
+    expect(later.rejected).toBeNull();
+    expect(later.state.mode).toBe('explore');
   });
 });
 

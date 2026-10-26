@@ -75,7 +75,7 @@ export const ENDING_SCRIPTS: readonly EndingScript[] = [
     endingId: 'ending_weavers_dawn',
     name: "Loop 2 with the sign and Nyx's bond: her arc, the Heartstone exploited, her ask, the hold's failing",
     classId: CLASS,
-    seed: 'quest:dawn:c',
+    seed: 'quest:dawn:c:21', // U81c re-seed: a flight now falls back and walks the road again (D-143); the Core's five dawns leave little slack
     profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nyx_bond', 'echo_weaver_sign', 'echo_apex_resonance'], bestLevel: 20 },
     loops: [weaversDawn],
   },

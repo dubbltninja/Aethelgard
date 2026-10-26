@@ -334,7 +334,7 @@ describe('the eight locations vs WORLD §3.8 blocks', () => {
     expect(cr(UMBRA).phases[1]?.adds).toEqual([{ creatureId: LANTERN, count: 2, hpPct: 1 }]);
   });
 
-  test('first-visit fights: chances 50 % / 60 % / 60 % / 70 % / 100 %; the Orchard is a fleeable scatter node (WORLD §10.4); the boss holds', () => {
+  test('first-visit fights: chances 50 % / 60 % / 60 % / 70 % / 100 %; the Orchard is a fleeable scatter node (WORLD §10.4); the boss holds; the Shelf’s Stalkers hold (D-143)', () => {
     const e = (l: string, id: string) => byId(loc(l).encounters, id);
     const shape = (l: string, id: string) => {
       const x = e(l, id);
@@ -345,7 +345,7 @@ describe('the eight locations vs WORLD §3.8 blocks', () => {
     expect(WL[SU]?.block).toContain('first: cr_null_mouth ×1 (60%). return: pool 20%.');
     expect(shape(SU, 'enc_stair_null_mouth')).toEqual([['cr_null_mouth×1'], 0.6, 'never', true, true, 'scatter']);
     expect(WL[SH]?.block).toContain('first: cr_void_touched_stalker ×2 (60%). return: pool 20%.');
-    expect(shape(SH, 'enc_shelf_stalkers')).toEqual([['cr_void_touched_stalker×2'], 0.6, 'never', true, true, 'scatter']);
+    expect(shape(SH, 'enc_shelf_stalkers')).toEqual([['cr_void_touched_stalker×2'], 0.6, 'never', true, true, 'hold']); // D-143: a certain shard each
     expect(WL[VY]?.block).toContain('first: cr_starved_shadow ×1 (70%).');
     expect(shape(VY, 'enc_gallery_shadow')).toEqual([['cr_starved_shadow×1'], 0.7, 'never', true, true, 'scatter']);
     expect(WL[NO]?.block).toContain('first: cr_null_mouth ×2 (100%).');

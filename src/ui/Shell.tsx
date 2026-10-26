@@ -2,7 +2,9 @@
 //   - the layout and landmarks: skip link, `<main id="main">` for the active screen, the dock (U69: the tab bar on the
 //     Explore screen, then the key legend footer);
 //   - the document: theme, motion and text-size attributes on <html>, and a page title that follows mode and place;
-//   - the one keydown listener (hotkeys.ts / useHotkeys.ts) and the global keys: `?` keys, Ctrl+S, Ctrl+L;
+//   - the one keydown listener (hotkeys.ts / useHotkeys.ts) and the global keys: `?` keys, Ctrl+S, Ctrl+L, Ctrl+M (mute);
+//   - sound (U74, hooks/useAudio.ts): the first gesture starts it, each step's events play through the event map, and a
+//     panel opening or closing ticks;
 //   - overlays: the active panel (PanelHost), the confirm dialog, toasts, and the polite live region that reads one
 //     sentence per step.
 // Pattern for later screens: render inside <Shell> (App does), declare keys with useHotkeys, open panels with
@@ -22,6 +24,7 @@ import { TabBar } from './components/TabBar';
 import { Toasts, noticeLifetime } from './components/Toasts';
 import { toastsFor } from './components/toastModel';
 import { EMPTY_QUEUE, dismiss as dismissToast, enqueue, expire, nextExpiry } from './components/toastQueue';
+import { sharedAudio, useAudio } from './hooks/useAudio';
 import { useReducedMotion } from './hooks/useMediaQuery';
 import { resolveHotkey, type HotkeyMap } from './hooks/hotkeys';
 import { HotkeyRegistryContext, createHotkeyRegistry, useHotkeyLayers, useHotkeys, type HotkeyRegistry } from './hooks/useHotkeys';
@@ -51,6 +54,7 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
   const [toastQueue, setToastQueue] = useState(EMPTY_QUEUE);
   const reducedMotion = useReducedMotion();
   const mainRef = useRef<HTMLElement>(null);
+  useAudio(settings, reducedMotion);
 
   // ---- document ----
   useLayoutEffect(() => {
@@ -72,6 +76,11 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
   useEffect(() => {
     if (panel !== null && !legalPanels(mode).includes(panel)) setPanel(null);
   }, [mode, panel]);
+  const hadPanel = useRef(false);
+  useEffect(() => {
+    if ((panel !== null) !== hadPanel.current) sharedAudio().play(panel !== null ? 'sfx_ui_confirm' : 'sfx_ui_back', { vel: 0.6 });
+    hadPanel.current = panel !== null;
+  }, [panel]);
 
   const confirm = useCallback(
     (message: string, options: ConfirmOptions = {}) =>
@@ -111,6 +120,16 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
       when: () => store.isLegal({ type: 'save', slot: 'auto' }),
     },
     'ctrl+l': { run: () => api.openPanel('saves'), label: 'Saves', group: 'system', when: () => canOpen('saves') },
+    // DESIGN §18.5: mute at once, remembered with the other settings
+    'ctrl+m': {
+      run: () => {
+        const muted = !store.getProfile().settings.muted;
+        store.shell.updateSettings({ muted });
+        store.notify(muted ? 'Sound muted. Ctrl+M turns it back on.' : 'Sound on.', 'info');
+      },
+      label: 'Mute or unmute sound',
+      group: 'system',
+    },
   };
   // DESIGN §16.4 panel letters (I, Q, C, B, M, L): a panel's key works once its component is registered and the mode
   // allows it; in a fight it needs Shift (the resolver's `panel` group).

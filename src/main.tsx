@@ -1,6 +1,6 @@
-// React root (PLAN §2, §6): stylesheets, the store bootstrap and <App/>. The audio unlock listener arrives with the
-// audio engine (U74). e2e builds also expose `window.__aethelgard` for Playwright (PLAN §4.13), and dev and e2e builds
-// boot from `?scenario=<id>` (D-104 ruling 1): the app layer — and only it — may import `@sim/scenarios`, and only
+// React root (PLAN §2, §6): stylesheets, the store bootstrap and <App/> (the Shell starts the audio on the first gesture,
+// U74). e2e builds also expose `window.__aethelgard` (with `.audio`, the sound engine) for Playwright (PLAN §4.13); dev and
+// e2e builds open the sound audition page at `?audition` (U74) and boot from `?scenario=<id>` (D-104 ruling 1): the app layer — and only it — may import `@sim/scenarios`, and only
 // behind `__DEV__ || __E2E__`, so a production bundle drops the builders (tests/unit/ui/scenarioBoot.test.ts).
 import './ui/styles/tokens.css';
 import './ui/styles/themes.css';
@@ -20,7 +20,9 @@ import { StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SCENARIO_IDS, loadScenario, type ScenarioId } from '@sim/scenarios';
 import { App } from './ui/App';
+import { mountAudition } from '@audio/sfx/audition';
 import { bootGame, type BootOptions, type Booted } from './ui/boot';
+import { sharedAudio } from './ui/hooks/useAudio';
 import { GameProvider } from './ui/store/useGame';
 import { GAME_TITLE, applyRootAttributes } from './ui/theme';
 
@@ -59,7 +61,11 @@ export function scenarioStart(search: string): BootOptions['start'] {
 }
 
 const container = typeof document === 'undefined' ? null : document.getElementById('root');
-if (container) {
+if ((__DEV__ || __E2E__) && container && new URLSearchParams(window.location.search).has('audition')) {
+  document.title = 'Sound audition · Echoes of Aethelgard';
+  mountAudition(container, sharedAudio());
+  if (__E2E__) (window as unknown as { __aethelgard: unknown }).__aethelgard = { audio: sharedAudio() };
+} else if (container) {
   const root = createRoot(container);
   let booted: Booted | null = null;
   try {
@@ -73,6 +79,7 @@ if (container) {
     if (__E2E__) {
       (window as unknown as { __aethelgard: unknown }).__aethelgard = {
         store,
+        audio: sharedAudio(),
         dispatch: store.dispatch,
         get state() {
           return store.getState();

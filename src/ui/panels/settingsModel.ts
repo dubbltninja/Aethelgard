@@ -19,6 +19,13 @@ export const volumePercent = (volume: number): number => Math.round(Math.min(1, 
 /** A slider's percent → the stored 0..1 (a step of 5 keeps the stored numbers short). */
 export const volumeFromPercent = (percent: number): number => Math.min(1, Math.max(0, Math.round(percent / 5) * 5 / 100));
 
+/** The bus whose test sound a Settings change should play (a volume moved, or sound unmuted), or null. */
+export function soundToTest(before: Settings, patch: Partial<Settings>): VolumeKey | null {
+  if (patch.muted === false && before.muted) return 'master';
+  if (patch.volumes === undefined) return null;
+  return VOLUMES.find(({ key }) => patch.volumes?.[key] !== before.volumes[key])?.key ?? null;
+}
+
 /** What an imported profile file holds, for the preview before it is merged or swapped in. */
 export function profileSummary(profile: Profile): string[] {
   const achievements = Object.keys(profile.achievements).length;

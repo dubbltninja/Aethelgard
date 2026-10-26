@@ -94,11 +94,13 @@ describe('the build gate: production drops the builders, e2e keeps them', () => 
     const js = await bundle('production');
     expect(js).not.toContain(MARKER);
     expect(js).not.toContain('unknown scenario');
+    expect(js).not.toContain('Sound audition'); // U74: the `?audition` page is dev/e2e only
   }, 120_000);
 
   test('src/main.tsx in e2e has both', async () => {
     const js = await bundle('e2e');
     expect(js).toContain(MARKER);
     expect(js).toContain('unknown scenario');
+    expect(js).toContain('Sound audition');
   }, 120_000);
 });

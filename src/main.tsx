@@ -55,7 +55,10 @@ export function scenarioStart(search: string): BootOptions['start'] {
     const id = new URLSearchParams(search).get('scenario');
     if (id === null || id === '') return undefined;
     if (!(SCENARIO_IDS as readonly string[]).includes(id)) throw new Error(`unknown scenario '${id}' (known: ${SCENARIO_IDS.join(', ')})`);
-    return (content) => loadScenario(id as ScenarioId, content);
+    // U77: `&level=<n>` raises the scenario's level (ScenarioOptions.level), so an e2e flow can win a boss fight the default level
+    // loses (the Contained Tyrant at Level 13 beats the melee bot on some seeds); e2e and dev builds only, like `?scenario=`.
+    const level = Number(new URLSearchParams(search).get('level'));
+    return (content) => loadScenario(id as ScenarioId, content, Number.isInteger(level) && level > 0 ? { level } : {});
   }
   return undefined;
 }

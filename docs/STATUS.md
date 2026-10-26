@@ -1,7 +1,7 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except scenes/endings text (U62), 18 Echo grant/read gaps (D-127) codex 90 (complete, unlocking by condition — D-133); all 44 quests authored — **C3 content**; UI U63–U70 done (every screen and panel, saves/settings, mobile tab bar, onboarding, toasts) — **C4 playable** — 4,161 tests, bundle 508 kB of 600. Next: ✦ U62, U75, the balance unit when Fable allows. Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except scenes/endings text (U62), 18 Echo grant/read gaps (D-127); codex 90 (complete, unlocking by condition — D-133); all 44 quests authored — **C3 content**; UI U63–U70 done (every screen and panel, saves/settings, mobile tab bar, onboarding, toasts) — **C4 playable**; art (backdrops, sprites, portraits), the combat stage and audio SFX done — bundle 515 kB of 600 (prose in lazy chunks). Next: ✦ U62, U75, the balance unit when Fable allows. Unit list: PLAN §9.2.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-119), then
 the docs named below. It is updated at every stopping point and before/after every agent round.

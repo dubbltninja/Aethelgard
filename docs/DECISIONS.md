@@ -2329,7 +2329,7 @@ owning unit (PLAN §9.1).
     - The sims never need chunks: the same final state hash on the split pack.
     - In a split build, `dialogueNode`/`endingSlide` event text is a reference the UI resolves. A line that repeats a
       location event's words stays in the bundle (`sceneSaysIt`).
-  - **Production JS 577.7 → 508.7 kB** gzip (~91 kB of headroom for U62 and later).
+  - **Production JS 577.7 → 508.7 kB** gzip; **514.9 kB** with U74's audio merged (~85 kB of headroom for U62 and later).
   - Tests: 4,405 unit (`codexUnlock` 98, `textChunks` 14, `proseSplit` 4); `textChunks.spec.ts`; full e2e 170 passed, 10
     skipped; 80/80 quest proofs; `sim:endings` 8/8.
 - **C1 notes (types only):** `PostStepHook` gains optional `(before, beforeProfile, action)`; `DialogueModel`, `CodexRow` and

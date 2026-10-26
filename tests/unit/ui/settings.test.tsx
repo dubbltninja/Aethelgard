@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { memoryStorage, SETTINGS_MIRROR_KEY } from '@engine/index';
 import { PanelHost } from '@ui/panels/PanelHost';
 import { ProfileSection, SettingsForm } from '@ui/panels/SettingsPanel';
-import { DELETE_PROFILE_ASKS, LOG_LENGTHS, VOLUMES, profileSummary, volumeFromPercent, volumePercent } from '@ui/panels/settingsModel';
+import { DELETE_PROFILE_ASKS, LOG_LENGTHS, VOLUMES, profileSummary, soundToTest, volumeFromPercent, volumePercent } from '@ui/panels/settingsModel';
 import { legalActions } from '@engine/index';
 import { loadScenario } from '@sim/scenarios';
 import { guardModel, intentChip } from '@ui/screens/combatModel';
@@ -62,8 +62,20 @@ describe('SettingsForm', () => {
     expect(changes[0]?.volumes).toEqual({ master: 0.8, ambient: 0.6, sfx: 0.8, music: 0.75 });
   });
 
-  test('the sound block says nothing plays yet', () => {
-    expect(renderToStaticMarkup(<SettingsForm settings={DEFAULT_SETTINGS} onChange={() => undefined} />)).toContain('The game makes no sound yet');
+  test('the sound block no longer says nothing plays; it names the mute key (U74)', () => {
+    const html = renderToStaticMarkup(<SettingsForm settings={DEFAULT_SETTINGS} onChange={() => undefined} />);
+    expect(html).not.toContain('no sound yet');
+    expect(html).toContain('Ctrl+M mutes or unmutes');
+  });
+
+  test('a test sound follows a moved volume or unmuting, nothing else (U74)', () => {
+    const muted = { ...DEFAULT_SETTINGS, muted: true };
+    expect(soundToTest(DEFAULT_SETTINGS, { volumes: { ...DEFAULT_SETTINGS.volumes, ambient: 0.2 } })).toBe('ambient');
+    expect(soundToTest(DEFAULT_SETTINGS, { volumes: { ...DEFAULT_SETTINGS.volumes, music: 0.1 } })).toBe('music');
+    expect(soundToTest(DEFAULT_SETTINGS, { volumes: { ...DEFAULT_SETTINGS.volumes } })).toBeNull();
+    expect(soundToTest(muted, { muted: false })).toBe('master');
+    expect(soundToTest(DEFAULT_SETTINGS, { muted: true })).toBeNull();
+    expect(soundToTest(DEFAULT_SETTINGS, { logLength: 50 })).toBeNull();
   });
 
   test('without a profile block the form has none', () => {

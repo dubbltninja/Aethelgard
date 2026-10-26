@@ -1,7 +1,7 @@
 // Settings (DESIGN §16.3 `screen_settings`, §16.7, D-035): every switch that does something today, applied at once and
 // persisted (settings are not gameplay, so they skip the engine): text size, motion, high contrast, autosave, exact
-// intent numbers, the flee question and the log length. The four volumes and mute are stored for the audio unit (U74)
-// and say so. Keybinds and a screen-reader verbosity are not in `Settings` (C1 freeze, D-073), so they wait for a unit
+// intent numbers, the flee question and the log length. The four volumes and mute drive the audio engine (U74), with a
+// short test sound once a change settles (debounced; unmuting plays one too). Keybinds and a screen-reader verbosity are not in `Settings` (C1 freeze, D-073), so they wait for a unit
 // that may reshape it. The profile block exports, imports (merge or replace) and deletes the profile file.
 // Pattern: container (store, files, confirms) → pure `SettingsForm` / `ProfileSection`.
 import { useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from 'react';
@@ -12,8 +12,9 @@ import type { ProfileImportMode } from '../store/gameStore';
 import { TEXT_SCALES } from '../store/profile';
 import { sharedTutorialStore } from '../store/tutorials';
 import { useProfile, useStore } from '../store/useGame';
+import { useTestSound } from '../hooks/useAudio';
 import { downloadText, readFileText } from '../util/files';
-import { DELETE_PROFILE_ASKS, LOG_LENGTHS, VOLUMES, profileSummary, volumeFromPercent, volumePercent, type ProfileDraft } from './settingsModel';
+import { DELETE_PROFILE_ASKS, LOG_LENGTHS, VOLUMES, profileSummary, soundToTest, volumeFromPercent, volumePercent, type ProfileDraft } from './settingsModel';
 
 export interface ProfileSectionProps {
   draft: ProfileDraft;
@@ -136,7 +137,7 @@ export function SettingsForm({ settings, onChange, tutorials, profile }: Setting
       </fieldset>
       <fieldset className="field-group">
         <legend>Sound</legend>
-        <p className="field__hint">The game makes no sound yet. Your levels are saved now and apply when it does.</p>
+        <p className="field__hint">Sound starts with your first click or key press. Ctrl+M mutes or unmutes at any time.</p>
         <div className="choice-row">
           <label className="choice">
             <input type="checkbox" name="mute" checked={settings.muted} onChange={() => onChange({ muted: !settings.muted })} />
@@ -236,6 +237,7 @@ export function SettingsPanel(): ReactNode {
   const tutorialsOff = useSyncExternalStore(tutorialStore.subscribe, tutorialStore.off, tutorialStore.off);
   const [draft, setDraft] = useState<ProfileDraft>({ status: 'none' });
   const [mode, setMode] = useState<ProfileImportMode>('merge');
+  const testSound = useTestSound();
 
   const exportNow = (): string | null => {
     const name = exportFileName('profile', null, store.shell.timestamp());
@@ -288,7 +290,11 @@ export function SettingsPanel(): ReactNode {
   return (
     <SettingsForm
       settings={settings}
-      onChange={(patch) => store.shell.updateSettings(patch)}
+      onChange={(patch) => {
+        const bus = soundToTest(settings, patch);
+        store.shell.updateSettings(patch);
+        if (bus !== null) testSound(bus);
+      }}
       tutorials={{
         on: !tutorialsOff,
         onToggle: () => tutorialStore.setOff(!tutorialsOff),

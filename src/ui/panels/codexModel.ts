@@ -2,8 +2,9 @@
 // has unlocked, by category and by voice (D-020: the Remnant Archive, the Ironclad Telling, the Weaver Fragments and the
 // Wayfinder's Notes each read differently), the ones not yet found as silhouettes with a hint that spoils nothing, which
 // are new, where an opened entry came from, and the entries it points to. An entry is unlocked when the profile lists it
-// (the `unlockCodex` effect, which Echoes and scenes apply) or the content marks it unlocked at the start; `unlockWhen`
-// is documentation of the trigger and is read only to word the source and the hint. Pure.
+// or the content marks it unlocked at the start. The engine puts it in the profile (U62a, D-131): its `unlockWhen` is
+// evaluated at the end of every step (engine/codexUnlock.ts), and an entry without one unlocks only through the
+// `unlockCodex` effect that Echoes and scenes apply. Here `unlockWhen` is read only to word the source and the hint. Pure.
 import type { ContentPack, Profile } from '@engine/index';
 import type { Condition } from '@schema/condition';
 import { CODEX_CATEGORIES, type CodexEntry } from '@schema/codex';

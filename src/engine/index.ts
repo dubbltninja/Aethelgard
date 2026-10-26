@@ -39,3 +39,4 @@ export * from './reducers/economy';
 export * from './reducers/crafting';
 export * from './reducers/quests';
 export * from './reducers/dialogue';
+export * from './codexUnlock';

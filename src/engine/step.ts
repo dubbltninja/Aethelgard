@@ -56,6 +56,7 @@ import {
   swapCompanionHandler,
 } from './reducers/combat';
 import { companionPostStep } from './combat/companionAi';
+import { codexUnlockPass } from './codexUnlock';
 import { loadHandler, saveHandler } from './saves/reducers';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { GameEvent } from './types/events';
@@ -72,8 +73,12 @@ export interface StepResult {
 /** A reducer for one action type: mutates `ctx.s` / `ctx.profileDraft()`, or calls `ctx.reject` before mutating. */
 export type Handler<K extends ActionType> = (ctx: StepCtx, action: ActionOf<K>) => void;
 export type HandlerTable = { readonly [K in ActionType]: Handler<K> };
-/** Runs after every accepted action (quest sweep U33, achievements, clock warnings U20, mode transitions). */
-export type PostStepHook = (ctx: StepCtx) => void;
+/**
+ * Runs after every accepted action (quest sweep U33, achievements, clock warnings U20, mode transitions). U62a: a hook is
+ * also given what `step` was given — the state and profile before the action, and the action — for the codex pass
+ * (optional: a test that drives hooks by hand passes only the ctx, and the codex pass then does nothing).
+ */
+export type PostStepHook = (ctx: StepCtx, before?: GameState, beforeProfile?: Readonly<Profile>, action?: Action) => void;
 export type StepFn = (state: GameState, action: Action, content: ContentPack, profile: Profile) => StepResult;
 
 export const HANDLERS: HandlerTable = {
@@ -144,6 +149,7 @@ export const POST_STEP_HOOKS: readonly PostStepHook[] = [
   loopEndHook, // U30: a step that entered ending mode closes the loop (reducers/loop.ts)
   thresholdPostStep, // U31: the loop's Resonance tally and modifier multiplier, the Still Shore, the Threshold autosave
   economyPostStep, // U34: the Before's merchants restock each Before day; a merchant met for the first time gets its stock
+  codexUnlockPass, // U62a: last — codex entries whose `unlockWhen` this step made true unlock (codexUnlock.ts)
 ];
 
 const rejected = (state: GameState, profile: Profile, action: Action, reason: string): StepResult => ({
@@ -169,7 +175,7 @@ export function createStep(handlers: HandlerTable, hooks: readonly PostStepHook[
     let out: { profile: Profile; profileCloned: boolean };
     try {
       (handlers[type] as (ctx: StepCtx, action: Action) => void)(ctx, action);
-      for (const hook of hooks) hook(ctx);
+      for (const hook of hooks) hook(ctx, state, profile, action);
       out = ctx.commit();
       ctx.s.meta.stepCount += 1;
     } catch (e) {

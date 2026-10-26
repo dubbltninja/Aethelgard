@@ -114,7 +114,8 @@ describe('the Run Summary', () => {
     expect(m.combat.find((f) => f.key === 'kills')?.value).toBe('None');
     for (const key of ['fights', 'dealt', 'taken', 'gold']) expect(m.combat.map((f) => f.key)).toContain(key);
     expect(m.echoes.map((e) => e.name)).toEqual(['The Amulet Remembers']);
-    expect(m.resonance).toEqual({ base: 0, multiplier: 1, bonus: 0, total: 0 });
+    // U62a: the codex entries this loop's Echoes unlock pay their Resonance (codex +1)
+    expect(m.resonance).toEqual({ base: 1, multiplier: 1, bonus: 0, total: 1 });
     expect(m.legacy).toBe(0);
     expect(m.choices.map((c) => c.key)).toEqual(['tyrant', 'heartstone']);
     expect(m.choices[0]?.value).toBe('Never faced');
@@ -228,7 +229,7 @@ describe('RunSummaryView', () => {
     for (const h of ['The loop', 'Fights and coin', 'Echoes gained · 1', 'Resonance earned']) expect(all(tree, 'h3').map(nameOf)).toContain(h);
     const facts = tree.find((n) => n.type === 'dl' && n.props['aria-label'] === 'The loop')!;
     expect(facts.text).toContain('Level reached');
-    expect(tree.find((n) => n.props['data-testid'] === 'summary-resonance')?.text).toBe('0');
+    expect(tree.find((n) => n.props['data-testid'] === 'summary-resonance')?.text).toBe('1'); // U62a: a codex entry's +1
     expect(tree.find((n) => n.props.className === 'summary__credit')?.text).toBe('A game by Tim Dibert');
   });
 

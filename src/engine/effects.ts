@@ -33,6 +33,7 @@ import { atomOf, dayOf, daysLeft, evaluate, repTier, watchOf, TICKS_PER_DAY } fr
 import { enterMode, type ContentPack, type StepCtx } from './ctx';
 import { defaultRarity, isStackable } from './newRun';
 import { grantXp } from './progression';
+import { unlockCodexEntry } from './codexUnlock';
 import { lootBand, rollPiece } from './rarity';
 import { ATT_SCRIPT, loyaltyStartBonus, scaleXp, scriptNumber } from './runRules';
 import type { Profile } from './types/profile';
@@ -666,9 +667,7 @@ const APPLIERS: Appliers = {
   },
   unlockCodex: (id, ctx) => {
     need(ctx.content.codex[id], `codex entry '${id}'`);
-    if (ctx.profile.codexUnlocked.includes(id)) return;
-    ctx.profileDraft().codexUnlocked.push(id);
-    ctx.emit({ t: 'codexUnlocked', codexId: id });
+    unlockCodexEntry(ctx, id); // U62a: the same path as the codex pass (codexUnlock.ts)
   },
   counter: ({ name, delta }, { s }) => {
     s.counters.custom[name] = (s.counters.custom[name] ?? 0) + delta;

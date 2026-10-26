@@ -1,7 +1,7 @@
 # STATUS — The Unraveling rebuild
 
 **Branch:** `unraveling` (never push to `main`). Remote: `https://github.com/dubbltninja/Aethelgard.git`.
-**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except scenes/endings text (U62), 18 Echo grant/read gaps (D-127) codex 90 (complete, but 79 entries can't unlock yet — U62a); all 44 quests authored — **C3 content**; UI U63–U70 done (every screen and panel, saves/settings, mobile tab bar, onboarding, toasts) — **C4 playable** — 4,161 tests, bundle 508 kB of 600. Next: U71 + the Grok art session (D-124), U72, then U62a, ✦ U62 when Fable allows. Unit list: PLAN §9.2.
+**Current phase:** Phase 1 (implementation). Engine complete (C2 + U34b–f); sim harness complete; world data complete except scenes/endings text (U62), 18 Echo grant/read gaps (D-127) codex 90 (complete, unlocking by condition — D-133); all 44 quests authored — **C3 content**; UI U63–U70 done (every screen and panel, saves/settings, mobile tab bar, onboarding, toasts) — **C4 playable** — 4,161 tests, bundle 508 kB of 600. Next: ✦ U62, U75, the balance unit when Fable allows. Unit list: PLAN §9.2.
 
 This file is the resumption point. Read it first, then `DECISIONS.md` (canon, D-001..D-119), then
 the docs named below. It is updated at every stopping point and before/after every agent round.
@@ -116,7 +116,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U73a | The combat stage, creature/class/companion sprites, portraits, variant registry, fallbacks (D-128) — brief `briefs/u73a.md` | Opus | ✅ 815cd8c (+ the lead's focus fix) — stage, sprites, portraits; 4247 tests; full e2e 155 ✓; JS 552 kB; D-129 |
 | U73 | Glyph coverage + legibility; the phone action bar (D-130) — brief `briefs/u73.md` | Sonnet | ✅ 3dfc5c9 (spot-reviewed) — registry test, 12 glyphs, phone action bar; 4268 tests; D-131 |
 | U61 | Codex II (to 87) + the 103 Echo codex lines rewritten — brief `briefs/u61.md` | ✦ Fable | ✅ 3554b9a (spot-reviewed) — codex 90, 103 Echo lines; `codex` complete; JS 575 kB; D-131 |
-| U62a | Codex entries unlock by `unlockWhen` (79 never could); long prose to lazy chunks (JS ≤ 520 kB) — brief `briefs/u62a.md` | Opus | 🔄 running |
+| U62a | Codex entries unlock by `unlockWhen` (79 never could); long prose to lazy chunks (JS ≤ 520 kB) — brief `briefs/u62a.md` | Opus | ✅ 83fb881 (spot-reviewed) — codex unlocks live; prose chunked; JS 509 kB; 4405 tests; D-133 |
 | U74 | Audio engine + 30 synthesized SFX; volumes and mute live — brief `briefs/u74.md` | Opus | ✅ b105969 (spot-reviewed) — 30 SFX + combat percussion, live volumes; 4377 tests; JS 584 kB; D-132 |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |
@@ -239,7 +239,7 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
    part 2** on Tim's PC (*"Read docs/ART-2.md in dubbltninja/Aethelgard (branch `unraveling`) and run the art session"*; pushes
    to `wip/art`) · ~~U73~~ done (D-131). ~~U74~~ done (D-132) → **U75** (Sonnet; ambient per region, Threshold drone, Tyrant theme).
 3. ✦ Fable units:
-   **U62a** (Opus, first: codex unlocks + text chunks, D-131) · **U62** scenes and endings (+ D-127's Echo gaps). Tell agents to commit early.
+   ~~U62a~~ done (D-133) · **U62** scenes and endings (+ D-127's Echo gaps). Tell agents to commit early.
 4. The balance + bot unit (Opus): **ending D unreachable by play — the road outruns the clock after Destroy (D-123)**; bots stop guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain
    (D-109); Tyrant numbers (D-101); Warden vs bosses (D-089); Ilyra's loyalty arithmetic for ending E (D-113); affix on
    Uncommon upgrade (D-118); the achievement engine + 13 `tally_*` counters (D-119); the first fight's forced intents (D-121); the Cairns Stalkers, Scriptorium guard and Windward kites (D-122).

@@ -2311,3 +2311,28 @@ owning unit (PLAN §9.1).
 - **Process (D-106):** parallel worktrees shared e2e port 4173, and `reuseExistingServer` silently tested whichever build was
   already served. `playwright.config.ts` now reads **`E2E_PORT`**. Parallel units must each set their own; the lead uses
   4380.
+
+### D-133 · U62a details — codex entries unlock by `unlockWhen`; long prose in lazy chunks, 2026-10-26
+- **U62a (… 83fb881; Opus, spot-reviewed):**
+  - **Part A, `src/engine/codexUnlock.ts`:** the last post-step hook evaluates the `unlockWhen` of each still-locked entry,
+    indexed by the atoms it reads. It shares one unlock path with the `unlockCodex` effect (profile + `codexUnlocked` event, so
+    toasts, Resonance and achievements follow).
+    - A new game, a load, a new loop and New Game+ re-check every entry, so old saves unlock what they already qualify for.
+    - Per-run unlocks, before → after: explorer 4.2 → 46.9, speedrunner 0.1 → 32.7, melee 0.1 → 30.5, caster 2.1 → 26.4,
+      pacifist 0 → 19.2.
+    - Sim cost +1.3% µs/step.
+  - **Part B:** codex bodies, dialogue node text and ending slides/epilogues move to 15 hashed JSON chunks (codex, endings,
+    dialogue per region + common), 71.9 kB gzip in all, outside the JS budget. The work is in `src/content/{tables,prose}.ts`
+    and `tools/build.ts` (`__PROSE_MANIFEST__`), and `src/ui/text/{prose,TextLoading}`.
+    - The UI shows a quiet loading line until a chunk arrives. Shell preloads the region's dialogue and the common chunk, and
+      the endings chunk after 2 s; the Codex chunk loads when the panel opens.
+    - The sims never need chunks: the same final state hash on the split pack.
+    - In a split build, `dialogueNode`/`endingSlide` event text is a reference the UI resolves. A line that repeats a
+      location event's words stays in the bundle (`sceneSaysIt`).
+  - **Production JS 577.7 → 508.7 kB** gzip (~91 kB of headroom for U62 and later).
+  - Tests: 4,405 unit (`codexUnlock` 98, `textChunks` 14, `proseSplit` 4); `textChunks.spec.ts`; full e2e 170 passed, 10
+    skipped; 80/80 quest proofs; `sim:endings` 8/8.
+- **C1 notes (types only):** `PostStepHook` gains optional `(before, beforeProfile, action)`; `DialogueModel`, `CodexRow` and
+  `EndingSlide` gain `loading`.
+- **Git identity:** a merge made with the local default identity showed as Unverified on GitHub. The repo's git config is now
+  `Claude <noreply@anthropic.com>`; amend any stray commit with `--reset-author` before pushing.

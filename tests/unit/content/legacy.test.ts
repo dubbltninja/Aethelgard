@@ -8,7 +8,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import { buildContentPack } from '@content/index';
-import { LEGACY_CREATURES, LEGACY_ITEMS, LEGACY_LOCATIONS, LEGACY_NPCS } from '@content/validate';
+import { LEGACY_CREATURES, LEGACY_ITEMS, LEGACY_LOCATIONS, LEGACY_NPCS, LEGACY_QUESTS } from '@content/validate';
+import { legacyDescriptions } from '../../../tools/legacy-extract';
 
 const ROOT = path.resolve(import.meta.dirname, '../../..');
 const DATA = fs.readFileSync(path.join(ROOT, 'legacy/aethelgard_data.py'), 'utf8');
@@ -248,5 +249,58 @@ describe('legacy creatures (aethelgard_data.py ENEMY_DEFS)', () => {
     const rows = shade.loot.filter((l) => l.itemId === 'item_dark_spellbook');
     expect(rows.map((r) => [r.chance, JSON.stringify(r.when)])).toEqual([[1, JSON.stringify({ not: { flag: 'flag_spellbook_dropped' } })], [0.5, JSON.stringify({ flag: 'flag_spellbook_dropped' })]]);
     expect(shade.onDefeat).toEqual([{ setFlag: 'flag_spellbook_dropped' }]);
+  });
+});
+
+// ---- PLAN §8.2 `legacy.test.ts`: the full Appendix A mapping (U76) -----------------------------------------------------------------
+// Independent of the `LANDED` list above: every Appendix A id, read through tools/legacy-extract.ts (a tiny regex extractor over
+// the three dict literals of legacy/aethelgard_data.py), compared with the real pack. Creatures and items are string-equal;
+// locations are string-equal up to the one sentence WORLD may append (WORLD.md line 11, marked `+`): 20 of the 21 carry one.
+
+describe('Appendix A, complete: the legacy descriptions against legacy/aethelgard_data.py (tools/legacy-extract.ts)', () => {
+  const locations = legacyDescriptions('LOCATION_DEFS', DATA);
+  const creatures = legacyDescriptions('ENEMY_DEFS', DATA);
+  const items = legacyDescriptions('ITEM_DEFS', DATA);
+
+  test('the extractor finds the 21 location, 12 creature and 26 item entries the Appendix lists, and the LANDED lists are complete', () => {
+    expect(Object.keys(locations).sort()).toEqual(Object.values(LEGACY_LOCATIONS).map((l) => l.name).sort());
+    expect(Object.keys(creatures).sort()).toEqual(Object.values(LEGACY_CREATURES).sort());
+    expect(Object.keys(items).sort()).toEqual(Object.values(LEGACY_ITEMS).sort());
+    expect([...LANDED.locations].sort()).toEqual(Object.keys(LEGACY_LOCATIONS).sort());
+    expect([...LANDED.creatures].sort()).toEqual(Object.keys(LEGACY_CREATURES).sort());
+  });
+
+  test('21 locations: the description starts with the legacy text, and at most one sentence is appended', () => {
+    for (const [id, legacy] of Object.entries(LEGACY_LOCATIONS)) {
+      const want = need(locations[legacy.name], legacy.name);
+      const got = need(pack.locations[id], id).description;
+      expect([id, got.startsWith(want)]).toEqual([id, true]);
+      const extra = got.slice(want.length);
+      if (extra !== '') expect([id, /^ [A-Z][^.]*\.$/.test(extra)]).toEqual([id, true]);
+    }
+  });
+
+  test('12 creatures: the description is string-equal', () => {
+    for (const [id, name] of Object.entries(LEGACY_CREATURES)) expect([id, need(pack.creatures[id], id).description]).toEqual([id, need(creatures[name], name)]);
+  });
+
+  test('26 items: the description is string-equal', () => {
+    for (const [id, name] of Object.entries(LEGACY_ITEMS)) expect([id, need(pack.items[id], id).description]).toEqual([id, need(items[name], name)]);
+  });
+
+  test('the six legacy quests exist with their Appendix A ids, names and legacy ids, and nothing else claims a legacy id', () => {
+    const ids = Object.keys(LEGACY_QUESTS);
+    expect(ids).toEqual(['q_echo_crystal', 'q_lost_scroll', 'q_clear_path', 'q_blighted_outpost', 'q_void_shards', 'q_echoing_heartbeat']);
+    for (const [id, legacy] of Object.entries(LEGACY_QUESTS)) {
+      const q = need(pack.quests[id], id);
+      expect([id, q.name, q.legacyId]).toEqual([id, legacy.name, legacy.legacyId]);
+    }
+    expect(Object.values(pack.quests).filter((q) => q.legacyId !== undefined).map((q) => q.id)).toEqual(ids);
+  });
+
+  test('the extractor handles a concatenated string, an escaped quote and a brace inside a description', () => {
+    const src = 'ITEM_DEFS = {\n    "A": {\n        "description": ("one " "two \\"q\\" {x}"),\n        "gold_value": 1,\n    },\n    "B": {\n        "description": "plain",\n    },\n}\n';
+    expect(legacyDescriptions('ITEM_DEFS', src)).toEqual({ A: 'one two "q" {x}', B: 'plain' });
+    expect(() => legacyDescriptions('ENEMY_DEFS', src)).toThrow('no dict ENEMY_DEFS');
   });
 });

@@ -9,7 +9,7 @@ import { farLightModel, galleryModel, loomModel, placeTabs, shoreModel, threshol
 import { createGameStore } from '@ui/store/gameStore';
 import { GameProvider } from '@ui/store/useGame';
 import { all, byName, call, expand, nameOf } from './tree';
-import { act, goTo, legalFor, pack, thresholdAt } from './thresholdFixtures';
+import { act, earnedAt, goTo, legalFor, pack, thresholdAt } from './thresholdFixtures';
 
 const noop = (): void => undefined;
 
@@ -50,7 +50,7 @@ describe('GalleryView', () => {
     expect(cards[1]?.text).toContain('Ranger');
     expect(all(tree, 'details').length).toBe(model.archive.groups.length);
     call(byName(tree, 'button', 'Loop timeline'), 'onClick');
-    call(byName(tree, 'button', 'Achievements: 0 of 40'), 'onClick');
+    call(byName(tree, 'button', `Achievements: ${earnedAt(at)} of 40`), 'onClick');
     expect(open.mock.calls.map((c) => c[0])).toEqual(['timeline', 'achievements']);
   });
 

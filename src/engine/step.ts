@@ -57,6 +57,7 @@ import {
 } from './reducers/combat';
 import { companionPostStep } from './combat/companionAi';
 import { codexUnlockPass } from './codexUnlock';
+import { achievementPostStep } from './achievements';
 import { loadHandler, saveHandler } from './saves/reducers';
 import type { Action, ActionOf, ActionType } from './types/actions';
 import type { GameEvent } from './types/events';
@@ -149,7 +150,8 @@ export const POST_STEP_HOOKS: readonly PostStepHook[] = [
   loopEndHook, // U30: a step that entered ending mode closes the loop (reducers/loop.ts)
   thresholdPostStep, // U31: the loop's Resonance tally and modifier multiplier, the Still Shore, the Threshold autosave
   economyPostStep, // U34: the Before's merchants restock each Before day; a merchant met for the first time gets its stock
-  codexUnlockPass, // U62a: last — codex entries whose `unlockWhen` this step made true unlock (codexUnlock.ts)
+  codexUnlockPass, // U62a: codex entries whose `unlockWhen` this step made true unlock (codexUnlock.ts)
+  achievementPostStep, // U81a: last — the tallies, then the achievements whose checkpoint this step reached (achievements.ts)
 ];
 
 const rejected = (state: GameState, profile: Profile, action: Action, reason: string): StepResult => ({

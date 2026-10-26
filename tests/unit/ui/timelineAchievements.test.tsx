@@ -11,7 +11,7 @@ import { timelineModel } from '@ui/panels/timelineModel';
 import { createGameStore } from '@ui/store/gameStore';
 import { GameProvider } from '@ui/store/useGame';
 import { all, nameOf, expand } from './tree';
-import { liveAt, mutable, pack, thresholdAt } from './thresholdFixtures';
+import { earnedAt, liveAt, mutable, pack, thresholdAt } from './thresholdFixtures';
 
 describe('timelineModel', () => {
   test('at the Threshold: one row per loop of the profile, oldest first, each with its outcome and what it taught', () => {
@@ -95,19 +95,23 @@ describe('achievementsModel', () => {
     const at = thresholdAt();
     const m = achievementsModel(at.state, pack, at.profile);
     expect(m.total).toBe(40);
-    expect(m.earned).toBe(0);
-    const hidden = m.rows.filter((r) => r.hidden);
+    // U81a: the engine awards them now; the scenario earned a few on its way (none of them hidden)
+    expect(m.earned).toBe(earnedAt(at));
+    expect(Object.keys(at.profile.achievements).sort()).toEqual(['ach_first_steps', 'ach_loop_two', 'ach_the_fall']);
+    const hidden = m.rows.filter((r) => r.hidden && !r.earned);
     expect(hidden.length).toBeGreaterThan(0);
+    expect(m.rows.find((r) => r.id === 'ach_loop_two')).toMatchObject({ hidden: true, earned: true, name: 'Day One, Again' });
     expect(hidden.every((r) => r.name === HIDDEN_NAME && r.description === HIDDEN_TEXT && r.progress === null)).toBe(true);
     expect(m.rows.filter((r) => !r.hidden).every((r) => r.name !== HIDDEN_NAME)).toBe(true);
   });
 
   test('earned ones show their name and the loop and day they came, even hidden ones', () => {
     const at = mutable(thresholdAt());
-    const secret = Object.values(pack.achievements).find((a) => a?.hidden === true)!;
+    const secret = Object.values(pack.achievements).find((a) => a?.hidden === true && at.profile.achievements[a.id] === undefined)!;
+    const before = earnedAt(at);
     at.profile.achievements[secret.id] = { loop: 3, day: 5, runId: 'r' };
     const m = achievementsModel(at.state, pack, at.profile);
-    expect(m.earned).toBe(1);
+    expect(m.earned).toBe(before + 1);
     const row = m.rows.find((r) => r.id === secret.id)!;
     expect(row).toMatchObject({ earned: true, name: secret.name, when: 'Loop 3, Day 5', progress: null });
   });
@@ -141,7 +145,7 @@ describe('AchievementsView', () => {
     const tree = expand(<AchievementsView model={achievementsModel(at.state, pack, at.profile)} />);
     const list = tree.find((n) => n.type === 'ul' && n.props['aria-label'] === 'Achievements')!;
     expect(list.children).toHaveLength(40);
-    expect(tree.find((n) => n.props['data-testid'] === 'achievements-count')?.text).toBe('0 of 40 earned');
+    expect(tree.find((n) => n.props['data-testid'] === 'achievements-count')?.text).toBe(`${earnedAt(at)} of 40 earned`);
     expect(all(tree, 'h3').some((n) => nameOf(n) === HIDDEN_NAME)).toBe(true);
     expect(tree.filter((n) => n.props.className === 'badge__status').some((n) => n.text === 'Hidden')).toBe(true);
   });
@@ -166,6 +170,6 @@ describe('AchievementsView', () => {
         <AchievementsPanel />
       </GameProvider>,
     );
-    expect(html).toContain('0 of 40 earned');
+    expect(html).toContain(`${earnedAt(at)} of 40 earned`);
   });
 });

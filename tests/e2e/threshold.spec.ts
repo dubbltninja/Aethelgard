@@ -225,10 +225,11 @@ test.describe('the loop’s end and the Threshold', () => {
     expect(await smallTargets(page, '[role="dialog"]')).toEqual([]);
     await press(timeline.getByRole('button', { name: 'Close loop timeline' }), info);
 
-    await press(page.getByRole('button', { name: /^Achievements: 0 of 40/ }), info);
+    // U81a (D-119): the engine awards achievements; the scenario's two loops earned First Steps, The Thirtieth Dawn, Day One, Again
+    await press(page.getByRole('button', { name: /^Achievements: 3 of 40/ }), info);
     const ach = dialog(page, 'Achievements');
     await expect(ach).toBeVisible();
-    await expect(ach.getByTestId('achievements-count')).toHaveText('0 of 40 earned');
+    await expect(ach.getByTestId('achievements-count')).toHaveText('3 of 40 earned');
     await expect(ach.getByRole('list', { name: 'Achievements' }).getByRole('listitem')).toHaveCount(40);
     await expect(ach.getByRole('heading', { level: 3, name: 'First Steps' })).toBeVisible();
     await expect(ach.getByRole('heading', { level: 3, name: '???' }).first()).toBeVisible();

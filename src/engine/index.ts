@@ -40,3 +40,4 @@ export * from './reducers/crafting';
 export * from './reducers/quests';
 export * from './reducers/dialogue';
 export * from './codexUnlock';
+export * from './achievements';

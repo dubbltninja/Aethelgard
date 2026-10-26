@@ -37,6 +37,12 @@ export function act(at: At, action: Action): At {
 /** The Threshold after Loop 2, on the Still Shore. */
 export const thresholdAt = (): At => scenario('loop2_end');
 
+/**
+ * U81a (D-119): the achievements the engine awarded on the way there — the scenario plays Loop 1 to its thirtieth dawn and
+ * Loop 2 to its Let go, so First Steps, The Thirtieth Dawn and Day One, Again are earned.
+ */
+export const earnedAt = (at: At): number => Object.keys(at.profile.achievements).length;
+
 export function goTo(at: At, area: ThresholdArea): At {
   return act(at, { type: 'thresholdGo', to: area });
 }

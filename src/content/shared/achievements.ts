@@ -12,8 +12,8 @@
 // vocabulary can say, the record says it: `echo_ending_a`…`_f` are the engine's "Witnessed" Echoes, granted at each true ending
 // (reducers/loop.ts), so the ending achievements and "Every Door" read them; `flag_clock_expired`, `flag_tyrant_dead` are
 // engine-written flags; `counter` reads `quests_completed` (D-048). Where it is a profile or combat fact no atom reads, the
-// record uses a `counter` whose name starts with `tally_`: a count the achievement engine (a later unit; D-081 left it
-// unbuilt) keeps from the profile and the run, 0 until it does. Those names and what each counts:
+// record uses a `counter` whose name starts with `tally_`: a count the achievement engine (src/engine/achievements.ts, U81a)
+// writes into the run's counters every step from the profile and the run. Those names and what each counts:
 //   tally_closer_escape      loops closed by the Library portal (closer_escape), profile lifetime
 //   tally_boss_untouched     boss fights won without taking damage, profile lifetime
 //   tally_mastery_peak       the most abilities mastered in any one class (of 15), profile
@@ -390,7 +390,7 @@ export const achievements = [
     checkpoints: ['loop_end', 'ending'],
     resonance: 0,
     icon: 'pacifist_loop',
-    notes: 'Reads the loop\'s kill tally (0 until the engine keeps one, so the modifier is what makes it hold).',
+    notes: 'Reads the loop\'s kill tally (the engine\'s, U81a) with the modifier on.',
   },
   {
     id: 'ach_glass_boss',

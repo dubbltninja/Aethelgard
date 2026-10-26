@@ -2,7 +2,7 @@
 // `save` / `load` reducers. The localStorage adapter itself is UI-side.
 export * from './autosave';
 export * from './keys';
-export { MAX_FILE_CHARS, formatIssues, migrate as migrateFile } from './problems';
+export { FIRST_FROZEN_VERSION, MAX_FILE_CHARS, UNVERSIONED, formatIssues, migrate as migrateFile } from './problems';
 export type { MigrateResult, Migration, MigrationTable } from './problems';
 export * from './profileFile';
 export * from './reducers';

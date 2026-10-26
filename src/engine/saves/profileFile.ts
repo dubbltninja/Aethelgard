@@ -5,7 +5,7 @@
 import { z } from 'zod';
 import type { Profile, Settings } from '../types/profile';
 import { clone } from '../util/clone';
-import { formatIssues, migrate, parseFileText, type MigrationTable } from './problems';
+import { formatIssues, migrate, parseFileText, preCheckpointRefusal, type MigrationTable } from './problems';
 
 export const PROFILE_VERSION = 1;
 
@@ -89,7 +89,7 @@ export const ProfileFileSchema: z.ZodType<ProfileFile> = z
   .object({ kind: z.literal('profile'), version: z.literal(PROFILE_VERSION), profile: ProfileSchema })
   .strict();
 
-/** Upgrades v → v + 1 for the profile file. Empty at v1 (D-058). */
+/** Upgrades v → v + 1 for the profile file, as `migrations` does for run saves. Empty: v1 is frozen (D-058, U79). */
 export const profileMigrations: MigrationTable = {};
 
 export function serializeProfile(profile: Profile): ProfileFile {
@@ -110,7 +110,10 @@ export function deserializeProfile(json: unknown, opts: { migrations?: Migration
   if (!migrated.ok) return { error: `Profile rejected: ${migrated.error}` };
   if (migrated.value.kind === 'run') return { error: 'Profile rejected: this is a run save, not a profile file (load it into a slot)' };
   const parsed = ProfileFileSchema.safeParse(migrated.value);
-  if (!parsed.success) return { error: `Profile rejected: ${formatIssues(parsed.error.issues)}` };
+  if (!parsed.success) {
+    const problems = formatIssues(parsed.error.issues);
+    return { error: `Profile rejected: ${migrated.unversioned === true ? preCheckpointRefusal('profile', problems) : problems}` };
+  }
   return { profile: parsed.data.profile, migratedFrom: migrated.migratedFrom };
 }
 

@@ -162,7 +162,8 @@ describe('tampered files fail with a message that names the field and the reason
   });
 
   test('versions: missing, wrong type, negative, newer, too old', () => {
-    expect(errorOf(deserialize(fileJson(makeState(), (f) => del(f, 'version')), content))).toBe('Save rejected: version: is missing (expected a whole number)');
+    // U79: a file with no version is read as v1 when it has v1's shape (checkpoint.test.ts has the refusals)
+    expect(loaded(deserialize(fileJson(makeState(), (f) => del(f, 'version')), content)).migratedFrom).toBe(0);
     expect(errorOf(deserialize(fileJson(makeState(), (f) => set(f, 'version', '1')), content))).toBe('Save rejected: version: expected a whole number ≥ 0, got "1"');
     expect(errorOf(deserialize(fileJson(makeState(), (f) => set(f, 'version', -1)), content))).toMatch(/version: expected a whole number ≥ 0, got -1/);
     expect(errorOf(deserialize(fileJson(makeState(), (f) => set(f, 'version', 1.5)), content))).toMatch(/got 1.5/);

@@ -30,6 +30,7 @@ export interface EndingSlide {
 /** Who an epilogue is about: a companion's or person's name, a faction's, else null (`world` and the like). */
 function subjectName(subject: string, content: ContentPack): string | null {
   if (subject === 'world') return 'The world';
+  if (subject === 'kaelen_borin') return 'Kaelen and Borin'; // U62b: STORY §7.7's pair (was "Kaelen borin")
   const npc = content.npcs[`npc_${subject}`]?.name;
   if (npc !== undefined) return npc;
   const companion = content.companions[subject];

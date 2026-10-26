@@ -4,10 +4,17 @@
 // (ending D: the Heartstone's silence leaves nineteen dawns, and the anchor's road takes a carry-over party longer).
 import { describe, expect, test } from 'bun:test';
 import { buildContentPack } from '@content/index';
+import { evaluate } from '@engine/index';
 import { CLOSER_IDS, TRUE_ENDING_IDS } from '@schema/ending';
+import { pathBot } from '@sim/bots/pathBot';
+import type { Bot } from '@sim/bots/types';
 import { main } from '@sim/cli';
+import { runLoop } from '@sim/runner';
+import { newProfile } from '@sim/scenarios';
 import { ENDING_SCRIPTS, KNOWN_GAPS } from '@sim/scripts/endings/index';
+import { trained } from '@sim/scripts/quests';
 import { isCloser, runEndingScript } from '@sim/scripts/run';
+import { freshProfile, makeState } from '@tests/fixtures/helpers';
 
 const pack = buildContentPack();
 const PROOF_MS = 180_000;
@@ -67,4 +74,95 @@ describe('the real ending scripts (STORY §10, §10.7)', () => {
     },
     PROOF_MS,
   );
+});
+
+// ---- U76 (PLAN §8.2): each true ending's `requirements` is false at Loop 1's start and true at its script's final state -------
+
+/**
+ * The script's play, watched: `requirements` is evaluated on every state the bot is asked to choose in. `atEnd` is its value at
+ * the last choice before the ending (the final state the script reaches: the choice that fires the ending is taken in it).
+ */
+function watched(endingId: string): { reached: boolean; atEnd: boolean | undefined; everTrue: boolean } {
+  const script = ENDING_SCRIPTS.find((s) => s.endingId === endingId);
+  if (script === undefined) throw new Error(`no script for ${endingId}`);
+  const requirements = pack.endings[endingId]?.requirements;
+  if (requirements === undefined) throw new Error(`no ending ${endingId}`);
+  const seen = { atEnd: undefined as boolean | undefined, everTrue: false, onScreen: false };
+  const base = pathBot(script.loops.flat());
+  let bot: Bot = base;
+  let profile: ReturnType<typeof newProfile> | undefined;
+  if (script.profile !== undefined) {
+    // as scripts/run.ts `profileOf`: the loop counter, the Echoes earlier loops earned, the class's best level
+    const { loop, echoes = [], bestLevel } = script.profile;
+    const mastery = bestLevel === undefined ? {} : { [script.classId]: { loopsPlayed: loop - 1, mastered: [], endings: [], bestLevel, bestDays: null } };
+    profile = { ...newProfile(script.seed), loopCounter: loop, echoes: [...echoes], classMastery: mastery };
+    bot = trained(base);
+  }
+  // The ending's own effects may be what makes a requirement true (Ending F's flags are set by the communion outcome that ends
+  // the game), so the state watched last is the ending screen's: the bot goes through the slides (as scripts/run.ts) and is
+  // asked to choose on it.
+  const watcher: Bot = {
+    ...bot,
+    choose: (s, legal, content, memory, ctx) => {
+      const now = evaluate(requirements, s, ctx.profile, content);
+      // `atEnd`: true on the last state before the ending fires, or on the first state of the ending screen (a communion's
+      // `resolve` atom is false once the communion is left, a flag set by the outcome only holds after it)
+      if (s.mode !== 'ending') seen.atEnd = now;
+      else if (!seen.onScreen) seen.atEnd = seen.atEnd === true || now;
+      seen.onScreen = s.mode === 'ending';
+      if (now) seen.everTrue = true;
+      memory['__u76_slides'] = s.mode === 'ending';
+      const ack = s.mode === 'ending' ? legal.find((a) => a.type === 'acknowledgeEnding') : undefined;
+      return ack ?? bot.choose(s, legal, content, memory, ctx);
+    },
+    halt: (memory) => (memory['__u76_slides'] === true ? null : (bot.halt?.(memory) ?? null)),
+  };
+  const result = runLoop(
+    {
+      seed: script.seed,
+      classId: script.classId,
+      bot: watcher,
+      stopAt: 'ending',
+      maxLoops: script.loops.length + 2,
+      onFallen: 'stop',
+      showSlides: true,
+      maxSteps: 9000,
+      ...(script.scenario === undefined ? {} : { scenario: script.scenario }),
+      ...(profile === undefined ? {} : { profile }),
+    },
+    pack,
+  );
+  return { reached: result.endings.includes(endingId), atEnd: seen.atEnd, everTrue: seen.everTrue };
+}
+
+describe('ending requirements are honest (PLAN §8.2 endings.reachable)', () => {
+  test('every true ending\'s requirements is false at the start of Loop 1: nobody stumbles into an ending', () => {
+    const s = makeState({}, { content: pack, profile: freshProfile() });
+    expect(s.player.level).toBeGreaterThanOrEqual(1);
+    for (const id of TRUE_ENDING_IDS) {
+      const requirements = pack.endings[id]?.requirements;
+      expect([id, requirements !== undefined]).toEqual([id, true]);
+      if (requirements !== undefined) expect([id, evaluate(requirements, s, freshProfile(), pack)]).toEqual([id, false]);
+    }
+  });
+
+  test('the closers\' requirements are the empty `all` (nothing to earn), so they are not part of this rule', () => {
+    for (const id of CLOSER_IDS) expect([id, pack.endings[id]?.requirements]).toEqual([id, { all: [] }]);
+  });
+
+  for (const id of TRUE_ENDING_IDS) {
+    if (KNOWN_GAPS[id] !== undefined) {
+      test.todo(`${id}: requirements true at the script's final state — ending D is the known gap (D-123): its script stops at the nineteenth dawn, so no final state to test`);
+      continue;
+    }
+    test(
+      `${id}: requirements true at its script's final state`,
+      () => {
+        const w = watched(id);
+        expect([id, w.reached]).toEqual([id, true]);
+        expect([id, w.atEnd, w.everTrue]).toEqual([id, true, true]);
+      },
+      PROOF_MS,
+    );
+  }
 });

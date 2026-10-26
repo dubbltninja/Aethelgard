@@ -153,6 +153,12 @@ export function createGameStore(content: ContentPack, initialProfile: Profile, o
   let slotsVersion = 0;
   let slotsCache: { version: number; slots: SlotInfo[] } | null = null;
   let autosaveFailing = false;
+  /**
+   * U62b: a checkpoint reached while a scene was open (an arrival that opens one: Loop 2's waking at the Ruins) is kept until
+   * the scene closes, and written then if the state allows it (`canAutosave`); a fight the scene starts drops it (the fight's
+   * end is a checkpoint of its own).
+   */
+  let checkpointInScene = false;
   /** The last `saveRequested` write, so `shell.save` can return its outcome. */
   let lastWrite: Result | null = null;
   /** Whether the last dispatch threw inside the engine (its state was restored). */
@@ -222,7 +228,12 @@ export function createGameStore(content: ContentPack, initialProfile: Profile, o
         checkpoint = true;
       }
     }
-    if (checkpoint) autosave();
+    if (checkpoint && state.dialogue !== null) checkpointInScene = true;
+    else if (checkpoint) autosave();
+    else if (checkpointInScene && state.dialogue === null) {
+      checkpointInScene = false;
+      autosave();
+    }
     if (state !== before.state || profileChanged) changed.emit();
     events.emit(result.events, state);
     return result.events;
@@ -351,6 +362,7 @@ export function createGameStore(content: ContentPack, initialProfile: Profile, o
       resetProfile() {
         profile = freshProfile(makeProfileId(), profile.settings);
         state = titleState(content, profile);
+        checkpointInScene = false;
         persistProfile();
         changed.emit();
       },

@@ -20,6 +20,11 @@ export interface EndingSlide {
   label: string | null;
   /** The record's `art` / `mood` keys, for the backdrop's tone. */
   mood: string | null;
+  /**
+   * U62b: the location whose painting the slide is shown over (the record's `art`, docs/ART.md §5); an epilogue keeps the last
+   * scene's, the Fall's lead the first's. Null: the place where the loop ended.
+   */
+  art: string | null;
 }
 
 /** Who an epilogue is about: a companion's or person's name, a faction's, else null (`world` and the like). */
@@ -48,16 +53,21 @@ export function endingSlideList(s: GameState, content: ContentPack, profile: Rea
   const def = content.endings[pending.outcome];
   if (def === undefined) {
     // No record in the pack: the engine's own lines (a closer's last threshold, then the shear)
-    return texts.map((text, i) => ({ ...words(text), kind: i === 0 ? 'lead' : 'scene', label: null, mood: null }));
+    return texts.map((text, i) => ({ ...words(text), kind: i === 0 ? 'lead' : 'scene', label: null, mood: null, art: null }));
   }
   const lead = pending.outcome === 'closer_fall' ? 1 : 0;
   const out: EndingSlide[] = [];
-  if (lead === 1) out.push({ ...words(texts[0] ?? ''), kind: 'lead', label: null, mood: null });
-  for (const seq of def.sequence) out.push({ ...words(seq.text), kind: 'scene', label: null, mood: seq.mood ?? seq.art ?? null });
+  const painted = (id: string | undefined): string | null => (id !== undefined && content.locations[id] !== undefined ? id : null);
+  if (lead === 1) out.push({ ...words(texts[0] ?? ''), kind: 'lead', label: null, mood: null, art: painted(def.sequence[0]?.art) });
+  let art: string | null = null;
+  for (const seq of def.sequence) {
+    art = painted(seq.art) ?? art;
+    out.push({ ...words(seq.text), kind: 'scene', label: null, mood: seq.mood ?? seq.art ?? null, art });
+  }
   for (const ep of def.epilogues) {
     if (ep.when !== undefined && !evaluate(ep.when, s, profile, content)) continue;
     const who = subjectName(ep.subject, content);
-    out.push({ ...words(ep.text), kind: 'epilogue', label: who === null ? 'Epilogue' : `Epilogue · ${who}`, mood: null });
+    out.push({ ...words(ep.text), kind: 'epilogue', label: who === null ? 'Epilogue' : `Epilogue · ${who}`, mood: null, art });
   }
   return out;
 }

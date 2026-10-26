@@ -20,9 +20,8 @@
 // Heartstone, the Peaks, the Outpost, the shards), so each story gate is met at the level the route brings; a Loop 2+ proof
 // starts at the carry-over level of the constructed profile's `bestLevel` (D-067.2). No proof hands play to a policy bot: one
 // would take the quests itself.
-import { evaluate, type Action, type ContentPack, type GameState } from '@engine/index';
+import { dayOf, type Action, type ContentPack, type GameState } from '@engine/index';
 import type { Condition } from '@schema/condition';
-import { casterBot, casterUnlockRank } from '../bots/caster';
 import { pathBot } from '../bots/pathBot';
 import { MELEE_TRADE, bestDrink, meleeUnlockRank, notesOf, pickEquip, pickStat, pickTrade, pickUnlock, type Env, type TradeCfg } from '../bots/policy';
 import { healthFraction } from '../bots/shared';
@@ -1330,46 +1329,6 @@ const wallThatHolds: ScriptStep[] = [
   holds({ item: { id: 'item_ironclad_hammer' } }, 'the hammer was not paid'),
 ];
 
-/**
- * U81c (D-143): wears the held groups at `target` down from `home`, the node next to it, and enters it only while `ready`
- * holds. In a fight it plays `caster` and breaks off below 60 % HP (a held group keeps its wounds until dawn; the flight
- * falls back home); at home it mends with short rests or waits (a full rest brings the dawn, and the group back whole) and
- * goes back in at 90 %; standing at `target` while `ready` fails, it walks home.
- */
-const wearDown = (target: `loc_${string}`, home: `loc_${string}`, ready: Condition): Bot => {
-  const caster = casterBot();
-  return {
-    name: 'wearDown',
-    choose(s, legal, content, memory, ctx) {
-      const hp = healthFraction(s);
-      if (s.mode === 'combat') {
-        const flee = hp < 0.6 ? legal.find((a) => a.type === 'flee') : undefined;
-        if (flee !== undefined) return flee;
-        const sub = (memory.wearDownCaster ??= caster.init?.(ctx.rngSeed) ?? {}) as typeof memory;
-        return caster.choose(s, legal, content, sub, ctx);
-      }
-      const pick = legal.find((a) => a.type === 'continue') ?? legal.find((a) => a.type === 'choose');
-      if (s.mode !== 'explore' && pick !== undefined) return pick;
-      const go = (to: string): Action | undefined => legal.find((a) => a.type === 'move' && a.to === to);
-      const pass = legal.find((a) => a.type === 'wait') ?? legal.find((a) => a.type === 'rest' && a.kind === 'short');
-      if (s.world.currentLocationId === target) return go(home) ?? pass ?? (legal[0] as Action);
-      const mend = hp < 0.9 ? (legal.find((a) => a.type === 'rest' && a.kind === 'short') ?? pass) : undefined;
-      if (mend !== undefined) return mend;
-      return (evaluate(ready, s, ctx.profile, content) ? go(target) : pass) ?? (legal[0] as Action);
-    },
-  };
-};
-
-/** Sets the Void Shards down (U81c). */
-const shardDropper: Bot = {
-  name: 'shardDropper',
-  choose: (s, legal) => {
-    const shard = s.player.inventory.find((i) => i.itemId === 'item_void_shard');
-    const drop = shard === undefined ? undefined : legal.find((a) => a.type === 'drop' && a.uid === shard.uid);
-    return drop ?? (legal[0] as Action);
-  },
-};
-
 /** Loop 2, a Shadow Weaver: the shards' pact (the legacy offer wins the tie, and opens the bridge), Nyx's ask, the Hollow at night, the seam; the Shard left or taken. */
 const unlitThread = (choiceId: 'leave' | 'take'): ScriptStep[] => [
   { fight: 'flee' }, // the Plaza's Wisp on the way scatters when fled (the quest is pacifist)
@@ -1379,17 +1338,10 @@ const unlitThread = (choiceId: 'leave' | 'take'): ScriptStep[] => [
   holds({ quest: { id: 'q_void_shards', stage: 'gather' } }, 'q_void_shards did not start'),
   { talk: 'npc_nyx', pick: ['yes'] }, // scene_nyx_unlit_thread_offer
   holds({ quest: { id: 'q_class_shadow_weaver', stage: 'seam' } }, 'q_class_shadow_weaver did not start'),
-  { rest: 1 }, // the cold camp on the lip: a dawn
-  // U81c (D-143): the Hollow's Stalkers carry the shards, so they hold (never scatter) and a flight only falls back to the
-  // lip: the Weaver wears them down by day (they keep their wounds until dawn) and waits at the Hollow for night
-  {
-    // the pair down (its two kills), and the Weaver at the Hollow at night
-    until: { all: [{ killed: { id: 'cr_void_touched_stalker', count: 2 } }, { location: 'loc_voidscar_hollow' }, { watch: 'night' }] },
-    do: wearDown('loc_voidscar_hollow', 'loc_chasm_of_whispers', { watch: 'dusk' }), // the road takes a watch: dusk → night
-    maxSteps: 300,
-  },
-  { fight: 'caster' },
-  { goto: 'loc_voidscar_hollow' }, // a fight still on screen (the night's arrival can wake group B) is played out
+  { rest: 1 }, // the cold camp on the lip: a dawn, then night
+  waitFor({ watch: 'night' }),
+  // the Hollow's first group fights on arrival (dawn) and scatters when fled, which costs three watches (combat/flee.ts): night
+  { goto: 'loc_voidscar_hollow' },
   holds({ all: [{ watch: 'night' }, { quest: { id: 'q_class_shadow_weaver', stage: 'hex' } }] }, 'the Hollow at night did not open the seam'),
   interact('ev_hollow_feel_seam'),
   goOn,
@@ -1399,9 +1351,6 @@ const unlitThread = (choiceId: 'leave' | 'take'): ScriptStep[] => [
   goOn,
   holds({ quest: { id: 'q_class_shadow_weaver', stage: choiceId === 'leave' ? 'return' : 'return_took' } }, 'the seam did not send you back'),
   { goto: 'loc_chasm_of_whispers' },
-  // U81c: the pair fought (D-143) left two shards and the seam gave a third; they are set down, or Nyx's pact (and what giving
-  // opens) would answer before the report
-  { until: { not: { item: { id: 'item_void_shard', count: 3 } } }, do: shardDropper, maxSteps: 2 },
   { talk: 'npc_nyx', pick: [] }, // scene_nyx_unlit_thread_report
   done('q_class_shadow_weaver', choiceId === 'leave' ? 'one_of_us' : 'remembered'),
   holds({ item: { id: 'item_chasmglass_focus' } }, 'the lens was not paid'),
@@ -1571,7 +1520,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'looked',
     name: 'Loop 3: the Eye from the Nexus; Sethe looks (the Choir knows); the Note of Closing',
     classId: 'ironclad_warden',
-    seed: 'quest:eye:look:a:2', // U81c re-seed (a flight now falls back, D-143). The Aberration at level 11 beats a carry-over Warden about one seed in two (a balance note): a seed that wins
+    seed: 'quest:eye:look:a', // the Aberration at level 11 beats a carry-over Warden about one seed in two (a balance note): a seed that wins
     profile: { loop: 3, echoes: ['echo_weaver_sign', 'echo_hollow_path', 'echo_heartstone_path', 'echo_litany_verse_1'], bestLevel: 17 },
     steps: [...eyeDecided('look', 'looked'), holds({ echo: 'echo_choir_knows' }, 'the Choir does not know')],
   },
@@ -1580,7 +1529,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'warned',
     name: 'Loop 3: the Eye from the Nexus; Nyx warned first; the Note of Closing',
     classId: 'ironclad_warden',
-    seed: 'quest:eye:warn:a:2', // as above (U81c re-seed)
+    seed: 'quest:eye:warn:a:8', // as above; U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 3, echoes: ['echo_weaver_sign', 'echo_hollow_path', 'echo_heartstone_path', 'echo_litany_verse_1'], bestLevel: 17 },
     steps: [...eyeDecided('warn', 'warned'), holds({ not: { echo: 'echo_choir_knows' } }, 'the Choir knows')],
   },
@@ -1826,7 +1775,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'rests',
     name: 'Loop 3: the communion carried through; Dask rests',
     classId: CLASS,
-    seed: 'quest:instant:rest',
+    seed: 'quest:instant:rest:5', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: {
       loop: 3,
       echoes: ['echo_flickering_man', 'echo_dask_bond', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_tyrant_jailer', 'echo_thirtieth_dawn', 'echo_seven_wayfinders', 'echo_tyrant_never_struck', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4', 'echo_litany_verse_5', 'echo_litany_verse_6', 'echo_litany_verse_7', 'echo_hallow_said_stop', 'echo_ritual_inevitable'],
@@ -1863,7 +1812,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'tended',
     name: 'Loop 2: Mireya recruited after stage 1; the sick tended with steady hands',
     classId: CLASS,
-    seed: 'quest:lantern',
+    seed: 'quest:lantern:2', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 2, bestLevel: 17 },
     steps: mireyaTended,
   },
@@ -1934,7 +1883,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'stayed',
     name: 'Loop 2: the Breach-door from the Before side; he stays with his city',
     classId: CLASS,
-    seed: 'quest:boy:stay:2', // U81c re-seed: a flight now falls back (D-143)
+    seed: 'quest:boy:stay',
     profile: { loop: 2, echoes: ['echo_litany_verse_1'], bestLevel: 17 },
     steps: [...caelumAtTheDoor('stay', 'stayed'), holds({ all: [{ echo: 'echo_caelum_stayed' }, { not: CAELUM_RECRUITED }] }, 'Caelum did not stay')],
   },
@@ -1953,7 +1902,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'cannot',
     name: 'Loop 3: Caelum crossed, Loyal; the communion carried through; he cannot forgive',
     classId: CLASS,
-    seed: 'quest:sin:cannot:2', // U81c re-seed: a flight now falls back (D-143)
+    seed: 'quest:sin:cannot',
     profile: { loop: 3, echoes: SIN_ECHOES, bestLevel: 17 },
     steps: [...caelumAtTheApex, { talk: 'npc_caelum', pick: ['cannot'] }, done('q_his_masters_sin', 'cannot'), holds({ echo: 'echo_caelum_cannot' }, 'he did not say it')],
   },
@@ -1982,7 +1931,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'done',
     name: 'Loop 2: Hadda\'s ask, Borin\'s mark, the Cairns and the Pan cleared, verse IV and the iron that does not wish, the waystones',
     classId: CLASS,
-    seed: 'quest:bone:mark:1', // a seed that wins: two Stalkers at the Cairns beat a carry-over L10 ranger about half the time (the balance unit)
+    seed: 'quest:bone:mark:1:6', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144). A seed that wins: two Stalkers at the Cairns beat a carry-over L10 ranger about half the time (the balance unit)
     profile: { loop: 2, echoes: ['echo_ironclad_passwords', 'echo_nomad_signs'], bestLevel: 17 },
     steps: boneRoad(true),
   },
@@ -1991,7 +1940,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'done',
     name: 'Loop 2: the same without Borin\'s mark (the ember, verse IV; not the iron)',
     classId: CLASS,
-    seed: 'quest:bone:plain:3', // U81c re-seed: a flight now falls back (D-143)
+    seed: 'quest:bone:plain',
     profile: { loop: 2, echoes: ['echo_ironclad_passwords', 'echo_nomad_signs'], bestLevel: 17 },
     steps: boneRoad(false),
   },
@@ -2125,7 +2074,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'dawn',
     name: "Loop 2 with the sign and Nyx's bond: her arc, the Heartstone exploited, her ask, the Apex and the hold's failing (ending C)",
     classId: CLASS,
-    seed: 'quest:dawn:c:21', // U81c re-seed: a flight now falls back and walks the road again (D-143); the Core's five dawns leave little slack
+    seed: 'quest:dawn:c:4', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nyx_bond', 'echo_weaver_sign', 'echo_apex_resonance'], bestLevel: 20 },
     steps: weaversDawn,
   },
@@ -2225,7 +2174,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'remembered',
     name: 'Loop 2, a Shadow Weaver: the same, the Shard taken (no line, no +5)',
     classId: 'shadow_weaver',
-    seed: 'quest:class:weaver:take',
+    seed: 'quest:class:weaver:take:37', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 2, bestLevel: 17 },
     steps: unlitThread('take'),
   },
@@ -2248,9 +2197,6 @@ const tradeFor = (s: GameState): TradeCfg => (ANCHOR_QUESTS.some((q) => s.quests
  * a stat point (STR), an ability point (melee's ranks), better gear, a rest while HP is under TRAINED_REST_BELOW (or, with no
  * bed here, a draught under TRAINED_DRINK_BELOW), then the stall (TRAINED_TRADE). The script's own steps never see these turns.
  */
-/** The classes `casterBot` plays. */
-const CASTER_CLASSES: readonly string[] = casterBot().preferredClasses ?? [];
-
 export function trained(bot: Bot): Bot {
   return {
     ...bot,
@@ -2259,16 +2205,14 @@ export function trained(bot: Bot): Bot {
       if (state.mode === 'explore') {
         const env: Env = { s: state, legal, content, profile: ctx.profile, n: notesOf(memory, 'trained') };
         const hp = healthFraction(state);
-        // U81c (D-143): while a held group keeps its wounds, no sleeping to the dawn that would heal it
-        const holding = Object.values(state.world.locationStates).some((ls) => Object.keys(ls.encounterHp).length > 0);
+        // U81c (D-144): while a fled group is away for the day, no sleeping to the dawn that brings it back
+        const today = dayOf(state.clock.ticks);
+        const away = Object.values(state.world.locationStates).some((ls) => Object.values(ls.encounterClearedDay).some((d) => d === today));
         const full = legal.find((a) => a.type === 'rest' && a.kind === 'full');
         const short = legal.find((a) => a.type === 'rest' && a.kind === 'short');
-        const rest = holding ? short : (full ?? short);
+        const rest = away ? short : (full ?? short);
         const mend = hp < TRAINED_REST_BELOW ? (rest ?? (hp < TRAINED_DRINK_BELOW ? bestDrink(env) : undefined)) : undefined;
-        // U81c: a caster class trains as one (magic, its own spells); fleeing no longer carries it past a held group
-        const caster = CASTER_CLASSES.includes(state.player.classId);
-        const own =
-          pickStat(legal, caster ? 'magic' : 'strength') ?? pickUnlock(env, caster ? casterUnlockRank : meleeUnlockRank) ?? pickEquip(env) ?? mend ?? pickTrade(env, tradeFor(state));
+        const own = pickStat(legal, 'strength') ?? pickUnlock(env, meleeUnlockRank) ?? pickEquip(env) ?? mend ?? pickTrade(env, tradeFor(state));
         if (own !== undefined) return own;
       }
       return bot.choose(state, legal, content, memory, ctx);

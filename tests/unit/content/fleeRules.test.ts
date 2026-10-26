@@ -1,57 +1,37 @@
-// U81c (D-143, DESIGN §4.7): fleeing never loses a quest's items. The audit of the real pack: every quest objective with an
-// `item` condition whose item drops (any chance) from a creature placed in a location's (fixed) encounter. A group whose drop
-// of such an item is certain must be `hold` (never `scatter`), except on a node every road to the Apex runs through (WORLD
-// §10.5's Apex road keeps `scatter`, so the finale is reachable without a fight). Then `q_void_shards` is played on the
-// engine: the Hollow's Stalkers fled, met again wounded, beaten; three shards; Nyx paid.
+// U81c (D-143, D-144, DESIGN §4.7): fleeing never loses a quest's items, and never blocks a road. The audit of the real pack:
+// every quest objective with an `item` condition whose item drops (any chance) from a creature placed in a location's (fixed)
+// encounter. Every such fleeable group must `regroup` (gone until the next dawn, then back whole with its drops): never
+// `scatter` (the drops gone for the loop) nor `hold` (a wall until beaten). Then `q_void_shards` is played on the engine: the
+// Hollow's Stalkers fled and gone that day, back whole after a night's sleep, beaten; three shards; Nyx paid.
 import { describe, expect, test } from 'bun:test';
 import { buildContentPack } from '@content/index';
-import { APEX_LOCATION_ID, grantFleeAuto, legalActions, playerOf, type Action, type ContentPack, type GameState } from '@engine/index';
+import { grantFleeAuto, legalActions, playerOf, type Action, type ContentPack, type GameState } from '@engine/index';
 import { freshProfile, makeState, play } from '@tests/fixtures/helpers';
 
 const pack: ContentPack = buildContentPack();
-const START = pack.config.startLocationId;
 
-/** Item ids named by an `item` condition anywhere in a quest objective's `when`, with the objectives naming them. */
-function objectiveItems(): Map<string, string[]> {
-  const out = new Map<string, string[]>();
-  const walk = (x: unknown, at: string): void => {
-    if (Array.isArray(x)) return x.forEach((y) => walk(y, at));
+/** Item ids named by an `item` condition anywhere in a quest objective's `when`. */
+function objectiveItems(): Set<string> {
+  const out = new Set<string>();
+  const walk = (x: unknown): void => {
+    if (Array.isArray(x)) return x.forEach(walk);
     if (typeof x !== 'object' || x === null) return;
     const item = (x as { item?: { id?: unknown } }).item;
-    if (typeof item?.id === 'string') out.set(item.id, [...new Set([...(out.get(item.id) ?? []), at])]);
-    Object.values(x).forEach((y) => walk(y, at));
+    if (typeof item?.id === 'string') out.add(item.id);
+    Object.values(x).forEach(walk);
   };
-  for (const q of Object.values(pack.quests)) for (const st of q.stages) for (const ob of st.objectives) walk(ob.when, `${q.id}/${ob.id}`);
+  for (const q of Object.values(pack.quests)) for (const st of q.stages) for (const ob of st.objectives) walk(ob.when);
   return out;
 }
 
-/** Nodes every road from the start to the Apex runs through (exits read open: the widest graph). */
-function apexRoad(): Set<string> {
-  const reaches = (blocked: string): boolean => {
-    const seen = new Set([START]);
-    const queue = [START];
-    while (queue.length > 0) {
-      const id = queue.shift() as string;
-      if (id === APEX_LOCATION_ID) return true;
-      if (id === blocked) continue;
-      for (const e of pack.locations[id]?.exits ?? []) if (!seen.has(e.to)) (seen.add(e.to), queue.push(e.to));
-    }
-    return false;
-  };
-  return new Set(Object.keys(pack.locations).filter((id) => id !== START && id !== APEX_LOCATION_ID && !reaches(id)));
-}
-
 interface QuestDrop {
-  location: string;
   encounter: string;
   onFlee: string;
   fleeable: boolean;
-  /** The highest chance among its quest-item drops. */
-  chance: number;
   items: string[];
 }
 
-/** The audit: every location encounter with a creature that can drop an item a quest objective needs. */
+/** The audit: every location encounter with a creature that can drop (any chance) an item a quest objective needs. */
 function questDrops(): QuestDrop[] {
   const needed = objectiveItems();
   const out: QuestDrop[] = [];
@@ -59,74 +39,87 @@ function questDrops(): QuestDrop[] {
     for (const enc of loc.encounters) {
       const loot = enc.groups.flatMap((g) => (pack.creatures[g.creatureId]?.loot ?? []).filter((l) => needed.has(l.itemId)));
       if (loot.length === 0) continue;
-      out.push({
-        location: loc.id,
-        encounter: enc.id,
-        onFlee: enc.onFlee,
-        fleeable: enc.fleeable,
-        chance: Math.max(...loot.map((l) => l.chance)),
-        items: [...new Set(loot.map((l) => l.itemId))].sort(),
-      });
+      out.push({ encounter: enc.id, onFlee: enc.onFlee, fleeable: enc.fleeable, items: [...new Set(loot.map((l) => l.itemId))].sort() });
     }
   }
   return out;
 }
 
-describe('the quest-drop audit (D-143, DESIGN §4.7)', () => {
+describe('the quest-drop audit (D-143, D-144, DESIGN §4.7)', () => {
   const drops = questDrops();
-  const road = apexRoad();
-  const certain = drops.filter((d) => d.chance >= 1 && d.fleeable);
+  const fleeable = drops.filter((d) => d.fleeable);
 
-  test('the Apex road (past the start) is the Glowlands and the Nexus', () => {
-    expect([...road].sort()).toEqual(['loc_chronos_nexus', 'loc_veridian_glowlands']);
+  test('no fleeable quest-drop group scatters or holds: every one regroups at dawn', () => {
+    expect(fleeable.filter((d) => d.onFlee !== 'regroup').map((d) => `${d.encounter} ${d.onFlee}`)).toEqual([]);
   });
 
-  test('no fleeable group with a certain quest drop scatters, off the Apex road: it holds (fleeing costs time, never the quest)', () => {
-    const scattering = certain.filter((d) => !road.has(d.location) && d.onFlee === 'scatter').map((d) => d.encounter);
-    expect(scattering).toEqual([]);
-  });
-
-  test('the held quest-drop groups, by name: the Stalkers (Void Shard) and the Drowned Archivists (the scroll)', () => {
-    const held = certain.filter((d) => d.onFlee === 'hold').map((d) => `${d.encounter} ${d.items.join(',')}`);
-    expect(held.sort()).toEqual([
+  test('the 36 quest-drop groups by name (34 regroup; the unfleeable Archivist and the Umbra hold as bosses)', () => {
+    expect(drops.filter((d) => !d.fleeable).map((d) => `${d.encounter} ${d.onFlee}`).sort()).toEqual(['enc_archives_archivist hold', 'enc_eye_umbra hold']);
+    expect(fleeable.map((d) => `${d.encounter} ${d.items.join(',')}`).sort()).toEqual([
       'enc_bellmouth_ringer item_scholars_lost_scroll',
+      'enc_cairns_harriers mat_steppe_salt',
+      'enc_chasm_sentry item_void_shard',
       'enc_chasm_stalker item_void_shard',
+      'enc_flats_harriers mat_steppe_salt',
+      'enc_flats_jackals mat_steppe_salt',
+      'enc_gallery_pool_sentry item_void_shard',
+      'enc_glowlands_mireling item_glow_moss',
+      'enc_glowlands_toad_spore item_antidote_root',
+      'enc_gullet_mirelings item_glow_moss',
       'enc_hollow_group_b item_void_shard',
       'enc_hollow_group_b_sentry item_void_shard',
+      'enc_hollow_pool_sentry item_void_shard',
       'enc_hollow_stalker item_void_shard',
       'enc_hollow_stalkers_a item_void_shard',
+      'enc_mangrove_stalker_mireling item_glow_moss',
+      'enc_mouth_sentries item_void_shard',
+      'enc_nexus_aberration item_aberrant_eye',
+      'enc_orchard_jackals mat_steppe_salt',
+      'enc_orchard_null_mouth_return item_void_shard',
+      'enc_orchard_null_mouths item_void_shard',
+      'enc_pan_jackals mat_steppe_salt',
+      'enc_pan_jackals_return mat_steppe_salt',
+      'enc_plateau_harriers mat_steppe_salt',
+      'enc_ridge_harriers mat_steppe_salt',
       'enc_scriptorium_archivists item_scholars_lost_scroll',
       'enc_scriptorium_choir item_scholars_lost_scroll',
+      'enc_shallows_mirelings item_glow_moss',
+      'enc_shallows_spore_drifts item_antidote_root',
+      'enc_shelf_pool_sentry item_void_shard',
       'enc_shelf_stalkers item_void_shard',
+      'enc_stair_null_mouth item_void_shard',
+      'enc_stair_pool_sentry item_void_shard',
       'enc_tidewell_clerk_archivist item_scholars_lost_scroll',
     ]);
   });
 
-  test('the exemptions: the Apex road keeps the Aberration `scatter`; chance drops (other sources) keep `scatter`', () => {
-    expect(certain.filter((d) => road.has(d.location)).map((d) => `${d.encounter} ${d.onFlee}`)).toEqual(['enc_nexus_aberration scatter']);
-    const chancy = drops.filter((d) => d.chance < 1);
-    expect(chancy.length).toBeGreaterThan(0);
-    expect(new Set(chancy.flatMap((d) => d.items))).toEqual(new Set(['item_antidote_root', 'item_glow_moss', 'item_void_shard', 'mat_steppe_salt']));
-    // Steppe Salt is gathered at the Grey Salt Pan; Glow Moss and the Antidote Root drop in several places
-    expect(pack.locations.loc_grey_salt_pan?.gather?.map((g) => g.itemId)).toContain('mat_steppe_salt');
+  test('only quest-drop groups regroup (the mode is not spent elsewhere)', () => {
+    const regrouping = Object.values(pack.locations).flatMap((l) => l.encounters.filter((e) => e.onFlee === 'regroup').map((e) => e.id));
+    expect(regrouping.sort()).toEqual(fleeable.map((d) => d.encounter).sort());
   });
 
   test("the Hollow's other shard sources stand: the loose shard in the crystal, the return Stalker, the Veil's drops", () => {
     const hollow = pack.locations.loc_voidscar_hollow;
     expect(hollow?.items.map((i) => i.itemId)).toContain('item_void_shard');
-    expect(hollow?.encounters.find((e) => e.id === 'enc_hollow_stalker')).toMatchObject({ respawn: 'on_return', onFlee: 'hold' });
+    expect(hollow?.encounters.find((e) => e.id === 'enc_hollow_stalker')).toMatchObject({ respawn: 'on_return', onFlee: 'regroup' });
     expect(pack.regions.region_voidscar?.wanderingPool.map((e) => e.creatureId)).toEqual(['cr_void_touched_stalker']);
-    const veil = drops.filter((d) => pack.locations[d.location]?.regionId === 'region_veil' && d.items.includes('item_void_shard'));
-    expect(veil.length).toBeGreaterThan(3);
+    const veil = Object.values(pack.locations).filter((l) => l.regionId === 'region_veil');
+    const veilShardGroups = drops.filter((d) => d.items.includes('item_void_shard') && veil.some((l) => l.encounters.some((e) => e.id === d.encounter)));
+    expect(veilShardGroups.length).toBeGreaterThan(3);
   });
 });
 
-describe('q_void_shards with a flight (D-143): flee the Stalkers, come back, win, three shards, Nyx', () => {
+describe('q_void_shards with a flight (D-144): flee the Stalkers, gone that day, back whole at dawn, beaten, three shards, Nyx', () => {
   const HOLLOW = 'loc_voidscar_hollow';
   const CHASM = 'loc_chasm_of_whispers';
-  const STALKER = 'cr_void_touched_stalker';
   const profile = freshProfile();
   const run = (s: GameState, actions: Action[]) => play(s, actions, { content: pack, profile }).state;
+  /** A sure flight (a Smoke Bomb's), so the test draws nothing for it. */
+  const flee = (s: GameState): GameState => {
+    const c = structuredClone(s);
+    grantFleeAuto(playerOf(c.combat!));
+    return run(c, [{ type: 'flee' }]);
+  };
   /** Plays the fight on screen to its end: attacks only, the enemies left at 1 HP so it is short. */
   function win(s0: GameState): GameState {
     let s = s0;
@@ -140,57 +133,43 @@ describe('q_void_shards with a flight (D-143): flee the Stalkers, come back, win
   }
   const shards = (s: GameState): number => s.player.inventory.filter((i) => i.itemId === 'item_void_shard').reduce((n, i) => n + i.qty, 0);
 
-  test('the flight falls back to the lip with the pair wounded; back in, they stand as they were; beaten, they pay two shards', () => {
+  test('fled, the pair is gone that day (no scatter, no loot); slept to dawn, it is back whole; beaten, it pays two shards', () => {
     const s0 = makeState({ level: 9, locationId: CHASM, quests: { q_void_shards: 'gather' } }, { content: pack, profile });
     const met = run(s0, [{ type: 'move', to: HOLLOW }]);
-    expect(met.mode).toBe('combat');
-    expect(met.combat).toMatchObject({ encounterId: 'enc_hollow_stalkers_a', onFlee: 'hold', canFlee: true });
-    // wound them, then run (a Smoke Bomb's sure flight, so the test draws nothing)
+    expect(met.combat).toMatchObject({ encounterId: 'enc_hollow_stalkers_a', onFlee: 'regroup', canFlee: true });
     const wounded = structuredClone(met);
-    const pair = wounded.combat!.enemies;
-    pair[0]!.hp = 20;
-    pair[1]!.hp = 33;
-    grantFleeAuto(playerOf(wounded.combat!));
-    const fled = run(wounded, [{ type: 'flee' }]);
+    wounded.combat!.enemies[0]!.hp = 20;
+    const fled = flee(wounded);
     expect(fled.mode).toBe('explore');
     expect(fled.world.currentLocationId).toBe(CHASM);
-    expect(fled.world.locationStates[HOLLOW]).toMatchObject({ scattered: [], encounterHp: { enc_hollow_stalkers_a: { [STALKER]: 20, [`${STALKER}#2`]: 33 } } });
+    expect(fled.clock.ticks - met.clock.ticks).toBe(3);
+    expect(fled.world.locationStates[HOLLOW]).toMatchObject({ scattered: [], encounterHp: {} });
     expect(shards(fled)).toBe(0);
     expect(fled.quests.q_void_shards?.stage).toBe('gather');
-    // the journal still points east, and the Stalkers are still there
-    const back = run(fled, [{ type: 'move', to: HOLLOW }]);
+    // that day: back in, the pair is away (group B, the third Stalker, meets the next arrival); fled too, the way is open
+    const b = run(fled, [{ type: 'move', to: HOLLOW }]);
+    expect(b.combat?.encounterId).toBe('enc_hollow_group_b');
+    const open = run(flee(b), [{ type: 'move', to: HOLLOW }]);
+    expect([open.mode, open.world.currentLocationId]).toEqual(['explore', HOLLOW]);
+    // a night's sleep at the lip: at dawn the pair is back, whole, its shards with it
+    const rested = run(open, [{ type: 'move', to: CHASM }, { type: 'rest', kind: 'full' }]);
+    const back = run(rested, [{ type: 'move', to: HOLLOW }]);
     expect(back.combat?.encounterId).toBe('enc_hollow_stalkers_a');
-    expect(back.combat?.enemies.map((e) => e.hp)).toEqual([20, 33]);
+    expect(back.combat?.enemies.every((e) => e.hp === e.hpMax)).toBe(true);
     const won = win(back);
     expect(won.mode).toBe('explore');
     expect(won.world.locationStates[HOLLOW]?.encountersCleared).toContain('enc_hollow_stalkers_a');
-    expect(won.world.locationStates[HOLLOW]?.encounterHp).toEqual({});
     expect(shards(won)).toBe(2);
     // the loose shard in the crystal makes three; the quest turns to Nyx, and she is paid
     const three = run(won, [{ type: 'takeAll' }]);
     expect(shards(three)).toBe(3);
     expect(three.quests.q_void_shards?.stage).toBe('return');
-    let s = run(three, [{ type: 'move', to: CHASM }]);
-    s = win(s); // the second group (B) waits for the next arrival at the Hollow, not here; the lip is safe
-    s = run(s, [{ type: 'talk', npcId: 'npc_nyx' }]);
+    let s = run(three, [{ type: 'move', to: CHASM }, { type: 'talk', npcId: 'npc_nyx' }]);
     for (let i = 0; i < 12 && s.mode === 'dialogue'; i++) {
       const legal = legalActions(s, pack, profile);
       s = run(s, [legal.find((a) => a.type === 'choose' && a.choiceId === 'yes') ?? legal.find((a) => a.type === 'continue') ?? (legal[0] as Action)]);
     }
     expect(s.quests.q_void_shards).toMatchObject({ status: 'completed', stage: 'given' });
     expect(shards(s)).toBe(0);
-  });
-
-  test('held, the pair waits only until dawn: a full rest at the lip and it stands again whole', () => {
-    const s0 = makeState({ level: 9, locationId: CHASM, quests: { q_void_shards: 'gather' } }, { content: pack, profile });
-    const met = structuredClone(run(s0, [{ type: 'move', to: HOLLOW }]));
-    met.combat!.enemies[0]!.hp = 5;
-    grantFleeAuto(playerOf(met.combat!));
-    const fled = run(met, [{ type: 'flee' }]);
-    const rested = run(fled, [{ type: 'rest', kind: 'full' }]);
-    expect(rested.world.locationStates[HOLLOW]?.encounterHp).toEqual({});
-    const again = run(rested, [{ type: 'move', to: HOLLOW }]);
-    expect(again.combat?.encounterId).toBe('enc_hollow_stalkers_a');
-    expect(again.combat?.enemies.every((e) => e.hp === e.hpMax)).toBe(true);
   });
 });

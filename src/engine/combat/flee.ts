@@ -12,12 +12,18 @@
 //   previous  wandering / return rolls: 1 watch; the encounter is gone.
 //   scatter   fixed non-boss groups (the default): 1 + 2 watches (3 in all); the group scatters for the rest of the loop
 //             (`LocationState.scattered`; a spawned group leaves `pendingEncounters`), so the node is passable next time.
-//   hold      quest-drop groups (D-143: a location group whose creatures can drop an item a quest objective needs) and the
-//             unfleeable bosses / story gates: 1 watch; the living keep their HP until dawn (`LocationState.encounterHp`,
-//             keys `heldHpKey`, cleared by the clock's dawn hook) and the group re-fires on the next arrival
-//             (reducers/combat.ts `arrivalEncounter`); a creature felled before the flight stands again whole.
+//   regroup   quest-drop groups (D-144: a location group whose creatures can drop an item a quest objective needs): 3
+//             watches, as a scatter; the group is gone until the next dawn after the party could walk straight back in
+//             (that day in `LocationState.encounterClearedDay`, read by reducers/combat.ts `arrivalEncounter`), then gathers
+//             whole, its drops with it (a first-visit group fires on the next arrival until beaten). The node is passable
+//             for the rest of that day; the quest is never lost.
+//   hold      bosses / story gates (unfleeable) and a fleeable `hold` group: 1 watch; the living keep their HP until dawn
+//             (`LocationState.encounterHp`, keys `heldHpKey`, cleared by the clock's dawn hook) and the group re-fires on
+//             the next arrival (`arrivalEncounter`); a creature felled before the flight stands again whole.
 // Whatever the mode, the party then falls back to the previous node (D-143, DESIGN §4.7), unless there is none or it is
 // this node. The placement is a teleport; the reducer's arrival hook does not roll an encounter on it.
+import { BEFORE_RETURN_WATCHES, isBeforeLocation } from '../before';
+import { dayOf } from '../conditions';
 import type { ContentPack, StepCtx } from '../ctx';
 import { fleeChance } from '../derived';
 import { advanceTime, apply, locationState } from '../effects';
@@ -78,7 +84,8 @@ export function fleeOutcome(ctx: StepCtx, combat: CombatState): void {
   const ls = locationState(ctx, combat.locationId);
   const id = combat.encounterId;
   const scatter = combat.onFlee === 'scatter';
-  advanceTime(ctx, 1 + (scatter ? content.config.flee.scatterWatches : 0));
+  const regroup = combat.onFlee === 'regroup';
+  advanceTime(ctx, 1 + (scatter || regroup ? content.config.flee.scatterWatches : 0));
   const pending = s.world.pendingEncounters[combat.locationId];
   const spawned = pending?.some((sp) => sp.id === id) ?? false;
   if (scatter) {
@@ -101,7 +108,25 @@ export function fleeOutcome(ctx: StepCtx, combat: CombatState): void {
     ls.encounterHp[id] = held;
   }
   const back = s.world.previousLocationId;
-  if (back !== null && back !== s.world.currentLocationId && content.locations[back]) {
+  const fallsBack = back !== null && back !== s.world.currentLocationId && content.locations[back] !== undefined;
+  if (regroup) {
+    // D-144: gone until the next dawn after the party could walk straight back in — the flight's watches, the road back,
+    // and the Breach-door's charge when the fall back is into the Before — so that walk back always passes even when it
+    // crosses a dawn; that day is recorded, and the dawn after it brings the group back whole (`arrivalEncounter`)
+    const loc = combat.locationId;
+    const edge = fallsBack ? content.locations[back as string]?.exits.find((e) => e.to === loc) : undefined;
+    const door = fallsBack && isBeforeLocation(content, back as string) ? BEFORE_RETURN_WATCHES : 0;
+    const road = !fallsBack || isBeforeLocation(content, loc) ? 0 : (edge?.travelWatches ?? 1) + door;
+    const away = dayOf(s.clock.ticks + road);
+    // the groups of this node already sent off stay off with it: two groups fled in turn would otherwise come back in turn,
+    // and the node would never be passable
+    for (const e of content.locations[combat.locationId]?.encounters ?? []) {
+      if (e.onFlee === 'regroup' && e.respawn !== 'daily' && ls.encounterClearedDay[e.id] !== undefined) ls.encounterClearedDay[e.id] = away;
+    }
+    ls.encounterClearedDay[id] = away;
+    ctx.log('The group breaks apart into the land. It will gather here again at dawn.', 'combat');
+  }
+  if (fallsBack) {
     ctx.log('You fall back the way you came.', 'combat');
     apply({ teleport: back as `loc_${string}` }, ctx, { source: 'flee' });
   }

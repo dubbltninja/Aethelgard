@@ -390,16 +390,16 @@ describe('the nine locations vs WORLD §3.7 blocks', () => {
     expect(flats).toContain('first: cr_cinderback ×1 (60%, telegraphed stampede — Guard on the first turn avoids the opening charge) or cr_salt_jackal ×3 (40%).');
     expect(shape(AF, 'enc_flats_cinderback')).toEqual([['cr_cinderback×1'], 0.6, 'never', true, true, 'scatter']);
     // "A (60 %) or B (40 %)": the engine runs the first group whose roll succeeds, so B's own roll is 0.4 / (1 − 0.6) = 1: 0.999
-    expect(shape(AF, 'enc_flats_jackals')).toEqual([['cr_salt_jackal×3'], 0.999, 'never', true, true, 'scatter']);
+    expect(shape(AF, 'enc_flats_jackals')).toEqual([['cr_salt_jackal×3'], 0.999, 'never', true, true, 'regroup']);
     expect(loc(AF).encounters.map((x) => x.id).slice(0, 2)).toEqual(['enc_flats_cinderback', 'enc_flats_jackals']);
     expect(flat(WL[BN]?.block ?? '')).toContain('first: cr_cinderback ×1 (50%; one of the warm shapes).');
     expect(shape(BN, 'enc_orchard_cinderback')).toEqual([['cr_cinderback×1'], 0.5, 'never', true, true, 'scatter']);
     expect(flat(WL[GP]?.block ?? '')).toContain('first: cr_salt_jackal ×3 (100%).');
-    expect(shape(GP, 'enc_pan_jackals')).toEqual([['cr_salt_jackal×3'], 1, 'never', true, true, 'scatter']);
+    expect(shape(GP, 'enc_pan_jackals')).toEqual([['cr_salt_jackal×3'], 1, 'never', true, true, 'regroup']);
     expect(flat(WL[SC]?.block ?? '')).toContain('first: cr_steppe_harrier ×2 (60%).');
-    expect(shape(SC, 'enc_cairns_harriers')).toEqual([[`${HARRIER}×2`], 0.6, 'never', true, true, 'scatter']);
+    expect(shape(SC, 'enc_cairns_harriers')).toEqual([[`${HARRIER}×2`], 0.6, 'never', true, true, 'regroup']);
     expect(flat(WL[WF]?.block ?? '')).toContain('first: cr_steppe_harrier ×2 (40%).');
-    expect(shape(WF, 'enc_ridge_harriers')).toEqual([[`${HARRIER}×2`], 0.4, 'never', true, true, 'scatter']);
+    expect(shape(WF, 'enc_ridge_harriers')).toEqual([[`${HARRIER}×2`], 0.4, 'never', true, true, 'regroup']);
     expect(flat(WL[RD]?.block ?? '')).toContain('first: cr_reed_stalker ×1 (40%).');
     expect(shape(RD, 'enc_reedmarch_stalker')).toEqual([['cr_reed_stalker×1'], 0.4, 'never', true, true, 'scatter']);
     const boss = e(HG, 'enc_grave_ashmaw');
@@ -1121,13 +1121,14 @@ describe('the region in the engine (real pack, seeded)', () => {
       if (s.mode !== 'combat') continue;
       const kinds = s.combat?.encounterId === 'enc_flats_cinderback' ? ['cr_cinderback'] : ['cr_salt_jackal', 'cr_salt_jackal', 'cr_salt_jackal'];
       expect(s.combat?.enemies.map((e) => e.refId)).toEqual(kinds);
-      expect(s.combat).toMatchObject({ canFlee: true, onFlee: 'scatter' });
+      // D-144: the jackals drop Steppe Salt (q_blood_and_salt) and regroup; the Cinderback scatters
+      expect(s.combat).toMatchObject({ canFlee: true, onFlee: s.combat?.encounterId === 'enc_flats_cinderback' ? 'scatter' : 'regroup' });
     }
   });
 
   test('the Pan’s jackals are a 100 % scatter node on the first visit, though the Pan is safe; the Orchard’s Cinderback is 50 %', () => {
     const pan = arrive(AF, GP);
-    expect(pan.combat).toMatchObject({ encounterId: 'enc_pan_jackals', canFlee: true, onFlee: 'scatter' });
+    expect(pan.combat).toMatchObject({ encounterId: 'enc_pan_jackals', canFlee: true, onFlee: 'regroup' });
     expect(pan.combat?.enemies.map((e) => e.refId)).toEqual(['cr_salt_jackal', 'cr_salt_jackal', 'cr_salt_jackal']);
     const N = 300;
     const t = tally(N, (i) => arrive(SG, BN, { seed: `u46-bn-${i}` }, ['ev_orchard_brand']));

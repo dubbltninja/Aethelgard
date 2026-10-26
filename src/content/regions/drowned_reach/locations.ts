@@ -102,7 +102,7 @@ export const locations = [
       {
         id: 'enc_tidewell_clerk_archivist',
         groups: [{ creatureId: 'cr_tide_clerk' }, { creatureId: 'cr_drowned_archivist' }],
-        onFlee: 'hold', // D-143: a certain drop of a quest item; never scatters
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         intro: 'A clerk in a drowned coat looks up from the ledger. Beside it a reader keeps its place with a wet finger.',
       },
       // return: a Tide Clerk (30 %), else the pool at 20 %
@@ -230,11 +230,11 @@ export const locations = [
       { itemId: 'mat_sodden_vellum', count: 2 },
     ],
     encounters: [
-      // first: a Ledger Choir and two Drowned Archivists (100 %; the elite guard; `hold`, D-143)
+      // first: a Ledger Choir and two Drowned Archivists (100 %; the elite guard; `regroup`, D-144)
       {
         id: 'enc_scriptorium_choir',
         groups: [{ creatureId: 'cr_ledger_choir' }, { creatureId: 'cr_drowned_archivist', count: 2 }],
-        onFlee: 'hold', // D-143: a certain drop of a quest item; never scatters
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         intro: 'Around the lectern the drowned stand in a ring and read one name aloud.',
       },
       // Loop 3+ (WORLD §12.1 `ws_loop_3`): the Unmade, 20 % — first among the return rolls so its 20 % is WORLD's
@@ -251,7 +251,7 @@ export const locations = [
       {
         id: 'enc_scriptorium_archivists',
         groups: [{ creatureId: 'cr_drowned_archivist', count: 2 }],
-        onFlee: 'hold', // D-143: a certain drop of a quest item; never scatters
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.3,
         once: false,
         respawn: 'on_return',
@@ -329,11 +329,11 @@ export const locations = [
     ],
     items: [{ itemId: 'mat_bell_bronze', count: 2 }],
     encounters: [
-      // first: a Bell-Ringer and a Drowned Archivist (100 %; the elite; `hold`, D-143)
+      // first: a Bell-Ringer and a Drowned Archivist (100 %; the elite; `regroup`, D-144)
       {
         id: 'enc_bellmouth_ringer',
         groups: [{ creatureId: 'cr_bell_ringer' }, { creatureId: 'cr_drowned_archivist' }],
-        onFlee: 'hold', // D-143: a certain drop of a quest item; never scatters
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         intro: 'Something inside the bell takes up its rope. Beside the shell a reader opens a book.',
       },
       // return: Pale Divers ×2 (35 %), and no pool (see the header)

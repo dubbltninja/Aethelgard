@@ -19,8 +19,8 @@ export const EncounterSchema = Base.extend({
   respawn: z.enum(['never', 'daily', 'on_return']).default('never'),
   /** False only for bosses and story gates (D-066 #11). */
   fleeable: z.boolean().default(true),
-  /** Fixed groups scatter; wandering rolls → previous node; bosses and story gates hold (DESIGN §4.7). */
-  onFlee: z.enum(['scatter', 'hold', 'previous']).default('scatter'),
+  /** Fixed groups scatter; wandering rolls → previous node; bosses and story gates hold; quest-drop groups regroup at dawn (DESIGN §4.7, D-144: `regroup` a C1 addition of U81c). */
+  onFlee: z.enum(['scatter', 'hold', 'previous', 'regroup']).default('scatter'),
   ambush: z.boolean().default(false),
   intro: z.string().optional(),
   onVictory: Effects,

@@ -5,8 +5,7 @@
 // How a step runs (one `choose` call asks the current step for an action; a step that is done hands over to the next):
 //   Action      the exact action, which must be listed; else the run ends with `script_assert`.
 //   goto        BFS to the location over open exits; combat → the fight policy; dialogue → *Continue* (else the first choice).
-//   fight       sets the policy (`melee`, `caster`, `flee`; flee falls back to melee when the fight cannot be fled, or when it
-//               is a `hold` group that would only re-fire on the next arrival, D-143) used by
+//   fight       sets the policy (`melee`, `caster`, `flee`; flee falls back to melee when the fight cannot be fled) used by
 //               goto/loopEnd/rest from here on, and plays the fight on screen with it; with no fight on screen it only sets it.
 //   talk+pick   the `talk` action (the NPC must be here), then each pick in order when offered, *Continue* otherwise; the
 //               dialogue must end with every pick used and no choice left unmatched.
@@ -94,18 +93,11 @@ function play(t: Turn, key: string, make: () => Bot): Action {
   return bot.choose(t.s, t.legal, t.content, sub, t.ctx);
 }
 
-/** The classes `casterBot` plays (its `preferredClasses`). */
-const CASTER_CLASSES: readonly string[] = casterBot().preferredClasses ?? [];
-
 /** The fight policy's action in the fight on screen. */
 function fightAction(t: Turn): Action {
-  // U81c (D-143): a held group re-fires on every arrival until dawn, so fleeing it never gets past: it is fought, by the
-  // class's own bot (caster for its preferred classes, else melee)
-  const held = t.p.fight === 'flee' && t.s.combat?.onFlee === 'hold';
-  const flee = t.p.fight === 'flee' && !held ? firstOf(t.legal, 'flee') : undefined;
+  const flee = t.p.fight === 'flee' ? firstOf(t.legal, 'flee') : undefined;
   if (flee !== undefined) return flee;
-  const caster = t.p.fight === 'caster' || (held && CASTER_CLASSES.includes(t.s.player.classId));
-  return play(t, `fight:${caster ? 'caster' : 'melee'}`, caster ? casterBot : meleeBot);
+  return play(t, `fight:${t.p.fight === 'caster' ? 'caster' : 'melee'}`, t.p.fight === 'caster' ? casterBot : meleeBot);
 }
 
 /** Attack-only play, to the end: no healing, no guarding, no running. */

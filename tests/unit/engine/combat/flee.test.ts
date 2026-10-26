@@ -151,13 +151,13 @@ describe('what a successful flee does (DESIGN §4.7, D-066 #11)', () => {
     expect(rested.state.world.locationStates[MISTWOOD]?.encounterHp).toEqual({});
   });
 
-  test('D-143: every mode falls back to the previous node — previous, scatter and hold alike', () => {
-    for (const onFlee of ['previous', 'scatter', 'hold'] as const) {
+  test('D-143: every mode falls back to the previous node — previous, scatter, hold and regroup alike', () => {
+    for (const onFlee of ['previous', 'scatter', 'hold', 'regroup'] as const) {
       const s0 = state({ locationId: MISTWOOD, patch: (st) => void (st.world.previousLocationId = RUINS) });
       const s = fight(s0, spec([{ creatureId: BRUTE, count: 1 }], { id: `enc_${onFlee}`, onFlee }));
       const out = act(s, FLEE, [D.pct(0)]);
       expect([onFlee, out.state.world.currentLocationId, out.state.world.previousLocationId]).toEqual([onFlee, RUINS, MISTWOOD]);
-      expect([onFlee, out.state.clock.ticks - s.clock.ticks]).toEqual([onFlee, onFlee === 'scatter' ? 3 : 1]);
+      expect([onFlee, out.state.clock.ticks - s.clock.ticks]).toEqual([onFlee, onFlee === 'scatter' || onFlee === 'regroup' ? 3 : 1]);
       expect(ofType(out.events, 'combatStarted')).toEqual([]); // no roll on the arrival
     }
   });
@@ -246,6 +246,67 @@ describe('a held quest-drop group (D-143, DESIGN §4.7)', () => {
     const later = scriptedStep(rested.state, { type: 'move', to: LIBRARY }, [], pack, profile);
     expect(later.rejected).toBeNull();
     expect(later.state.mode).toBe('explore');
+  });
+});
+
+describe('a regrouping quest-drop group (D-144, DESIGN §4.7)', () => {
+  /** The Library's pair of Shades as a quest-drop group (`regroup`), at `chance`. */
+  const regroupPack = (chance = 1) =>
+    combatPack(({ locations }) => {
+      const lib = locations.find((l) => l.id === LIBRARY)!;
+      lib.encounters = lib.encounters!.map((e) => ({ ...e, onFlee: 'regroup' as const, chance }));
+    });
+  const INIT = [D.d4(4), D.d4(1), D.d4(1)];
+  const enter = (pack: ReturnType<typeof regroupPack>, s: GameState, draws: readonly number[]) => {
+    const out = scriptedStep(s, { type: 'move', to: LIBRARY }, draws, pack, profile);
+    expect(out.rejected).toBeNull();
+    expect(out.left).toBe(0);
+    return out.state;
+  };
+  const flee = (pack: ReturnType<typeof regroupPack>, s: GameState) => {
+    const out = scriptedStep(s, FLEE, [D.pct(0)], pack, profile);
+    expect(out.rejected).toBeNull();
+    return out;
+  };
+
+  test('3 watches, the fall back, no scatter: gone for that day (the walk back passes), whole again after the dawn', () => {
+    const pack = regroupPack();
+    const met = enter(pack, makeState({}, { content: pack }), INIT);
+    expect(met.combat).toMatchObject({ encounterId: 'enc_library_shades', onFlee: 'regroup' });
+    const out = flee(pack, patched(met, (c) => void (c.enemies[0]!.hp = 7)));
+    expect(out.state.world.currentLocationId).toBe(RUINS);
+    expect(out.state.clock.ticks).toBe(met.clock.ticks + 3);
+    expect(out.state.world.locationStates[LIBRARY]).toMatchObject({ scattered: [], encounterHp: {} });
+    expect(ofType(out.events, 'encounterScattered')).toEqual([]);
+    // the walk back in passes, and the Library stays clear that day
+    const passed = enter(pack, out.state, []);
+    expect([passed.mode, passed.world.currentLocationId]).toEqual(['explore', LIBRARY]);
+    const again = enter(pack, play(passed, [{ type: 'move', to: RUINS }], { content: pack, profile }).state, []);
+    expect(again.mode).toBe('explore');
+    // a full rest at the Ruins reaches dawn: the pair is back on the next arrival, whole
+    const rested = play(again, [{ type: 'move', to: RUINS }, { type: 'rest', kind: 'full' }], { content: pack, profile }).state;
+    const back = enter(pack, rested, INIT);
+    expect(back.combat?.encounterId).toBe('enc_library_shades');
+    expect(back.combat?.enemies.map((e) => e.hp)).toEqual(back.combat?.enemies.map((e) => e.hpMax));
+  });
+
+  test('the walk straight back in passes even when the road back crosses a dawn', () => {
+    const pack = regroupPack();
+    const night = makeState({ watch: 3 }, { content: pack });
+    const met = enter(pack, night, INIT);
+    const out = flee(pack, met);
+    const passed = enter(pack, out.state, []);
+    expect(Math.floor(passed.clock.ticks / 4)).toBeGreaterThan(Math.floor(out.state.clock.ticks / 4)); // the road back crossed a dawn
+    expect(passed.mode).toBe('explore');
+  });
+
+  test('a first-visit group under 100 % comes back after the dawn on the next arrival without a roll (its drops with it)', () => {
+    const pack = regroupPack(0.5);
+    const met = enter(pack, makeState({}, { content: pack }), [D.yes, ...INIT]);
+    const out = flee(pack, met);
+    const rested = play(out.state, [{ type: 'rest', kind: 'full' }], { content: pack, profile }).state;
+    const back = enter(pack, rested, INIT); // no chance draw, though it is not the first visit
+    expect(back.combat?.encounterId).toBe('enc_library_shades');
   });
 });
 

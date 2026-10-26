@@ -318,7 +318,7 @@ export const CombatStateSchema: z.ZodType<CombatState> = z
     log: z.array(CombatLogEntrySchema),
     cooldowns: numRecord,
     canFlee: z.boolean(),
-    onFlee: z.enum(['scatter', 'hold', 'previous']),
+    onFlee: z.enum(['scatter', 'hold', 'previous', 'regroup']),
     fleeAttempts: int.min(0),
     communion: CommunionStateSchema.nullable(),
     resourceGainedThisTurn: num,

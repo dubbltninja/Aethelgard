@@ -345,7 +345,7 @@ export interface CombatState {
   /** False for bosses and story gates only (D-066 #11). */
   canFlee: boolean;
   /** Fixed group / boss-gate / wandering (DESIGN §4.7). */
-  onFlee: 'scatter' | 'hold' | 'previous';
+  onFlee: 'scatter' | 'hold' | 'previous' | 'regroup';
   fleeAttempts: number;
   communion: CommunionState | null;
   resourceGainedThisTurn: number;

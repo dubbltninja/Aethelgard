@@ -34,12 +34,11 @@ import type { Condition } from '@schema/condition';
 import type { Effect } from '@schema/effect';
 import {
   allOf,
+  bedStep,
+  hordeRoute,
   bfsPath,
   byId,
-  enemyWeakness,
-  expectedDamage,
   firstOf,
-  foesOf,
   healAmount,
   healingCarried,
   healthFraction,
@@ -56,6 +55,9 @@ import {
   type PathOptions,
 } from './shared';
 import { MELEE, MELEE_BRANCHES } from './melee';
+import { classFight, classStat, classUnlockRank, type ClassFightCfg } from './classFight';
+import { questTargets } from './questFollow';
+import { dangerAt } from './danger';
 import type { BotMemory } from './types';
 
 // ---- notes -------------------------------------------------------------------------------------------------------------
@@ -128,6 +130,8 @@ export function digest(n: Notes, events: readonly GameEvent[], runId = ''): void
     } else if (e.t === 'playerDied') {
       const where = n.lastFightAt ?? at;
       if (where !== null) n.fellAt[where] = Math.max(n.fellAt[where] ?? 0, n.lastLevel);
+      // U81b1: a lost Apex fight is not "faced" for the loop: the reload stands before it, and the death note sets the level to retry at
+      n.apexFaced = null;
     }
   }
 }
@@ -229,17 +233,22 @@ export function bestDrink(env: Env): Action | undefined {
 
 /** Hurt or drained: a bed here, a draught, or the walk to the nearest bed. */
 export function recover(env: Env, cfg: RestCfg, opts: PathOptions): Action | undefined {
-  const { s, content, profile, legal } = env;
+  const { s, content, legal } = env;
   const hp = healthFraction(s);
-  if (hp >= cfg.hpBelow && manaFraction(s) >= cfg.mpBelow) return undefined;
+  // U81b1: a Blood-price class (the Weaver) does not stop for mana: it pays the shortfall in HP when HP is comfortable
+  const mpBelow = content.classes[s.player.classId]?.resource.bloodPrice !== undefined ? 0 : cfg.mpBelow;
+  if (hp >= cfg.hpBelow && manaFraction(s) >= mpBelow) return undefined;
   const bed = legal.find((a) => a.type === 'rest' && a.kind === 'full') ?? firstOf(legal, 'rest');
   if (bed !== undefined) return bed;
   if (hp < cfg.drinkBelow) {
     const drink = bestDrink(env);
     if (drink !== undefined) return drink;
   }
-  return stepAlong(legal, nearestWhere(s, content, profile, (id) => restAvailable(s, content, profile, id), opts)?.path ?? null);
+  return walkToBed(env, opts);
 }
+
+/** U81b1: the walk to the nearest bed no fight guards (`bedStep`). */
+export const walkToBed = (env: Env, opts: PathOptions): Action | undefined => bedStep(env.s, env.legal, env.content, env.profile, opts);
 
 export interface TradeCfg {
   sellBelowGold: number;
@@ -359,7 +368,11 @@ export function apexPrompt(env: Env, ready: boolean): Action {
 }
 
 /** Has the bot already been to (or turned back from) the Apex at this strength this loop? */
-export const apexSettled = (env: Env): boolean => env.n.apexFaced === env.s.meta.runId || env.n.apexDeclined === `${env.s.meta.runId}:${env.s.player.level}`;
+export const apexSettled = (env: Env): boolean =>
+  env.n.apexFaced === env.s.meta.runId ||
+  env.n.apexDeclined === `${env.s.meta.runId}:${env.s.player.level}` ||
+  // U81b1: lost there at this level (a retry waits for a level up)
+  (env.n.fellAt[APEX_LOCATION_ID] ?? 0) >= env.s.player.level;
 
 // ---- people and things here ----------------------------------------------------------------------------------------------------
 
@@ -575,7 +588,17 @@ export function passTime(env: Env, opts: PathOptions): Action {
   const { s, content, profile, legal } = env;
   const bed = legal.find((a) => a.type === 'rest' && a.kind === 'full') ?? firstOf(legal, 'rest') ?? firstOf(legal, 'wait');
   if (bed !== undefined) return bed;
-  return stepAlong(legal, nearestWhere(s, content, profile, (id) => restAvailable(s, content, profile, id), opts)?.path ?? null) ?? firstOf(legal, 'move') ?? fallback(legal);
+  return (
+    stepAlong(legal, nearestWhere(s, content, profile, (id) => restAvailable(s, content, profile, id) && opts.avoid?.(id) !== true, opts)?.path ?? null) ??
+    // U81b1: a step that is not into a place it avoids first
+    allOf(legal, 'move').find((a) => opts.avoid?.(a.to) !== true) ??
+    // every way is one it avoids: not back where it fell, nor into an unfleeable fight far above it (Vell's Umbra beside Where She
+    // Fell); a band above it is the lesser risk (the Spires' only other way out is the Pass where the Moths felled it)
+    allOf(legal, 'move').find((a) => !shunned(env, a.to) && !dangerAt(s, content, profile, a.to, 'pass')) ??
+    allOf(legal, 'move').find((a) => !dangerAt(s, content, profile, a.to, 'pass')) ??
+    firstOf(legal, 'move') ??
+    fallback(legal)
+  );
 }
 
 // ---- the communion (DESIGN §4.11, D-081) ---------------------------------------------------------------------------------------------
@@ -661,47 +684,33 @@ export function forfeitBlow(env: Env): Action {
   return hits.find((a) => a.targetUid === boss?.boss.uid) ?? hits[0] ?? firstOf(legal, 'guard') ?? fallback(legal);
 }
 
-// ---- combat: the physical fighter's rows (melee's, with the flee test injected) ------------------------------------------------------------
+// ---- combat: the fighter's rows (a flight test injected, then the class-aware fight) -------------------------------------------------
 
 /**
- * `melee`'s combat rows (PLAN §7.2; U37): heal below 30 % (a draught, else a self-heal ability), flee when `fleeIf` says so
- * (and the fight can be fled), Guard below 25 % with no draught left, else the strike promising the most damage on the foe
- * weak to physical (else the weakest).
+ * U81b1: flee when `fleeIf` says so, or where the player fell at this level (`fellHere`), when the fight can be fled; else the class-aware fight (`classFight`: heal, Guard, the
+ * class's setup abilities on their cooldowns, the strike worth the most among its attacks and ALL its damaging abilities, the
+ * Blood price when HP is comfortable). Before U81b1 this was `meleeFight`, melee's physical-only rows, so a Wizard or a Weaver
+ * played by the explorer or the speedrunner almost never cast (D-145).
  */
-export function meleeFight(env: Env, fleeIf: (env: Env) => boolean): Action {
+export function fightWithFlight(env: Env, memory: BotMemory, fleeIf: (env: Env) => boolean, cfg: ClassFightCfg = WEAPON_FIGHT): Action {
   const { s, legal, content } = env;
   const combat = s.combat;
   if (combat === null) return fallback(legal);
-  const me = playerOf(combat);
-  const hp = healthFraction(s);
   const flee = firstOf(legal, 'flee');
-  if (flee !== undefined && combat.canFlee && fleeIf(env)) return flee;
-  const heals = healItems(env);
-  if (hp < MELEE.healItemBelow && heals[0] !== undefined) return heals[0].a;
-  const mend = mendAbility(env);
-  if (hp < MELEE.healItemBelow && mend !== undefined) return mend;
-  if (hp < MELEE.guardBelow && heals.length === 0 && firstOf(legal, 'guard') !== undefined) return { type: 'guard' };
+  if (flee !== undefined && combat.canFlee && (fleeIf(env) || fellHere(env))) return flee;
+  return classFight(s, legal, content, memory, cfg);
+}
 
-  const foes = foesOf(s);
-  const weak = (uid: string): boolean => {
-    const foe = foes.find((f) => f.uid === uid);
-    return foe !== undefined && (foe.resistances.physical === 'weak' || enemyWeakness(content, foe.refId).includes('physical'));
-  };
-  const hpOf = (uid: string | undefined): number => foes.find((f) => f.uid === uid)?.hp ?? Number.POSITIVE_INFINITY;
-  // U81a: the creatures the fight is about before what they summoned (a summoner calls more; D-110)
-  const target = [...foes].sort((a, b) => Number(a.isAdd) - Number(b.isAdd) || Number(weak(b.uid)) - Number(weak(a.uid)) || a.hp - b.hp)[0];
-  const strikes = legal.filter((a) => {
-    if (a.type === 'attack') return true;
-    if (a.type !== 'ability') return false;
-    const ab = content.abilities[a.abilityId];
-    return ab?.power !== undefined && ab.damageType === 'physical' && (a.targetUid === undefined || foes.some((f) => f.uid === a.targetUid));
-  });
-  const aim = (a: Action): string | undefined => (a.type === 'attack' || a.type === 'ability' ? a.targetUid : undefined);
-  const onTarget = strikes.filter((a) => aim(a) === undefined || aim(a) === target?.uid);
-  const pool = onTarget.length > 0 ? onTarget : strikes;
-  const best = [...pool].sort((a, b) => expectedDamage(content, me, b, foes.length) - expectedDamage(content, me, a, foes.length) || hpOf(aim(a)) - hpOf(aim(b)))[0];
-  if (best !== undefined && expectedDamage(content, me, best, foes.length) > 0) return best;
-  return firstOf(legal, 'guard') ?? fallback(legal);
+/** U81b1: the player fell in this place at this level (a reload stands next to it): this fight is left, not replayed. */
+export const fellHere = (env: Env): boolean => env.s.combat !== null && (env.n.fellAt[env.s.combat.locationId] ?? 0) >= env.s.player.level;
+
+/** The physical fighter's fight cfg (melee's heal threshold). */
+export const WEAPON_FIGHT: ClassFightCfg = { lean: 'weapon', healBelow: MELEE.healItemBelow };
+
+/** U81b1: the head's stat and unlock rows for a bot that leans to `stat` and `branches`, fitted to the class (`classStat`, `classUnlockRank`). */
+export function classHead(env: Env, stat: 'strength' | 'magic' | 'agility', branches: readonly string[]): HeadCfg {
+  const classId = env.s.player.classId;
+  return { stat: classStat(env.content, classId, stat), unlock: classUnlockRank(env.content, classId, branches) };
 }
 
 // ---- the Apex, the rest ------------------------------------------------------------------------------------------------------------
@@ -748,7 +757,7 @@ export function head(env: Env, cfg: HeadCfg): Action | undefined {
   const { s, legal, content, profile } = env;
   const portal = firstOf(legal, 'enterPortal');
   if (portal !== undefined) return portal;
-  if (hordeOn(s)) return stepAlong(legal, bfsPath(s, content, profile, s.world.currentLocationId, PORTAL_LOCATION_ID)) ?? firstOf(legal, 'wait') ?? fallback(legal);
+  if (hordeOn(s)) return stepAlong(legal, hordeRoute(s, content, profile, PORTAL_LOCATION_ID)) ?? firstOf(legal, 'wait') ?? fallback(legal);
   return pickStat(legal, cfg.stat) ?? pickUnlock(env, cfg.unlock) ?? pickEquip(env) ?? firstOf(legal, 'takeAll');
 }
 
@@ -814,7 +823,7 @@ export function towardHint(env: Env, rank: (h: { locationId: string; questId: st
   const { s, content, profile, legal, n } = env;
   const here = s.world.currentLocationId;
   const qsig = questSignature(s);
-  const hints = hintTargets(s, content);
+  const hints = questTargets(s, content, profile); // U81b1: the givers of stages with no hint too (questFollow.ts)
   if (hints.some((h) => h.locationId === here)) n.hintsReached[here] = qsig;
   const ordered = hints.map((h, i) => ({ h, i })).sort((a, b) => rank(a.h) - rank(b.h) || a.i - b.i);
   for (const { h } of ordered) {

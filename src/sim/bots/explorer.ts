@@ -22,7 +22,7 @@
 //              which survives reloads) or one that has turned it back 4 times by wanderers it fled (U38: `shunned`). No level-band
 //              rule: the explorer's job is to see the world.
 import { APEX_LOCATION_ID, dayOf, sceneForNpc, type Action } from '@engine/index';
-import { APEX_MARGIN } from './melee';
+import { APEX_MARGIN, MELEE_BRANCHES } from './melee';
 import {
   MELEE_REST,
   MELEE_THRESHOLD,
@@ -32,8 +32,8 @@ import {
   fallback,
   foeLevel,
   head,
-  meleeFight,
-  meleeUnlockRank,
+  fightWithFlight,
+  classHead,
   notesOf,
   passTime,
   pickBook,
@@ -50,7 +50,9 @@ import {
   type Notes,
   type SocialCfg,
 } from './policy';
-import { bfsPath, firstOf, healthFraction, nearestUnvisited, pressOn, questHints, questSignature, stepAlong, type PathOptions } from './shared';
+import { bfsPath, firstOf, healthFraction, nearestUnvisited, pressOn, questSignature, stepAlong, type PathOptions } from './shared';
+import { dangerAt } from './danger';
+import { questErrand, questTargets } from './questFollow';
 import type { Bot, BotMemory } from './types';
 
 export const EXPLORER = {
@@ -70,11 +72,11 @@ const SOCIAL: SocialCfg = { talk: 'scene', heartstone: 'stabilize', interact: tr
 
 const notes = (memory: BotMemory): Notes => notesOf(memory, 'explorer');
 
-function explore(env: Env): Action {
+function explore(env: Env, memory: BotMemory): Action {
   const { s, legal, content, profile, n } = env;
   const here = s.world.currentLocationId;
 
-  const early = head(env, { stat: 'strength', unlock: meleeUnlockRank });
+  const early = head(env, classHead(env, 'strength', MELEE_BRANCHES));
   if (early !== undefined) return early;
 
   const examine = pickExamine(env);
@@ -82,7 +84,9 @@ function explore(env: Env): Action {
   const book = pickBook(env, EXPLORER.maxCorruption);
   if (book !== undefined) return book;
 
-  const fell = (id: string): boolean => shunned(env, id);
+  // U81b1 (danger.ts): never through an unfleeable fight ≥ level + 4; never to a place with any such fight (it is left for later)
+  const fell = (id: string): boolean => shunned(env, id) || dangerAt(s, content, profile, id, 'pass');
+  const unsafe = (id: string): boolean => fell(id) || dangerAt(s, content, profile, id, 'visit');
   const opts: PathOptions = { avoid: fell };
 
   // a bed here at hp < 70 %, else the melee rows (draught, the walk to a bed)
@@ -96,17 +100,19 @@ function explore(env: Env): Action {
   if (trade !== undefined) return trade;
   const people = social(env, SOCIAL, (npcId) => sceneForNpc(s, content, profile, npcId)?.id);
   if (people !== undefined) return people;
+  const errand = questErrand(s, legal, content, memory); // U81b1: search a hint for an objective's item, or buy it (questFollow.ts)
+  if (errand !== undefined) return errand;
 
   // where next: the nearest place not yet entered → quest hints → the Apex → pass the time
   const day = dayOf(s.clock.ticks);
   if (day < EXPLORER.visitUntilDay) {
-    const go = stepAlong(legal, nearestUnvisited(s, content, profile, (id) => !fell(id) && id !== APEX_LOCATION_ID, opts)?.path ?? null);
+    const go = stepAlong(legal, nearestUnvisited(s, content, profile, (id) => !unsafe(id) && id !== APEX_LOCATION_ID, opts)?.path ?? null);
     if (go !== undefined) return go;
   }
   const qsig = questSignature(s);
-  if (questHints(s, content).includes(here)) n.hintsReached[here] = qsig;
-  for (const hint of questHints(s, content)) {
-    if (hint === here || n.hintsReached[hint] === qsig || fell(hint)) continue;
+  if (questTargets(s, content, profile).map((t) => t.locationId).includes(here)) n.hintsReached[here] = qsig;
+  for (const hint of questTargets(s, content, profile).map((t) => t.locationId)) {
+    if (hint === here || n.hintsReached[hint] === qsig || unsafe(hint)) continue;
     const go = stepAlong(legal, bfsPath(s, content, profile, here, hint, opts));
     if (go !== undefined) return go;
   }
@@ -129,7 +135,7 @@ export function explorerBot(): Bot {
       const env: Env = { s: state, legal, content, profile: ctx.profile, n };
       switch (state.mode) {
         case 'combat':
-          return pressOn(memory, state, legal, content, meleeFight(env, (e) => foeLevel(e.s) >= e.s.player.level + EXPLORER.fleeMargin));
+          return pressOn(memory, state, legal, content, fightWithFlight(env, memory, (e) => foeLevel(e.s) >= e.s.player.level + EXPLORER.fleeMargin));
         case 'dialogue':
           return talkThrough(env, DIALOGUE);
         case 'threshold':
@@ -137,7 +143,7 @@ export function explorerBot(): Bot {
         case 'ending':
           return firstOf(legal, 'acknowledgeEnding') ?? fallback(legal);
         case 'explore':
-          return explore(env);
+          return explore(env, memory);
         default:
           return fallback(legal);
       }

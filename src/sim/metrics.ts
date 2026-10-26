@@ -239,8 +239,14 @@ const num = (x: number): string => (Number.isInteger(x) ? String(x) : round1(x).
 const loop1Of = (r: RunResult): LoopRecord | undefined => r.loops.find((l) => l.loop === 1);
 /** Deaths in Loop 1: the loop's own count once it ended, else the run's (no loop ended: they were all Loop 1's). */
 const loop1Deaths = (r: RunResult): number => loop1Of(r)?.deaths ?? (r.loops.length === 0 ? r.deaths : 0);
-const isExpiry = (l: LoopRecord | undefined): boolean => l?.outcome === 'closer_fall' && l.reason === 'expiry';
-const isEscape = (l: LoopRecord | undefined): boolean => l?.outcome === 'closer_escape';
+/**
+ * U81b1 (D-145): the portal reached with the Tyrant untouched — the expiry Horde opens Ilyra's portal too (DESIGN §10.2) — is
+ * a clock expiry the player outran, not an Escape: DESIGN §19 #1 counts runs that "kill the Contained Tyrant and reach the
+ * portal". U80 counted it as an Escape (most of its 94–98 % were these) and missed it in the expiry rows (#15).
+ */
+const expiredEscape = (l: LoopRecord | undefined): boolean => l?.outcome === 'closer_escape' && l.tyrant === 'untouched';
+const isExpiry = (l: LoopRecord | undefined): boolean => (l?.outcome === 'closer_fall' && l.reason === 'expiry') || expiredEscape(l);
+const isEscape = (l: LoopRecord | undefined): boolean => l?.outcome === 'closer_escape' && !expiredEscape(l);
 const COMBAT_TURNS = ['attack', 'ability', 'guard', 'item', 'flee'] as const;
 const combatTurns = (r: RunResult): number => sum(COMBAT_TURNS.map((t) => r.combatActions[t] ?? 0));
 const hasEnemy = (f: FightRecord, id: string): boolean => f.enemies.includes(id);

@@ -43,7 +43,9 @@ describe('the registry', () => {
     expect(BOTS['caster']?.().preferredClasses).toEqual(['wizard', 'shadow_weaver']);
     expect(BOTS['explorer']?.().preferredClasses).toEqual(['ranger']);
     expect(BOTS['explorer']?.().examines).toBe(true);
-    expect(BOTS['caster']?.().examines).toBeUndefined();
+    // U81b1: the caster, melee and speedrunner list `examine` too, to search a quest hint for an objective's item (questFollow)
+    expect(BOTS['caster']?.().examines).toBe(true);
+    expect(BOTS['pacifist']?.().examines).toBeUndefined();
   });
 });
 

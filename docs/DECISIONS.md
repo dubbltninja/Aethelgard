@@ -2446,3 +2446,23 @@ owning unit (PLAN §9.1).
   a UI test.
 - Note: the explore tab bar and the combat menu are both `nav` "Game menu". Fine for screen readers per screen, but U78's
   audit may want distinct names.
+
+### D-139 · U78 details — in-repo a11y on every screen, the gallery, screenshots; polish findings, 2026-10-26
+- **U78 (… 6c13ec0; Sonnet, spot-reviewed):** `tools/a11y/{contrast,checks}.ts`, `tests/unit/tools/contrast.test.ts`,
+  `tests/unit/ui/galleryBoot.test.ts`, `tests/e2e/{a11y,gallery,screenshots}.spec.ts` and `src/ui/GalleryPage.tsx`.
+  `?gallery=<panel id>` is behind `__DEV__ || __E2E__`.
+  - `a11y.spec.ts` shows **zero failures** on every screen and panel, on both projects. It plants six defects to prove each
+    check reports.
+  - Full e2e 302 passed, 32 skipped (the 22 `@screens` tests among them).
+- **Bugs the checks found, both fixed:**
+  - `focusablesIn()` counted roving `tabindex="-1"` tabs, spare radios and closed `<details>` content as tab stops, so Tab
+    escaped the journal's focus trap.
+  - `.class-select__lede` was 4.22:1 on the Ruins sky.
+- **Screenshots:** 11 desktop + 11 mobile from a `--real-art` build (`SCREENSHOTS=1`). The lead reviewed them and committed
+  them as **WebP** in `docs/screenshots/{desktop,mobile}/` (15 MB of PNG → 2 MB). The spec writes PNG; convert before
+  committing.
+- **Polish findings → the fun review / U84** (from the lead's screenshot review):
+  - The "You have an ability point to spend" toast persists across screens and covers panel content on phones (Codex,
+    Inventory).
+  - The ending screen stacks four notifications under the slide.
+  - On the mobile Emberforge, a toast overlaps the tutorial callout.

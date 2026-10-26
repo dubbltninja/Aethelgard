@@ -62,7 +62,7 @@ import {
 } from './shared';
 import { classFight, classStat, classUnlockRank, healRow } from './classFight';
 import { DANGER_MARGIN, dangerAt } from './danger';
-import { questErrand, questTargets } from './questFollow';
+import { acceptable, questErrand, questTargets } from './questFollow';
 import type { Bot, BotMemory } from './types';
 
 /** PLAN §7.2 thresholds (fractions of max). */
@@ -188,7 +188,7 @@ function talkThrough(s: GameState, legal: readonly Action[], content: ContentPac
     n.apexFaced = s.meta.runId;
     return legal.find((a) => a.type === 'choose' && a.choiceId === APEX_FACE_IT) ?? fallback(legal);
   }
-  const accept = firstOf(legal, 'acceptQuest');
+  const accept = allOf(legal, 'acceptQuest').find((a) => acceptable(content, a.questId)); // U81b1: never a quest its scene carries
   if (accept !== undefined) return accept;
   const choices = allOf(legal, 'choose');
   if (choices.length > 0) return pickChoice(s, choices, content);

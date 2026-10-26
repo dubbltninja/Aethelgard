@@ -14,7 +14,7 @@ import { explorerBot } from '@sim/bots/explorer';
 import { meleeBot } from '@sim/bots/melee';
 import { PACIFIST, pacifistBot } from '@sim/bots/pacifist';
 import { apexSettled, fellHere, notesOf, type Env } from '@sim/bots/policy';
-import { npcWhere, questErrand, questTargets, wantedItems } from '@sim/bots/questFollow';
+import { acceptable, beforeAppointmentsNow, beforeNeeds, beforeTime, beforeWait, hintTimely, npcWhere, questErrand, questTargets, wantedCompanions, wantedItems } from '@sim/bots/questFollow';
 import { actionKey, bedStep, bfsPath, hordeRoute, pendingFights } from '@sim/bots/shared';
 import { runLoop } from '@sim/runner';
 import { SPEEDRUNNER, speedrunnerBot } from '@sim/bots/speedrunner';
@@ -267,6 +267,58 @@ describe('quest following (questFollow.ts)', () => {
     expect(questErrand(s, legal, real, {})).toEqual({ type: 'buy', merchantId: 'npc_kaelen_stonehand', uid: 'm2' });
     const done = edit(s, (d) => d.player.inventory.push({ uid: 'x', itemId: 'mat_steppe_salt', qty: 1, rarity: 'common', affixes: [] } as never));
     expect(questErrand(done, legal, real, {})).toBeUndefined();
+  });
+});
+
+describe("Caelum's quests: the Before's hours, the scene-carried start, the companion at your side (U81b1 second pass)", () => {
+  const real = buildContentPack();
+  const p = freshProfile();
+  /** At `at` in the Before on Bell `day`, hour `hour` (0 dawn … 3 night), the Breach-door's Echo held. */
+  const inBefore = (at: string, day: 1 | 2 | 3, hour: number, quests: Record<string, string> = {}): GameState =>
+    edit(makeState({ locationId: at, echoes: ['echo_before_route'], quests }, { content: real }), (d) => {
+      d.before = { day, resets: 0 };
+      d.counters.custom['before_watch'] = hour;
+    });
+
+  test('beforeTime reads the Bell and the hours through all/any', () => {
+    expect(beforeTime({ all: [{ location: 'loc_x' }, { beforeDay: 3 }, { watch: 'day' }] } as never)).toEqual({ day: 3, watches: ['day'] });
+    expect(beforeTime({ all: [{ beforeDay: 3 }, { any: [{ watch: 'dusk' }, { watch: 'night' }] }] } as never)).toEqual({ day: 3, watches: ['dusk', 'night'] });
+    expect(beforeTime({ flag: 'x' } as never)).toEqual({});
+  });
+
+  test('a quest its offer scene starts and advances is left to the scene (the generic Accept strands it on its first stage)', () => {
+    expect(acceptable(real, 'q_the_apprentices_errand')).toBe(false);
+    expect(acceptable(real, 'q_a_boy_from_a_doomed_city')).toBe(false);
+    expect(acceptable(real, 'q_echo_crystal')).toBe(true);
+  });
+
+  test("the errand's offer is an appointment at the Garret at noon on Last Bell: two Bells of rest, then a doze, then no wait", () => {
+    const first = inBefore('loc_apprentices_garret', 1, 0);
+    expect(beforeNeeds(first, real, p)).toContainEqual({ locationId: 'loc_apprentices_garret', time: { day: 3, watches: ['day'] } });
+    const rests: Action[] = [
+      { type: 'rest', kind: 'short' },
+      { type: 'rest', kind: 'full' },
+    ];
+    expect(beforeWait(first, rests, real, p, {}, {})).toEqual({ type: 'rest', kind: 'full' });
+    const lastBellDawn = inBefore('loc_apprentices_garret', 3, 0);
+    expect(beforeWait(lastBellDawn, rests, real, p, {}, {})).toEqual({ type: 'rest', kind: 'short' });
+    const noon = inBefore('loc_apprentices_garret', 3, 1);
+    expect(beforeAppointmentsNow(noon, real, p)).toContain('loc_apprentices_garret');
+    expect(beforeWait(noon, rests, real, p, {}, {})).toBeUndefined();
+  });
+
+  test("the Plaza is walked to only at its hour (U80's explorer reached it early, marked it and left)", () => {
+    const early = inBefore('loc_apprentices_garret', 3, 0, { q_the_apprentices_errand: 'cross' });
+    expect(hintTimely(early, real, 'loc_plaza_of_bells')).toBe(false);
+    const noon = inBefore('loc_apprentices_garret', 3, 1, { q_the_apprentices_errand: 'cross' });
+    expect(hintTimely(noon, real, 'loc_plaza_of_bells')).toBe(true);
+  });
+
+  test('an objective that asks for a companion at your side swaps that companion in', () => {
+    expect([...wantedCompanions({ all: [{ location: 'loc_x' }, { companion: { id: 'caelum' } }, { companion: { id: 'brak', state: 'recruited' } }] } as never)]).toEqual(['caelum']);
+    const s = inBefore('loc_apprentices_garret', 3, 2, { q_a_boy_from_a_doomed_city: 'door' });
+    const legal = [{ type: 'swapCompanion', companionId: 'caelum' }] as Action[];
+    expect(questErrand(s, legal, real, {})).toEqual({ type: 'swapCompanion', companionId: 'caelum' });
   });
 });
 

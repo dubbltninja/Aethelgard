@@ -56,7 +56,7 @@ import {
 } from './shared';
 import { MELEE, MELEE_BRANCHES } from './melee';
 import { classFight, classStat, classUnlockRank, type ClassFightCfg } from './classFight';
-import { questTargets } from './questFollow';
+import { acceptable, questTargets } from './questFollow';
 import { dangerAt } from './danger';
 import type { BotMemory } from './types';
 
@@ -459,7 +459,7 @@ export function talkThrough(env: Env, cfg: DialogueCfg): Action {
   const { s, legal } = env;
   if (isApexPromptOpen(s)) return apexPrompt(env, cfg.apexReady(env));
   const accept = allOf(legal, 'acceptQuest')
-    .filter((a) => cfg.accept === undefined || cfg.accept(a.questId, env))
+    .filter((a) => acceptable(env.content, a.questId) && (cfg.accept === undefined || cfg.accept(a.questId, env)))
     .sort((a, b) => (cfg.acceptRank?.(a.questId, env) ?? 0) - (cfg.acceptRank?.(b.questId, env) ?? 0))[0];
   if (accept !== undefined) return accept;
   if (allOf(legal, 'choose').length > 0) return pickChoice(env, cfg);

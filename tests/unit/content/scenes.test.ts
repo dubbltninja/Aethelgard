@@ -421,7 +421,7 @@ describe('played on the real pack', () => {
     expect(stand.scenes).toEqual(['scene_tyrant_defeat', 'scene_braks_stand']);
     expect(stand.nodes).toEqual(['breath_knew_brak', 'knew_knew_brak', 'shrieks_knew_brak', 'arrives', 'shatters', 'spills', 'no_time', 'run', 'wound', 'steel', 'waves', 'kaelen', 'named', 'spent']);
     expect([stand.state.mode, stand.state.world.currentLocationId, stand.state.clock.ticks - s.clock.ticks]).toEqual(['explore', NEXUS, 1]);
-    expect(stand.state.echoesThisLoop).toEqual(expect.arrayContaining(['echo_brak_death', 'echo_horde_path']));
+    for (const e of ['echo_brak_death', 'echo_horde_path']) expect(stand.state.echoesThisLoop).toContain(e);
     expect(stand.state.world.infected).toEqual([APEX]); // a teleport is not a move: the spread waits for the first step
     // Run instead: the Apex, and no stand
     const ran = throughDialogue(first, ['run']);
@@ -478,7 +478,7 @@ describe('played on the real pack', () => {
     expect(again.state.echoesThisLoop).toContain('echo_ilyra_cost');
     // Dray, a shelf away, has only the Horde's line
     const dray = play(arrived.state, [{ type: 'talk', npcId: 'npc_ansel_dray' }], { content: pack, profile });
-    expect([dray.state.dialogue?.sceneId, dray.events.find((e) => e.t === 'dialogueNode')]).toEqual(['scene_horde_ansel_dray', expect.objectContaining({ text: 'Go, Wayfinder! The horde approaches!' })]);
+    expect([dray.state.dialogue?.sceneId, nodesOf(dray.events)]).toEqual(['scene_horde_ansel_dray', ['go']]);
     // Loop 1: the portal costs nothing yet
     const one = makeState({ loop: 1, locationId: LIBRARY, flags: { flag_horde_active: true, flag_library_portal_open: true }, patch: (st) => hordeAt(st) }, { content: pack });
     const out = play(one, [{ type: 'talk', npcId: 'npc_ilyra' }, { type: 'continue' }, { type: 'choose', choiceId: 'yes' }], { content: pack });

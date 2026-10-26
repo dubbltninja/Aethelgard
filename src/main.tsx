@@ -1,7 +1,9 @@
 // React root (PLAN §2, §6): stylesheets, the store bootstrap and <App/> (the Shell starts the audio on the first gesture,
 // U74). e2e builds also expose `window.__aethelgard` (with `.audio`, the sound engine) for Playwright (PLAN §4.13); dev and
 // e2e builds open the sound audition page at `?audition` (U74) and boot from `?scenario=<id>` (D-104 ruling 1): the app layer — and only it — may import `@sim/scenarios`, and only
-// behind `__DEV__ || __E2E__`, so a production bundle drops the builders (tests/unit/ui/scenarioBoot.test.ts).
+// behind `__DEV__ || __E2E__`, so a production bundle drops the builders (tests/unit/ui/scenarioBoot.test.ts). e2e builds also
+// open the component gallery at `?gallery=<panel id>` (U78, src/ui/GalleryPage.tsx): one panel in the real Shell on a fixture
+// scenario, for gallery.spec.ts; a production bundle drops it too (tests/unit/ui/galleryBoot.test.ts).
 import './ui/styles/tokens.css';
 import './ui/styles/themes.css';
 import './ui/styles/base.css';
@@ -22,6 +24,7 @@ import { SCENARIO_IDS, loadScenario, type ScenarioId } from '@sim/scenarios';
 import { App } from './ui/App';
 import { mountAudition } from '@audio/sfx/audition';
 import { bootGame, type BootOptions, type Booted } from './ui/boot';
+import { GalleryApp, galleryEntry } from './ui/GalleryPage';
 import { sharedAmbient, sharedAudio } from './ui/hooks/useAudio';
 import { GameProvider } from './ui/store/useGame';
 import { GAME_TITLE, applyRootAttributes } from './ui/theme';
@@ -60,6 +63,24 @@ export function scenarioStart(search: string): BootOptions['start'] {
   return undefined;
 }
 
+/** `?gallery=<panel id>` → the component gallery's id (dev and e2e builds only; elsewhere, or for no id, null). */
+export function galleryParam(search: string): string | null {
+  if (__DEV__ || __E2E__) {
+    const id = new URLSearchParams(search).get('gallery');
+    return id === null || id === '' ? null : id;
+  }
+  return null;
+}
+
+/** The query string to boot from: the gallery's fixture scenario unless the URL names its own `?scenario=`. */
+export function bootSearch(search: string): string {
+  if (__DEV__ || __E2E__) {
+    const gallery = galleryParam(search);
+    if (gallery !== null && !new URLSearchParams(search).has('scenario')) return `?scenario=${galleryEntry(gallery).scenario}`;
+  }
+  return search;
+}
+
 const container = typeof document === 'undefined' ? null : document.getElementById('root');
 if ((__DEV__ || __E2E__) && container && new URLSearchParams(window.location.search).has('audition')) {
   document.title = 'Sound audition · Echoes of Aethelgard';
@@ -68,8 +89,10 @@ if ((__DEV__ || __E2E__) && container && new URLSearchParams(window.location.sea
 } else if (container) {
   const root = createRoot(container);
   let booted: Booted | null = null;
+  const gallery = galleryParam(window.location.search);
   try {
-    booted = bootGame({ start: scenarioStart(window.location.search) });
+    booted = bootGame({ start: scenarioStart(bootSearch(window.location.search)) });
+    if ((__DEV__ || __E2E__) && gallery !== null) galleryEntry(gallery);
   } catch (error) {
     root.render(<BootFailure message={error instanceof Error ? error.message : String(error)} />);
   }
@@ -90,7 +113,7 @@ if ((__DEV__ || __E2E__) && container && new URLSearchParams(window.location.sea
     root.render(
       <StrictMode>
         <GameProvider value={store}>
-          <App />
+          {(__DEV__ || __E2E__) && gallery !== null ? <GalleryApp id={gallery} /> : <App />}
         </GameProvider>
       </StrictMode>,
     );

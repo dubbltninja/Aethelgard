@@ -245,7 +245,8 @@
 }
 
 .class-select__lede {
-  color: var(--text-muted);
+  /* it sits on the Ruins sky gradient, whose lower end (#4a3f6b) is too light for the muted text (U78: 4.22:1) */
+  color: var(--text-primary);
 }
 
 .class-select {

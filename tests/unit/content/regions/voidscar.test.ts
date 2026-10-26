@@ -270,19 +270,19 @@ describe('the two locations vs WORLD §3.3 blocks', () => {
     expect(WL[CHASM]?.block).toContain('**Encounters:** none at the lip. return: pool 20% only if Weavers ≤ Wary (Nyx withdraws her protection).');
   });
 
-  test('the Hollow: group A ×2 then group B ×1 (the legacy three), both 100 %, `scatter`; in Loop 2+ with the Weavers Wary a Veil Sentry joins B', () => {
+  test('the Hollow: group A ×2 then group B ×1 (the legacy three), both 100 %, `regroup` (D-144: the shards come back at dawn); in Loop 2+ with the Weavers Wary a Veil Sentry joins B', () => {
     const enc = loc(HOLLOW).encounters;
     expect(WL[HOLLOW]?.block).toContain('first: group A cr_void_touched_stalker ×2 (100%), then group B cr_void_touched_stalker ×1 (100%) — the legacy three.');
     expect(WL[HOLLOW]?.block).toContain('Weavers Wary/Hostile, Loop 2+: cr_veil_sentry ×1 joins group B.');
     expect(enc.map((e) => e.id)).toEqual(['enc_hollow_stalkers_a', 'enc_hollow_group_b_sentry', 'enc_hollow_group_b', 'enc_hollow_stalker', 'enc_hollow_pool_sentry']);
     const a = byId(enc, 'enc_hollow_stalkers_a');
-    expect([a.groups, a.chance, a.once, a.respawn, a.fleeable, a.onFlee, a.when]).toEqual([[{ creatureId: STALKER, count: 2 }], 1, true, 'never', true, 'scatter', undefined]);
+    expect([a.groups, a.chance, a.once, a.respawn, a.fleeable, a.onFlee, a.when]).toEqual([[{ creatureId: STALKER, count: 2 }], 1, true, 'never', true, 'regroup', undefined]);
     const joined = { all: [{ loop: { min: 2 } }, { rep: { faction: 'weavers', max: -10 } }] };
     const bs = byId(enc, 'enc_hollow_group_b_sentry');
     const b = byId(enc, 'enc_hollow_group_b');
     expect([bs.groups, bs.when]).toEqual([[{ creatureId: STALKER, count: 1 }, { creatureId: SENTRY, count: 1 }], joined]);
     expect([b.groups, b.when]).toEqual([[{ creatureId: STALKER, count: 1 }], { not: joined }]);
-    for (const e of [bs, b]) expect([e.id, e.chance, e.once, e.respawn, e.fleeable, e.onFlee, e.onVictory]).toEqual([e.id, 1, true, 'never', true, 'scatter', [{ scatter: { location: HOLLOW } }]]);
+    for (const e of [bs, b]) expect([e.id, e.chance, e.once, e.respawn, e.fleeable, e.onFlee, e.onVictory]).toEqual([e.id, 1, true, 'never', true, 'regroup', [{ scatter: { location: HOLLOW } }]]);
     // WORLD §12.1 `ws_weavers_wary`: `{rep:{faction:"weavers",max:-10}}`, "VH: cr_veil_sentry joins group B (Loop 2+)"
     expect(tableRows(section(WORLD, '### 12.1', '### 12.2')).find((c) => unquote(c[0] ?? '') === 'ws_weavers_wary')?.[2]).toBe('`{rep:{faction:"weavers",max:-10}}`');
     // return: a Stalker (35 %), then the pool's 20 %
@@ -644,8 +644,8 @@ describe('the region in the engine (real pack, seeded)', () => {
   test('the first visit to the Hollow: group A, two Stalkers; the legacy three are two fights, B on the next arrival', () => {
     const first = { ...journal, stood: { [HOLLOW]: { first: true as const } } };
     expect(fight(CHASM, HOLLOW, first)).toEqual({ id: 'enc_hollow_stalkers_a', enemies: [STALKER, STALKER], canFlee: true });
-    expect(arrive(CHASM, HOLLOW, first).combat).toMatchObject({ onFlee: 'scatter' });
-    // A fought (cleared) or fled (scattered): the next arrival is group B, one Stalker
+    expect(arrive(CHASM, HOLLOW, first).combat).toMatchObject({ onFlee: 'regroup' });
+    // A fought (cleared) or scattered (a `scatter` effect): the next arrival is group B, one Stalker
     for (const gone of [{ cleared: ['enc_hollow_stalkers_a'] }, { scattered: ['enc_hollow_stalkers_a'] }]) {
       expect(fight(CHASM, HOLLOW, { ...journal, stood: { [HOLLOW]: gone } })).toEqual({ id: 'enc_hollow_group_b', enemies: [STALKER], canFlee: true });
     }

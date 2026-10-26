@@ -39,8 +39,11 @@
 // `spawn` effect placed here; the location's fixed encounters (not scattered or cleared, `when` holds, not bypassable
 // by `optionalWhen`; `first:` groups below 100 % roll on the loop's first visit only, `respawn: 'on_return'` groups on
 // later visits); then, on a return visit to a non-`safe` node, the region's wandering pool at its return chance
-// (1 creature 70 %, 2 creatures 30 %). Nothing rolls on Retreat or *Not yet*. Under Horde Rising (U34b, `hordeRising`)
-// a fixed or wandering fight then gains +1 pool creature and elite variants, on its own Rng stream.
+// (1 creature 70 %, 2 creatures 30 %). A group fled with `hold` (its HP in `encounterHp`, until dawn) skips its first/return
+// rule and its chance: it re-fires on the next arrival (D-143). A group fled with `regroup` is gone until the next dawn (the
+// first arrival after the flight always passes; `encounterClearedDay`, combat/flee.ts), then a first-visit one fires on the
+// next arrival the same way until beaten (D-144). Nothing rolls on Retreat or *Not yet*. Under Horde Rising
+// (U34b, `hordeRising`) a fixed or wandering fight then gains +1 pool creature and elite variants, on its own Rng stream.
 // Anomalies (U34e; DESIGN §6.6, WORLD §10.2; `anomalyEncounter`): from Loop 2, a `move` onto a non-`safe` node that starts
 // no fixed fight rolls 10 % + 5 %·(loop − 1) (capped at 30 %; +10 % at night, DESIGN §10.1) for one of the region's
 // `cr_anomaly_*` variants whose `anomaly` spec holds, before the wandering pool; on its own Rng stream, like Horde Rising.
@@ -552,7 +555,10 @@ function clearEncounter(ctx: StepCtx, combat: CombatState): void {
   const ls = locationState(ctx, combat.locationId);
   const enc = content.locations[combat.locationId]?.encounters.find((e) => e.id === id) ?? content.encounters[id];
   if (enc?.respawn === 'daily') ls.encounterClearedDay[id] = dayOf(s.clock.ticks);
-  else if (enc?.once && !ls.encountersCleared.includes(id)) ls.encountersCleared.push(id);
+  else {
+    delete ls.encounterClearedDay[id]; // D-144: a regrouped group, beaten, is back to its own rule
+    if (enc?.once && !ls.encountersCleared.includes(id)) ls.encountersCleared.push(id);
+  }
   const pending = s.world.pendingEncounters[combat.locationId];
   if (pending) {
     const left = pending.filter((sp) => sp.id !== id);
@@ -984,10 +990,17 @@ export function arrivalEncounter(ctx: StepCtx, arrival: Arrival): EncounterSpec 
   for (const enc of loc.encounters) {
     if (ls.scattered.includes(enc.id)) continue;
     if (enc.respawn === 'daily' ? ls.encounterClearedDay[enc.id] === today : enc.once && ls.encountersCleared.includes(enc.id)) continue;
-    if (enc.respawn === 'on_return' ? arrival.firstVisit : enc.respawn === 'never' && enc.chance < 1 && !arrival.firstVisit) continue;
+    // D-144: a group fled with `regroup` is gone until the next dawn (the walk straight back in always passes; combat/flee.ts
+    // records the day), then gathers again whole: a first-visit group fires on the next arrival
+    // whatever its roll until beaten (its drops are back); a return group rolls as ever
+    const fledDay = enc.onFlee === 'regroup' && enc.respawn !== 'daily' ? ls.encounterClearedDay[enc.id] : undefined;
+    if (fledDay !== undefined && fledDay >= today) continue;
+    // D-143: a group fled with `hold` waits, wounded, until dawn and re-fires on the next arrival whatever its roll
+    const held = ls.encounterHp[enc.id] !== undefined || (fledDay !== undefined && enc.respawn === 'never');
+    if (!held && (enc.respawn === 'on_return' ? arrival.firstVisit : enc.respawn === 'never' && enc.chance < 1 && !arrival.firstVisit)) continue;
     if (enc.when !== undefined && !evaluate(enc.when, s, profile, content)) continue;
     if (enc.optionalWhen !== undefined && evaluate(enc.optionalWhen, s, profile, content)) continue;
-    if (!ctx.rng.chance(enc.chance)) continue;
+    if (!held && !ctx.rng.chance(enc.chance)) continue;
     return hordeRising(ctx, loc, encounterSpec(enc));
   }
   const anomaly = anomalyEncounter(ctx, loc, arrival); // U34e (DESIGN §6.6)

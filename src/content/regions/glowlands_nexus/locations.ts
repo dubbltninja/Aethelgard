@@ -51,12 +51,13 @@ export const locations = [
       { itemId: 'mat_glow_gland', chance: 0.5 },
     ],
     encounters: [
-      // legacy: the Glowfen Mireling (100 %, first visit); `scatter` (WORLD §10.5: never a story gate)
-      { id: 'enc_glowlands_mireling', groups: [{ creatureId: 'cr_glowfen_mireling' }], intro: 'Something man-high rises out of the reeds, glowing from the throat down.' },
+      // legacy: the Glowfen Mireling (100 %, first visit); `regroup` (D-144: the Glow Moss; WORLD §10.5 had `scatter`: still passable that day)
+      { id: 'enc_glowlands_mireling', groups: [{ creatureId: 'cr_glowfen_mireling' }], onFlee: 'regroup', intro: 'Something man-high rises out of the reeds, glowing from the throat down.' },
       // return: a Lantern Toad and a Spore Drift together, 30 %; else the region pool at 20 %
       {
         id: 'enc_glowlands_toad_spore',
         groups: [{ creatureId: 'cr_lantern_toad' }, { creatureId: 'cr_spore_drift' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.3,
         once: false,
         respawn: 'on_return',
@@ -117,8 +118,8 @@ export const locations = [
       { itemId: 'item_orrery_key', when: { loop: { min: 2 } } },
     ],
     encounters: [
-      // legacy: the Temporal Aberration (100 %, first visit); the elite one step from the finale (WORLD §10.4); `scatter`
-      { id: 'enc_nexus_aberration', groups: [{ creatureId: 'cr_temporal_aberration' }], intro: 'By the orrery something flickers between where it stood and where it will stand.' },
+      // legacy: the Temporal Aberration (100 %, first visit); the elite one step from the finale (WORLD §10.4); `regroup` (D-144: the Aberrant Eye is back at dawn; WORLD §10.5 had `scatter`)
+      { id: 'enc_nexus_aberration', groups: [{ creatureId: 'cr_temporal_aberration' }], onFlee: 'regroup', intro: 'By the orrery something flickers between where it stood and where it will stand.' },
       // Loop 4+ (WORLD §12.1 `ws_loop_4`): the Hour Leech, 15 % — first among the return rolls so its 15 % is WORLD's
       {
         id: 'enc_nexus_hour_leech',

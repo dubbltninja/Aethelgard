@@ -94,6 +94,7 @@ export const locations = [
       {
         id: 'enc_mouth_sentries',
         groups: [{ creatureId: 'cr_veil_sentry', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         when: WEAVERS_WARY,
         optionalWhen: VEIL_SIGIL,
         once: false,
@@ -139,6 +140,7 @@ export const locations = [
       {
         id: 'enc_stair_null_mouth',
         groups: [{ creatureId: 'cr_null_mouth' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.6,
         intro: 'Halfway down, the wall opens a mouth where the thread ends.',
       },
@@ -146,6 +148,7 @@ export const locations = [
       {
         id: 'enc_stair_pool_sentry',
         groups: [{ creatureId: 'cr_veil_sentry' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.04,
         when: WEAVERS_WARY,
         once: false,
@@ -210,6 +213,7 @@ export const locations = [
       {
         id: 'enc_shelf_stalkers',
         groups: [{ creatureId: 'cr_void_touched_stalker', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.6,
         intro: 'Two shapes come over the lip of the ledge, eyes like cold stars.',
       },
@@ -217,6 +221,7 @@ export const locations = [
       {
         id: 'enc_shelf_pool_sentry',
         groups: [{ creatureId: 'cr_veil_sentry' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.04,
         when: WEAVERS_WARY,
         once: false,
@@ -273,6 +278,7 @@ export const locations = [
       {
         id: 'enc_gallery_pool_sentry',
         groups: [{ creatureId: 'cr_veil_sentry' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.04,
         when: WEAVERS_WARY,
         once: false,
@@ -320,12 +326,14 @@ export const locations = [
       {
         id: 'enc_orchard_null_mouths',
         groups: [{ creatureId: 'cr_null_mouth', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         intro: 'Between two trees that are not there, two mouths with no heads turn toward the sound of your breathing.',
       },
       // return: a Null Mouth (35 %), and no pool (see the header)
       {
         id: 'enc_orchard_null_mouth_return',
         groups: [{ creatureId: 'cr_null_mouth' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.35,
         once: false,
         respawn: 'on_return',

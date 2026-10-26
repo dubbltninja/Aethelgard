@@ -241,13 +241,13 @@ describe('the three locations vs WORLD §3.5 blocks', () => {
     }
   });
 
-  test('the legacy fixed fights (the Mireling, the Aberration): 100 %, once, on the first visit, `scatter` (WORLD §10.5)', () => {
+  test('the legacy fixed fights (the Mireling, the Aberration): 100 %, once, on the first visit; WORLD §10.5’s `scatter` is `regroup` since D-144 (the Glow Moss, the Aberrant Eye)', () => {
     for (const [l, id, creature] of [
       [GLOWLANDS, 'enc_glowlands_mireling', 'cr_glowfen_mireling'],
       [NEXUS, 'enc_nexus_aberration', 'cr_temporal_aberration'],
     ] as const) {
       const e = byId(loc(l).encounters, id);
-      expect([id, e.groups, e.chance, e.once, e.respawn, e.fleeable, e.onFlee, e.when]).toEqual([id, [{ creatureId: creature, count: 1 }], 1, true, 'never', true, 'scatter', undefined]);
+      expect([id, e.groups, e.chance, e.once, e.respawn, e.fleeable, e.onFlee, e.when]).toEqual([id, [{ creatureId: creature, count: 1 }], 1, true, 'never', true, 'regroup', undefined]);
       expect(loc(l).encounters[0]?.id).toBe(id);
     }
     expect(flat(section(WORLD, '### 10.5', '### 10.6'))).toContain('the legacy Apex-road fights (Phantom, Weaver, Sentinel, Mireling, Aberration) are `scatter`');

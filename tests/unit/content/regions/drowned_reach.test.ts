@@ -310,15 +310,15 @@ describe('the eight locations vs WORLD §3.6 blocks', () => {
     expect(WL[DS]?.block).toContain('first: cr_brine_lamprey ×2 (60%). return: pool(drowned) 20%.');
     expect(shape(DS, 'enc_stair_lampreys')).toEqual([['cr_brine_lamprey×2'], 0.6, 'never', true, true, 'scatter']);
     expect(WL[TW]?.block).toContain('first: cr_tide_clerk ×1 + cr_drowned_archivist ×1 (100%).');
-    expect(shape(TW, 'enc_tidewell_clerk_archivist')).toEqual([['cr_tide_clerk×1', 'cr_drowned_archivist×1'], 1, 'never', true, true, 'scatter']);
+    expect(shape(TW, 'enc_tidewell_clerk_archivist')).toEqual([['cr_tide_clerk×1', 'cr_drowned_archivist×1'], 1, 'never', true, true, 'regroup']);
     expect(WL[CI]?.block).toContain('first: cr_pale_diver ×2 (70%). return: pool 20%.');
     expect(shape(CI, 'enc_cistern_divers')).toEqual([['cr_pale_diver×2'], 0.7, 'never', true, true, 'scatter']);
     expect(WL[SY]?.block).toContain('first: cr_ledger_choir ×1 + cr_drowned_archivist ×2 (100%; elite guard).');
-    expect(shape(SY, 'enc_scriptorium_choir')).toEqual([['cr_ledger_choir×1', 'cr_drowned_archivist×2'], 1, 'never', true, true, 'scatter']);
+    expect(shape(SY, 'enc_scriptorium_choir')).toEqual([['cr_ledger_choir×1', 'cr_drowned_archivist×2'], 1, 'never', true, true, 'regroup']);
     expect(WL[BS]?.block).toContain('first: cr_brine_lamprey ×3 (100%).');
     expect(shape(BS, 'enc_sluice_lampreys')).toEqual([['cr_brine_lamprey×3'], 1, 'never', true, true, 'scatter']);
     expect(WL[BM]?.block).toContain('first: cr_bell_ringer ×1 + cr_drowned_archivist ×1 (100%).');
-    expect(shape(BM, 'enc_bellmouth_ringer')).toEqual([['cr_bell_ringer×1', 'cr_drowned_archivist×1'], 1, 'never', true, true, 'scatter']);
+    expect(shape(BM, 'enc_bellmouth_ringer')).toEqual([['cr_bell_ringer×1', 'cr_drowned_archivist×1'], 1, 'never', true, true, 'regroup']);
     const boss = e(BW, 'enc_deep_bell_warden');
     expect([boss.groups, boss.fleeable, boss.onFlee, boss.chance, boss.optionalWhen]).toEqual([[{ creatureId: WARDEN, count: 1 }], false, 'hold', 1, { echo: 'echo_rhune_choice' }]);
     expect(WL[BW]?.block).toContain('**forced boss:** cr_bell_warden ×1 (adds cr_brine_lamprey). Pacifist bypass exists (see §10).');
@@ -998,10 +998,10 @@ describe('the region in the engine (real pack, seeded)', () => {
 
   test('the Scriptorium’s first visit is the Choir and two readers (100 %, fleeable scatter); the Bellmouth’s the Ringer and one reader', () => {
     const sy = arrive(LR, SY, {}, ['ev_scriptorium_hand']);
-    expect(sy.combat).toMatchObject({ encounterId: 'enc_scriptorium_choir', canFlee: true, onFlee: 'scatter' });
+    expect(sy.combat).toMatchObject({ encounterId: 'enc_scriptorium_choir', canFlee: true, onFlee: 'regroup' });
     expect(sy.combat?.enemies.map((e) => e.refId)).toEqual(['cr_ledger_choir', 'cr_drowned_archivist', 'cr_drowned_archivist']);
     const bm = arrive(LR, BM);
-    expect(bm.combat).toMatchObject({ encounterId: 'enc_bellmouth_ringer', canFlee: true, onFlee: 'scatter' });
+    expect(bm.combat).toMatchObject({ encounterId: 'enc_bellmouth_ringer', canFlee: true, onFlee: 'regroup' });
     expect(bm.combat?.enemies.map((e) => e.refId)).toEqual(['cr_bell_ringer', 'cr_drowned_archivist']);
   });
 

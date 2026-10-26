@@ -339,14 +339,14 @@ describe('the eight locations vs WORLD §3.9 blocks', () => {
     expect(WL[LC]?.block).toContain('first: cr_lantern_toad ×2 (50%). return: pool(glowfen) 20%.');
     expect(shape(LC, 'enc_causeway_toads')).toEqual([['cr_lantern_toad×2'], 0.5, 'never', true, true, 'scatter', undefined]);
     expect(WL[LS]?.block).toContain('first: cr_spore_drift ×2 (70%). return: cr_glowfen_mireling ×2 (30%) or pool 20%.');
-    expect(shape(LS, 'enc_shallows_spore_drifts')).toEqual([['cr_spore_drift×2'], 0.7, 'never', true, true, 'scatter', undefined]);
+    expect(shape(LS, 'enc_shallows_spore_drifts')).toEqual([['cr_spore_drift×2'], 0.7, 'never', true, true, 'regroup', undefined]);
     expect(WL[EM]?.block).toContain('first: cr_reed_stalker ×1 + cr_glowfen_mireling ×1 (60%). return: cr_barrow_light ×1 (20%) or pool 20%.');
-    expect(shape(EM, 'enc_mangrove_stalker_mireling')).toEqual([['cr_reed_stalker×1', 'cr_glowfen_mireling×1'], 0.6, 'never', true, true, 'scatter', undefined]);
+    expect(shape(EM, 'enc_mangrove_stalker_mireling')).toEqual([['cr_reed_stalker×1', 'cr_glowfen_mireling×1'], 0.6, 'never', true, true, 'regroup', undefined]);
     expect(WL[FB]?.block).toContain('first: cr_barrow_light ×1 (100%, dusk/night; 40% by day). return: cr_barrow_light ×1 (30%).');
     expect(shape(FB, 'enc_barrows_light_night')).toEqual([['cr_barrow_light×1'], 1, 'never', true, true, 'scatter', DUSK_NIGHT]);
     expect(shape(FB, 'enc_barrows_light_day')).toEqual([['cr_barrow_light×1'], 0.4, 'never', true, true, 'scatter', { not: DUSK_NIGHT }]);
     expect(WL[PG]?.block).toContain('first: cr_glowfen_mireling ×3 (100%). return: cr_reed_stalker ×2 (40%).');
-    expect(shape(PG, 'enc_gullet_mirelings')).toEqual([['cr_glowfen_mireling×3'], 1, 'never', true, true, 'scatter', undefined]);
+    expect(shape(PG, 'enc_gullet_mirelings')).toEqual([['cr_glowfen_mireling×3'], 1, 'never', true, true, 'regroup', undefined]);
     const boss = e(MH, 'enc_hall_matron');
     expect([boss.groups, boss.fleeable, boss.onFlee, boss.chance, boss.optionalWhen]).toEqual([
       [{ creatureId: MATRON, count: 1 }],
@@ -361,10 +361,11 @@ describe('the eight locations vs WORLD §3.9 blocks', () => {
     expect(row?.[1]).toBe('none');
     expect(row?.[2]).toBe('MH without Mireya + lit `item_mireyas_lantern`');
     expect(row?.[3]).toBe('PG, FB (dusk/night)');
-    // every fight but the Matron's can be fled (a scatter node)
+    // every fight but the Matron's can be fled (a scatter node; D-144: a group that drops Glow Moss or the Antidote Root regroups)
+    const regroup = ['enc_shallows_spore_drifts', 'enc_shallows_mirelings', 'enc_mangrove_stalker_mireling', 'enc_gullet_mirelings'];
     const fleeable = parsedLocations.flatMap((l) => l.encounters.filter((x) => x.id !== 'enc_hall_matron').map((x) => [x.id, x.fleeable, x.onFlee]));
     expect(fleeable).toHaveLength(10); // D-098 retired the two dusk-and-night pool-share groups
-    for (const row of fleeable) expect(row.slice(1)).toEqual([true, 'scatter']);
+    for (const row of fleeable) expect(row.slice(1)).toEqual([true, regroup.includes(row[0] as string) ? 'regroup' : 'scatter']);
   });
 
   test('return rolls at WORLD’s chances, each ahead of the pool’s 20 %; the pool’s dusk-and-night barrow light holds at the Shallows and the Mangrove, not the Causeway (D-098; rule 11); the Pool, Lanternreed, the Barrows, the Gullet and the Hall name no pool, so they are `safe`', () => {
@@ -1069,7 +1070,7 @@ describe('the region in the engine (real pack, seeded)', () => {
 
   test('the Gullet: three Mirelings at 100 % on the first visit; on a return, two Reed Stalkers 40 % of the time and no pool', () => {
     const s = arrive(EM, PG, { seed: 'u47g-g' }).state;
-    expect(s.combat).toMatchObject({ encounterId: 'enc_gullet_mirelings', canFlee: true, onFlee: 'scatter' });
+    expect(s.combat).toMatchObject({ encounterId: 'enc_gullet_mirelings', canFlee: true, onFlee: 'regroup' });
     expect(s.combat?.enemies.map((e) => e.refId)).toEqual([MIRELING, MIRELING, MIRELING]);
     const N = 400;
     const ret = tally(N, (i) => back(EM, PG, i));

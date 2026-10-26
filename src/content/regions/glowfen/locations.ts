@@ -154,6 +154,7 @@ export const locations = [
       {
         id: 'enc_shallows_spore_drifts',
         groups: [{ creatureId: 'cr_spore_drift', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.7,
         intro: 'The light-dust above the water thickens and drifts toward you against the wind.',
       },
@@ -161,6 +162,7 @@ export const locations = [
       {
         id: 'enc_shallows_mirelings',
         groups: [{ creatureId: 'cr_glowfen_mireling', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.3,
         once: false,
         respawn: 'on_return',
@@ -212,6 +214,7 @@ export const locations = [
       {
         id: 'enc_mangrove_stalker_mireling',
         groups: [{ creatureId: 'cr_reed_stalker' }, { creatureId: 'cr_glowfen_mireling' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.6,
         intro: 'The reeds go still. One of them is watching you, and something webbed rises beside it.',
       },
@@ -349,10 +352,11 @@ export const locations = [
     ],
     items: [{ itemId: 'mat_glow_gland', count: 2 }],
     encounters: [
-      // first: Glowfen Mirelings ×3 (100 %; a scatter node, WORLD §10.4)
+      // first: Glowfen Mirelings ×3 (100 %; WORLD §10.4 made it a scatter node; `regroup` since D-144)
       {
         id: 'enc_gullet_mirelings',
         groups: [{ creatureId: 'cr_glowfen_mireling', count: 3 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         intro: 'Three Mirelings stand in the fast water ahead, lit white, and the current at your back wants you to go on.',
       },
       // return: Reed Stalkers ×2 (40 %), and no pool (see the header)

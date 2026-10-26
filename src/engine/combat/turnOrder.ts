@@ -311,9 +311,15 @@ export const levelHpMult = (level: number, levels: number): number => (levels ==
 export const levelStatMult = (level: number, levels: number): number => (levels === 0 ? 1 : fodderAtk(level + levels) / fodderAtk(level));
 
 /**
+ * The key of a held creature's HP in `LocationState.encounterHp[encounterId]` (DESIGN §4.7, combat/flee.ts): its creature
+ * id for the first of its kind in the group, then `id#2`, `id#3` (a pair of Stalkers keeps two wounds, not one).
+ */
+export const heldHpKey = (creatureId: string, nth: number): string => (nth <= 1 ? creatureId : `${creatureId}#${nth}`);
+
+/**
  * An enemy Combatant from its creature record (PLAN §5.4): stats × the loop nudge (HP rounded half-up), accuracy
  * `85 + ⌊AGI/2⌋`, evasion `⌊AGI/2⌋`, crit `5 + ⌊AGI/2⌋` (DESIGN §3.2: one rule for every combatant). `hp` overrides the
- * starting HP (a fled boss keeps its HP until dawn, `LocationState.encounterHp`).
+ * starting HP (a fled held group keeps its HP until dawn, `LocationState.encounterHp`).
  */
 export function enemyCombatant(ctx: StepCtx, creatureId: string, name: string, hp?: number): Combatant {
   const { content } = ctx;
@@ -484,7 +490,10 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
   const locationId = s.world.currentLocationId;
   const held = s.world.locationStates[locationId]?.encounterHp[spec.id];
   const names = enemyNames(content, creatureIds);
-  const enemies = creatureIds.map((id, i) => enemyCombatant(ctx, id, names[i] ?? id, held?.[id]));
+  // a held group (DESIGN §4.7, D-143): each creature by its kind and place (`heldHpKey`); one felled before the flight is whole
+  const nth: Record<string, number> = {};
+  const heldHp = (id: string): number | undefined => held?.[heldHpKey(id, (nth[id] = (nth[id] ?? 0) + 1))];
+  const enemies = creatureIds.map((id, i) => enemyCombatant(ctx, id, names[i] ?? id, held === undefined ? undefined : heldHp(id)));
   if (spec.ambush) addTag(party[0] as Combatant, AMBUSH_TAG); // U34e: the onset hazards read it (reducers/combat.ts)
   shareInitiative(content, enemies); // U34e: the One Herd
   enemies.forEach((e, i) => void (spec.elites?.[i] && makeEliteVariant(e))); // Horde Rising (U34b)

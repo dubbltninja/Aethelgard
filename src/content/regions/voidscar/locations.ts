@@ -6,9 +6,10 @@
 //
 // The Hollow's two groups (WORLD §3.3, §10.4: "two groups; R10-1 rules the Stalkers `scatter`"): group A ×2 and group B ×1 are two
 // fixed encounters. The engine fires one fixed group per arrival (reducers/combat.ts `arrivalEncounter`), so A is the first
-// visit's fight and B the next arrival's; a flight from A scatters A alone and B stands for the next arrival. Weavers Wary
-// or Hostile in Loop 2+, B is the same stalker with a Veil Sentry beside it (WORLD §12.1 `ws_weavers_wary`); the plain B
-// waits on `not` that, and a victory in either B scatters the other, so the slot is paid once however the standing moves.
+// visit's fight and B the next arrival's; a flight from A sends A off until dawn (`regroup`, D-144: its shards come back
+// with it) and B stands for the next arrival. Weavers Wary or Hostile in Loop 2+, B is the same stalker with a Veil Sentry
+// beside it (WORLD §12.1 `ws_weavers_wary`); the plain B waits on `not` that, and a victory in either B
+// scatters the other, so the slot is paid once however the standing moves.
 //
 // The Weavers-Wary pool (WORLD §10.1): the pool cannot be conditioned, so (as U42's Plaza and U45's Nexus) a pool share is a
 // location encounter ahead of the pool roll. At the Hollow the sentry's 40 % of the pool's 20 % return rolls is 8 % per return
@@ -67,6 +68,7 @@ export const locations = [
       {
         id: 'enc_chasm_sentry',
         groups: [{ creatureId: 'cr_veil_sentry' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.08,
         when: WEAVERS_WARY,
         once: false,
@@ -76,6 +78,7 @@ export const locations = [
       {
         id: 'enc_chasm_stalker',
         groups: [{ creatureId: 'cr_void_touched_stalker' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.12 / 0.92,
         when: WEAVERS_WARY,
         once: false,
@@ -121,16 +124,18 @@ export const locations = [
     // U34e (D-105): "Heartstone exploited: the Hollow's crystal glows brighter (Void-touched +1 level variant encounters)"
     levelBonus: [{ when: { flag: 'flag_heartstone_exploited' }, creatures: ['cr_void_touched_stalker'], levels: 1 }],
     encounters: [
-      // first: group A ×2 (100 %), the legacy three's first two (the legacy fight, scatter: WORLD §10.4)
+      // first: group A ×2 (100 %), the legacy three's first two (the legacy fight; WORLD §10.4 had `scatter`, D-144 `regroup`)
       {
         id: 'enc_hollow_stalkers_a',
         groups: [{ creatureId: 'cr_void_touched_stalker', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         intro: 'Two shapes pull loose from the scree, eyes like cold stars.',
       },
       // then group B ×1 (100 %): with a sentry beside it in Loop 2+ while the Weavers are Wary or Hostile, else alone
       {
         id: 'enc_hollow_group_b_sentry',
         groups: [{ creatureId: 'cr_void_touched_stalker' }, { creatureId: 'cr_veil_sentry' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         when: SENTRY_JOINS_B,
         onVictory: [{ scatter: { location: 'loc_voidscar_hollow' } }],
         intro: 'A Weaver in grey thread stands beside it, counting.',
@@ -138,6 +143,7 @@ export const locations = [
       {
         id: 'enc_hollow_group_b',
         groups: [{ creatureId: 'cr_void_touched_stalker' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         when: { not: SENTRY_JOINS_B },
         onVictory: [{ scatter: { location: 'loc_voidscar_hollow' } }],
         intro: 'A third comes down the slope behind them, unhurried.',
@@ -146,6 +152,7 @@ export const locations = [
       {
         id: 'enc_hollow_stalker',
         groups: [{ creatureId: 'cr_void_touched_stalker' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.35,
         once: false,
         respawn: 'on_return',
@@ -155,6 +162,7 @@ export const locations = [
       {
         id: 'enc_hollow_pool_sentry',
         groups: [{ creatureId: 'cr_veil_sentry' }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.08,
         when: WEAVERS_WARY,
         once: false,

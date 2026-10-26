@@ -343,13 +343,13 @@ describe('the eight locations vs WORLD §3.8 blocks', () => {
     expect(WL[VM]?.block).toContain('first: cr_hollow_lantern ×2 (50%). return: pool(veil) 20%.');
     expect(shape(VM, 'enc_mouth_lanterns')).toEqual([['cr_hollow_lantern×2'], 0.5, 'never', true, true, 'scatter']);
     expect(WL[SU]?.block).toContain('first: cr_null_mouth ×1 (60%). return: pool 20%.');
-    expect(shape(SU, 'enc_stair_null_mouth')).toEqual([['cr_null_mouth×1'], 0.6, 'never', true, true, 'scatter']);
+    expect(shape(SU, 'enc_stair_null_mouth')).toEqual([['cr_null_mouth×1'], 0.6, 'never', true, true, 'regroup']);
     expect(WL[SH]?.block).toContain('first: cr_void_touched_stalker ×2 (60%). return: pool 20%.');
-    expect(shape(SH, 'enc_shelf_stalkers')).toEqual([['cr_void_touched_stalker×2'], 0.6, 'never', true, true, 'scatter']);
+    expect(shape(SH, 'enc_shelf_stalkers')).toEqual([['cr_void_touched_stalker×2'], 0.6, 'never', true, true, 'regroup']);
     expect(WL[VY]?.block).toContain('first: cr_starved_shadow ×1 (70%).');
     expect(shape(VY, 'enc_gallery_shadow')).toEqual([['cr_starved_shadow×1'], 0.7, 'never', true, true, 'scatter']);
     expect(WL[NO]?.block).toContain('first: cr_null_mouth ×2 (100%).');
-    expect(shape(NO, 'enc_orchard_null_mouths')).toEqual([['cr_null_mouth×2'], 1, 'never', true, true, 'scatter']);
+    expect(shape(NO, 'enc_orchard_null_mouths')).toEqual([['cr_null_mouth×2'], 1, 'never', true, true, 'regroup']);
     const boss = e(EY, 'enc_eye_umbra');
     expect([boss.groups, boss.fleeable, boss.onFlee, boss.chance, boss.optionalWhen]).toEqual([
       [{ creatureId: UMBRA, count: 1 }],
@@ -1031,7 +1031,7 @@ describe('the region in the engine (real pack, seeded)', () => {
       for (let i = 0; i < 30; i++) {
         const s = arrive(SU, VM, { seed: `u47-wary-${i}`, reputation: { weavers: rep } });
         expect([rep, s.mode, s.combat?.encounterId, s.combat?.enemies.map((e) => e.refId)]).toEqual([rep, 'combat', 'enc_mouth_sentries', [SENTRY, SENTRY]]);
-        expect(s.combat).toMatchObject({ canFlee: true, onFlee: 'scatter' });
+        expect(s.combat).toMatchObject({ canFlee: true, onFlee: 'regroup' }); // D-144: a sentry's 15 % shard
         const again = back(SU, VM, i, { reputation: { weavers: rep } });
         expect([rep, again.mode, again.combat?.encounterId]).toEqual([rep, 'combat', 'enc_mouth_sentries']);
       }
@@ -1092,7 +1092,7 @@ describe('the region in the engine (real pack, seeded)', () => {
 
   test('the Orchard’s first visit is two Null Mouths (100 %, fleeable scatter)', () => {
     const s = arrive(SU, NO);
-    expect(s.combat).toMatchObject({ encounterId: 'enc_orchard_null_mouths', canFlee: true, onFlee: 'scatter' });
+    expect(s.combat).toMatchObject({ encounterId: 'enc_orchard_null_mouths', canFlee: true, onFlee: 'regroup' });
     expect(s.combat?.enemies.map((e) => e.refId)).toEqual(['cr_null_mouth', 'cr_null_mouth']);
   });
 

@@ -4,7 +4,8 @@
 // header): `first: X (100%)` a plain group, `return: X (p%)` = `chance: p, respawn: 'on_return'`, the wandering pool the
 // region's (region.ts). Legacy event ids take the `ev_` prefix the schema requires; the schema's `once` is kept per loop, so
 // WORLD's "once" and "once per loop" are the same field. The legacy fights are `scatter` (WORLD §10.5: "the legacy Apex-road
-// fights (Phantom, Weaver, Sentinel, Mireling, Aberration) are `scatter`"), the schema's default.
+// fights (Phantom, Weaver, Sentinel, Mireling, Aberration) are `scatter`"), the schema's default; D-144: a group that drops a
+// quest item `regroup`s instead (gone until dawn: the Plateau's Harriers, Steppe Salt).
 //
 // The Skyreach ascents (WORLD §3.4, §11.2, `gate_thin_air`): the Spires' south exit and the Plateau's south exit climb into
 // the Skyreach for 2 watches, behind the Talisman or `echo_high_mark`.
@@ -192,6 +193,7 @@ export const locations = [
       {
         id: 'enc_plateau_harriers',
         groups: [{ creatureId: 'cr_steppe_harrier', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.25,
         once: false,
         respawn: 'on_return',

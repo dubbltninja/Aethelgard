@@ -142,6 +142,7 @@ export const locations = [
       {
         id: 'enc_flats_jackals',
         groups: [{ creatureId: 'cr_salt_jackal', count: 3 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.999,
         intro: 'Three salt-white shapes get up out of the ash and fan out.',
       },
@@ -149,6 +150,7 @@ export const locations = [
       {
         id: 'enc_flats_harriers',
         groups: [{ creatureId: 'cr_steppe_harrier', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.3,
         once: false,
         respawn: 'on_return',
@@ -233,6 +235,7 @@ export const locations = [
       {
         id: 'enc_orchard_jackals',
         groups: [{ creatureId: 'cr_salt_jackal', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.35,
         once: false,
         respawn: 'on_return',
@@ -270,16 +273,18 @@ export const locations = [
     // "gathering: mat_steppe_salt ×2"
     gather: { itemId: 'mat_steppe_salt', perDay: 2 },
     encounters: [
-      // first: Salt Jackals ×3 (100 %, a scatter node)
+      // first: Salt Jackals ×3 (100 %; `regroup` since D-144)
       {
         id: 'enc_pan_jackals',
         groups: [{ creatureId: 'cr_salt_jackal', count: 3 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         intro: 'You hear them laugh before you see anything at all.',
       },
       // return: Salt Jackals ×2 (40 %), and no pool (see the header)
       {
         id: 'enc_pan_jackals_return',
         groups: [{ creatureId: 'cr_salt_jackal', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.4,
         once: false,
         respawn: 'on_return',
@@ -320,6 +325,7 @@ export const locations = [
       {
         id: 'enc_cairns_harriers',
         groups: [{ creatureId: 'cr_steppe_harrier', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.6,
         intro: 'Two shadows drop out of the low cloud between the spikes.',
       },
@@ -386,6 +392,7 @@ export const locations = [
       {
         id: 'enc_ridge_harriers',
         groups: [{ creatureId: 'cr_steppe_harrier', count: 2 }],
+        onFlee: 'regroup', // D-144: drops a quest item; fled, it is back at dawn
         chance: 0.4,
         intro: 'The sentries look up all at once. Two harriers are already coming down.',
       },

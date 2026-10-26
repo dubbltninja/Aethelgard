@@ -20,7 +20,7 @@
 // Heartstone, the Peaks, the Outpost, the shards), so each story gate is met at the level the route brings; a Loop 2+ proof
 // starts at the carry-over level of the constructed profile's `bestLevel` (D-067.2). No proof hands play to a policy bot: one
 // would take the quests itself.
-import type { Action, ContentPack, GameState } from '@engine/index';
+import { dayOf, type Action, type ContentPack, type GameState } from '@engine/index';
 import type { Condition } from '@schema/condition';
 import { pathBot } from '../bots/pathBot';
 import { MELEE_TRADE, bestDrink, meleeUnlockRank, notesOf, pickEquip, pickStat, pickTrade, pickUnlock, type Env, type TradeCfg } from '../bots/policy';
@@ -1529,7 +1529,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'warned',
     name: 'Loop 3: the Eye from the Nexus; Nyx warned first; the Note of Closing',
     classId: 'ironclad_warden',
-    seed: 'quest:eye:warn:a', // as above
+    seed: 'quest:eye:warn:a:8', // as above; U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 3, echoes: ['echo_weaver_sign', 'echo_hollow_path', 'echo_heartstone_path', 'echo_litany_verse_1'], bestLevel: 17 },
     steps: [...eyeDecided('warn', 'warned'), holds({ not: { echo: 'echo_choir_knows' } }, 'the Choir knows')],
   },
@@ -1775,7 +1775,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'rests',
     name: 'Loop 3: the communion carried through; Dask rests',
     classId: CLASS,
-    seed: 'quest:instant:rest',
+    seed: 'quest:instant:rest:5', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: {
       loop: 3,
       echoes: ['echo_flickering_man', 'echo_dask_bond', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_tyrant_jailer', 'echo_thirtieth_dawn', 'echo_seven_wayfinders', 'echo_tyrant_never_struck', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4', 'echo_litany_verse_5', 'echo_litany_verse_6', 'echo_litany_verse_7', 'echo_hallow_said_stop', 'echo_ritual_inevitable'],
@@ -1812,7 +1812,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'tended',
     name: 'Loop 2: Mireya recruited after stage 1; the sick tended with steady hands',
     classId: CLASS,
-    seed: 'quest:lantern',
+    seed: 'quest:lantern:2', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 2, bestLevel: 17 },
     steps: mireyaTended,
   },
@@ -1931,7 +1931,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'done',
     name: 'Loop 2: Hadda\'s ask, Borin\'s mark, the Cairns and the Pan cleared, verse IV and the iron that does not wish, the waystones',
     classId: CLASS,
-    seed: 'quest:bone:mark:1', // a seed that wins: two Stalkers at the Cairns beat a carry-over L10 ranger about half the time (the balance unit)
+    seed: 'quest:bone:mark:1:6', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144). A seed that wins: two Stalkers at the Cairns beat a carry-over L10 ranger about half the time (the balance unit)
     profile: { loop: 2, echoes: ['echo_ironclad_passwords', 'echo_nomad_signs'], bestLevel: 17 },
     steps: boneRoad(true),
   },
@@ -2074,7 +2074,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'dawn',
     name: "Loop 2 with the sign and Nyx's bond: her arc, the Heartstone exploited, her ask, the Apex and the hold's failing (ending C)",
     classId: CLASS,
-    seed: 'quest:dawn:c',
+    seed: 'quest:dawn:c:4', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nyx_bond', 'echo_weaver_sign', 'echo_apex_resonance'], bestLevel: 20 },
     steps: weaversDawn,
   },
@@ -2174,7 +2174,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'remembered',
     name: 'Loop 2, a Shadow Weaver: the same, the Shard taken (no line, no +5)',
     classId: 'shadow_weaver',
-    seed: 'quest:class:weaver:take',
+    seed: 'quest:class:weaver:take:37', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 2, bestLevel: 17 },
     steps: unlitThread('take'),
   },
@@ -2205,7 +2205,12 @@ export function trained(bot: Bot): Bot {
       if (state.mode === 'explore') {
         const env: Env = { s: state, legal, content, profile: ctx.profile, n: notesOf(memory, 'trained') };
         const hp = healthFraction(state);
-        const rest = legal.find((a) => a.type === 'rest' && a.kind === 'full') ?? legal.find((a) => a.type === 'rest' && a.kind === 'short');
+        // U81c (D-144): while a fled group is away for the day, no sleeping to the dawn that brings it back
+        const today = dayOf(state.clock.ticks);
+        const away = Object.values(state.world.locationStates).some((ls) => Object.values(ls.encounterClearedDay).some((d) => d === today));
+        const full = legal.find((a) => a.type === 'rest' && a.kind === 'full');
+        const short = legal.find((a) => a.type === 'rest' && a.kind === 'short');
+        const rest = away ? short : (full ?? short);
         const mend = hp < TRAINED_REST_BELOW ? (rest ?? (hp < TRAINED_DRINK_BELOW ? bestDrink(env) : undefined)) : undefined;
         const own = pickStat(legal, 'strength') ?? pickUnlock(env, meleeUnlockRank) ?? pickEquip(env) ?? mend ?? pickTrade(env, tradeFor(state));
         if (own !== undefined) return own;

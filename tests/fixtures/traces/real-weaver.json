@@ -16,7 +16,7 @@
     "mode": "combat",
     "locationId": "loc_sky_whisper_plateau"
   },
-  "finalStateHash": "a0d40770",
+  "finalStateHash": "a5d4e186",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"shadow_weaver","seed":"u79:real:weaver"},
     {"type":"unlockAbility","abilityId":"wvr_hex_of_frailty"},

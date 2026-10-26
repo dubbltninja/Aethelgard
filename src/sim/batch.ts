@@ -22,6 +22,8 @@
 //   --scenario-seeds <n>        seeds per scenario cell (default min(seeds, 10); 0 = no scenario sims)
 //   --determinism <n>           runs re-run and replayed (default 200; 0 = off)
 //   --out <file>                the BALANCE.md to write (default docs/BALANCE.md)      --json <file>   the raw batch (no traces)
+//   --merge <json,json,…>       no play: combine `--json` batches (same pack and content) into one report, for a release batch
+//                               too long for one shell timeout; seeds, runs, determinism samples and durations are summed
 //   --quiet                     no progress lines
 // Exit 0 = report written, no blocker; 1 = a blocker (engine error, soft-lock, failed ending proof, determinism mismatch,
 // a job that crashed); 2 = a usage or configuration error. Failing balance targets are not blockers: they are the report.
@@ -59,6 +61,8 @@ export interface BatchConfig {
   scenarioSeeds?: number;
   determinism?: number;
   json?: string;
+  /** `--json` files to combine instead of playing. */
+  merge?: string[];
 }
 
 export const DEFAULT_SEEDS = 30;
@@ -511,6 +515,9 @@ export function parseBatchArgs(argv: readonly string[]): BatchArgs {
       case '--json':
         config.json = value;
         break;
+      case '--merge':
+        config.merge = list(value);
+        break;
       default:
         throw new UsageError(`unknown option ${flag}`);
     }
@@ -520,6 +527,33 @@ export function parseBatchArgs(argv: readonly string[]): BatchArgs {
 
 const mmss = (ms: number): string => `${Math.floor(ms / 60000)}m${String(Math.round((ms % 60000) / 1000)).padStart(2, '0')}s`;
 
+/** Combines raw `--json` batches (traces dropped) into one: runs concatenated, seeds and determinism samples summed. */
+export function mergeBatches(files: readonly string[], out: string, json?: string): BatchResult {
+  const parts = files.map((f) => JSON.parse(fs.readFileSync(f, 'utf8')) as BatchResult);
+  const first = parts[0] as BatchResult;
+  const determinism: Record<string, DeterminismSummary> = {};
+  for (const b of parts) {
+    for (const [k, d] of Object.entries(b.determinism)) {
+      const t = (determinism[k] ??= { sampled: 0, mismatches: [] });
+      t.sampled += d.sampled;
+      t.mismatches.push(...d.mismatches);
+    }
+  }
+  const mainSteps = parts.map((b) => b.runs.filter((r) => r.suite === 'main').reduce((t, r) => t + r.result.steps, 0));
+  const steps = mainSteps.reduce((a, b) => a + b, 0);
+  return {
+    ...first,
+    config: { ...first.config, seeds: parts.flatMap((b) => b.config.seeds), scenarioSeeds: Math.max(...parts.map((b) => b.config.scenarioSeeds)), determinism: parts.reduce((t, b) => t + b.config.determinism, 0), out, json },
+    packs: first.packs.map((p) => ({ ...p, jobs: parts.reduce((t, b) => t + (b.packs.find((q) => q.spec === p.spec)?.jobs ?? 0), 0) })),
+    runs: parts.flatMap((b) => b.runs),
+    skipped: parts.flatMap((b) => b.skipped),
+    failures: parts.flatMap((b) => b.failures),
+    determinism,
+    durationMs: parts.reduce((t, b) => t + b.durationMs, 0),
+    runMicrosPerStep: steps === 0 ? 0 : parts.reduce((t, b, i) => t + b.runMicrosPerStep * (mainSteps[i] as number), 0) / steps,
+  };
+}
+
 /** `npm run sim:balance` / `sim batch`: plays the batch, writes the report (and the raw batch with --json). */
 export async function batchMain(argv: readonly string[], write: (line: string) => void = (line) => process.stdout.write(`${line}\n`)): Promise<number> {
   let batch: BatchResult;
@@ -528,7 +562,7 @@ export async function batchMain(argv: readonly string[], write: (line: string) =
   try {
     const { config, quiet } = parseBatchArgs(argv);
     let lastTenth = -1;
-    batch = await runBatch(config, {
+    batch = config.merge !== undefined ? mergeBatches(config.merge, config.out ?? DEFAULT_OUT, config.json) : await runBatch(config, {
       onPlan: (packs, total) => {
         if (!quiet) write(`batch: ${total} job(s) over ${packs.length} pack(s) [${packs.map((p) => `${p.spec} ${p.jobs}`).join(', ')}]${resolveConfig(config).workers > 1 ? `, ${resolveConfig(config).workers} workers` : ''}${__DEV__ ? ' — __DEV__ is ON (steps are deep-frozen; run through the sim:balance script)' : ''}`);
       },

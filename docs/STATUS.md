@@ -236,17 +236,25 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-1. Done since U69: U70 (D-121), U57 (D-122), U58 (D-123), U71 (D-125), the art (D-124/D-126), U72 (D-126), U59 (D-127).
-   After every UI merge the lead runs the **full** e2e suite (D-120).
-2. **Figures (D-128, `docs/ART-2.md`):** ~~U73a~~ done (D-129) · the **art session
-   part 2** on Tim's PC (*"Read docs/ART-2.md in dubbltninja/Aethelgard (branch `unraveling`) and run the art session"*; pushes
-   to `wip/art`) · ~~U73~~ done (D-131). ~~U74~~ done (D-132) → **U75** (Sonnet; ambient per region, Threshold drone, Tyrant theme).
-3. ✦ Fable units:
-   ~~U62a~~ done (D-133) · **U62** scenes and endings (+ D-127's Echo gaps). Tell agents to commit early.
-4. The balance + bot unit (Opus): **ending D unreachable by play — the road outruns the clock after Destroy (D-123)**; bots stop guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain
-   (D-109); Tyrant numbers (D-101); Warden vs bosses (D-089); Ilyra's loyalty arithmetic for ending E (D-113); affix on
-   Uncommon upgrade (D-118); the achievement engine + 13 `tally_*` counters (D-119); the first fight's forced intents (D-121); the Cairns Stalkers, Scriptorium guard and Windward kites (D-122).
-5. Then audio, Playwright screen runs, fun reviews, the audit, and the deliverables (README, REPORT.md, Pages, PR).
+Done since U69: U70, U57, U58, U71, the art (both sessions), U72, U59, U73a, U73, U61, U62a, U74, U75, U62 + U62b (D-121…D-136).
+**All content is complete; the game is playable with art and sound.** After every UI merge the lead runs the **full** e2e suite
+(D-120) on `E2E_PORT=4380`; parallel units each get their own port (D-132).
+
+1. **U76** (Sonnet; content tests — counts, reachability, legacy text, codex voice, static balance) · **U77** (Sonnet; Playwright
+   flows, mobile, noNetwork, persistence, replay) · **U78** (Sonnet; in-repo a11y checks, gallery and screenshot specs).
+   These three can run in parallel (separate ports).
+2. **U79** (Opus; integration checkpoint: saves frozen at `version: 1`, fixture traces, Loop 1 → Loop 2 by hand).
+3. **Balance:** U80 (Sonnet; 2,000-run batch → `BALANCE.md`) → U81 (Opus; tuning against DESIGN §19). Open flags:
+   - **ending D unreachable by play** (D-123);
+   - bots guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain (D-109); Tyrant numbers (D-101); Warden vs
+     bosses (D-089);
+   - Ilyra's loyalty arithmetic for E (D-113); the affix on Uncommon upgrade (D-118);
+   - the achievement engine and 13 `tally_*` counters (D-119); the first fight's forced intents (D-121);
+   - the Cairns, Scriptorium and Windward fights (D-122).
+
+   Then U82 (Opus; soft-lock and coverage punch list — **C5 verified**).
+4. **Fun reviews:** U83/U85/U87 (planned ✦ Fable; given Tim's Fable budget, D-134, run them on Opus unless Fable is available),
+   fixes U84/U86, U88 continuity, U89 docs, U90 screenshots + Pages, U91 the final audit + the PR to `main` — **C6**.
 
 ## 4b. Dev quickstart
 

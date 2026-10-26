@@ -227,7 +227,7 @@ describe('D-097: `echo_sky_oath` is earned at the Ashen Cairns and spent at the 
 
 // ---- Rule 16 -----------------------------------------------------------------------------------------------------------------
 
-describe('rule 16 with the catalog in: what quests and dialogue will grant or read is pending while they are unauthored', () => {
+describe('rule 16 with the catalog in: every Echo granted and read (U62b); pending only while quests or dialogue are unauthored', () => {
   const grantedIds = (() => {
     const out = new Set<string>(ENGINE_GRANTED_ECHOES);
     const { echoes: _skip, ...rest } = pack;
@@ -248,24 +248,30 @@ describe('rule 16 with the catalog in: what quests and dialogue will grant or re
     { incompleteTables: INCOMPLETE_TABLES },
   );
 
-  test('most of the catalog is granted by the engine or by region events; the rest waits for U52+ quests and dialogue', () => {
-    expect(ungranted.length).toBeGreaterThan(0);
-    expect(ungranted.length).toBeLessThan(103 - ENGINE_GRANTED_ECHOES.length);
+  // U62b: D-127's five ungranted Echoes have their grants (the Nexus, the Ninefold Hall, the Emberforge, Ferrin, the Hollow) and
+  // the thirteen unread ones their uses, so the catalog is whole; the pending path is held on a pack with one grant taken out.
+  const sansHollow = parseContentPack(
+    {
+      ...contentTables,
+      locations: contentTables.locations.map((l) => (l.id === 'loc_voidscar_hollow' ? { ...l, events: (l.events ?? []).filter((e) => e.id !== 'ev_hollow_bridge_held') } : l)),
+    },
+    { validate: false },
+  ).pack;
+
+  test('every Echo of the catalog is granted: by the engine, a region event, a quest or a scene (U62b closed D-127)', () => {
+    expect(ungranted).toEqual([]);
     // the three "hold all of …" Echoes are derived by content: U52's Heartstone choice grants `echo_heartstone_triune` when the
     // three Heartstone Echoes are held; U58's ending offers grant `echo_litany_complete` (nine verses) and `echo_anchor_schema`
     // (both halves) on entry (D-100's gap)
-    for (const id of ['echo_litany_complete', 'echo_anchor_schema', 'echo_heartstone_triune']) expect(ungranted).not.toContain(id);
+    for (const id of ['echo_litany_complete', 'echo_anchor_schema', 'echo_heartstone_triune']) expect(grantedIds.has(id)).toBe(true);
+    for (const id of ['echo_breach_door', 'echo_hadrek_clockwright', 'echo_emberforge_vein', 'echo_nomad_signs', 'echo_hollow_path']) expect(grantedIds.has(id)).toBe(true);
   });
 
-  test('the release gate (strict, pending): no errors; the ungranted Echoes and the Echoes nothing reads yet are pending warnings', () => {
-    const r = validateContent(pack, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
-    expect(grants(r.errors)).toEqual([]);
-    expect(gates(r.errors)).toEqual([]);
-    expect(grants(r.warnings)).toEqual(ungranted);
-    expect(gates(r.warnings)).toEqual([]); // every Echo opens `codex_echoes`
-    const probe = validateContent(sansEchoesEntry, { strict: true, pending: true, incompleteTables: INCOMPLETE_TABLES });
-    expect(gates(probe.warnings).length).toBeGreaterThan(0);
-    for (const w of [...r.warnings, ...probe.warnings].filter((x) => x.rule === 'rule-16')) expect(w.message.startsWith(PENDING)).toBe(true);
+  test('the release gate (strict): no errors, nothing pending; without `codex_echoes` every Echo still gates something', () => {
+    const r = validateContent(pack, { strict: true, pending: INCOMPLETE_TABLES.length > 0, incompleteTables: INCOMPLETE_TABLES });
+    expect(r.errors).toEqual([]);
+    expect(r.warnings.filter((w) => w.rule === 'rule-16')).toEqual([]);
+    expect(gates(validateContent(sansEchoesEntry, { strict: true, incompleteTables: INCOMPLETE_TABLES }).warnings)).toEqual([]);
   });
 
   test('the everyday build and a lenient run say nothing of them (a completeness check, like the counts)', () => {
@@ -275,17 +281,13 @@ describe('rule 16 with the catalog in: what quests and dialogue will grant or re
     }
   });
 
-  test('once quests and dialogues are authored the ungranted are errors and the unread are plain warnings; an unrelated incomplete table does not relax them', () => {
-    for (const incompleteTables of [[], ['items', 'npcs']] as const) {
-      const r = validateContent(pack, { incompleteTables });
-      expect(grants(r.errors)).toEqual(ungranted);
-      expect(gates(r.warnings)).toEqual([]);
-      const probe = validateContent(sansEchoesEntry, { incompleteTables });
-      expect(gates(probe.warnings).length).toBeGreaterThan(0);
-      for (const w of gates(probe.warnings)) expect(w.message.startsWith(PENDING)).toBe(false);
-    }
+  test('an ungranted Echo is pending while quests or dialogues are being authored, and an error once they are; an unrelated incomplete table does not relax it', () => {
+    for (const incompleteTables of [[], ['items', 'npcs']] as const) expect(grants(validateContent(sansHollow, { incompleteTables }).errors)).toEqual(['echo_hollow_path']);
     for (const incompleteTables of [['quests'], ['dialogues']] as const) {
-      expect(grants(validateContent(pack, { strict: true, incompleteTables }).errors)).toEqual([]);
+      const r = validateContent(sansHollow, { strict: true, incompleteTables });
+      expect(grants(r.errors)).toEqual([]);
+      expect(grants(r.warnings)).toEqual(['echo_hollow_path']);
+      for (const w of r.warnings.filter((x) => x.rule === 'rule-16')) expect(w.message.startsWith(PENDING)).toBe(true);
     }
   });
 });

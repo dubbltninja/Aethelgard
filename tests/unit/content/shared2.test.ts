@@ -117,10 +117,8 @@ describe('the real pack (U41 tables)', () => {
     expect(text).not.toContain('pending rule-13');
     // the companion counts (6 records, 24 abilities) are met: rule 21 has no pending line for either table
     expect(text).not.toMatch(/pending rule-21: (companions|abilities)\./);
-    const pending = Number(/(\d+) pending completeness check/.exec(text)?.[1]);
-    // 130 before this unit (U40's pack); without U51's rule 15/16 findings, the Echo grants and ending effects the quests and dialogue bring
-    const waiting = [...text.matchAll(/pending rule-1[56]: (\d+) completeness/g)].reduce((n, m) => n + Number(m[1]), 0);
-    expect(pending - waiting).toBeLessThan(130);
+    // 130 pending checks before this unit (U40's pack); none since U62b closed the last tables
+    expect(text).not.toMatch(/pending completeness check/);
   });
 
   test('the companions\' references are all authored: the six records\' 3 arc quests and 3 camp scenes each are in the pack, nothing is pending (U54, U55, U56 landed); their 6 NPCs point back', () => {

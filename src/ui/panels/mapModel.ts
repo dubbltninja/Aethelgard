@@ -12,7 +12,8 @@
 // drawn), `npc` (someone is there), `unstable` (temporally unstable while Dask travels with you), `quests` (U66, D-107: a
 // ring round a place that an active quest's open objective names with `hintLocationId`), `forecast` (U70: from 5 dawns
 // before the limit, the places the expiry Horde will reach, one step per day from the Apex — drawn as a lighter hatch on the
-// places already on the map, DESIGN §10.1 and §16.6). The Threshold inset is not drawn (explore never stands there).
+// places already on the map, DESIGN §10.1 and §16.6; U62b: with `echo_horde_path`, the same hatch during any Horde, its next
+// three moves). The Threshold inset is not drawn (explore never stands there).
 //
 // Coordinates are WORLD's grid units (x step 8, y step 2); `GRID` turns them into pixels.
 import {
@@ -142,6 +143,41 @@ export function forecastReach(s: GameState, content: ContentPack, profile: Pr): 
   return cost;
 }
 
+/** STORY §12 `echo_horde_path`: how many of the player's moves ahead the running Horde's spread is forecast. */
+export const HORDE_PATH_MOVES = 3;
+export const ECHO_HORDE_PATH = 'echo_horde_path';
+
+/**
+ * U62b (STORY §12 `echo_horde_path`, "How the Unraveling Spreads": "Infection forecast on the map during any Horde"): with the
+ * Echo, while a Horde runs, the places its spread reaches within `HORDE_PATH_MOVES` of the player's moves — the engine's spread
+ * (horde.ts `spreadHorde`: the start delay, the slow edges' pending counts, one step per move) — as move counts. Null without
+ * the Echo, or with no Horde running.
+ */
+export function hordePathReach(s: GameState, content: ContentPack, profile: Pr): Map<string, number> | null {
+  const w = s.world;
+  if (!w.hordeActive || !profile.echoes.includes(ECHO_HORDE_PATH)) return null;
+  const infected = new Set(w.infected);
+  const cost = new Map<string, number>();
+  const open: string[] = [];
+  const reach = (id: string, c: number): void => {
+    if (c > HORDE_PATH_MOVES || infected.has(id) || c >= (cost.get(id) ?? Infinity)) return;
+    cost.set(id, c);
+    open.push(id);
+  };
+  // the spread waits out its delay, then a pending node falls when its count runs out
+  for (const [id, left] of Object.entries(w.hordePending)) reach(id, w.hordeDelay + left);
+  const from = (at: string, here: number): void => {
+    for (const next of hordeNeighbours(s, content, profile, at)) reach(next, here + 1 + (HORDE_EDGE_DELAYS[`${at}->${next}`] ?? 0));
+  };
+  for (const id of infected) from(id, w.hordeDelay);
+  while (open.length > 0) {
+    open.sort((a, b) => (cost.get(a) as number) - (cost.get(b) as number));
+    const at = open.shift() as string;
+    from(at, cost.get(at) as number);
+  }
+  return cost;
+}
+
 /** WORLD §11.4 label anchors (grid units, on odd rows at x ≡ 4 mod 8, where no node or edge lies). */
 export const REGION_ANCHORS: Readonly<Record<string, { x: number; y: number }>> = {
   region_silverwood_ruins: { x: 4, y: -1 },
@@ -225,7 +261,9 @@ export function buildMap(s: GameState, content: ContentPack, profile: Pr): MapMo
     }
   }
   const infected = new Set(s.world.infected);
-  const forecastSteps = forecastReach(s, content, profile);
+  const fall = forecastReach(s, content, profile);
+  // U62b: the Fall forecast before the limit; with `echo_horde_path`, the running Horde's next moves
+  const forecastSteps = fall ?? hordePathReach(s, content, profile);
   const escapeId = s.world.hordeActive ? PORTAL_LOCATION_ID : null;
   for (const id of infected) if (!states.has(id) && content.locations[id] !== undefined && isMain(content.locations[id] as Location)) states.set(id, 'adjacent');
   if (escapeId !== null && !states.has(escapeId) && content.locations[escapeId] !== undefined) states.set(escapeId, 'adjacent');
@@ -336,7 +374,7 @@ export function buildMap(s: GameState, content: ContentPack, profile: Pr): MapMo
     height,
     currentId: here,
     forecast:
-      forecastSteps === null
+      fall === null
         ? null
         : {
             dawnsLeft: dawnsLeft(s.clock),

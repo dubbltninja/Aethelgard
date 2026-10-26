@@ -994,7 +994,7 @@ describe('the real pack with the region registered (D-090)', () => {
     expect(validateCli([], (line) => out.push(line))).toBe(0);
     const text = out.join('\n');
     expect(text).toMatch(/ regions \d+ · locations \d+ · creatures \d+ · /);
-    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
+    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)$/m);
   });
 
   test('this region’s pending references name only ids WORLD/STORY/DESIGN spell (items, Echoes, the faction record, codex entries); the Highlands’ climbs, its Spireborn and the Plateau now resolve', () => {

@@ -38,6 +38,26 @@ export const recipes = [
     repTierWhileActive: { quests: ['q_the_mending', 'q_iron_silence'], tier: 'neutral' },
     requires: { echo: 'echo_anchor_schema' },
   },
+  // U62b (STORY §12 `echo_heartstone_triune`: "Borin's anchor dialogue shortcut"; his line in dialogues/endings.ts
+  // `scene_borin_anchor`): to hands that have heard all three beats, the heart of the anchor needs no piece of the stone —
+  // the Breach-anchor's own bill without its `anyOf`, the same gates. A 31st recipe beside WORLD §8.2's thirty.
+  {
+    id: 'recipe_breach_anchor_triune',
+    name: 'Breach-anchor (the three beats)',
+    category: 'quest',
+    story: true,
+    gold: 0,
+    inputs: [
+      { itemId: 'item_aetherium_shard', count: 3 },
+      { itemId: 'item_void_shard', count: 3 },
+      { itemId: 'mat_ember_ore', count: 3 },
+      { itemId: 'mat_silverwood_heartwood', count: 1 },
+    ],
+    output: { itemId: 'item_breach_anchor' },
+    repTier: 'trusted',
+    repTierWhileActive: { quests: ['q_the_mending', 'q_iron_silence'], tier: 'neutral' },
+    requires: { all: [{ echo: 'echo_anchor_schema' }, { echo: 'echo_heartstone_triune' }] },
+  },
   {
     id: 'recipe_voidforged_edge',
     name: 'Void-forged Edge',

@@ -865,6 +865,10 @@ const unveiledTyrant = {
               { id: 'to_kill_you', when: { all: [] }, resolve: 1, text: 'To kill you.' }, // the honest answer (STORY §8.3)
               { id: 'lie_lost', when: { all: [] }, resolve: -2, lie: true, text: 'I was lost.' },
               { id: 'tyrant_never_struck', when: { echo: 'echo_tyrant_never_struck' }, resolve: 1, text: 'You have never struck first. Not once.' },
+              // U62b (STORY §12: `echo_ninth_verse_unfinished` "Communion Movement I answer"; `echo_breach_recoil` "answers Vell in
+              // communion"): U62's lines; DESIGN §4.11's +1 for an answer an Echo gives
+              { id: 'ninth_verse_unfinished', when: { echo: 'echo_ninth_verse_unfinished' }, resolve: 1, text: 'The ninth verse was never finished. I am still saying it.' },
+              { id: 'breach_recoil', when: { echo: 'echo_breach_recoil' }, resolve: 1, text: 'She was thrown forward because she named it. I was not thrown anywhere. I named nothing; I only held.' },
             ],
           },
           {

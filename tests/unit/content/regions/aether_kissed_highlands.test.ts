@@ -866,7 +866,7 @@ describe('the real pack with the region registered (D-090)', () => {
     const text = out.join('\n');
     expect(text).toMatch(/ regions \d+ · locations \d+ · creatures \d+ · /);
     expect(text).not.toMatch(/pending rule-01: /); // U61: the codex was the last table a region referred to; nothing is pending now
-    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
+    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)$/m);
   });
 
   test('this region’s pending references name only ids WORLD/STORY/DESIGN spell (the Skyreach’s locations, items, Echoes, the companion, codex entries); its neighbours now resolve', () => {

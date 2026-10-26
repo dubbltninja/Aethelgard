@@ -253,7 +253,11 @@ describe('the six ending quests (STORY §11.1, §11.6; DESIGN §6.2)', () => {
     expect(stage('q_wardens_vigil', 'go_and_see').objectives.map((o) => o.when)).toEqual([{ location: APEX }]);
     expect(quest('q_the_mending').stages.map((s) => s.id)).toEqual(['both_ends', 'anchor_the_conflux', 'crossing', 'forge', 'apex', 'mended']);
     expect(STORY).toContain('Stage order is fixed (REVIEW #3, D-067.8): the Before first, then the forge, then the Apex.');
-    expect(stage('q_the_mending', 'both_ends').objectives.map((o) => o.when)).toEqual([{ item: { id: 'item_caelums_anchor_token' } }, { all: [{ location: 'loc_conflux_chamber' }, { companion: { id: 'caelum', state: 'active' } }] }]);
+    // U62b (STORY §7.6 B, §12 `echo_caelum_stayed`): after a loop in which he stayed, without him
+    expect(stage('q_the_mending', 'both_ends').objectives.map((o) => o.when)).toEqual([
+      { item: { id: 'item_caelums_anchor_token' } },
+      { all: [{ location: 'loc_conflux_chamber' }, { any: [{ companion: { id: 'caelum', state: 'active' } }, { echo: 'echo_caelum_stayed' }] }] },
+    ]);
     expect(stage('q_the_mending', 'anchor_the_conflux').objectives.map((o) => o.when)).toEqual([{ flag: 'flag_cradle_pin_anchored' }]);
     expect(stage('q_the_mending', 'forge').objectives.map((o) => o.when)).toEqual([{ item: { id: 'item_breach_anchor' } }]);
     expect(node('scene_anchor_in_the_conflux', 'steadies').onEnter).toEqual([{ clockWatches: 12 }, { questAdvance: { quest: 'q_the_mending', stage: 'forge' } }]);
@@ -818,6 +822,8 @@ const WRITTEN = {
     'The Tyrant, spared, has opened the tear. Nothing is stopping you from stepping past it, into somewhere that is not Aethelgard.',
   ],
   variants: [
+    // U62b (STORY §7.6 B): Caelum lending the pin when he will not come down
+    "It's on my cot, under the Litany. Take it; I'm not meant to have it. I won't come down. The stair opens on Last Bell, and the Warden stands on it; go past him, and set it where you set it before.",
     // U62 (STORY §12): Caelum when he stayed; Borin's shortcut with the three beats; the Tyrant remembering consent or rejection
     "You said he stands there after. In the chamber, where the stone is, for five hundred years. I think you asked me once whether I would stay, and I did, and it changed nothing but me. I'm not asking to come this time. I'm asking you to carry something down.",
     'You have heard all three of its beats; the steady one, the hungry one, the one that stopped. Then the heart is simpler: any piece of the stone takes the temper from hands that know the three, and I will not make you wait on the Depths for it. Three Aetherium Shards for the draw, three Void Shards so it does not want, ember ore, heartwood to quench in. No fee. Bring them to the anvil.',

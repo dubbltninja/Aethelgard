@@ -192,7 +192,8 @@ export const dialogues = [
           {
             id: 'listen',
             text: 'Listen.',
-            when: FROM_LOOP_2,
+            // U62b (STORY §5.1, §12 `echo_amulet_memory`: "Listen action"): the Amulet's, which wakes with you in Loop 2
+            when: { all: [FROM_LOOP_2, { echo: 'echo_amulet_memory' }] },
             tags: ['echo'],
             // DESIGN §11.2 / D-017: verse 1 and the nine voices at once
             effects: [{ grantEcho: 'echo_litany_verse_1' }, { grantEcho: 'echo_nine_voices' }],

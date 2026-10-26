@@ -182,14 +182,16 @@ describe('the seven locations vs WORLD §3.1 blocks', () => {
     // U59 the class mini-quests' hooks (`q_class_elf` at the Archway and the Plaza, `q_class_wizard` at the fountain), interacts
     const U58_EVENTS = ['ev_archives_oriel_carrel', 'ev_depths_count_beats', 'ev_archway_follow', 'ev_plaza_ley_light', 'ev_plaza_duelling_ground'];
     // U62 the Ruins' Loop 2 waking (STORY §13 scene_waking_loop_2; tests/unit/content/scenes.test.ts holds it)
-    const U62_EVENTS = ['ev_ruins_waking'];
+    // U62b the Amulet's Listen in the Library once the Crystal was seeded (STORY §12; tests/unit/content/echoHooks.test.ts): an
+    // interact, once a loop
+    const U62_EVENTS = ['ev_ruins_waking', 'ev_library_listen'];
     for (const l of parsedLocations) {
       const w = WL[l.id];
       const got = Object.fromEntries(l.events.filter((e) => !U54_EVENTS.includes(e.id) && !U58_EVENTS.includes(e.id) && !U62_EVENTS.includes(e.id)).map((e) => [e.id, e.text]));
       const expected = Object.fromEntries(Object.entries(w?.events ?? {}).map(([id, text]) => [id.startsWith('ev_') ? id : `ev_${id}`, text]));
       expect([l.id, got]).toEqual([l.id, expected]);
       for (const e of l.events) {
-        expect([e.id, e.trigger]).toEqual([e.id, U58_EVENTS.includes(e.id) ? 'interact' : 'enter']);
+        expect([e.id, e.trigger]).toEqual([e.id, U58_EVENTS.includes(e.id) || e.id === 'ev_library_listen' ? 'interact' : 'enter']);
         expect([e.id, e.once]).toEqual([e.id, e.id !== 'ev_depths_choice' && !U54_EVENTS.includes(e.id) && !U58_EVENTS.includes(e.id)]);
       }
     }
@@ -525,7 +527,7 @@ describe('the real pack with the Ruins registered (D-090)', () => {
     expect(text).toMatch(/ regions [1-9]\d* · locations [1-9]\d* · creatures [1-9]\d* · /);
     expect(text).toMatch(/ npcs [1-9]\d* · /);
     expect(text).not.toMatch(/pending rule-01: /); // U61: the codex was the last table a region referred to; nothing is pending now
-    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
+    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)$/m);
   });
 
   test('the Ruins’ pending references name only ids WORLD/STORY spell (other regions’ locations, items, quests, Echoes, a scene, the Husk, merchants, codex entries); the Mistwood Path now resolves', () => {

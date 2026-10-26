@@ -227,6 +227,24 @@ export const locations = [
         text: 'The seam in the air widens a hair when you look at it. It knows you.',
         when: { all: [{ loop: { min: 2 } }, { not: { flag: 'flag_horde_active' } }] },
       },
+      // U62b (STORY §5.1, §12 `echo_amulet_memory` "Listen action"; `echo_crystal_seeded`: "Listen in the Library yields
+      // `echo_nine_voices` whether or not the Crystal was kept"): the Amulet's *Listen* here, once the Crystal was told in the Before
+      {
+        id: 'ev_library_listen',
+        trigger: 'interact',
+        label: 'Listen',
+        text: 'You hold the Amulet to the dark where the Crystal lay. It answers before you ask: it knows your voice, because you told it. Nine voices, one over another, and the last of them still reading.',
+        when: {
+          all: [
+            { loop: { min: 2 } },
+            { echo: 'echo_amulet_memory' },
+            { echo: 'echo_crystal_seeded' },
+            { not: { echo: 'echo_nine_voices' } },
+            { not: { flag: 'flag_horde_active' } },
+          ],
+        },
+        effects: [{ grantEcho: 'echo_nine_voices' }],
+      },
     ],
     art: {
       template: 'archive',

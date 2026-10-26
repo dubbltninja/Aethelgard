@@ -88,7 +88,13 @@ export const quests = [
         journal: "Both ends. A pin for the cradle in the Before; an anchor for the Apex from Borin's fire.",
         objectives: [
           { id: 'obj_pin', text: "Carry Hallow's Cradle-Pin (Caelum's, from the Garret)", when: { item: { id: 'item_caelums_anchor_token' } }, hintLocationId: 'loc_apprentices_garret' },
-          { id: 'obj_conflux', text: 'Go down to the Conflux Chamber with Caelum', when: { all: [{ location: 'loc_conflux_chamber' }, { companion: { id: 'caelum', state: 'active' } }] }, hintLocationId: 'loc_conflux_chamber' },
+          // U62b (STORY §7.6 B, §12 `echo_caelum_stayed`): after a loop in which he stayed, the pin may go down without him
+          {
+            id: 'obj_conflux',
+            text: 'Go down to the Conflux Chamber with Caelum',
+            when: { all: [{ location: 'loc_conflux_chamber' }, { any: [{ companion: { id: 'caelum', state: 'active' } }, { echo: 'echo_caelum_stayed' }] }] },
+            hintLocationId: 'loc_conflux_chamber',
+          },
         ],
         next: 'anchor_the_conflux',
       },

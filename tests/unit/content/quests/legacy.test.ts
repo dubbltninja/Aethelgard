@@ -543,7 +543,8 @@ describe('the scenes (STORY §13; legacy handle_* lines; the conventions of src/
       ['echo_crystal_location', { not: { echo: 'echo_crystal_location' } }, FROM_LOOP_2, ['echo']],
     ]);
     expect(choice('scene_first_meeting_ilyra', 'ask', 'done_this_before').when).toEqual(FROM_LOOP_2);
-    expect(choice('scene_echo_crystal', 'kept_stirs', 'listen').when).toEqual(FROM_LOOP_2);
+    // U62b (STORY §5.1, §12 `echo_amulet_memory`: "Listen action"): the Amulet's Listen, which wakes with you in Loop 2
+    expect(choice('scene_echo_crystal', 'kept_stirs', 'listen').when).toEqual({ all: [FROM_LOOP_2, { echo: 'echo_amulet_memory' }] });
     expect(scene('scene_nyx_lost_scroll').when).toEqual({ all: [NOT_IN_HORDE, FROM_LOOP_2, { quest: { id: 'q_lost_scroll', stage: 'deliver' } }, { item: { id: 'item_scholars_lost_scroll' } }] });
   });
 
@@ -586,8 +587,10 @@ const WRITTEN = {
 // ---- Played through the engine on the real pack ---------------------------------------------------------------------------------
 
 describe('played on the real pack (makeState + play: the engine runs the scenes)', () => {
-  const at = (overrides: Parameters<typeof makeState>[0], loop = 1) => makeState({ ...overrides, loop }, { content: pack, profile: freshProfile({ loopCounter: loop }) });
-  const run = (s: GameState, actions: Action[], loop = 1) => play(s, actions, { content: pack, profile: freshProfile({ loopCounter: loop }) });
+  // from Loop 2 the profile holds what waking gave it (`echo_amulet_memory`, reducers/loop.ts `beginLoop`)
+  const profileAt = (loop: number) => freshProfile({ loopCounter: loop, echoes: loop >= 2 ? ['echo_amulet_memory'] : [] });
+  const at = (overrides: Parameters<typeof makeState>[0], loop = 1) => makeState({ ...overrides, loop }, { content: pack, profile: profileAt(loop) });
+  const run = (s: GameState, actions: Action[], loop = 1) => play(s, actions, { content: pack, profile: profileAt(loop) });
   const talk = (npcId: string): Action => ({ type: 'talk', npcId });
   const pick = (choiceId: string): Action => ({ type: 'choose', choiceId });
   const go: Action = { type: 'continue' };

@@ -44,6 +44,9 @@ const BRAK_ABSENT: Condition = {
  */
 const CAMP_INFECTED: Condition = { infected: true };
 
+/** U62b: `counters.custom` — arrivals at the Emberforge this loop (`echo_emberforge_vein` on the third). */
+const EMBERFORGE_VISITS = 'emberforge_visits';
+
 export const locations = [
   // ---- Mistwood Path — the fog, the herbs, the Nomads' cairns (WORLD §3.2; DESIGN §8.2 "Mistwood gathering") -----------------
   {
@@ -344,7 +347,38 @@ export const locations = [
     safe: true,
     npcs: ['npc_borin_stonefist'],
     events: [
-      { id: 'ev_emberforge_heat', text: 'The forge heat wraps around you like a heavy cloak.' },
+      // U62b (STORY §12 `echo_emberforge_vein`: "The Emberforge's third visit in one loop (the fire shows you where the ore runs)"):
+      // the visits are counted by these three (`emberforge_visits`, this loop), latest first so one arrival fires one of them
+      {
+        id: 'ev_forge_vein_shown',
+        text: 'Third time down the canyon mouth, and the fire knows you. The veins in the wall brighten where the ore runs nearest, like a hand pointing.',
+        when: { counter: { name: EMBERFORGE_VISITS, min: 2 } },
+        effects: [{ counter: { name: EMBERFORGE_VISITS, delta: 1 } }, { grantEcho: 'echo_emberforge_vein' }],
+      },
+      {
+        id: 'ev_forge_regular',
+        text: 'Borin lifts his hammer an inch by way of greeting. Twice is a habit, in the Reach.',
+        when: { counter: { name: EMBERFORGE_VISITS, min: 1, max: 1 } },
+        effects: [{ counter: { name: EMBERFORGE_VISITS, delta: 1 } }],
+      },
+      { id: 'ev_emberforge_heat', text: 'The forge heat wraps around you like a heavy cloak.', effects: [{ counter: { name: EMBERFORGE_VISITS, delta: 1 } }] },
+      // WORLD §8 `mat_ember_ore`: "Emberforge vein 3/loop (8 with `echo_emberforge_vein`)"; once a loop, whichever applies
+      {
+        id: 'ev_forge_vein',
+        trigger: 'interact',
+        label: 'Work the ember vein',
+        text: 'You prise ore out of the warm wall where Borin points. Three lumps come loose before the vein goes dull.',
+        when: { all: [{ not: { echo: 'echo_emberforge_vein' } }, { not: { flag: 'flag_ember_vein_worked' } }] },
+        effects: [{ setFlag: 'flag_ember_vein_worked' }, { giveItem: { item: 'mat_ember_ore', count: 3 } }],
+      },
+      {
+        id: 'ev_forge_vein_known',
+        trigger: 'interact',
+        label: 'Work the ember vein',
+        text: 'You know where the ore runs now. You follow the bright seams through the wall and take eight lumps before the vein goes dull.',
+        when: { all: [{ echo: 'echo_emberforge_vein' }, { not: { flag: 'flag_ember_vein_worked' } }] },
+        effects: [{ setFlag: 'flag_ember_vein_worked' }, { giveItem: { item: 'mat_ember_ore', count: 8 } }],
+      },
       // WORLD: one event whose text varies by Heartstone state (stabilized "slow and sure"; exploited "wrong"; destroyed
       // "The veins are cold. Borin does not look up."). An event has one text, so each state is its own event; the three
       // states' ids are coined (`ev_forge_pulse_<state>`).

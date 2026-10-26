@@ -182,6 +182,13 @@ export const dialogues = [
         tags: ['written'],
         speaker: CAELUM,
         text: "It's on my cot, under the Litany. Take it; I'm not meant to have it. The stair opens on Last Bell, or to the ward seal, and the chamber will let us down if I'm with you.",
+        // U62b (STORY §7.6 B, §12 `echo_caelum_stayed`): he is not coming down; the stair on Last Bell, past the Warden, is yours
+        textVariants: [
+          {
+            when: { all: [{ echo: 'echo_caelum_stayed' }, { not: { companion: { id: 'caelum', state: 'active' } } }] },
+            text: "It's on my cot, under the Litany. Take it; I'm not meant to have it. I won't come down. The stair opens on Last Bell, and the Warden stands on it; go past him, and set it where you set it before.",
+          },
+        ],
         next: 'end',
       },
       { id: 'refused', tags: ['written'], speaker: CAELUM, text: "Then he stands there a while longer. He's used to it. I'm not sure that's a comfort.", next: 'end' },

@@ -301,7 +301,8 @@ describe('the two locations vs WORLD §3.3 blocks', () => {
   test('events: every WORLD event, its text verbatim, legacy ids with the ev_ prefix, once; WORLD’s conditions', () => {
     // U57 hooked `q_lightless_stair`'s discovery on an interact at the curtain (tests/unit/content/quests/regional.test.ts pins it);
     // U59 `q_class_shadow_weaver`'s seam (tests/unit/content/quests/classes.test.ts)
-    const U57_HOOKS = ['ev_hollow_curtain_stair', 'ev_hollow_feel_seam'];
+    // U62b the bridge remembered (STORY §12 `echo_hollow_path`; tests/unit/content/echoHooks.test.ts)
+    const U57_HOOKS = ['ev_hollow_curtain_stair', 'ev_hollow_feel_seam', 'ev_hollow_bridge_held'];
     for (const l of parsedLocations) {
       const got = Object.fromEntries(l.events.filter((e) => !U57_HOOKS.includes(e.id)).map((e) => [e.id, e.text]));
       const expected = Object.fromEntries(Object.entries(WL[l.id]?.events ?? {}).map(([id, text]) => [id.startsWith('ev_') ? id : `ev_${id}`, text]));
@@ -739,7 +740,7 @@ describe('the real pack with the region registered (D-090)', () => {
     const text = out.join('\n');
     expect(text).toMatch(/ regions \d+ · locations \d+ · creatures \d+ · /);
     expect(text).not.toMatch(/pending rule-01: /); // U61: the codex was the last table a region referred to; nothing is pending now
-    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\), \d+ pending completeness check\(s\), \d+ pending reference\(s\)/);
+    expect(text).toMatch(/validate: ok — 0 errors, \d+ warning\(s\)$/m);
   });
 
   test('this region’s pending references name only ids WORLD/STORY/DESIGN spell (other regions’ locations, items, quests, Echoes, codex entries); the Plaza now resolves', () => {

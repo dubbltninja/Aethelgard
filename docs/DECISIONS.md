@@ -2358,3 +2358,15 @@ owning unit (PLAN §9.1).
     single test files.
   - From now on: **a ✦ unit writes prose and commits it; an Opus finisher does all wiring, engine changes, tests, proofs and
     verification after it.** If Fable runs out, the finisher completes the remaining text in the established voices.
+
+### D-135 · `sfx_combat_start` replaced by Tim's pick; noise layers loop, 2026-10-26
+- Tim found the combat-start sound (a 0.22 s drum and snap) too short, and wanted tones that say "an imposing challenge".
+  A Sonnet agent drafted four (A Brass Swell, B War Drum & Horn, C Gong & Cluster, D Heartbeat) on a private audition page,
+  "Combat Start Drafts". **Tim chose A.**
+- **A, Brass Swell (1.72 s):** a C-diminished-with-tritone stack (C2 G♭2 C3 E♭3 G♭3), three saws ±9 cents each, scoops up
+  through an opening lowpass and lands at 0.85 s on a sub thump and a lowpassed thud. It is in `src/audio/sfx/sfx.ts` with
+  small held-sound helpers (`osc`, `swell`, `trim`). The swell's peak is halved and the note gains doubled, so every gain
+  stage stays ≤ 0.5 (the sfx test's rule) at the same output. It also plays softer (vel 0.7) when a boss summons adds.
+- **Bug fixed:** `noise()` read the 1 s noise buffer from a random offset up to 0.5 s, so bursts longer than ~0.5 s ran dry
+  (`sfx_breach_tear`'s 2 s layer went silent early). Noise sources now loop.
+- Process: sound drafts go to Tim on an audition page before they ship. Nobody can hear them in the container.

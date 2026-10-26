@@ -122,6 +122,8 @@ export function noise(v: Voice, s: NoiseSpec): void {
   const start = v.t0 + (s.at ?? 0);
   const src = v.ctx.createBufferSource();
   src.buffer = v.noise;
+  // D-135: loop the 1 s buffer — a burst starting up to 0.5 s in would otherwise run dry after ~0.5 s (sfx_breach_tear's 2 s layer)
+  src.loop = true;
   let out = s.out ?? v.out;
   if (s.pan !== undefined && typeof v.ctx.createStereoPanner === 'function') {
     const panner = v.ctx.createStereoPanner();

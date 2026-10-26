@@ -30,12 +30,51 @@
 // | sfx_breach_tear     | the clock expires, the Horde starts, the portal                          |
 // | sfx_forge_hammer    | crafted, upgraded                                                       |
 // | sfx_coin            | gold gained, bought, sold, attunement bought                             |
-// | sfx_combat_start    | a fight begins, adds summoned                                            |
+// | sfx_combat_start    | a fight begins, adds summoned (Brass Swell, 1.72 s, D-135)               |
 // | sfx_victory         | a fight won, a quest completed                                           |
 // | sfx_ko              | a combatant defeated, a companion down, the player falls, a quest failed |
 // | sfx_perc_kick/_hat  | (music bus, not in the 30) each new round / each turn; the hat is off    |
 // |                     | under reduced motion (DESIGN §18.5)                                      |
-import { noise, room, tone, type Voice } from '../synth/synth';
+import { filter, noise, room, tone, type Voice } from '../synth/synth';
+
+// ---- held-sound helpers (D-135: Tim's pick, draft A, for sfx_combat_start) ---------------------------------------------
+// `tone()` always decays from its attack, which suits hits and bells but not a swelling brass line: `osc` is a bare
+// oscillator (no envelope of its own) and `swell` the gain envelope that shapes it; `trim` sets a recipe's overall level.
+const SWELL_QUIET = 0.0001;
+
+function osc(v: Voice, s: { type?: OscillatorType; f: number; to?: number; glide?: number; at?: number; dur: number; detune?: number; out: AudioNode }): void {
+  const start = v.t0 + (s.at ?? 0);
+  const o = v.ctx.createOscillator();
+  o.type = s.type ?? 'sawtooth';
+  o.frequency.setValueAtTime(s.f, start);
+  if (s.to !== undefined) o.frequency.exponentialRampToValueAtTime(s.to, start + (s.glide ?? s.dur));
+  if (s.detune !== undefined) o.detune.value = s.detune;
+  o.connect(s.out);
+  o.start(start);
+  o.stop(start + s.dur + 0.02);
+  v.sources.push(o);
+}
+
+/** Fade in to ~-18 dB, rise exponentially to `peak` over `rise`, hold, then fall to silence over `fall`. */
+function swell(v: Voice, out: AudioNode, at: number, rise: number, hold: number, fall: number, peak: number): GainNode {
+  const g = v.ctx.createGain();
+  const t0 = v.t0 + at;
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(peak * 0.12, t0 + 0.04);
+  g.gain.exponentialRampToValueAtTime(peak, t0 + rise);
+  g.gain.setValueAtTime(peak, t0 + rise + hold);
+  g.gain.exponentialRampToValueAtTime(SWELL_QUIET, t0 + rise + hold + fall);
+  g.gain.linearRampToValueAtTime(0, t0 + rise + hold + fall + 0.02);
+  g.connect(out);
+  return g;
+}
+
+function trim(v: Voice, level: number): GainNode {
+  const g = v.ctx.createGain();
+  g.gain.value = level;
+  g.connect(v.out);
+  return g;
+}
 
 export const SFX_IDS = [
   'sfx_ui_tick',
@@ -288,11 +327,32 @@ export const RECIPES: Record<SoundId, Recipe> = {
     tone(v, { f: 3100, at: 0.04, dur: 0.03, gain: 0.06, attack: 0.001 });
     return 0.08;
   },
-  // a low drum with a snap on top
+  // Brass Swell (D-135, Tim's pick of four drafts): a C-diminished-with-tritone stack (C2 G♭2 C3 E♭3 G♭3), three saws ±9
+  // cents each, scoops up a semitone and a half through an opening lowpass (160 → 1600 Hz) and lands at 0.85 s on a dull
+  // impact (sub thump + lowpassed thud); then the filter closes as the chord falls away. 1.72 s.
   sfx_combat_start: (v) => {
-    tone(v, { f: 90, to: 55, glide: 0.05, dur: 0.2, gain: 0.5, attack: 0.002 });
-    noise(v, { dur: 0.025, gain: 0.16, type: 'highpass', f: 1500 });
-    return 0.22;
+    const mix = trim(v, 0.78);
+    const LAND = 0.85;
+    const body = swell(v, mix, 0, LAND, 0.1, 0.77, 0.45); // (the draft's 0.9, halved here and doubled in the note gains)
+    const lp = filter(v, body, 'lowpass', 160, 1.6, 1600, v.t0, LAND);
+    lp.frequency.exponentialRampToValueAtTime(380, v.t0 + LAND + 0.87);
+    const chord: ReadonlyArray<readonly [number, number]> = [
+      [65.41, 0.22],
+      [92.5, 0.18],
+      [130.81, 0.16],
+      [155.56, 0.12],
+      [185.0, 0.1],
+    ];
+    chord.forEach(([f, g]) => {
+      const note = v.ctx.createGain();
+      note.gain.value = g;
+      note.connect(lp);
+      [-9, 0, 9].forEach((detune) => osc(v, { f: f * 0.917, to: f, glide: LAND, dur: LAND + 0.87, detune, out: note }));
+    });
+    noise(v, { dur: 0.5, gain: 0.07, type: 'lowpass', f: 400, to: 1400, reverse: true, out: mix, at: LAND - 0.5 });
+    tone(v, { f: 62, to: 36, glide: 0.14, dur: 0.55, gain: 0.4, attack: 0.004, at: LAND, out: mix });
+    noise(v, { dur: 0.16, gain: 0.2, type: 'lowpass', f: 520, q: 0.8, attack: 0.002, at: LAND, out: mix });
+    return 1.72;
   },
   // three rising triangle notes, the last held
   sfx_victory: (v) => {

@@ -15,13 +15,22 @@
 // inlined as `__SPRITE_MANIFEST__` (src/ui/art/spriteManifest.ts) with each sprite's stored size (read from the file's header),
 // so the stage lays a figure out before it loads. A sprite whose stored height is not its size class's (src/ui/art/sprites.ts)
 // is reported, not refused: the game scales it all the same.
+//
+// Text chunks (U62a, D-115, D-131): the production and e2e builds replace src/content/tables.ts with a generated copy whose
+// long prose — codex bodies, dialogue node text, ending slides and epilogues — is a reference (src/content/prose.ts), and
+// write the words to hashed JSON chunks beside the bundle (`assets/text-<chunk>-<hash>.json`), named to the app in
+// `__PROSE_MANIFEST__` (src/ui/text/prose.ts loads them on first use). The chunks are outside the JS budget, like the art;
+// the build reports their total. Dev (tools/dev.ts) bundles the tables as written.
 import * as esbuild from 'esbuild';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { buildSceneManifest, paintingCount, type SceneManifest } from '../src/ui/art/sceneManifest';
 import { EMPTY_SPRITE_MANIFEST, buildSpriteManifest, figureCount, type SizedFile, type SpriteManifest } from '../src/ui/art/spriteManifest';
 import { CREATURE_SPRITES, SIZE_PX } from '../src/ui/art/sprites';
+import { splitProse, type ProseChunks } from '../src/content/prose';
+import type { ContentTables } from '../src/content/tables';
 
 export const ROOT = path.resolve(import.meta.dirname, '..');
 /** PLAN §1.1 bundle budget: total gzip size of every emitted .js file. */
@@ -39,7 +48,20 @@ export interface BuildOptions {
   log?: (line: string) => void;
   /** The scene art folder, relative to `root` (default: public/art, or tests/fixtures/art for e2e). */
   artDir?: string;
+  /**
+   * U62a: the tables whose prose moves to text chunks, and the module (relative to `root`) the build replaces with the split
+   * copy. Default: the authored tables (src/content/tables.ts) when building this project; `false`: no split.
+   */
+  prose?: ProseSource | false;
 }
+
+export interface ProseSource {
+  tables: ContentTables;
+  module: string;
+}
+
+/** The module the build replaces (U62a). */
+export const TABLES_MODULE = 'src/content/tables.ts';
 
 export const ART_DIR = 'public/art';
 export const FIXTURE_ART_DIR = 'tests/fixtures/art';
@@ -54,6 +76,47 @@ export interface BuildResult {
   art: { images: number; bytes: number };
   /** U73a: the sprites and portraits in the sprite manifest. */
   figures: number;
+  /** U62a: the text chunks written beside the bundle (outside the JS budget); zero when the build split no prose. */
+  prose: { chunks: number; bytes: number; gzipBytes: number };
+}
+
+/** Chunk name → its file's URL relative to the app script (both live in assets/). */
+export type ProseManifest = Record<string, string>;
+
+/** Writes each chunk to `assets/text-<name>-<hash>.json`; returns the manifest and the sizes. */
+export function writeProseChunks(chunks: Readonly<ProseChunks>, assetsDir: string): { manifest: ProseManifest; bytes: number; gzipBytes: number } {
+  fs.mkdirSync(assetsDir, { recursive: true });
+  const manifest: ProseManifest = {};
+  let bytes = 0;
+  let gzipBytes = 0;
+  for (const name of Object.keys(chunks).sort()) {
+    const json = JSON.stringify(chunks[name]);
+    const hash = crypto.createHash('sha256').update(json).digest('hex').slice(0, 10);
+    const file = `text-${name}-${hash}.json`;
+    fs.writeFileSync(path.join(assetsDir, file), json);
+    manifest[name] = `./${file}`;
+    bytes += Buffer.byteLength(json);
+    gzipBytes += zlib.gzipSync(json, { level: 9 }).length;
+  }
+  return { manifest, bytes, gzipBytes };
+}
+
+/** An esbuild plugin that serves `module` (absolute) as `export const contentTables = <tables>`. */
+export function tablesPlugin(module: string, tables: ContentTables): esbuild.Plugin {
+  const filter = new RegExp(`^${module.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+  return {
+    name: 'prose-split-tables',
+    setup(build) {
+      build.onLoad({ filter }, () => ({ contents: `export const contentTables = ${JSON.stringify(tables)};\n`, loader: 'js' }));
+    },
+  };
+}
+
+async function defaultProse(root: string): Promise<ProseSource | false> {
+  const module = path.join(root, TABLES_MODULE);
+  if (path.resolve(root) !== ROOT || !fs.existsSync(module)) return false;
+  const { contentTables } = (await import(module)) as { contentTables: ContentTables };
+  return { tables: contentTables, module: TABLES_MODULE };
 }
 
 /** The pixel size of a WebP (VP8, VP8L, VP8X) or PNG file from its header; null for anything else. */
@@ -132,6 +195,8 @@ export function esbuildOptions(opts: {
   sceneManifest?: SceneManifest;
   /** Inlined as `__SPRITE_MANIFEST__` (empty when absent). */
   spriteManifest?: SpriteManifest;
+  /** U62a: inlined as `__PROSE_MANIFEST__` (empty when absent: no text chunks, the tables carry their words). */
+  proseManifest?: ProseManifest;
 }): esbuild.BuildOptions {
   const dev = opts.mode === 'dev';
   return {
@@ -156,6 +221,7 @@ export function esbuildOptions(opts: {
       __VERSION__: JSON.stringify(opts.version),
       __SCENE_MANIFEST__: JSON.stringify(opts.sceneManifest ?? { scenes: {}, title: null }),
       __SPRITE_MANIFEST__: JSON.stringify(opts.spriteManifest ?? EMPTY_SPRITE_MANIFEST),
+      __PROSE_MANIFEST__: JSON.stringify(opts.proseManifest ?? {}),
     },
     logLevel: 'warning',
   };
@@ -221,17 +287,31 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
   const sceneManifest = readSceneManifest(artDir);
   const spriteManifest = readSpriteManifest(artDir);
 
-  const result = await esbuild.build(
-    esbuildOptions({
-      root,
-      entry: options.entry ?? 'src/main.tsx',
-      assetsDir: path.join(outdir, 'assets'),
-      mode: e2e ? 'e2e' : 'production',
-      version: options.version ?? readVersion(root),
-      sceneManifest,
-      spriteManifest,
-    }),
-  );
+  // U62a: the prose split — the chunks first (their hashed names go into the bundle), then the bundle over the split tables
+  const proseSource = options.prose ?? (await defaultProse(root));
+  const assetsDir = path.join(outdir, 'assets');
+  let proseManifest: ProseManifest = {};
+  let prose: BuildResult['prose'] = { chunks: 0, bytes: 0, gzipBytes: 0 };
+  const plugins: esbuild.Plugin[] = [];
+  if (proseSource !== false) {
+    const split = splitProse(proseSource.tables);
+    const written = writeProseChunks(split.chunks, assetsDir);
+    proseManifest = written.manifest;
+    prose = { chunks: Object.keys(written.manifest).length, bytes: written.bytes, gzipBytes: written.gzipBytes };
+    plugins.push(tablesPlugin(path.resolve(root, proseSource.module), split.tables));
+  }
+
+  const base = esbuildOptions({
+    root,
+    entry: options.entry ?? 'src/main.tsx',
+    assetsDir,
+    mode: e2e ? 'e2e' : 'production',
+    version: options.version ?? readVersion(root),
+    sceneManifest,
+    spriteManifest,
+    proseManifest,
+  });
+  const result = await esbuild.build({ ...base, plugins });
   const metafile = result.metafile;
   if (!metafile) throw new Error('esbuild returned no metafile');
 
@@ -260,12 +340,15 @@ export async function buildApp(options: BuildOptions = {}): Promise<BuildResult>
   log(`  index.html + ${copied} public file(s) → ${path.relative(root, outdir) || '.'}/`);
   log(`  art: ${art.images} image(s) from ${path.relative(root, artDir) || '.'}/, ${(art.bytes / 1000).toFixed(1)} kB (outside the JS budget)`);
   log(`  art: ${figures} figure(s) (sprites + portraits)`);
+  if (prose.chunks > 0) {
+    log(`  text: ${prose.chunks} chunk(s), ${(prose.gzipBytes / 1000).toFixed(1)} kB gzip, ${(prose.bytes / 1000).toFixed(1)} kB raw (outside the JS budget)`);
+  }
   for (const line of sizeClassMismatches(spriteManifest)) log(`  art: sprite size class — ${line}`);
   if (jsGzipBytes > budget) {
     throw new Error(`JS budget exceeded: ${(jsGzipBytes / 1000).toFixed(1)} kB gzip > ${(budget / 1000).toFixed(0)} kB`);
   }
   log(`build: ok — JS ${(jsGzipBytes / 1000).toFixed(1)} kB gzip (budget ${Number.isFinite(budget) ? `${(budget / 1000).toFixed(0)} kB` : 'none: e2e'})`);
-  return { outdir, ...assets, jsGzipBytes, art, figures };
+  return { outdir, ...assets, jsGzipBytes, art, figures, prose };
 }
 
 if (import.meta.main) {

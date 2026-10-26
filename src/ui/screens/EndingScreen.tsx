@@ -20,6 +20,8 @@ import { useReducedMotion } from '../hooks/useMediaQuery';
 import { useViewFocus } from '../hooks/useViewFocus';
 import { useRunAction, type PanelAction } from '../panels/panelAction';
 import { useContent, useGame, useLegal, useProfile } from '../store/useGame';
+import { ENDINGS_PROSE, useProse } from '../text/prose';
+import { TextLoading } from '../text/TextLoading';
 import { endingModel, type EndingModel, type EndingPhase } from './endingModel';
 import { legalSet } from './exploreModel';
 import { RunSummaryView } from './RunSummary';
@@ -68,7 +70,7 @@ export function EndingView({ phase, model, summary, scene, reducedMotion, onNext
             <>
               <figure className="ending__slide" key={model.index} data-kind={slide.kind} data-mood={slide.mood ?? undefined}>
                 {slide.label === null ? null : <figcaption className="ending__label">{slide.label}</figcaption>}
-                <p className="ending__text">{slide.text}</p>
+                {slide.loading ? <TextLoading className="ending__text" /> : <p className="ending__text">{slide.text}</p>}
               </figure>
               {model.credits ? <p className="ending__credits">A game by Tim Dibert</p> : null}
               <p className="ending__progress" aria-label={`Slide ${model.index + 1} of ${model.total}`}>
@@ -119,7 +121,9 @@ export function EndingScreen(): ReactNode {
   const [phase, setPhase] = useState<EndingPhase>('slides');
   const rootRef = useRef<HTMLDivElement>(null);
   const isLegal = useMemo(() => legalSet(legal), [legal]);
-  const model = useMemo(() => endingModel(state, content, profile, isLegal), [state, content, profile, isLegal]);
+  // U62a: the slides live in the endings text chunk (preloaded in the background since boot); its arrival re-runs the model
+  const prose = useProse([], [ENDINGS_PROSE]);
+  const model = useMemo(() => endingModel(state, content, profile, isLegal), [state, content, profile, isLegal, prose]);
   const summary = useMemo(() => {
     const source = summarySource(state, profile);
     return source === null ? null : runSummaryModel(source, content);

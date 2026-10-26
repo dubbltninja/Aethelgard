@@ -9,14 +9,14 @@
 // imports there). Passing tables replaces them wholesale, so tests build exactly the pack they describe; a missing table
 // is empty and a missing `config` is the DESIGN defaults (shared/config.ts).
 import { z } from 'zod';
-import { AbilitySchema, abilityOwnerKind, type AbilityInput } from '@schema/ability';
-import { AchievementSchema, type AchievementInput } from '@schema/achievement';
-import { AffixSchema, type AffixInput } from '@schema/affix';
-import { AttunementSchema, type AttunementInput } from '@schema/attunement';
-import { ClassSchema, type ClassInput } from '@schema/class';
-import { CodexSchema, type CodexEntryInput } from '@schema/codex';
-import { EchoSchema, type EchoInput } from '@schema/echo';
-import { CompanionSchema, type CompanionInput } from '@schema/companion';
+import { AbilitySchema, abilityOwnerKind } from '@schema/ability';
+import { AchievementSchema } from '@schema/achievement';
+import { AffixSchema } from '@schema/affix';
+import { AttunementSchema } from '@schema/attunement';
+import { ClassSchema } from '@schema/class';
+import { CodexSchema } from '@schema/codex';
+import { EchoSchema } from '@schema/echo';
+import { CompanionSchema } from '@schema/companion';
 import {
   CRAFTING_STATION,
   GameConfigSchema,
@@ -25,54 +25,24 @@ import {
   type ContentIssue,
   type ContentPack,
   type ContentReport,
-  type GameConfigInput,
   type TableName,
 } from '@schema/contentPack';
-import { CreatureSchema, type CreatureInput } from '@schema/creature';
-import { DialogueSceneSchema, type DialogueSceneInput } from '@schema/dialogue';
-import { EncounterSchema, type EncounterInput } from '@schema/encounter';
-import { EndingSchema, type EndingInput } from '@schema/ending';
-import { FactionSchema, type FactionInput } from '@schema/faction';
-import { ItemSchema, type ItemInput } from '@schema/item';
-import { LocationSchema, type LocationInput } from '@schema/location';
-import { MerchantSchema, type MerchantInput } from '@schema/merchant';
-import { ModifierSchema, type ModifierInput } from '@schema/modifier';
-import { NpcSchema, type NpcInput } from '@schema/npc';
-import { QuestSchema, type QuestInput } from '@schema/quest';
-import { RecipeSchema, type RecipeInput } from '@schema/recipe';
-import { RegionSchema, type RegionInput } from '@schema/region';
-import { StatusSchema, type StatusInput } from '@schema/status';
-import { elfAbilities } from './abilities/elf';
-import { companionAbilities } from './abilities/companions';
-import { consumableAbilities } from './abilities/consumables';
-import { itemAbilities } from './abilities/items';
-import { rangerAbilities } from './abilities/ranger';
-import { wardenAbilities } from './abilities/warden';
-import { weaverAbilities } from './abilities/weaver';
-import { wizardAbilities } from './abilities/wizard';
-import { armor } from './items/armor';
-import { consumables } from './items/consumables';
-import { materials } from './items/materials';
-import { questTableItems } from './items/quest';
-import { trinkets } from './items/trinkets';
-import { weapons } from './items/weapons';
-import * as regionTables from './regions';
-import { achievements } from './shared/achievements';
-import { affixes } from './shared/affixes';
-import { attunements } from './shared/attunements';
-import { classes } from './shared/classes';
-import { companions } from './shared/companions';
-import { codex } from './shared/codex';
+import { CreatureSchema } from '@schema/creature';
+import { DialogueSceneSchema } from '@schema/dialogue';
+import { EncounterSchema } from '@schema/encounter';
+import { EndingSchema } from '@schema/ending';
+import { FactionSchema } from '@schema/faction';
+import { ItemSchema } from '@schema/item';
+import { LocationSchema } from '@schema/location';
+import { MerchantSchema } from '@schema/merchant';
+import { ModifierSchema } from '@schema/modifier';
+import { NpcSchema } from '@schema/npc';
+import { QuestSchema } from '@schema/quest';
+import { RecipeSchema } from '@schema/recipe';
+import { RegionSchema } from '@schema/region';
+import { StatusSchema } from '@schema/status';
 import { configInput, gameConfig } from './shared/config';
-import { dialogues } from './shared/dialogues';
-import { echoes } from './shared/echoes';
-import { endings } from './shared/endings';
-import { factions } from './shared/factions';
-import { merchants } from './shared/merchants';
-import { modifiers } from './shared/modifiers';
-import { encounters as questEncounters, quests } from './shared/quests';
-import { recipes } from './shared/recipes';
-import { statuses } from './shared/statuses';
+import { contentTables, type ContentTables } from './tables';
 import { INCOMPLETE_TABLES } from './progress';
 import { validateContent } from './validate';
 
@@ -83,81 +53,8 @@ export const CONTENT_VERSION = '0.1.0';
 
 // ---- Tables ----------------------------------------------------------------------------------------------------------
 
-/** The authored input of every table (`z.input`: defaults not yet applied). */
-export interface ContentTables {
-  regions: readonly RegionInput[];
-  locations: readonly LocationInput[];
-  creatures: readonly CreatureInput[];
-  items: readonly ItemInput[];
-  recipes: readonly RecipeInput[];
-  abilities: readonly AbilityInput[];
-  classes: readonly ClassInput[];
-  statuses: readonly StatusInput[];
-  quests: readonly QuestInput[];
-  dialogues: readonly DialogueSceneInput[];
-  npcs: readonly NpcInput[];
-  companions: readonly CompanionInput[];
-  echoes: readonly EchoInput[];
-  codex: readonly CodexEntryInput[];
-  achievements: readonly AchievementInput[];
-  attunements: readonly AttunementInput[];
-  modifiers: readonly ModifierInput[];
-  endings: readonly EndingInput[];
-  merchants: readonly MerchantInput[];
-  affixes: readonly AffixInput[];
-  encounters: readonly EncounterInput[];
-  factions: readonly FactionInput[];
-  config: GameConfigInput;
-}
-
-/**
- * The authored content. Each content unit appends its tables here (PLAN §5.18: regions/index.ts concatenates the
- * per-region tables, shared/*.ts supply the global ones). U40: classes, statuses, affixes, the Ranger and Wizard trees,
- * and the starting kits' item records. U41: the Elf, Warden and Weaver trees, the Amulet of Echoes and its Echo Bolt. U49: the
- * weapons, armor and trinkets. U50: the consumables, materials, quest/key/recipe/tome items, the 30 recipes, the eight merchants and
- * the seven abilities the consumables unleash (`items`, `recipes` and `merchants` leave INCOMPLETE_TABLES). The six companions and their 24 abilities (shared/companions.ts,
- * abilities/companions.ts) are registered since D-111 (their arc quests and camp scenes are pending references until
- * U54–U56 author them, D-090). U42+: the region folders' tables arrive through regions/index.ts (one
- * import line per region there; nothing changes here), with their references into tables still being authored pending
- * under D-090. U51: the 103 Echoes, 40 achievements, 15 Attunements, six modifiers, the eight ending and closer records and
- * the three factions (shared/{echoes,achievements,attunements,modifiers,endings,factions}.ts). U52: the six legacy quests and their
- * scenes (shared/quests/, shared/dialogues/: one file per quest unit, spread by each folder's index.ts). U60: Codex I, the 42
- * history, Nine, Wayfinder, faction and people entries (shared/codex/, one barrel; U61 appends Codex II there and completes `codex`).
- */
-export const contentTables: ContentTables = {
-  regions: [...regionTables.regions],
-  locations: [...regionTables.locations],
-  creatures: [...regionTables.creatures],
-  items: [...weapons, ...armor, ...trinkets, ...consumables, ...materials, ...questTableItems, ...regionTables.items],
-  recipes: [...recipes],
-  abilities: [
-    ...rangerAbilities,
-    ...wizardAbilities,
-    ...elfAbilities,
-    ...wardenAbilities,
-    ...weaverAbilities,
-    ...itemAbilities,
-    ...consumableAbilities,
-    ...companionAbilities,
-  ],
-  classes: [...classes],
-  statuses: [...statuses],
-  quests: [...quests],
-  dialogues: [...dialogues],
-  npcs: [...regionTables.npcs],
-  companions: [...companions],
-  echoes: [...echoes],
-  codex: [...codex],
-  achievements: [...achievements],
-  attunements: [...attunements],
-  modifiers: [...modifiers],
-  endings: [...endings],
-  merchants: [...merchants],
-  affixes: [...affixes],
-  encounters: [...questEncounters], // U53: the fights a quest starts itself (shared/quests/index.ts)
-  factions: [...factions],
-  config: configInput,
-};
+// The authored tables live in tables.ts (U62a): the build replaces that one module with its prose-split copy (prose.ts).
+export { contentTables, type ContentTables } from './tables';
 
 // ---- Errors and reports ----------------------------------------------------------------------------------------------
 

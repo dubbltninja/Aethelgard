@@ -5,6 +5,7 @@
 // ended is spoken from the creature ids on its events). Rewards, reputation and level-ups are the toasts' (a live
 // region of their own), so they are not repeated here.
 import { WATCH_NAMES, dayOf, watchOf, type Combatant, type ContentPack, type GameEvent, type GameState } from '@engine/index';
+import { proseText } from '../text/prose';
 
 export interface AnnounceOptions {
   /** Settings → "Show exact damage on enemy intents": when off, an intent is named without its numbers. */
@@ -140,9 +141,12 @@ export function announceStep(events: readonly GameEvent[], state: GameState, con
       case 'log':
         if (NARRATED.has(event.kind)) parts.push(event.text);
         break;
-      case 'endingSlide':
-        parts.push(event.text);
+      case 'endingSlide': {
+        // U62a: a split build's slide is a text-chunk reference; while its chunk loads the screen's own line says it
+        const words = proseText(event.text);
+        if (words !== null) parts.push(words);
         break;
+      }
       case 'attunementEquipped':
         parts.push(`${content.attunements[event.attunementId]?.name ?? 'Attunement'} ${event.on ? 'equipped' : 'unequipped'}.`);
         break;

@@ -19,6 +19,7 @@
 // (`${profileId}:${loop}`, PLAN §4.11) follow it too. The bot's seed is `${seed}:bot:${name}`.
 import {
   GameStateSchema,
+  THRESHOLD_LOCATIONS,
   ProfileSchema,
   canAutosave,
   dayOf,
@@ -362,6 +363,10 @@ export class Recorder {
     switch (e.t) {
       case 'locationEntered':
         this.locations.add(e.locationId);
+        break;
+      case 'thresholdEntered':
+        // U81b1: the Threshold's four places are locations too (WORLD §3.12), entered by `thresholdGo`, not by a move
+        this.locations.add(THRESHOLD_LOCATIONS[e.area]);
         break;
       case 'questStarted':
         this.questsStarted.add(e.questId);

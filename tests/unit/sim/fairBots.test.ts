@@ -15,13 +15,15 @@ import { meleeBot } from '@sim/bots/melee';
 import { PACIFIST, pacifistBot } from '@sim/bots/pacifist';
 import { apexSettled, fellHere, notesOf, type Env } from '@sim/bots/policy';
 import { npcWhere, questErrand, questTargets, wantedItems } from '@sim/bots/questFollow';
-import { actionKey, bedStep, hordeRoute, pendingFights } from '@sim/bots/shared';
+import { actionKey, bedStep, bfsPath, hordeRoute, pendingFights } from '@sim/bots/shared';
+import { runLoop } from '@sim/runner';
 import { SPEEDRUNNER, speedrunnerBot } from '@sim/bots/speedrunner';
 import type { Bot, BotContext, BotMemory } from '@sim/bots/types';
 import { computeMetrics } from '@sim/metrics';
 import { loadScenario, powerStat, typicalUnlockRank } from '@sim/scenarios';
 import { freshProfile, makeState } from '@tests/fixtures/helpers';
 import { hordePack } from '@tests/fixtures/hordeContent';
+import { thresholdPack } from '@tests/fixtures/thresholdContent';
 import { batchRun, blankLoop, blankResult } from './helpers';
 
 const ctxOf = (p: Profile): BotContext => ({ profile: p, rngSeed: 'test', step: 0, recentEvents: [] });
@@ -293,6 +295,25 @@ describe('the scenario kit (scenarios.ts)', () => {
   test('communion_movement_2 survives a Wayfinder felled on the walk (U80: caster ranger balS:16 crashed)', () => {
     const r = loadScenario('communion_movement_2', real, { seed: 'balS:16', classId: 'ranger' });
     expect(r.state.mode).toBe('combat');
+  });
+});
+
+describe('the explorer sees the whole world (coverage, brief item 6)', () => {
+  test('Silverwood Before is walkable with `enterBefore` (else only its door is reachable)', () => {
+    const real = buildContentPack();
+    const p = freshProfile();
+    const s = makeState({ locationId: 'loc_silver_gate' }, { content: real });
+    expect(bfsPath(s, real, p, 'loc_silver_gate', 'loc_grand_library', { enterBefore: true })).not.toBeNull();
+    expect(bfsPath(s, real, p, 'loc_silver_gate', 'loc_grand_library')).toBeNull();
+  });
+
+  test('at the Threshold it walks every room once before the next loop, and the runner counts them as places', () => {
+    const pack = thresholdPack();
+    const { state, profile } = loadScenario('loop2_end', pack);
+    const a = pick(explorerBot(), state, pack, profile);
+    expect(a.type).toBe('thresholdGo');
+    const r = runLoop({ seed: 'u81b1:thr', classId: 'auto', bot: explorerBot(), scenario: 'loop2_end', stopAt: 'max_steps', maxSteps: 40 }, pack);
+    expect(r.locationsVisited.some((id) => ['loc_gallery_of_loops', 'loc_loom', 'loc_far_light'].includes(id))).toBe(true);
   });
 });
 

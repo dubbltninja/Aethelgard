@@ -21,7 +21,7 @@
 //   routing    through everything, except a place where the player fell at its current level or above (melee's death note,
 //              which survives reloads) or one that has turned it back 4 times by wanderers it fled (U38: `shunned`). No level-band
 //              rule: the explorer's job is to see the world.
-import { APEX_LOCATION_ID, dayOf, sceneForNpc, type Action } from '@engine/index';
+import { APEX_LOCATION_ID, BEFORE_REGION_ID, dayOf, sceneForNpc, type Action } from '@engine/index';
 import { APEX_MARGIN, MELEE_BRANCHES } from './melee';
 import {
   MELEE_REST,
@@ -50,7 +50,7 @@ import {
   type Notes,
   type SocialCfg,
 } from './policy';
-import { bfsPath, firstOf, healthFraction, nearestUnvisited, pressOn, questSignature, stepAlong, type PathOptions } from './shared';
+import { bfsPath, firstOf, healthFraction, nearestUnvisited, nearestWhere, pressOn, questSignature, stepAlong, type PathOptions } from './shared';
 import { dangerAt } from './danger';
 import { questErrand, questTargets } from './questFollow';
 import type { Bot, BotMemory } from './types';
@@ -64,6 +64,8 @@ export const EXPLORER = {
   bedHere: 0.7,
   /** Never read a book that would take corruption past this. */
   maxCorruption: 4,
+  /** U81b1: choices a loop the explorer spends inside Silverwood Before before it walks out. */
+  beforeSteps: 150,
 } as const;
 
 const DIALOGUE: DialogueCfg = { apexReady: (env) => apexReadyBy(env, APEX_MARGIN), heartstone: 'stabilize', coverage: true };
@@ -88,6 +90,13 @@ function explore(env: Env, memory: BotMemory): Action {
   const fell = (id: string): boolean => shunned(env, id) || dangerAt(s, content, profile, id, 'pass');
   const unsafe = (id: string): boolean => fell(id) || dangerAt(s, content, profile, id, 'visit');
   const opts: PathOptions = { avoid: fell };
+  // U81b1 (D-145 item 6): Silverwood Before (Caelum, the ritual, the Conflux) is part of the world to see — from Loop 2, once its
+  // door is open, the explorer walks it (its clock is frozen) for at most `beforeSteps` choices a loop, then walks out
+  const inBefore = content.locations[here]?.regionId === BEFORE_REGION_ID;
+  const beforeKey = `explorer:before:${s.meta.runId}`;
+  if (inBefore) memory[beforeKey] = ((memory[beforeKey] as number | undefined) ?? 0) + 1;
+  const beforeOpen = ((memory[beforeKey] as number | undefined) ?? 0) < EXPLORER.beforeSteps;
+  const wide: PathOptions = { ...opts, enterBefore: beforeOpen || inBefore };
 
   // a bed here at hp < 70 %, else the melee rows (draught, the walk to a bed)
   if (healthFraction(s) < EXPLORER.bedHere) {
@@ -106,8 +115,15 @@ function explore(env: Env, memory: BotMemory): Action {
   // where next: the nearest place not yet entered → quest hints → the Apex → pass the time
   const day = dayOf(s.clock.ticks);
   if (day < EXPLORER.visitUntilDay) {
-    const go = stepAlong(legal, nearestUnvisited(s, content, profile, (id) => !unsafe(id) && id !== APEX_LOCATION_ID, opts)?.path ?? null);
+    const inside = (id: string): boolean => content.locations[id]?.regionId === BEFORE_REGION_ID;
+    const fresh = (id: string): boolean => !unsafe(id) && id !== APEX_LOCATION_ID && (beforeOpen || !inside(id));
+    const go = stepAlong(legal, nearestUnvisited(s, content, profile, fresh, wide)?.path ?? null);
     if (go !== undefined) return go;
+  }
+  // inside the Before with nothing left to see (or its steps spent): back out by the door it came in
+  if (inBefore) {
+    const out = stepAlong(legal, nearestWhere(s, content, profile, (id) => content.locations[id]?.regionId !== BEFORE_REGION_ID, { ...opts, enterBefore: true })?.path ?? null);
+    if (out !== undefined) return out;
   }
   const qsig = questSignature(s);
   if (questTargets(s, content, profile).map((t) => t.locationId).includes(here)) n.hintsReached[here] = qsig;
@@ -138,8 +154,12 @@ export function explorerBot(): Bot {
           return pressOn(memory, state, legal, content, fightWithFlight(env, memory, (e) => foeLevel(e.s) >= e.s.player.level + EXPLORER.fleeMargin));
         case 'dialogue':
           return talkThrough(env, DIALOGUE);
-        case 'threshold':
-          return thresholdStep(env, MELEE_THRESHOLD);
+        case 'threshold': {
+          // U81b1: every room of the Threshold once (the Gallery, the Loom, the Far Light: coverage), then melee's rows
+          const seen = state.threshold?.visited ?? [];
+          const room = legal.find((a) => a.type === 'thresholdGo' && !seen.includes(a.to));
+          return room ?? thresholdStep(env, MELEE_THRESHOLD);
+        }
         case 'ending':
           return firstOf(legal, 'acknowledgeEnding') ?? fallback(legal);
         case 'explore':

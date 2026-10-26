@@ -144,6 +144,8 @@ export interface PathOptions {
   allowLocked?: boolean;
   /** Locations never passed through (the goal itself is the caller's decision and is always allowed). */
   avoid?: (locationId: string) => boolean;
+  /** U81b1: walk Silverwood Before like any region (the explorer's coverage; its own rules: a frozen clock, a dawn to leave). */
+  enterBefore?: boolean;
 }
 
 /**
@@ -154,7 +156,7 @@ export interface PathOptions {
 export function routes(s: GameState, content: ContentPack, profile: Profile, from: string, opts: PathOptions = {}, goal?: string): Map<string, string[]> {
   const special = (id: string): boolean => {
     const region = content.locations[id]?.regionId;
-    return region === BEFORE_REGION_ID || region === 'region_threshold';
+    return (region === BEFORE_REGION_ID && opts.enterBefore !== true) || region === 'region_threshold';
   };
   const out = new Map<string, string[]>();
   const queue: string[] = [from];

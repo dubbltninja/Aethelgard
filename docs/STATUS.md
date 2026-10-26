@@ -120,7 +120,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U74 | Audio engine + 30 synthesized SFX; volumes and mute live — brief `briefs/u74.md` | Opus | ✅ b105969 (spot-reviewed) — 30 SFX + combat percussion, live volumes; 4377 tests; JS 584 kB; D-132 |
 | U62 | Key scenes (5 missing + check all 21), ending sequences/epilogues, D-127's Echoes; all tables complete — brief `briefs/u62.md` | ✦ Fable | ✅ text done, c6cc489 on `wip/u62` (5 scenes, 8 endings with art/mood, Echo lines) — finisher U62b |
 | U62b | Finish U62: verify its engine edits, wire D-127's Echoes, tests/proofs, all tables complete (D-134) — brief `briefs/u62b.md` | Opus | ✅ 1332ef0 (spot-reviewed) — Echoes wired, tables complete, slides over paintings; 4559 tests; JS 523 kB; D-136 |
-| U76 | Content test suite (PLAN §8.2) — brief `briefs/u76.md` | Sonnet | 🔄 running (E2E_PORT 4394) |
+| U76 | Content test suite (PLAN §8.2) — brief `briefs/u76.md` | Sonnet | ✅ 7cd7f7f (spot-reviewed) — §8.2 suite; 4689 tests, 3 todo; findings → U81; D-137 |
 | U77 | Playwright flows, mobile, noNetwork, quota, replay (PLAN §8.3) — brief `briefs/u77.md` | Sonnet | 🔄 running (4395) |
 | U78 | In-repo a11y on every screen, gallery, screenshots (PLAN §8.4) — brief `briefs/u78.md` | Sonnet | 🔄 running (4396) |
 | U75 | Region ambience, Threshold drone, Tyrant theme — brief `briefs/u75.md` | Sonnet | ✅ 23d0c9c (spot-reviewed) — 14 ambient beds, Threshold drone, Tyrant theme; 4524 tests; JS 520 kB; D-134 |
@@ -253,7 +253,8 @@ Done since U69: U70, U57, U58, U71, the art (both sessions), U72, U59, U73a, U73
      bosses (D-089);
    - Ilyra's loyalty arithmetic for E (D-113); the affix on Uncommon upgrade (D-118);
    - the achievement engine and 13 `tally_*` counters (D-119); the first fight's forced intents (D-121);
-   - the Cairns, Scriptorium and Windward fights (D-122).
+   - the Cairns, Scriptorium and Windward fights (D-122); 9 out-of-band creature placements, Vell's Umbra at L16, the shared
+     "Stutter" name (D-137).
 
    Then U82 (Opus; soft-lock and coverage punch list — **C5 verified**).
 4. **Fun reviews:** U83/U85/U87 (planned ✦ Fable; given Tim's Fable budget, D-134, run them on Opus unless Fable is available),

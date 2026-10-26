@@ -2408,3 +2408,22 @@ owning unit (PLAN §9.1).
   - The Horde forecast is empty during the Horde's 3-move delay.
 - **Cost note:** U62b took ~1.6 h, the longest Opus unit so far. It reviewed another unit's engine edits, wired 18 features,
   and ran the slow full suites. Next time, split a finisher this size in two.
+
+### D-137 · U76 details — the content test suite (PLAN §8.2), 2026-10-26
+- **U76 (… 7cd7f7f; Sonnet, spot-reviewed):** new `tests/unit/content/{schema,reachability,quests.completable,codex.voice,
+  balance.static,crossrefs.realpack}.test.ts` and `tools/legacy-extract.ts`; `legacy.test.ts` and
+  `sim/endings.reachable.test.ts` extended. 4,689 pass, 3 todo.
+  - All 22 validator rules already had failing examples. `crossrefs.realpack` adds one mutation per rule on the real pack.
+  - Each true ending's `requirements` is false at Loop 1's start and true at its script's end. 48 of 49 quests run a proof
+    within budget.
+  - The **3 todos:** `q_iron_silence` and ending D (D-123), and the out-of-band creatures below.
+- **Findings → the balance unit (U81):**
+  - 9 creature placements sit outside their region's level band ± 2 (pinned as `KNOWN_OUT_OF_BAND`; also validator rule-11
+    warnings): `aetherial_weaver` ×2, `glass_mote`, `sky_whisper_sentinel` ×2, `void_touched_stalker`,
+    `hourglass_crawler`, `warding_pillar` ×2.
+  - `cr_vells_umbra` is L16, but the Veil's band top + 2 is 15 (D-066 #21).
+  - The ability name "Stutter" is shared by `wiz_stutter` and `comp_caelum_stutter`.
+
+  The last two print as `soft()` warnings on every test run.
+- **Ruling:** WORLD.md (line 11) allows one added sentence to a legacy location description, and 20 of 21 have one. The
+  legacy test asserts "starts with the legacy text + ≤ 1 sentence". Creature and item descriptions stay string-equal.

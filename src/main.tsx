@@ -64,6 +64,7 @@ const container = typeof document === 'undefined' ? null : document.getElementBy
 if ((__DEV__ || __E2E__) && container && new URLSearchParams(window.location.search).has('audition')) {
   document.title = 'Sound audition · Echoes of Aethelgard';
   mountAudition(container, sharedAudio());
+  if (__E2E__) (window as unknown as { __aethelgard: unknown }).__aethelgard = { audio: sharedAudio() };
 } else if (container) {
   const root = createRoot(container);
   let booted: Booted | null = null;

@@ -41,6 +41,26 @@ describe('the context', () => {
     expect(engine.played()).toEqual(['sfx_ui_tick']);
   });
 
+  test('the unlocking gesture’s own sounds are scheduled while the context resumes', async () => {
+    const mock = new MockAudioContext();
+    let finish = (): void => undefined;
+    mock.resume = () =>
+      new Promise<void>((resolve) => {
+        finish = () => {
+          mock.state = 'running';
+          resolve();
+        };
+      });
+    const engine = createAudioEngine({ create: () => mock as unknown as AudioContext });
+    const unlocked = engine.unlock();
+    expect(engine.play('sfx_hit_physical')).toBe(true);
+    finish();
+    expect(await unlocked).toBe(true);
+    // a context suspended later (a hidden tab) schedules nothing until it resumes
+    engine.suspend();
+    expect(engine.play('sfx_coin')).toBe(false);
+  });
+
   test('without Web Audio the engine is a silent no-op', async () => {
     const engine = createAudioEngine({ create: () => null });
     expect(await engine.unlock()).toBe(false);

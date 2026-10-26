@@ -85,6 +85,7 @@ export function createAudioEngine(options: EngineOptions = {}): AudioEngine {
   let ctx: AudioContext | null = null;
   let unavailable = false;
   let disposed = false;
+  let starting = false;
   let master: GainNode | null = null;
   let buses: Record<BusName, GainNode> | null = null;
   let noise: AudioBuffer | null = null;
@@ -150,7 +151,11 @@ export function createAudioEngine(options: EngineOptions = {}): AudioEngine {
           }
           build(ctx);
         }
-        if (ctx.state === 'suspended') await ctx.resume();
+        if (ctx.state === 'suspended') {
+          // the gesture's own sounds are scheduled meanwhile and play once the context runs
+          starting = true;
+          await ctx.resume().finally(() => (starting = false));
+        }
         return ctx.state === 'running';
       } catch {
         return false;
@@ -163,7 +168,7 @@ export function createAudioEngine(options: EngineOptions = {}): AudioEngine {
       return ctx.state === 'running' ? 'running' : ctx.state === 'closed' ? 'closed' : 'suspended';
     },
     play(id, opts = {}) {
-      if (ctx === null || buses === null || noise === null || disposed || ctx.state !== 'running') return false;
+      if (ctx === null || buses === null || noise === null || disposed || (ctx.state !== 'running' && !starting)) return false;
       const bus = opts.bus ?? busOf(id);
       if (gainOf('master') === 0 || gainOf(bus) === 0) return false;
       if (reduced && id === 'sfx_perc_hat') return false;

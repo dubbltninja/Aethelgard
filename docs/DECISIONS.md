@@ -2492,3 +2492,15 @@ owning unit (PLAN §9.1).
   the Stone-Hide Golem's pacing, and ability-rotation balance.
 - Codex: all 26 remaining WebKit a11y failures also fail on the untouched baseline (our suite runs Chromium only). **Physical
   device testing remains Tim's.**
+
+### D-141 · U79–U81 ordering: U81 split into structural fixes (U81a) and number tuning (U81b), 2026-10-26
+- Tim: "Run U79–U81." PLAN orders U79 → U80 → U81. But several of U81's flags are **bugs that would distort U80's batch**:
+  bots guarding forever (soft-locks), ending D unreachable (coverage), and no achievement engine (achievement coverage).
+- **Order:**
+  1. **U79** (Opus; save `version: 1` and migrations, fixture traces, Loop 1 → Loop 2 by hand) runs in parallel with
+     **U81a** (Opus; bots stop guarding, ending D by play, the achievement engine, the first fight's forced intents, the
+     Uncommon affix).
+  2. **U80** (Sonnet; the 2,000-run batch → `BALANCE.md`) runs on the fixed code.
+  3. **U81b** (Opus; tuning every DESIGN §19 row, DESIGN edits first, then data) follows from `BALANCE.md`.
+- U79's traces must be recorded after U81a's merge, or re-recorded when U81a/U81b change hashes; each unit says so.
+- Ports: U79 4401, U81a 4402, U80 4403, U81b 4404.

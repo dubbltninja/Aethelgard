@@ -123,6 +123,10 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U76 | Content test suite (PLAN §8.2) — brief `briefs/u76.md` | Sonnet | ✅ 7cd7f7f (spot-reviewed) — §8.2 suite; 4689 tests, 3 todo; findings → U81; D-137 |
 | U77 | Playwright flows, mobile, noNetwork, quota, replay (PLAN §8.3) — brief `briefs/u77.md` | Sonnet | ✅ 9a13b6d (spot-reviewed) — 4 flows, mobile, noNetwork, quota, replay parity; e2e 196 ✓; D-138 |
 | U78 | In-repo a11y on every screen, gallery, screenshots (PLAN §8.4) — brief `briefs/u78.md` | Sonnet | ✅ 6c13ec0 (spot-reviewed) — a11y zero failures, gallery, 22 screenshots (WebP); e2e 302 ✓; D-139 |
+| U79 | Integration checkpoint: saves v1 + migrations, fixture traces, Loop 1 → 2 by hand — brief `briefs/u79.md` | Opus | 🔄 running (4401) |
+| U81a | Structural fixes: bots stop guarding, ending D by play, achievement engine, first-fight intents, Uncommon affix (D-141) — brief `briefs/u81a.md` | Opus | 🔄 running (4402) |
+| U80 | 2,000-run balance batch → `BALANCE.md` — brief `briefs/u80.md` | Sonnet | ⏳ after U81a |
+| U81b | Tune every DESIGN §19 row from `BALANCE.md` — brief `briefs/u81b.md` | Opus | ⏳ after U80 |
 | U75 | Region ambience, Threshold drone, Tyrant theme — brief `briefs/u75.md` | Sonnet | ✅ 23d0c9c (spot-reviewed) — 14 ambient beds, Threshold drone, Tyrant theme; 4524 tests; JS 520 kB; D-134 |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |

@@ -397,10 +397,15 @@ export const byId = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 
 // Guard halves one blow and feeds the class resource; it never ends a fight. A bot that guarded while low with no draught (or,
 // the caster, "for mana" it could not spend) against a foe that heals (the Barrow-Light's Gather, the Lantern Matron's Drink)
 // or whose blows its armor shrugs off stood there past round 60 (the soft-lock detector's combat stall). Every combat choice
-// now goes through `pressOn`: at most GUARD_STREAK_MAX Guards in a row, then the strike worth the most (or a flight).
+// now goes through `pressOn`: at most GUARD_STREAK_MAX Guards in a row, then the strike worth the most (or a flight). The same
+// stall came back as a mend loop in the scenario sims (a self-heal every other turn against the Contained Tyrant's Unravelling,
+// the Hourglass Crawlers' Rewind): from PRESS_ROUND on, a fight that has not ended is left if it can be fled, else every
+// choice that is not a strike (Guard, a draught, a mend, a buff) becomes the strike worth the most. A communion is never cut.
 
 /** Consecutive player turns a bot may Guard in one fight before it must act. */
 export const GUARD_STREAK_MAX = 2;
+/** From this round a fight is pressed to its end (DESIGN §19 #8's longest band, the Unveiled Tyrant, is 14–20 rounds). */
+export const PRESS_ROUND = 30;
 
 const GUARD_KEY = 'guard:streak';
 
@@ -455,6 +460,14 @@ export function bestStrike(s: GameState, legal: readonly Action[], content: Cont
   return best?.a;
 }
 
+/** An attack, or an ability that deals damage to a foe (not a mend, a buff or a Guard). */
+function isStrike(s: GameState, content: ContentPack, a: Action): boolean {
+  if (a.type === 'attack') return true;
+  if (a.type !== 'ability' || s.combat === null) return false;
+  const ab = abilityOf(content, a);
+  return ab?.power !== undefined && expectedDamage(content, playerOf(s.combat), a, foesOf(s).length) > 0 && (a.targetUid === undefined || foesOf(s).some((f) => f.uid === a.targetUid));
+}
+
 /**
  * Every combat choice of a policy bot passes through here (U81a, D-110). It notes the choice, and a Guard past
  * GUARD_STREAK_MAX in a row becomes the strike worth the most — else a flight, else any other listed fight action — so a
@@ -464,7 +477,9 @@ export function pressOn(memory: BotMemory, s: GameState, legal: readonly Action[
   if (s.combat === null) return chosen;
   let a = chosen;
   const streak = guardStreak(memory, s);
-  if (a.type === 'guard' && streak >= GUARD_STREAK_MAX) {
+  if (s.combat.round >= PRESS_ROUND && a.type !== 'commune' && a.type !== 'flee' && !isStrike(s, content, a)) {
+    a = (s.combat.canFlee ? firstOf(legal, 'flee') : undefined) ?? bestStrike(s, legal, content) ?? firstOf(legal, 'attack') ?? a;
+  } else if (a.type === 'guard' && streak >= GUARD_STREAK_MAX) {
     a =
       bestStrike(s, legal, content) ??
       firstOf(legal, 'attack') ??

@@ -19,8 +19,9 @@ import {
 } from '@engine/index';
 import { clone } from '@engine/util/clone';
 import { BOTS } from '@sim/bots/index';
-import { GUARD_STREAK_MAX, guardStreak, pressOn } from '@sim/bots/shared';
-import type { BotMemory } from '@sim/bots/types';
+import { GUARD_STREAK_MAX, PRESS_ROUND, guardStreak, pressOn } from '@sim/bots/shared';
+import type { Bot, BotMemory } from '@sim/bots/types';
+import { runLoop } from '@sim/runner';
 import { loadScenario } from '@sim/scenarios';
 import { COMBAT_ROUND_LIMIT } from '@sim/softlock';
 
@@ -64,7 +65,7 @@ function fightStart(classId: string, level: number, encId: string): { state: Gam
 
 /** Plays the fight with the bot to its end (or 200 choices); the longest run of Guards and the last round. */
 function playOut(botName: string, start: { state: GameState; profile: Profile }): { rounds: number; maxStreak: number; mode: string; phase: string | undefined } {
-  const bot = (BOTS[botName] as () => import('@sim/bots/types').Bot)();
+  const bot = (BOTS[botName] as () => Bot)();
   const memory: BotMemory = bot.init?.('guard-stall') ?? {};
   let s = start.state;
   let p = start.profile;
@@ -134,5 +135,42 @@ describe('pressOn', () => {
     const attack = legal.find((a) => a.type === 'attack') as Action;
     expect(pressOn({}, state, legal, pack, attack)).toEqual(attack);
     expect(playerOf(state.combat!).hp).toBeGreaterThan(0);
+  });
+});
+
+describe('from PRESS_ROUND a fight is pressed to its end (the mend loops of the scenario sims)', () => {
+  // the batch's scenario runs that stalled with a self-heal every other turn: the Hourglass Crawlers' Rewind, the Contained
+  // Tyrant's Unravelling, the Orrery Knight
+  const STALLED: readonly { bot: string; classId: string; seed: string; scenario: 'pre_tyrant_l11_ranger' | 'pre_tyrant_l13_ranger'; companionId?: string }[] = [
+    { bot: 'melee', classId: 'elf', seed: 'bal:2', scenario: 'pre_tyrant_l11_ranger' },
+    { bot: 'caster', classId: 'elf', seed: 'bal:0', scenario: 'pre_tyrant_l11_ranger' },
+    { bot: 'caster', classId: 'elf', seed: 'bal:2', scenario: 'pre_tyrant_l11_ranger' },
+    { bot: 'caster', classId: 'ironclad_warden', seed: 'bal:0', scenario: 'pre_tyrant_l11_ranger', companionId: 'brak' },
+    { bot: 'melee', classId: 'elf', seed: 'bal:2', scenario: 'pre_tyrant_l13_ranger' },
+  ];
+  for (const c of STALLED) {
+    test(`${c.bot} ${c.classId} ${c.seed} ${c.scenario}${c.companionId === undefined ? '' : ` with ${c.companionId}`}: no soft-lock`, () => {
+      const bot = (BOTS[c.bot] as () => Bot)();
+      const r = runLoop(
+        { seed: c.seed, classId: c.classId, bot, maxSteps: 2500, maxLoops: 1, stopAt: 'loop_end', scenario: c.scenario, onFallen: 'stop', ...(c.companionId === undefined ? {} : { companionId: c.companionId }) },
+        pack,
+      );
+      expect(r.softLock.detected).toBe(false);
+      expect(r.errors).toEqual([]);
+    });
+  }
+
+  test('past PRESS_ROUND a Guard (a mend, a draught) becomes a flight when the fight can be fled, else the best strike; a strike passes', () => {
+    const { state, profile } = fightStart('ranger', 9, 'enc_barrows_light_night');
+    const guard: Action = { type: 'guard' };
+    const late: GameState = { ...state, combat: { ...state.combat!, round: PRESS_ROUND, canFlee: true } };
+    const legal = legalActions(late, pack, profile);
+    expect(pressOn({}, late, legal, pack, guard).type).toBe(legal.some((a) => a.type === 'flee') ? 'flee' : 'attack');
+    const held: GameState = { ...late, combat: { ...late.combat!, canFlee: false } };
+    expect(['attack', 'ability']).toContain(pressOn({}, held, legal.filter((a) => a.type !== 'flee'), pack, guard).type);
+    const attack = legal.find((a) => a.type === 'attack') as Action;
+    expect(pressOn({}, late, legal, pack, attack)).toEqual(attack);
+    const early: GameState = { ...state, combat: { ...state.combat!, round: PRESS_ROUND - 1 } };
+    expect(pressOn({}, early, legalActions(early, pack, profile), pack, guard)).toEqual(guard);
   });
 });

@@ -158,6 +158,8 @@ function fight(t: Turn, step: { fight: FightPolicy }): Answer {
 function talk(t: Turn, step: { talk: string; pick: string[] }): Answer {
   const label = `talk ${step.talk}`;
   if (t.s.mode === 'dialogue') {
+    // U62: a dialogue that wandered in before the talk began (Loop 2's waking at the Ruins, an arrival's scene) is walked through
+    if (!t.p.talking && t.s.dialogue?.npcId !== step.talk) return act(dialogueAction(t), `${label}: a dialogue offers no way on`);
     t.p.talking = true;
     const want = step.pick[t.p.k];
     const choice = want === undefined ? undefined : t.legal.find((a) => a.type === 'choose' && a.choiceId === want);

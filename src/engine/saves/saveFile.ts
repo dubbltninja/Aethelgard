@@ -10,7 +10,7 @@ import { GameStateSchema } from '../types/schema';
 import type { Profile } from '../types/profile';
 import type { GameState, Watch } from '../types/state';
 import { clone } from '../util/clone';
-import { formatIssues, migrate, parseFileText, type MigrationTable } from './problems';
+import { formatIssues, migrate, parseFileText, preCheckpointRefusal, type MigrationTable } from './problems';
 
 /** The file-format version. D-058: saves were disposable until the first integration checkpoint; v1 is frozen then. */
 export const SAVE_VERSION = 1;
@@ -72,7 +72,14 @@ export const SaveFileSchema: z.ZodType<SaveFile> = z
   })
   .strict();
 
-/** Upgrades v → v + 1 for run saves. Empty: v1 is the first format that ever shipped (D-058). */
+/**
+ * Upgrades v → v + 1 for run saves, keyed by the version it upgrades FROM and applied in order up to SAVE_VERSION
+ * (DESIGN §14.4). Empty: v1 is the format frozen at the U79 integration checkpoint (D-058).
+ *
+ * To change the format: bump SAVE_VERSION, add `[old]: (file) => newFile` here (a pure function over the parsed JSON),
+ * give it a unit test, and keep the golden v1 files in `tests/unit/engine/saves/golden/` loading — they are never
+ * re-recorded, so every later format has to migrate them (`golden.test.ts`).
+ */
 export const migrations: MigrationTable = {};
 
 // ---- serialize -------------------------------------------------------------------------------------------------------
@@ -143,14 +150,18 @@ export function deserialize(json: unknown, content: ContentPack, opts: Deseriali
   if (kind === 'profile') return { error: 'Save rejected: this is a profile file, not a run save (import it as a profile)' };
 
   const parsed = SaveFileSchema.safeParse(migrated.value);
-  if (!parsed.success) return { error: `Save rejected: ${formatIssues(parsed.error.issues)}` };
+  if (!parsed.success) {
+    const problems = formatIssues(parsed.error.issues);
+    return { error: `Save rejected: ${migrated.unversioned === true ? preCheckpointRefusal('save', problems) : problems}` };
+  }
   const file = parsed.data;
 
   if (file.seed !== file.state.meta.seed) {
     return { error: `Save rejected: seed: ${JSON.stringify(file.seed)} does not match state.meta.seed ${JSON.stringify(file.state.meta.seed)}` };
   }
   if (file.state.meta.version !== STATE_VERSION) {
-    return { error: `Save rejected: state.meta.version: expected ${STATE_VERSION}, got ${file.state.meta.version} (the state layout is not this build's)` };
+    const problem = `state.meta.version: expected ${STATE_VERSION}, got ${file.state.meta.version} (the state layout is not this build's)`;
+    return { error: `Save rejected: ${migrated.unversioned === true ? preCheckpointRefusal('save', problem) : problem}` };
   }
   const checked = reconcile(file, content);
   if (typeof checked === 'string') return { error: `Save rejected: ${checked}` };

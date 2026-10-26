@@ -1,0 +1,295 @@
+{
+  "kind": "profile",
+  "version": 1,
+  "profile": {
+    "version": 1,
+    "profileId": "scenario:loop2_day1",
+    "echoes": [
+      "echo_horde_path",
+      "echo_thirtieth_dawn",
+      "echo_amulet_memory",
+      "echo_ironclad_passwords",
+      "echo_stone_hide_origin",
+      "echo_heartstone_path",
+      "echo_heartstone_resonance",
+      "echo_breach_clock",
+      "echo_vask_seal",
+      "echo_nomad_signs"
+    ],
+    "codexUnlocked": [
+      "codex_creatures_unravelled",
+      "codex_echoes",
+      "codex_loop",
+      "codex_creatures_hollowed",
+      "codex_place_shattered_library",
+      "codex_creatures_spireborn",
+      "codex_place_silverwood_plaza",
+      "codex_region_mistwood_reach",
+      "codex_ironclad",
+      "codex_creatures_wilds",
+      "codex_creatures_wards",
+      "codex_haldric_vane",
+      "codex_place_blighted_outpost",
+      "codex_place_sunken_archives",
+      "codex_place_heartstone_depths",
+      "codex_item_heartstone",
+      "codex_breach_clock",
+      "codex_tobrin_vask",
+      "codex_region_ashen_steppe",
+      "codex_place_ring_of_wagons"
+    ],
+    "bestiary": {
+      "cr_horde_husk": {
+        "seen": 2,
+        "killed": 0,
+        "spared": 0,
+        "revealed": "none",
+        "intentsSeen": [
+          "husk_claw",
+          "husk_flicker"
+        ]
+      },
+      "cr_mistwood_prowler": {
+        "seen": 8,
+        "killed": 8,
+        "spared": 0,
+        "revealed": "all",
+        "intentsSeen": [
+          "prowler_rake",
+          "prowler_fade",
+          "prowler_from_fog"
+        ]
+      },
+      "cr_corrupted_shade": {
+        "seen": 3,
+        "killed": 3,
+        "spared": 0,
+        "revealed": "all",
+        "intentsSeen": [
+          "shade_rake",
+          "shade_wail"
+        ]
+      },
+      "cr_arcane_wisp": {
+        "seen": 6,
+        "killed": 6,
+        "spared": 0,
+        "revealed": "all",
+        "intentsSeen": [
+          "wisp_crackle",
+          "wisp_arc",
+          "wisp_flare"
+        ]
+      },
+      "cr_rootling": {
+        "seen": 3,
+        "killed": 3,
+        "spared": 0,
+        "revealed": "all",
+        "intentsSeen": [
+          "rootling_trip",
+          "rootling_jab"
+        ]
+      },
+      "cr_wildling_brute": {
+        "seen": 2,
+        "killed": 2,
+        "spared": 0,
+        "revealed": "resist",
+        "intentsSeen": [
+          "brute_strike",
+          "brute_maul",
+          "brute_root_knit"
+        ]
+      },
+      "cr_anomaly_echoed_shade": {
+        "seen": 2,
+        "killed": 2,
+        "spared": 0,
+        "revealed": "resist",
+        "intentsSeen": [
+          "shade_rake"
+        ]
+      },
+      "cr_anomaly_split_wisp": {
+        "seen": 3,
+        "killed": 3,
+        "spared": 0,
+        "revealed": "all",
+        "intentsSeen": [
+          "wisp_crackle",
+          "wisp_arc",
+          "wisp_flare"
+        ]
+      },
+      "cr_stutter_hound": {
+        "seen": 1,
+        "killed": 1,
+        "spared": 0,
+        "revealed": "resist",
+        "intentsSeen": [
+          "stutter_bite",
+          "stutter_skip"
+        ]
+      },
+      "cr_stone_hide_golem": {
+        "seen": 2,
+        "killed": 2,
+        "spared": 0,
+        "revealed": "resist",
+        "intentsSeen": [
+          "golem_cover",
+          "golem_slam",
+          "golem_grind"
+        ]
+      },
+      "cr_warding_pillar": {
+        "seen": 2,
+        "killed": 2,
+        "spared": 0,
+        "revealed": "resist",
+        "intentsSeen": [
+          "pillar_hum",
+          "pillar_discharge"
+        ]
+      },
+      "cr_salt_jackal": {
+        "seen": 1,
+        "killed": 1,
+        "spared": 0,
+        "revealed": "resist",
+        "intentsSeen": [
+          "jackal_snap",
+          "jackal_scatter"
+        ]
+      },
+      "cr_sky_whisper_sentinel": {
+        "seen": 1,
+        "killed": 1,
+        "spared": 0,
+        "revealed": "resist",
+        "intentsSeen": [
+          "sentinel_gale_wall",
+          "sentinel_ride_the_wind",
+          "sentinel_dive"
+        ]
+      },
+      "cr_steppe_harrier": {
+        "seen": 3,
+        "killed": 3,
+        "spared": 0,
+        "revealed": "all",
+        "intentsSeen": [
+          "harrier_rake",
+          "harrier_climb",
+          "harrier_dive"
+        ]
+      },
+      "cr_anomaly_frayed_brute": {
+        "seen": 1,
+        "killed": 1,
+        "spared": 0,
+        "revealed": "resist",
+        "intentsSeen": [
+          "brute_strike"
+        ]
+      },
+      "cr_anomaly_rootbound_pack": {
+        "seen": 1,
+        "killed": 1,
+        "spared": 0,
+        "revealed": "resist",
+        "intentsSeen": [
+          "pack_trip",
+          "pack_jab"
+        ]
+      }
+    },
+    "achievements": {},
+    "resonance": 63,
+    "resonanceEarnedTotal": 63,
+    "attunements": {
+      "owned": [],
+      "equipped": []
+    },
+    "classMastery": {
+      "ranger": {
+        "loopsPlayed": 1,
+        "mastered": [],
+        "endings": [],
+        "bestLevel": 1,
+        "bestDays": null
+      }
+    },
+    "runHistory": [
+      {
+        "runId": "scenario:loop2_day1:1",
+        "seed": "scenario:loop2_day1",
+        "loop": 1,
+        "classId": "ranger",
+        "outcome": "closer_fall",
+        "reason": "expiry",
+        "daysUsed": 30,
+        "level": 1,
+        "echoesGained": [
+          "echo_horde_path",
+          "echo_thirtieth_dawn"
+        ],
+        "questsCompleted": [],
+        "tyrant": "untouched",
+        "heartstone": "intact",
+        "modifiers": [],
+        "summary": "Loop 1 · Ranger · Fall (expiry) · Day 30"
+      }
+    ],
+    "settings": {
+      "textScale": 1,
+      "highContrast": false,
+      "reducedMotion": "system",
+      "volumes": {
+        "master": 0.8,
+        "ambient": 0.6,
+        "sfx": 0.8,
+        "music": 0.5
+      },
+      "muted": false,
+      "autosave": true,
+      "showIntentNumbers": true,
+      "confirmFlee": true,
+      "logLength": 100
+    },
+    "modifiers": {},
+    "mapKnowledge": [
+      "loc_whispering_ruins",
+      "loc_crumbling_archway",
+      "loc_darkened_corridor"
+    ],
+    "discoveries": [
+      "loc:loc_whispering_ruins",
+      "loc:loc_crumbling_archway",
+      "loc:loc_darkened_corridor",
+      "codex:codex_creatures_unravelled",
+      "codex:codex_echoes",
+      "kill:cr_mistwood_prowler",
+      "kill:cr_corrupted_shade",
+      "kill:cr_arcane_wisp",
+      "kill:cr_rootling",
+      "kill:cr_wildling_brute",
+      "kill:cr_anomaly_echoed_shade",
+      "kill:cr_anomaly_split_wisp",
+      "kill:cr_stutter_hound",
+      "kill:cr_stone_hide_golem",
+      "kill:cr_warding_pillar",
+      "kill:cr_salt_jackal",
+      "kill:cr_sky_whisper_sentinel",
+      "kill:cr_steppe_harrier",
+      "kill:cr_anomaly_frayed_brute",
+      "kill:cr_anomaly_rootbound_pack"
+    ],
+    "endingsReached": [],
+    "loopCounter": 2,
+    "newGamePlus": 0,
+    "lastClassId": "ranger",
+    "lastDeathLocation": "loc_darkened_corridor"
+  }
+}

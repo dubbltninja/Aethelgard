@@ -2336,3 +2336,25 @@ owning unit (PLAN §9.1).
   `EndingSlide` gain `loading`.
 - **Git identity:** a merge made with the local default identity showed as Unverified on GitHub. The repo's git config is now
   `Claude <noreply@anthropic.com>`; amend any stray commit with `--reset-author` before pushing.
+
+### D-134 · U75 details — region beds, the Threshold drone, the Tyrant theme; Fable writes only text, 2026-10-26
+- **U75 (23d0c9c; Sonnet, spot-reviewed):** `src/audio/ambient/{recipes,layers,theme,ambient}.ts`. All 14 ambient presets in
+  content have recipes: the 12 regions plus the Nexus and the Apex.
+  - Beds crossfade over 2 s on a region change. Interiors play through a 1.1 kHz lowpass, and infection adds a tritone layer at
+    or below −30 dB. At most 3 layers are alive at once.
+  - The Tyrant theme follows DESIGN §18.4 on the music bus. Each phase adds to it (a 65 Hz saw, a doubled tick, detune drift).
+    The communion thins it toward just intonation and stills the tick and swell. The bed ducks to 0.4 under it, and it fades
+    over 2.5 s after the fight.
+  - The Title and the endings are silent. Reduced motion drops the amplitude LFOs and the Apex gate.
+  - `AudioEngine` gained `context()`, `levels()`, `reducedMotion()` and `subscribe()` (additive).
+  - Tests: 4,524 unit (leak tests: 100 start/stop cycles leave no nodes); full e2e 176 passed, 10 skipped. Production JS
+    **519.5 kB**.
+  - Deviations from §18.2: a quiet octave under beds below 60 Hz, and +6 dB for narrow noise bands. Nobody has heard them;
+    Tim's ear on `?audition` is the review.
+- **Fable budget (Tim, 2026-10-25): Fable units write text only.** Tim is nearly out of Fable usage, and U62 had begun editing
+  `src/engine` and `src/sim`, where debugging and long test output burn tokens.
+  - The lead snapshot U62 (88b82d3) and narrowed it: polish the five new key scenes, write the endings' `sequence` and
+    `epilogues` (slide `art` and `mood`), and write the lines §12 gives the loose Echoes. It runs only `npm run validate` and
+    single test files.
+  - From now on: **a ✦ unit writes prose and commits it; an Opus finisher does all wiring, engine changes, tests, proofs and
+    verification after it.** If Fable runs out, the finisher completes the remaining text in the established voices.

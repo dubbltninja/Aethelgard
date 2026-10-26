@@ -688,7 +688,8 @@ export function meleeFight(env: Env, fleeIf: (env: Env) => boolean): Action {
     return foe !== undefined && (foe.resistances.physical === 'weak' || enemyWeakness(content, foe.refId).includes('physical'));
   };
   const hpOf = (uid: string | undefined): number => foes.find((f) => f.uid === uid)?.hp ?? Number.POSITIVE_INFINITY;
-  const target = [...foes].sort((a, b) => Number(weak(b.uid)) - Number(weak(a.uid)) || a.hp - b.hp)[0];
+  // U81a: the creatures the fight is about before what they summoned (a summoner calls more; D-110)
+  const target = [...foes].sort((a, b) => Number(a.isAdd) - Number(b.isAdd) || Number(weak(b.uid)) - Number(weak(a.uid)) || a.hp - b.hp)[0];
   const strikes = legal.filter((a) => {
     if (a.type === 'attack') return true;
     if (a.type !== 'ability') return false;

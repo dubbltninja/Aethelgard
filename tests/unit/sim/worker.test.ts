@@ -20,6 +20,8 @@ const job = (over: Partial<Job> = {}): Job => ({
   verify: false,
   ...over,
 });
+/** U81a (D-110): a pack whose fights never end (the bots no longer guard forever, so a real fight is no soft-lock to test with). */
+const STALL_PACK = 'tests/fixtures/stallContent.ts#stallPack';
 const SCRIPTS = 'tests/fixtures/scripts/endings.ts';
 
 describe('PackCache and the scripts', () => {
@@ -66,7 +68,7 @@ describe('runJob', () => {
   });
 
   test('a soft-locked run keeps its trace, and the trace replays to the same hash', async () => {
-    const out = await runJob(job({ pack: 'fixture:combat', classId: 'shadow_weaver', bot: 'caster', seed: 'bal:0', maxSteps: 6000, maxLoops: 3 }), cache);
+    const out = await runJob(job({ pack: STALL_PACK, classId: 'shadow_weaver', bot: 'caster', seed: 'bal:0', maxSteps: 6000, maxLoops: 3 }), cache);
     expect(out.kind).toBe('run');
     if (out.kind !== 'run' || out.check === undefined) throw new Error('no check');
     expect(out.result.softLock.detected).toBe(true);

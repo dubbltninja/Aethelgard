@@ -45,6 +45,8 @@ const small = (over: Partial<BatchConfig> = {}): BatchConfig => ({
   scripts: [],
   ...over,
 });
+/** U81a (D-110): a pack whose fights never end (the bots no longer guard forever, so a real fight is no soft-lock to test with). */
+const STALL_PACK = 'tests/fixtures/stallContent.ts#stallPack';
 const tmp = (): string => fs.mkdtempSync(path.join(os.tmpdir(), 'u39-batch-'));
 
 describe('resolveConfig', () => {
@@ -256,7 +258,7 @@ describe('runBatch', () => {
   });
 
   test('a soft-lock is a blocker that keeps its trace and counts in the exit', async () => {
-    const b = await runBatch(small({ packs: ['fixture:combat'], bots: ['caster'], classes: ['shadow_weaver'], seeds: ['bal:0'], maxSteps: 6000, maxLoops: 3 }));
+    const b = await runBatch(small({ packs: [STALL_PACK], bots: ['caster'], classes: ['shadow_weaver'], seeds: ['bal:0'], maxSteps: 6000, maxLoops: 3 }));
     expect(b.runs[0]?.result.softLock.detected).toBe(true);
     expect(b.runs[0]?.result.trace?.length).toBeGreaterThan(0);
     expect(blockerCount(b)).toBe(1);
@@ -393,7 +395,7 @@ describe('batchMain', () => {
   test('a blocker makes the exit code 1 and the report names it', async () => {
     const dir = tmp();
     const out = path.join(dir, 'B.md');
-    const { code, lines } = await run(['--pack', 'fixture:combat', '--seeds', '1', '--bots', 'caster', '--classes', 'shadow_weaver', '--workers', '1', '--scenario-seeds', '0', '--scripts', '', '--determinism', '0', '--out', out, '--quiet']);
+    const { code, lines } = await run(['--pack', STALL_PACK, '--seeds', '1', '--bots', 'caster', '--classes', 'shadow_weaver', '--workers', '1', '--scenario-seeds', '0', '--scripts', '', '--determinism', '0', '--out', out, '--quiet']);
     expect(code).toBe(1);
     expect(lines.at(-1)?.startsWith('batch: 1 blocker(s)')).toBe(true);
     expect(fs.readFileSync(out, 'utf8')).toContain('combat_stall');

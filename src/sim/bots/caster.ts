@@ -77,6 +77,7 @@ import {
   healthFraction,
   levelBand,
   nearestUnvisited,
+  pressOn,
   resistanceOf,
   stepAlong,
   type PathOptions,
@@ -248,8 +249,13 @@ function fight(env: Env): Action {
   const spell = best !== undefined && best.type === 'ability' ? best : undefined;
   if (stuck) return forfeitBlow(env);
   if (spell !== undefined) return spell;
-  // nothing to cast: Guard feeds the mana pool, a basic attack otherwise
-  if (hp < CASTER.guardForManaBelow && firstOf(legal, 'guard') !== undefined) return { type: 'guard' };
+  // nothing to cast: Guard feeds the mana pool — when mana is what is missing (U81a, D-110: a spell it holds costs more than it
+  // has); a basic attack otherwise
+  const starved = s.player.abilitiesUnlocked.some((id) => {
+    const ab = content.abilities[id];
+    return ab?.power !== undefined && ab.mp > me.mp;
+  });
+  if (starved && hp < CASTER.guardForManaBelow && firstOf(legal, 'guard') !== undefined) return { type: 'guard' };
   return best ?? firstOf(legal, 'guard') ?? fallback(legal);
 }
 
@@ -307,7 +313,7 @@ export function casterBot(): Bot {
       const env: Env = { s: state, legal, content, profile: ctx.profile, n };
       switch (state.mode) {
         case 'combat':
-          return fight(env);
+          return pressOn(memory, state, legal, content, fight(env));
         case 'dialogue':
           return talkThrough(env, DIALOGUE);
         case 'threshold':

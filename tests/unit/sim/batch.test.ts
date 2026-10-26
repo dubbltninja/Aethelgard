@@ -19,6 +19,7 @@ import {
   execute,
   jobsOf,
   measureStepMicros,
+  mergeBatches,
   metricsOf,
   mismatchOf,
   parseBatchArgs,
@@ -422,5 +423,27 @@ describe('the same job outcome from runJob in every path', () => {
     const here = await runJob(job, new PackCache());
     const [there] = await execute([job, { ...job, id: 1 }], 2);
     expect(there?.kind === 'run' && there.check).toEqual(here.kind === 'run' ? here.check : undefined);
+  });
+});
+
+describe('mergeBatches (U80)', () => {
+  test('two --json chunks combine into one batch: runs, seeds and determinism samples are summed', async () => {
+    const dir = tmp();
+    const a = await runBatch(small({ seedPrefix: 'ma', determinism: 2 }));
+    const b = await runBatch(small({ seedPrefix: 'mb', determinism: 2 }));
+    const files = [a, b].map((x, i) => {
+      const f = path.join(dir, `${i}.json`);
+      fs.writeFileSync(f, JSON.stringify({ ...x, runs: x.runs.map((r) => ({ ...r, result: { ...r.result, trace: undefined } })) }));
+      return f;
+    });
+    const m = mergeBatches(files, path.join(dir, 'out.md'));
+    expect(m.runs).toHaveLength(a.runs.length + b.runs.length);
+    expect(m.config.seeds).toEqual([...a.config.seeds, ...b.config.seeds]);
+    expect(m.determinism['fixture:story']?.sampled).toBe((a.determinism['fixture:story']?.sampled ?? 0) + (b.determinism['fixture:story']?.sampled ?? 0));
+    expect((await metricsOf(m))[0]?.metrics.runs).toBe(m.runs.length);
+  });
+
+  test('--merge parses as a list', () => {
+    expect(parseBatchArgs(['--merge', 'a.json, b.json']).config.merge).toEqual(['a.json', 'b.json']);
   });
 });

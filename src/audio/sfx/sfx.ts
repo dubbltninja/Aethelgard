@@ -4,13 +4,16 @@
 //
 // | id                  | heard on (src/audio/map/map.ts)                                         |
 // |---------------------|-------------------------------------------------------------------------|
-// | sfx_ui_tick         | dialogue line, equip, stat point, companion swap, modifier toggle         |
-// | sfx_ui_confirm      | item taken/given, quest started/advanced, exit unlocked, ability, recruit |
-// | sfx_ui_back         | unequip, dismiss, attunement off, Resolve lost                           |
+// | sfx_ui_tick         | dialogue line, equip, stat point, companion swap, objective done, modifier |
+// | sfx_ui_confirm      | item taken/given, quest started/advanced, exit unlocked, ability, recruit, |
+// |                     | attunement on, a panel opens (Shell)                                     |
+// | sfx_ui_back         | unequip, dismiss, attunement off, Resolve lost, a panel closes (Shell)   |
 // | sfx_ui_error        | an action refused                                                       |
 // | sfx_travel          | entering a location, a successful flight                                 |
 // | sfx_rest_dawn       | resting, a new loop's first dawn                                         |
-// | sfx_hit_physical…   | a blow by damage type: physical, fire, storm, ley, void, chrono (6)      |
+// | sfx_hit_physical…   | a blow by damage type: physical, fire, storm, ley, void, chrono (6); a   |
+// |                     | damage-over-time tick at 45 %; void also: Corruption rises, communion    |
+// |                     | rejected                                                                 |
 // | sfx_crit            | a critical blow (its type's hit + a high ping)                           |
 // | sfx_miss            | an attack that missed, a failed flight                                   |
 // | sfx_guard           | Guard, a blow wholly absorbed                                            |

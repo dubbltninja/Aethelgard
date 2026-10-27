@@ -114,7 +114,7 @@ describe('the engine and the sims never need a chunk', () => {
       expect(b.choicesTaken).toEqual(a.choicesTaken);
       expect(a.codexUnlocked.length).toBeGreaterThan(0); // the run met the codex pass
       if (bot === 'explorer') expect(a.choicesTaken.length).toBeGreaterThan(0); // and spoke with someone
-    });
+    }, 30_000); // two full loops: ~3 s alone, past bun's 5 s default on the shared 2-core machine
   }
 
   test('an ending’s slides are references on the split pack, the words on the authored one', () => {

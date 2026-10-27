@@ -232,7 +232,7 @@ const vellsUmbra = {
   family: 'fam_hollowed',
   materialKin: 'void_touched',
   role: 'boss',
-  level: 16,
+  level: 15, // U81b2 (D-137): band top + 2 (Eye of the Scar 10-13); was 16
   stats: { hp: 480, atk: 29, sp: 29, armor: 2, ward: 8, agi: 11 },
   tags: ['breach_born', 'regional_boss'],
   resistances: { ley: 'weak', fire: 'weak', void: 'resist' },

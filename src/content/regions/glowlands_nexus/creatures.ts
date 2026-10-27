@@ -678,7 +678,7 @@ const containedTyrant = {
       statuses: [{ status: 'status_poison', chance: 0.7, duration: 4 }],
     },
     tyr_remember: tyrRemember,
-    tyr_unraveling: { ...tyrUnraveling, power: { coef: 0.8, stat: 'sp' } }, // U81b2: 0.8·SP in this form (DESIGN §4.10; the Unveiled keeps 1.1)
+    tyr_unraveling: tyrUnraveling,
   },
   phases: [
     {
@@ -700,7 +700,7 @@ const containedTyrant = {
       name: 'The Fracture',
       enterWhen: [{ hpBelow: 0.66 }],
       line: 'The mass splits along old seams. Things that were people surface and do not sink back.',
-      // 2× Temporal Aberration at 40 % HP (112), 1 if the player has no active companion (D-066.1)
+      // 1× Temporal Aberration at 40 % HP (112), none if the player has no active companion (U81b2; was 2 / 1, D-066.1)
       adds: [{ creatureId: 'cr_temporal_aberration', count: 1, countSolo: 0, hpPct: 0.4 }],
       // the five strike once per rotation (STORY §8.4); Remember once in this phase (a step-scoped `oncePerFight`)
       pattern: [

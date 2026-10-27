@@ -200,6 +200,16 @@ export function levelBand(content: ContentPack, locationId: string): { min: numb
 /** True if the location has been entered this loop. */
 export const visitedThisLoop = (s: GameState, locationId: string): boolean => s.world.locationStates[locationId]?.visited === true;
 
+/**
+ * U81b2: the clock says go. With this many dawns left or fewer (DESIGN §10.1's first Loop 1 warning, Ilyra's "The whispers have
+ * changed key"; Day 26 of a Stabilized 36, the explorer's `visitUntilDay`), a bot that is ready for the Apex heads there before
+ * any quest hint or unvisited place. Relative to the limit, so a Destroyed (20) or Exploited (25) Loop 1 turns in time too.
+ */
+export const APEX_DUE_DAWNS = 10;
+
+/** U81b2: `APEX_DUE_DAWNS` or fewer dawns before the clock's limit. */
+export const apexDue = (s: GameState): boolean => Math.floor((s.clock.limitTicks - s.clock.ticks) / 4) <= APEX_DUE_DAWNS;
+
 /** PLAN §7.1 `nearestUnvisited`: the closest location not yet entered this loop that passes `filter`, with its path. */
 export function nearestUnvisited(
   s: GameState,

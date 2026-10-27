@@ -627,12 +627,14 @@ describe('the creatures vs WORLD §6.1', () => {
   test('name, family, role, level and XP as WORLD’s table; XP follows DESIGN §6.2 (fodder round(20 + 8L + 1.2L²), elite ×1.8; the boss is hand-set 880)', () => {
     for (const c of creatures) {
       const row = CREATURE_TABLE[c.id];
-      expect([c.id, row?.name.startsWith(c.name), c.family, c.role, c.level, c.xp]).toEqual([c.id, true, row?.family, row?.role, row?.level, row?.xp]);
+      // U81b2 (D-137): the Umbra is L15, the Eye's band top 13 + 2 (WORLD's table still says 16)
+      const level = c.id === 'cr_vells_umbra' ? 15 : row?.level;
+      expect([c.id, row?.name.startsWith(c.name), c.family, c.role, c.level, c.xp]).toEqual([c.id, true, row?.family, row?.role, level, row?.xp]);
     }
     const fodder = (L: number): number => Math.round(20 + 8 * L + 1.2 * L * L);
     for (const c of creatures) if (c.role !== 'boss') expect([c.id, c.xp]).toEqual([c.id, Math.round(fodder(c.level) * (c.role === 'elite' ? 1.8 : 1))]);
-    // regional boss: band top + 2; 400–1,200 hand-set
-    expect([cr(UMBRA).level, cr(UMBRA).xp]).toEqual([region.levelBand.max + 2, 880]);
+    // regional boss: band top + 2 of its location (U81b2, D-137: the Eye's band 13, not the region's 14); 400–1,200 hand-set
+    expect([cr(UMBRA).level, cr(UMBRA).xp]).toEqual([region.levelBand.max + 1, 880]);
     expect(cr(UMBRA).xp).toBeGreaterThanOrEqual(400);
     expect(cr(UMBRA).xp).toBeLessThanOrEqual(1200);
   });
@@ -957,9 +959,10 @@ describe('the real pack with the region registered (D-090)', () => {
     // the Void-Touched Stalker (L6, the Voidscar's) at the Scar Shelf (band 10): WORLD §3.8 places two there, so the record is
     // WORLD's and rule 11 stands; and the Umbra (L16, WORLD's level: band top 14 + 2) at the Eye, whose WORLD band is 13, which
     // rule 11 reads as top 13 + 2 = 15 (WORLD's own contradiction: §3.8 gives the Eye 13 and §6.1 says the boss is top + 2 of 10–14)
-    expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual(['rule-11 cr_vells_umbra level', 'rule-11 cr_void_touched_stalker level']);
+    // U81b2 (D-137): the Umbra is now L15, so rule 11 no longer reports it
+    expect(real.map((w) => `${w.rule} ${w.id} ${w.path}`).sort()).toEqual(['rule-11 cr_void_touched_stalker level']);
     expect(real.find((w) => w.id === 'cr_void_touched_stalker')?.message).toContain(SH);
-    expect(real.find((w) => w.id === UMBRA)?.message).toContain('expected 15');
+    expect(real.find((w) => w.id === UMBRA)).toBeUndefined();
     for (const w of about.filter((x) => x.message.startsWith('pending — content not yet authored (reference): '))) {
       const table = /not found in ([a-z]+)$/.exec(w.message)?.[1];
       expect([w.message, INCOMPLETE_TABLES.includes(table as (typeof INCOMPLETE_TABLES)[number])]).toEqual([w.message, true]);

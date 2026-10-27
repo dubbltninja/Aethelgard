@@ -19,7 +19,7 @@
 //              upgrade the weapon when gold ≥ fee + 30; talk to each NPC once per quest state; each interactable once per
 //              quest state; gather; then travel: quest hints → the nearest unvisited place whose level band starts at most
 //              2 above the player's → the Apex when ready → otherwise pass time at the nearest rest spot (the clock runs out
-//              and the expiry Horde opens the portal).
+//              and the expiry Horde opens the portal). U81b2: with ≤ 10 dawns left (`apexDue`) the Apex, when ready, comes first.
 //   routing    never through a place whose band starts more than 2 above the player's level, nor one where the player
 //              fell at its current level or above (a death note survives the reload, so the same walk is not replayed);
 //              a Horde lifts both (no fights start in one).
@@ -54,6 +54,7 @@ import {
   levelBand,
   locationThreat,
   manaFraction,
+  apexDue,
   nearestUnvisited,
   pressOn,
   questSignature,
@@ -326,7 +327,12 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
   const errand = questErrand(s, legal, content, memory); // U81b1: search a hint for an objective's item, or buy it (questFollow.ts)
   if (errand !== undefined) return errand;
 
-  // where next: quest hints → the nearest unvisited place in reach → the Apex → pass the time
+  // where next: quest hints → the nearest unvisited place in reach → the Apex → pass the time (U81b2: the Apex first once it is due)
+  const apexOk = n.apexFaced !== s.meta.runId && n.apexDeclined !== `${s.meta.runId}:${level}` && !fell(APEX_LOCATION_ID) && apexReady(s, content, profile);
+  if (apexOk && apexDue(s)) {
+    const toApex = step(bfsPath(s, content, profile, here, APEX_LOCATION_ID, opts));
+    if (toApex !== undefined) return toApex;
+  }
   const qsig = questSignature(s);
   if (questTargets(s, content, profile).map((t) => t.locationId).includes(here)) n.hintsReached[here] = qsig;
   for (const hint of questTargets(s, content, profile).map((t) => t.locationId)) {
@@ -337,7 +343,7 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
   const fresh = nearestUnvisited(s, content, profile, safe, opts);
   const go = step(fresh?.path ?? null);
   if (go !== undefined) return go;
-  if (n.apexFaced !== s.meta.runId && n.apexDeclined !== `${s.meta.runId}:${level}` && !fell(APEX_LOCATION_ID) && apexReady(s, content, profile)) {
+  if (apexOk) {
     const toApex = step(bfsPath(s, content, profile, here, APEX_LOCATION_ID, opts));
     if (toApex !== undefined) return toApex;
   }

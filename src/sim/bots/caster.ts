@@ -28,7 +28,7 @@
 //              then travel: from Loop 2 with the Tyrant to talk to, straight to the Apex once it is open (level bands and fleeable
 //              fights do not matter to a conversation) — otherwise quest hints (Weavers' and Remnants' quests first) → the nearest
 //              unvisited place whose band starts at most 2 above the player's → the Apex when level ≥ the fight − 3 → pass the
-//              time at a bed (melee).
+//              time at a bed (melee). U81b2: with ≤ 10 dawns left (`apexDue`) the Apex, when ready, comes first.
 //   routing    melee's: never through a place whose band starts more than 2 above the player's level, nor one where the player
 //              fell at its current level or above, nor one that has turned it back 4 times by wanderers it fled (U38: `shunned`,
 //              since fleeing returns the party to the previous node); a Horde, and the rush to a conversation, lift the band rule.
@@ -69,7 +69,7 @@ import {
   type ThresholdCfg,
   type TradeCfg,
 } from './policy';
-import { bfsPath, canReachApex, firstOf, healthFraction, levelBand, nearestUnvisited, pressOn, stepAlong, type PathOptions } from './shared';
+import { apexDue, bfsPath, canReachApex, firstOf, healthFraction, levelBand, nearestUnvisited, pressOn, stepAlong, type PathOptions } from './shared';
 import { dangerAt, DANGER_MARGIN } from './danger';
 import { questErrand } from './questFollow';
 import type { Bot, BotMemory } from './types';
@@ -181,6 +181,11 @@ function explore(env: Env, memory: BotMemory): Action {
 
   // where next
   const ready = !apexSettled(env) && (rush || apexReadyBy(env, APEX_MARGIN));
+  // U81b2: once the Apex is due (≤ 10 dawns left) a ready caster goes there before hints and unvisited places
+  if (ready && !rush && apexDue(s)) {
+    const toApex = stepAlong(legal, bfsPath(s, content, profile, here, APEX_LOCATION_ID, opts));
+    if (toApex !== undefined) return toApex;
+  }
   if (rush && ready && canReachApex(s, content, profile, { avoid: fell })) {
     const toApex = stepAlong(legal, bfsPath(s, content, profile, here, APEX_LOCATION_ID, { avoid: fell }));
     if (toApex !== undefined) return toApex;

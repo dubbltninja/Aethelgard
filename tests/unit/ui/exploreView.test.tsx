@@ -1,4 +1,4 @@
-// The Explore screen's views (U64; PLAN §8.3): render + interaction + accessible names for the ExitBar, the ActionBar,
+// The Explore screen's views (U64; PLAN §8.3): render + interaction + accessible names for the MovePad, the ActionBar,
 // the HUD (StatusBar, meters, the clock chip) and the whole ExploreView, driven through tests/unit/ui/tree.ts (views
 // are pure). The container's keys and focus are e2e's (tests/e2e/explore.spec.ts).
 import { describe, expect, mock, test } from 'bun:test';
@@ -7,7 +7,7 @@ import { legalActions, memoryStorage } from '@engine/index';
 import { App } from '@ui/App';
 import { ActionBar, actionKey } from '@ui/components/ActionBar';
 import { ClockWidget } from '@ui/components/ClockWidget';
-import { ExitBar, exitName } from '@ui/components/ExitBar';
+import { MovePad, PAD_CELLS, PAD_SLOTS, exitName } from '@ui/components/MovePad';
 import { Meter, StatusBar } from '@ui/components/StatusBar';
 import { ExploreView, type ExploreViewProps } from '@ui/screens/ExploreScreen';
 import { actionRows, clockModel, exitRows, hudModel, itemRows, npcRows, placeModel, type ActionRow, type ExitRow } from '@ui/screens/exploreModel';
@@ -37,11 +37,28 @@ const open: ExitRow = {
 const locked: ExitRow = { ...open, to: 'loc_b', dir: 'east', dirLabel: 'East', name: 'Barren Peaks', state: 'locked', canGo: false, reason: 'I should talk to Brak before going this way.', arrive: null };
 const infected: ExitRow = { ...open, to: 'loc_c', dir: 'path', dirLabel: 'Path', name: 'Ironclad Camp', label: 'the old road', danger: '⚠ −33% HP: the Horde is there', road: true };
 
-describe('ExitBar', () => {
+describe('MovePad', () => {
+  test('every slot is always drawn, in a fixed cell; an absent direction is an empty slot with no button', () => {
+    const one = renderToStaticMarkup(<MovePad exits={[open]} onTravel={() => undefined} onInspect={() => undefined} />);
+    const all3 = renderToStaticMarkup(<MovePad exits={[open, locked, infected]} onTravel={() => undefined} onInspect={() => undefined} />);
+    for (const html of [one, all3]) {
+      const slots = [...html.matchAll(/data-pad-slot="([a-z]+)"/g)].map((m) => m[1]);
+      expect(slots).toEqual([...PAD_SLOTS]);
+    }
+    expect(PAD_SLOTS).toEqual(['up', 'down', 'north', 'in', 'out', 'west', 'east', 'path', 'south', 'portal']);
+    expect([...one.matchAll(/<button/g)]).toHaveLength(1);
+    expect([...all3.matchAll(/<button/g)]).toHaveLength(3);
+    // the cell order is the compass: north top-centre, west and east either side of "here", south bottom-centre
+    expect(PAD_CELLS.map((c) => (c === 'here' ? 'here' : c.join('-')))).toEqual(['up-down', 'north', 'in-out', 'west', 'here', 'east', 'path', 'south', 'portal']);
+    // the visible text is short and the full sentence is the name and the hover text
+    const tree = expand(<MovePad exits={[open]} onTravel={() => undefined} onInspect={() => undefined} />);
+    expect(byName(tree, 'button', 'North: Crumbling Archway, 1 watch, arrive Dusk').props.title).toBe('North: Crumbling Archway, 1 watch, arrive Dusk');
+  });
+
   test('one named button per exit: direction, place, cost, arrival; travel only through open legal exits', () => {
     const travel = mock((_to: string) => undefined);
     const inspect = mock((_to: string) => undefined);
-    const tree = expand(<ExitBar exits={[open, locked, infected]} onTravel={travel} onInspect={inspect} />);
+    const tree = expand(<MovePad exits={[open, locked, infected]} onTravel={travel} onInspect={inspect} />);
     expect(all(tree, 'nav')[0]?.props['aria-labelledby']).toBe('exits-heading');
     const north = byName(tree, 'button', 'North: Crumbling Archway, 1 watch, arrive Dusk');
     expect(north.props['data-exit-dir']).toBe('north');
@@ -51,7 +68,7 @@ describe('ExitBar', () => {
     const east = byName(tree, 'button', 'East: Barren Peaks, locked');
     expect(east.props['aria-disabled']).toBe('true');
     expect(east.props['aria-describedby']).toBe('exit-reason-loc_b');
-    expect(renderToStaticMarkup(<ExitBar exits={[locked]} onTravel={travel} onInspect={inspect} />)).toContain('I should talk to Brak before going this way.');
+    expect(renderToStaticMarkup(<MovePad exits={[locked]} onTravel={travel} onInspect={inspect} />)).toContain('I should talk to Brak before going this way.');
     call(east, 'onClick');
     expect(inspect.mock.calls).toEqual([['loc_b']]);
     expect(travel.mock.calls).toHaveLength(1);
@@ -61,12 +78,12 @@ describe('ExitBar', () => {
 
   test('an open exit the engine does not list is disabled and does nothing', () => {
     const travel = mock((_to: string) => undefined);
-    const tree = expand(<ExitBar exits={[{ ...open, canGo: false }]} onTravel={travel} onInspect={() => undefined} />);
+    const tree = expand(<MovePad exits={[{ ...open, canGo: false }]} onTravel={travel} onInspect={() => undefined} />);
     const button = byName(tree, 'button', /Crumbling Archway/);
     expect(button.props['aria-disabled']).toBe('true');
     call(button, 'onClick');
     expect(travel.mock.calls).toHaveLength(0);
-    expect(renderToStaticMarkup(<ExitBar exits={[]} onTravel={travel} onInspect={() => undefined} />)).toContain('There is no way on from here.');
+    expect(renderToStaticMarkup(<MovePad exits={[]} onTravel={travel} onInspect={() => undefined} />)).toContain('There is no way on from here.');
   });
 
   test('exitName with no arrival (a frozen clock)', () => {
@@ -182,7 +199,7 @@ describe('ExploreView', () => {
     expect(nameOf(h1[0]!)).toBe('Whispering Ruins');
     const scene = all(tree, 'svg').find((n) => n.props.role === 'img');
     expect(scene?.props['aria-label']).toBe('Whispering Ruins');
-    expect(all(tree, 'h2').map(nameOf)).toEqual(['Here', 'Ways on', 'What you can do', 'What has happened']);
+    expect(all(tree, 'h2').map(nameOf)).toEqual(['Here', 'What you can do', 'What has happened', 'Ways on']);
     const log = all(tree, 'ol').find((n) => n.props.role === 'log');
     expect(log?.props['aria-live']).toBe('off'); // the Shell's live region speaks; the list is the record
     expect(renderToStaticMarkup(<ExploreView {...props} />)).toContain('data-screen="explore"');

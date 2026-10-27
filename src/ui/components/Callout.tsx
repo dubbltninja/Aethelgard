@@ -1,7 +1,7 @@
 // The onboarding callout (DESIGN §16.8; U70): one short hint beside the thing it explains. A `note` that never takes focus
 // and never blocks play — the next action dismisses it, or "Got it", or "Turn tutorials off" (the Settings switch too).
 // It sits in an always-present polite live region (`Callouts`), so a new hint is read out once. Pure.
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { CalloutDef } from '../onboarding/model';
 import { Icon } from '../art/Icon';
 import { Button } from './Button';
@@ -32,10 +32,10 @@ export function CalloutView({ callout, onDismiss, onTurnOff }: CalloutViewProps)
   );
 }
 
-/** The always-present live region the hint appears in. */
-export function CalloutRegion({ children }: { children?: ReactNode }): ReactNode {
+/** The always-present live region the hint appears in; `placement` floats it (U84a: over a wide explore screen's scene). */
+export function CalloutRegion({ children, placement = null }: { children?: ReactNode; placement?: CSSProperties | null }): ReactNode {
   return (
-    <div className="callouts" aria-live="polite" aria-atomic="false">
+    <div className="callouts" aria-live="polite" aria-atomic="false" data-floating={placement === null ? undefined : 'true'} style={placement ?? undefined}>
       {children}
     </div>
   );

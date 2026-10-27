@@ -7,6 +7,39 @@
   min-width: 0;
 }
 
+/*
+ * U84a (D-147, REPORT U79 #2): a hint never moves or hides the controls.
+ *   - Phones (and the phone fight layout): it stays in the dock, above the pinned bar or pad. The dock grows upward, so the
+ *     controls under the thumb keep their place; the screen above scrolls inside a little less room.
+ *   - A wide explore screen: it floats over the foot of the place's scene band (Callouts measures it; data-floating).
+ *   - A wide fight: it floats over the top of the log column, away from the controls, the intents and the stage.
+ */
+.callouts[data-floating="true"] {
+  z-index: 6;
+}
+
+.callouts[data-floating="true"] .callout,
+.app[data-mode="combat"]:has(.combat[data-layout="wide"]) .dock > .callouts .callout {
+  margin: 0;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.4);
+}
+
+.app[data-mode="combat"]:has(.combat[data-layout="wide"]) .dock > .callouts {
+  position: fixed;
+  top: 3.5rem;
+  right: var(--gutter);
+  z-index: 6;
+  width: min(26rem, 34vw);
+}
+
+.app[data-mode="combat"]:has(.combat[data-layout="wide"]) .dock > .callouts .callout {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.app[data-mode="combat"]:has(.combat[data-layout="wide"]) .dock > .callouts .callout__actions {
+  grid-column: 1 / -1;
+}
+
 .callouts:empty {
   display: none;
 }
@@ -48,16 +81,30 @@
 }
 
 @media (max-width: 759.98px) {
+  /* compact: the words, and the two buttons stacked beside them */
   .callout {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
   }
 
   .callout__icon {
     display: none;
   }
 
+  .callout__text {
+    font-size: var(--type-small);
+  }
+
   .callout__actions {
-    justify-content: flex-start;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .callout__actions .btn {
+    min-height: var(--target-min);
+    padding-inline: var(--space-2);
+    font-size: var(--type-small);
   }
 }
 

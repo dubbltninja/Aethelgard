@@ -9,20 +9,24 @@ export interface LegendItem {
   label: string;
 }
 
-/** Legend rows for the active layers (top first, stopping after the first modal), without duplicate labels. */
-export function legendItems(layers: readonly HotkeyLayer[], max = 8): LegendItem[] {
+/**
+ * Legend rows for the active layers (top first, stopping after the first modal), without duplicate labels. In a fight the
+ * panel letters need Shift (DESIGN §16.4), so they show as "Shift+I" beside the fight's own "I" (REPORT U79 #9).
+ */
+export function legendItems(layers: readonly HotkeyLayer[], max = 8, inCombat = false): LegendItem[] {
   const out: LegendItem[] = [];
   for (const layer of layers) {
     for (const entry of legendEntries(layer.map)) {
-      if (!out.some((o) => o.label === entry.label)) out.push({ keys: entry.keys, label: entry.label });
+      const keys = inCombat && entry.group === 'panel' ? entry.keys.map((k) => (k.includes('+') ? k : `shift+${k}`)) : entry.keys;
+      if (!out.some((o) => o.label === entry.label)) out.push({ keys, label: entry.label });
     }
     if (layer.modal) break;
   }
   return out.slice(0, max);
 }
 
-export function KeyLegend({ layers }: { layers: readonly HotkeyLayer[] }): ReactNode {
-  const items = legendItems(layers);
+export function KeyLegend({ layers, inCombat = false }: { layers: readonly HotkeyLayer[]; inCombat?: boolean }): ReactNode {
+  const items = legendItems(layers, 8, inCombat);
   if (items.length === 0) return null;
   return (
     <ul className="key-legend" aria-label="Keys you can press">

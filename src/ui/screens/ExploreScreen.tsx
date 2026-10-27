@@ -20,7 +20,8 @@ import type { Backdrop } from '../art/backdropChooser';
 import { useBackdrop, usePreloadExits } from '../art/useBackdrop';
 import { ActionBar, actionKey } from '../components/ActionBar';
 import { Button } from '../components/Button';
-import { ExitBar } from '../components/ExitBar';
+import { DockPortal } from '../components/DockPortal';
+import { MovePad } from '../components/MovePad';
 import { StatusBar } from '../components/StatusBar';
 import type { HotkeyMap } from '../hooks/hotkeys';
 import { useHotkeys } from '../hooks/useHotkeys';
@@ -79,106 +80,136 @@ export interface ExploreViewProps {
   onTalk: (npcId: string) => void;
   onTake: (uid: string) => void;
   logRef?: RefObject<HTMLOListElement | null>;
+  /**
+   * U84a, where the pad goes: `phone` (under 760 px) — in the pinned dock under the thumb, with the actions and the log in the
+   * scroll region; `wide` (the default) — at the foot of the side column, under the map and the log, at a spot that depends
+   * only on the viewport.
+   */
+  layout?: ExploreLayout;
 }
+
+export type ExploreLayout = 'phone' | 'wide';
+
+/** U84a: the phone layout's media query (the 760 px breakpoint, DESIGN §16.1). */
+export const EXPLORE_PHONE_QUERY = '(max-width: 759.98px)';
 
 export function ExploreView(p: ExploreViewProps): ReactNode {
   const { place, hud } = p;
+  const layout = p.layout ?? 'wide';
+  const pad = <MovePad exits={p.exits} onTravel={p.onTravel} onInspect={p.onInspectExit} />;
+  const actions = <ActionBar actions={p.actions} onRun={p.onAction} />;
+  const facts =
+    place.facts.length === 0 ? null : (
+      <ul className="place__facts" aria-label="About this place">
+        {place.facts.map((fact) => (
+          <li key={fact}>{fact}</li>
+        ))}
+      </ul>
+    );
+  const log = (
+    <section className="event-log" aria-labelledby="log-heading">
+      <h2 id="log-heading" className="section-heading">
+        What has happened
+      </h2>
+      {/* The Shell's live region speaks each step once; this list is the record, so it is not live itself. */}
+      <ol className="event-log__list" role="log" aria-live="off" ref={p.logRef} tabIndex={0} aria-labelledby="log-heading">
+        {p.log.map((line) => (
+          <li key={line.key} className={`event-log__line event-log__line--${line.kind}`}>
+            {line.text}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
   return (
     <RegionPalette regionId={place.regionId} region={p.region} className="screen screen--explore">
-      <section className="explore" data-screen="explore" aria-labelledby="place-heading" data-infected={place.infected ? 'true' : undefined}>
+      <section className="explore" data-screen="explore" data-layout={layout} aria-labelledby="place-heading" data-infected={place.infected ? 'true' : undefined}>
         <StatusBar hud={hud} detail={p.hudDetail} />
-        <div className="explore__grid">
-          <div className="explore__main">
-            <header className="place">
-              <p className="place__region">
-                {place.regionName}
-                {place.band === '' ? null : <span className="place__band"> · {place.band}</span>}
-              </p>
-              <h1 id="place-heading" className="place__name" tabIndex={-1}>
-                {place.name}
-              </h1>
-              {place.facts.length === 0 ? null : (
-                <ul className="place__facts" aria-label="About this place">
-                  {place.facts.map((fact) => (
-                    <li key={fact}>{fact}</li>
-                  ))}
-                </ul>
-              )}
-            </header>
-            <div className="place__scene">
-              <Scene location={p.location} region={p.region} art={place.art} state={p.scene} reducedMotion={p.reducedMotion} seed={p.seed} backdrop={p.backdrop ?? null} />
-            </div>
-            <div className="place__text">
-              <p className="place__description">{place.description}</p>
-              {place.notes.length === 0 ? null : (
-                <ul className="place__notes" aria-label="Just now">
-                  {place.notes.map((note, i) => (
-                    <li key={`${i}:${note}`}>{note}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            {p.npcs.length === 0 && p.items.length === 0 ? null : (
-              <section className="here" aria-labelledby="here-heading">
-                <h2 id="here-heading" className="section-heading">
-                  Here
-                </h2>
-                <ul className="here__list">
-                  {p.npcs.map((npc) => (
-                    <li key={npc.id} className="here-chip here-chip--npc">
-                      <Portrait npcId={npc.id} size="sm" fallback={<Icon kind="npc" size={18} />} />
-                      <span className="here-chip__name">
-                        {npc.name}
-                        {npc.role === null ? null : <span className="here-chip__role"> · {npc.role}</span>}
-                      </span>
-                      {npc.canTalk ? (
-                        <Button className="here-chip__do" onClick={() => p.onTalk(npc.id)}>
-                          Talk to {npc.name}
-                        </Button>
-                      ) : null}
-                    </li>
-                  ))}
-                  {p.items.map((item) => (
-                    <li key={item.uid} className="here-chip here-chip--item" data-rarity={item.rarity}>
-                      <Icon kind="item" size={18} />
-                      <span className="here-chip__name">
-                        {item.name}
-                        {item.qty > 1 ? ` × ${item.qty}` : ''}
-                        {item.rarity === 'common' ? null : <span className="here-chip__role"> · {item.rarity}</span>}
-                      </span>
-                      {item.canTake ? (
-                        <Button className="here-chip__do" onClick={() => p.onTake(item.uid)}>
-                          Take {item.name}
-                        </Button>
-                      ) : (
-                        <span className="here-chip__note">Your pack is full</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+        <header className="place">
+          <p className="place__region">
+            {place.regionName}
+            {place.band === '' ? null : <span className="place__band"> · {place.band}</span>}
+          </p>
+          <h1 id="place-heading" className="place__name" tabIndex={-1}>
+            {place.name}
+          </h1>
+          {layout === 'phone' ? null : facts}
+        </header>
+        {/* U84a: the scene band is fixed in the layout, and its top corner is where toasts appear (Shell) */}
+        <div className="place__scene" data-toast-anchor="">
+          <Scene location={p.location} region={p.region} art={place.art} state={p.scene} reducedMotion={p.reducedMotion} seed={p.seed} backdrop={p.backdrop ?? null} />
+        </div>
+        {/* the place's words and who and what is here (on a phone the actions and the log too) scroll here, never the page */}
+        <div className="explore__body" data-scroll-region="explore">
+          {/* (on a phone the place's tags open its words, so the header stays one line) */}
+          {layout === 'phone' ? facts : null}
+          <div className="place__text">
+            <p className="place__description">{place.description}</p>
+            {place.notes.length === 0 ? null : (
+              <ul className="place__notes" aria-label="Just now">
+                {place.notes.map((note, i) => (
+                  <li key={`${i}:${note}`}>{note}</li>
+                ))}
+              </ul>
             )}
-            <ExitBar exits={p.exits} onTravel={p.onTravel} onInspect={p.onInspectExit} />
-            <ActionBar actions={p.actions} onRun={p.onAction} />
           </div>
-          <aside className="explore__side" aria-label="Map and log">
-            {p.dockedMap === undefined || p.dockedMap === null ? null : <div className="explore__map">{p.dockedMap}</div>}
-            <section className="event-log" aria-labelledby="log-heading">
-              <h2 id="log-heading" className="section-heading">
-                What has happened
+          {p.npcs.length === 0 && p.items.length === 0 ? null : (
+            <section className="here" aria-labelledby="here-heading">
+              <h2 id="here-heading" className="section-heading">
+                Here
               </h2>
-              {/* The Shell's live region speaks each step once; this list is the record, so it is not live itself. */}
-              <ol className="event-log__list" role="log" aria-live="off" ref={p.logRef} tabIndex={0} aria-labelledby="log-heading">
-                {p.log.map((line) => (
-                  <li key={line.key} className={`event-log__line event-log__line--${line.kind}`}>
-                    {line.text}
+              <ul className="here__list">
+                {p.npcs.map((npc) => (
+                  <li key={npc.id} className="here-chip here-chip--npc">
+                    <Portrait npcId={npc.id} size="sm" fallback={<Icon kind="npc" size={18} />} />
+                    <span className="here-chip__name">
+                      {npc.name}
+                      {npc.role === null ? null : <span className="here-chip__role"> · {npc.role}</span>}
+                    </span>
+                    {npc.canTalk ? (
+                      <Button className="here-chip__do" onClick={() => p.onTalk(npc.id)}>
+                        Talk to {npc.name}
+                      </Button>
+                    ) : null}
                   </li>
                 ))}
-              </ol>
+                {p.items.map((item) => (
+                  <li key={item.uid} className="here-chip here-chip--item" data-rarity={item.rarity}>
+                    <Icon kind="item" size={18} />
+                    <span className="here-chip__name">
+                      {item.name}
+                      {item.qty > 1 ? ` × ${item.qty}` : ''}
+                      {item.rarity === 'common' ? null : <span className="here-chip__role"> · {item.rarity}</span>}
+                    </span>
+                    {item.canTake ? (
+                      <Button className="here-chip__do" onClick={() => p.onTake(item.uid)}>
+                        Take {item.name}
+                      </Button>
+                    ) : (
+                      <span className="here-chip__note">Your pack is full</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </section>
-          </aside>
+          )}
+          {actions}
+          {layout === 'phone' ? log : null}
         </div>
+        {layout === 'phone' ? null : (
+          <aside className="explore__side" aria-label="Map and log">
+            {p.dockedMap === undefined || p.dockedMap === null ? null : <div className="explore__map">{p.dockedMap}</div>}
+            {log}
+            <div className="explore__pad">{pad}</div>
+          </aside>
+        )}
       </section>
+      {/* on a phone the pad rides in the pinned dock (Shell), under the thumb, as the fight's action bar does */}
+      {layout === 'phone' ? (
+        <DockPortal>
+          <div className="explore-dock">{pad}</div>
+        </DockPortal>
+      ) : null}
     </RegionPalette>
   );
 }
@@ -187,7 +218,8 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
 function focusHeadingAfterMove(root: HTMLElement | null): void {
   if (root === null) return;
   const active = document.activeElement;
-  const elsewhere = active !== null && active !== document.body && document.contains(active) && !root.contains(active);
+  // (the pad lives in the dock, outside the screen: a move from it still hands focus to the new place)
+  const elsewhere = active !== null && active !== document.body && document.contains(active) && !root.contains(active) && active.closest('.pad') === null;
   if (elsewhere || active?.closest('[data-hotkey-scope="map"]') != null) return;
   root.querySelector<HTMLElement>('#place-heading')?.focus();
 }
@@ -201,6 +233,9 @@ export function ExploreScreen(): ReactNode {
   const legal = useLegal();
   const reducedMotion = useReducedMotion();
   const wide = useMediaQuery(DOCK_MAP_QUERY);
+  const phone = useMediaQuery(EXPLORE_PHONE_QUERY);
+  const short = useMediaQuery('(max-height: 559.98px)');
+  const layout: ExploreLayout = phone ? 'phone' : 'wide';
   const [hudDetail, setHudDetail] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const logRef = useRef<HTMLOListElement>(null);
@@ -249,10 +284,11 @@ export function ExploreScreen(): ReactNode {
   // ---- keys ----
   const inMap = (): boolean => document.activeElement?.closest('[data-hotkey-scope="map"]') != null;
   const focusExit = (dir: string): void => {
-    rootRef.current?.querySelector<HTMLElement>(`.exit-bar [data-exit-dir="${dir}"]`)?.focus();
+    document.querySelector<HTMLElement>(`.pad [data-exit-dir="${dir}"]`)?.focus();
   };
   const talkTo = firstTalk(model.npcs);
   const keys: HotkeyMap = {};
+  // the arrows focus the pad's slot in their direction (on the map, they and WASD choose a neighbour instead, DESIGN §16.4)
   for (const [key, dir] of Object.entries(ARROW_DIRS)) {
     const exit = model.exits.find((e) => e.dir === dir);
     keys[key] = { run: () => focusExit(dir), label: 'Choose a way on', group: 'map', when: () => exit !== undefined && !inMap() };
@@ -317,7 +353,8 @@ export function ExploreScreen(): ReactNode {
         exits={model.exits}
         actions={model.actions}
         log={model.log}
-        dockedMap={wide && shell.activePanel !== 'map' ? <MapPanel docked /> : null}
+        dockedMap={wide && !short && shell.activePanel !== 'map' ? <MapPanel docked /> : null}
+        layout={layout}
         onTravel={travel}
         onInspectExit={inspectExit}
         onAction={run}

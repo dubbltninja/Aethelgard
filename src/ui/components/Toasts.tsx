@@ -2,15 +2,19 @@
 // out. The store's notices ("Saved to the autosave slot.", "The Breach stuttered …") and, from U70, the toasts the engine's
 // events call for (rep deltas and tier changes, Resonance "+n ◇", an Echo gained, a level-up, a quest advancing, an item
 // gained, an achievement; toastModel.ts). The latter live in the queue of toastQueue.ts, where a repeat merges into the toast
-// already showing. Each toast has its own Dismiss button and the Shell clears it after a while. Pure.
-import type { ReactNode } from 'react';
+// already showing. Each toast has its own Dismiss button and the Shell clears it after a while.
+//
+// U84a (D-147; REPORT U79 #1, D-139): one compact stack. Only the newest toast shows; the older ones fold into a count
+// ("+2"), which unfolds them. The Shell places the stack in a reserved corner — the top of the place's scene or the fight's
+// stage (`data-toast-anchor`) — so it never covers the HUD, the map, the narration or the pad. Pure.
+import type { CSSProperties, ReactNode } from 'react';
 import type { Notice } from '../store/gameStore';
 import { Button } from './Button';
 import { toastText, type ToastItem } from './toastQueue';
 
-/** How long a store notice stays (ms): errors longer, so they can be read. */
-export function noticeLifetime(notice: Notice): number {
-  return notice.tone === 'error' ? 12_000 : 5_000;
+/** How long a store notice stays (ms): errors longer, so they can be read; `scale` shortens it on a phone. */
+export function noticeLifetime(notice: Notice, scale = 1): number {
+  return Math.round((notice.tone === 'error' ? 12_000 : 5_000) * scale);
 }
 
 export interface ToastsProps {
@@ -21,30 +25,49 @@ export interface ToastsProps {
   onDismissItem?: (id: number) => void;
   /** No entry animation (the stylesheet also stills it under the root's reduced-motion attribute). */
   reducedMotion?: boolean;
+  /** The older toasts are shown too (the count was pressed). */
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
+  /** Where the stack sits (the Shell's anchor); the stylesheet's corner when absent. */
+  placement?: CSSProperties;
 }
 
-export function Toasts({ notices, onDismiss, items = [], onDismissItem, reducedMotion = false }: ToastsProps): ReactNode {
+interface Entry {
+  key: string;
+  tone: string;
+  text: string;
+  toast?: string;
+  dismiss: () => void;
+}
+
+export function Toasts({ notices, onDismiss, items = [], onDismissItem, reducedMotion = false, expanded = false, onToggleExpanded, placement }: ToastsProps): ReactNode {
+  const entries: Entry[] = [
+    ...notices.map((notice) => ({ key: `n${notice.id}`, tone: notice.tone, text: notice.text, dismiss: () => onDismiss(notice.id) })),
+    ...items.map((item) => ({ key: `e${item.id}`, tone: item.tone, text: toastText(item), toast: item.key, dismiss: () => onDismissItem?.(item.id) })),
+  ];
+  const folded = expanded ? 0 : Math.max(0, entries.length - 1);
   return (
-    <div className="toasts" aria-live="polite" aria-relevant="additions text" data-motion={reducedMotion ? 'reduced' : undefined}>
-      {notices.map((notice) => (
-        <div key={`n${notice.id}`} className={`toast toast--${notice.tone}`} data-tone={notice.tone}>
-          <p className="toast__text">{notice.text}</p>
-          <Button variant="quiet" className="toast__dismiss" onClick={() => onDismiss(notice.id)} aria-label={`Dismiss: ${notice.text}`}>
+    <div
+      className="toasts"
+      aria-live="polite"
+      aria-relevant="additions text"
+      data-motion={reducedMotion ? 'reduced' : undefined}
+      data-anchored={placement === undefined ? undefined : 'true'}
+      style={placement}
+    >
+      {entries.map((entry, i) => (
+        <div key={entry.key} className={i < folded ? `toast toast--${entry.tone} toast--folded` : `toast toast--${entry.tone}`} data-tone={entry.tone} data-toast={entry.toast}>
+          <p className="toast__text">{entry.text}</p>
+          <Button variant="quiet" className="toast__dismiss" onClick={entry.dismiss} aria-label={`Dismiss: ${entry.text}`}>
             Dismiss
           </Button>
         </div>
       ))}
-      {items.map((item) => {
-        const text = toastText(item);
-        return (
-          <div key={`e${item.id}`} className={`toast toast--${item.tone}`} data-tone={item.tone} data-toast={item.key}>
-            <p className="toast__text">{text}</p>
-            <Button variant="quiet" className="toast__dismiss" onClick={() => onDismissItem?.(item.id)} aria-label={`Dismiss: ${text}`}>
-              Dismiss
-            </Button>
-          </div>
-        );
-      })}
+      {entries.length > 1 ? (
+        <button type="button" className="toast-count" aria-expanded={expanded} onClick={() => onToggleExpanded?.()} aria-label={expanded ? 'Fold the older notices' : `${folded} more notice${folded === 1 ? '' : 's'}`}>
+          {expanded ? 'Fewer' : `+${folded}`}
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 // next action (or a rest, for the camp one), on "Got it", or for good on "Turn tutorials off". The frame gets
 // `data-callout="<target>"` while one shows, which the stylesheet uses to light the Guard button, the intent chip, the
 // rest row or the clock chip.
-import { useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { AP_TOAST, pickApToast, pickCallout, type CalloutDef } from '../onboarding/model';
 import { onboardingSnapshot } from '../onboarding/snapshot';
 import { sharedTutorialStore, type TutorialStore } from '../store/tutorials';
@@ -64,8 +64,50 @@ function useTargetMark(callout: CalloutDef | null): void {
   }, [id, target]);
 }
 
+/**
+ * U84a (D-147): on a wide explore screen the hint floats over the foot of the place's scene band — art, not words or
+ * controls — so neither the pad at the foot of the side column nor the actions move or hide under it. Elsewhere the
+ * stylesheet places it (a fight: over the log column; a phone: in the dock, above the pinned controls). Null = the stylesheet.
+ */
+function useCalloutPlacement(id: string | null): CSSProperties | null {
+  const mode = useGame((s) => s.mode);
+  const [style, setStyle] = useState<CSSProperties | null>(null);
+  useLayoutEffect(() => {
+    const wide = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 760px)').matches;
+    if (id === null || mode !== 'explore' || !wide) {
+      setStyle(null);
+      return undefined;
+    }
+    const place = (): void => {
+      const r = document.querySelector('.explore .place__scene')?.getBoundingClientRect();
+      if (r === undefined || r.width === 0) {
+        setStyle(null);
+        return;
+      }
+      const inset = 8;
+      setStyle({
+        position: 'fixed',
+        left: `${Math.round(r.left + inset)}px`,
+        right: 'auto',
+        top: 'auto',
+        bottom: `${Math.round(Math.max(inset, window.innerHeight - r.bottom + inset))}px`,
+        width: `${Math.round(Math.min(r.width - 2 * inset, 640))}px`,
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [id, mode]);
+  return style;
+}
+
 export function Callouts(): ReactNode {
   const { callout, dismiss, turnOff } = useCallout();
   useTargetMark(callout);
-  return <CalloutRegion>{callout === null ? null : <CalloutView key={callout.id} callout={callout} onDismiss={dismiss} onTurnOff={turnOff} />}</CalloutRegion>;
+  const placement = useCalloutPlacement(callout?.id ?? null);
+  return (
+    <CalloutRegion placement={placement}>
+      {callout === null ? null : <CalloutView key={callout.id} callout={callout} onDismiss={dismiss} onTurnOff={turnOff} />}
+    </CalloutRegion>
+  );
 }

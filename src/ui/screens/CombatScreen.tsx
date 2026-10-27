@@ -82,8 +82,8 @@ import {
   type TurnEntry,
 } from './combatModel';
 
-/** Keep turn controls reachable on narrow screens and short touch-only landscape screens. */
-const PHONE_QUERY = '(max-width: 759.98px), (pointer: coarse) and (max-height: 500px)';
+/** Keep turn controls under the thumb on narrow screens and on touch screens (a phone held sideways, a tablet), where the Abilities sheet keeps each tile's Effects disclosure (U84a). */
+const PHONE_QUERY = '(max-width: 759.98px), (pointer: coarse)';
 
 /** Explanations kept for the log (the engine caps the log at 200 lines). */
 const EXPLAINED_CAP = 200;
@@ -187,9 +187,34 @@ export function CombatView(p: CombatViewProps): ReactNode {
       )}
     </DockPortal>
   );
+  const menuNav = (
+    <nav className="combat-menu" aria-label="Game menu">
+      {(Object.keys(MENU_LABELS) as CombatMenuId[])
+        .filter((id) => p.menu[id])
+        .map((id) => (
+          <Button key={id} onClick={() => p.onMenu(id)} aria-keyshortcuts={id === 'help' ? '?' : undefined}>
+            <Icon kind={MENU_ICONS[id]} size={18} />
+            {MENU_LABELS[id]}
+          </Button>
+        ))}
+    </nav>
+  );
+  const logPanel = <CombatLog lines={p.log} expanded={p.logExpanded} onToggle={p.onToggleLog} listRef={p.logRef} />;
+  const companion = p.companion === null || p.fallen !== null ? null : <CompanionCard companion={p.companion} onStance={p.onStance} onCommand={p.onAct} />;
+  // U84a (D-147): on a wide screen the turn's controls are the screen's last row — a fixed region the fight above can't push
+  const controls =
+    phone || p.fallen !== null ? null : (
+      <div className="combat__controls" data-communing={communing ? 'true' : undefined}>
+        <PlayerPanel player={p.player} guard={p.guard} flee={p.flee} itemCount={p.itemCount} canItem={p.canItem} onGuard={p.onGuard} onFlee={p.onFlee} onItems={p.onItems} />
+        {p.communion === null ? null : (
+          <CommunionBar model={p.communion} buttons={p.communionButtons} showingAbilities={p.showAbilities} onAct={p.onAct} onToggleView={p.onToggleCommuneView} />
+        )}
+        {communing ? null : <AbilityBar tiles={p.tiles} targetName={p.targetName} onUse={p.onTile} compact />}
+      </div>
+    );
   return (
     <RegionPalette regionId={p.regionId} region={p.region} className="screen screen--combat">
-      <section className={p.stage == null ? 'combat' : 'combat combat--staged'} data-screen="combat" aria-labelledby="combat-heading">
+      <section className={p.stage == null ? 'combat' : 'combat combat--staged'} data-screen="combat" data-layout={phone ? 'phone' : 'wide'} aria-labelledby="combat-heading">
         <header className="combat__head">
           <p className="combat__kicker">Combat</p>
           <h1 id="combat-heading" className="combat__title" tabIndex={-1}>
@@ -197,63 +222,64 @@ export function CombatView(p: CombatViewProps): ReactNode {
           </h1>
           <TurnOrder entries={p.turns} round={p.round} />
         </header>
-        {p.stage ?? null}
-        {phone ? null : banner}
-        <ul className="combat__enemies" aria-label="Enemies">
-          {p.enemies.map((enemy) => (
-            <EnemyCard key={enemy.uid} enemy={enemy} reducedMotion={p.reducedMotion} hit={p.hits[enemy.uid] ?? null} onSelect={p.onSelectTarget} />
-          ))}
-        </ul>
-        {/* On short phone viewports a long phase announcement must not displace the current intent. */}
-        {phone ? banner : null}
-        {p.fallen === null ? null : (
-          <section className="fallen" aria-labelledby="fallen-heading">
-            <Icon kind="fallen" size={48} className="fallen__icon" />
-            <h2 id="fallen-heading" className="fallen__title">
-              FALLEN
-            </h2>
-            <p className="fallen__text">The Breach closes over you. This loop is over; what you learned stays with you.</p>
-            <div className="button-row">
-              {p.fallen.loads.map((l, i) => (
-                <Button key={String(l.slot)} variant={i === 0 ? 'primary' : 'secondary'} onClick={() => p.onLoad(l.slot)} data-autofocus={i === 0 ? '' : undefined}>
-                  {l.label}
-                </Button>
-              ))}
-              {p.fallen.canTitle ? (
-                <Button variant={p.fallen.loads.length === 0 ? 'primary' : 'quiet'} onClick={p.onTitle} data-autofocus={p.fallen.loads.length === 0 ? '' : undefined}>
-                  Return to title
-                </Button>
-              ) : null}
+        <div className="combat__body">
+          <div className="combat__main" data-scroll-region="combat">
+            {/* the stage band; a phase change or a boss's line shows over its top edge, so it never pushes the cards or the controls */}
+            <div className="combat__stagewrap" data-toast-anchor="">
+              {p.stage ?? null}
+              {banner}
             </div>
-          </section>
-        )}
-        <div className="combat__grid">
-          <div className="combat__main">
-            {p.fallen === null ? (
+            <ul className="combat__enemies" aria-label="Enemies">
+              {p.enemies.map((enemy) => (
+                <EnemyCard key={enemy.uid} enemy={enemy} reducedMotion={p.reducedMotion} hit={p.hits[enemy.uid] ?? null} onSelect={p.onSelectTarget} />
+              ))}
+            </ul>
+            {p.fallen === null ? null : (
+              <section className="fallen" aria-labelledby="fallen-heading">
+                <Icon kind="fallen" size={48} className="fallen__icon" />
+                <h2 id="fallen-heading" className="fallen__title">
+                  FALLEN
+                </h2>
+                <p className="fallen__text">The Breach closes over you. This loop is over; what you learned stays with you.</p>
+                <div className="button-row">
+                  {p.fallen.loads.map((l, i) => (
+                    <Button key={String(l.slot)} variant={i === 0 ? 'primary' : 'secondary'} onClick={() => p.onLoad(l.slot)} data-autofocus={i === 0 ? '' : undefined}>
+                      {l.label}
+                    </Button>
+                  ))}
+                  {p.fallen.canTitle ? (
+                    <Button variant={p.fallen.loads.length === 0 ? 'primary' : 'quiet'} onClick={p.onTitle} data-autofocus={p.fallen.loads.length === 0 ? '' : undefined}>
+                      Return to title
+                    </Button>
+                  ) : null}
+                </div>
+              </section>
+            )}
+            {phone && p.fallen === null ? (
               <>
-                <PlayerPanel player={p.player} guard={p.guard} flee={p.flee} itemCount={p.itemCount} canItem={p.canItem} onGuard={p.onGuard} onFlee={p.onFlee} onItems={p.onItems} barActions={phone} />
+                <PlayerPanel player={p.player} guard={p.guard} flee={p.flee} itemCount={p.itemCount} canItem={p.canItem} onGuard={p.onGuard} onFlee={p.onFlee} onItems={p.onItems} barActions />
                 {p.communion === null || pinnedCommunion ? null : (
                   <CommunionBar model={p.communion} buttons={p.communionButtons} showingAbilities={p.showAbilities} onAct={p.onAct} onToggleView={p.onToggleCommuneView} />
                 )}
-                {communing || phone ? null : <AbilityBar tiles={p.tiles} targetName={p.targetName} onUse={p.onTile} />}
-                {p.companion === null ? null : <CompanionCard companion={p.companion} onStance={p.onStance} onCommand={p.onAct} />}
               </>
             ) : null}
-            <nav className="combat-menu" aria-label="Game menu">
-              {(Object.keys(MENU_LABELS) as CombatMenuId[])
-                .filter((id) => p.menu[id])
-                .map((id) => (
-                  <Button key={id} onClick={() => p.onMenu(id)} aria-keyshortcuts={id === 'help' ? '?' : undefined}>
-                    <Icon kind={MENU_ICONS[id]} size={18} />
-                    {MENU_LABELS[id]}
-                  </Button>
-                ))}
-            </nav>
+            {phone ? companion : null}
+            {phone || p.fallen !== null ? menuNav : null}
+            {phone ? (
+              <aside className="combat__side" aria-label="Combat log">
+                {logPanel}
+              </aside>
+            ) : null}
           </div>
-          <aside className="combat__side" aria-label="Combat log">
-            <CombatLog lines={p.log} expanded={p.logExpanded} onToggle={p.onToggleLog} listRef={p.logRef} />
-          </aside>
+          {phone ? null : (
+            <aside className="combat__side" aria-label="Combat log">
+              {companion}
+              {logPanel}
+              {p.fallen === null ? menuNav : null}
+            </aside>
+          )}
         </div>
+        {controls}
       </section>
       {pinned}
     </RegionPalette>

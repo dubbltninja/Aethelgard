@@ -46,7 +46,10 @@ export function PlayerPanel({ player, guard, flee, itemCount, canItem, onGuard, 
         <Meter kind="hp" label="HP" value={player.hp} max={player.hpMax} />
         <Meter kind="mp" label={player.resourceName} value={player.mp} max={player.mpMax} />
       </div>
-      <StatusChips statuses={player.statuses} label="Your statuses" />
+      {/* (a reserved row, U84a: a status coming or going never moves the buttons under it) */}
+      <div className="player-panel__statuses">
+        <StatusChips statuses={player.statuses} label="Your statuses" />
+      </div>
       {barActions ? (
         guardNote(guard.previews) === null ? null : <p className="player-panel__guard-note">{guardNote(guard.previews)}</p>
       ) : (

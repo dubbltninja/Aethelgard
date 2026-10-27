@@ -2694,3 +2694,16 @@ owning unit (PLAN §9.1).
   7. **D-137's 9 pins kept. D-122, D-089 and D-109 are closed** (in band in play).
 - **Contradictions → U88 (continuity):** STORY still calls Caelum's move *Stutter*; WORLD's creature rows don't match the
   retuned numbers.
+
+### D-150 · Wrap-up: the remaining units are compressed, 2026-10-27
+- Tim (2026-10-27 01:51): "Wrap it up soon please."
+- **The plan, compressed:**
+  - **U82:** kept, but tighter: a 1,000-run final batch instead of 2,000; bot gaps listed, not built out.
+  - **U83–U87 become one unit, U84** (Opus, `docs/briefs/u84.md`). It covers the danger cue, the empowered Blood price,
+    REPORT U79's open findings and D-148's layout leftovers, then a 45-minute fun pass that fixes its top 5 small findings.
+    It runs in parallel with U82.
+  - **U88–U91 become one final unit** (Opus, after both merge): continuity (Caelum's *Skipped Beat* in STORY; WORLD's
+    creature rows), the README and docs, screenshots, the Pages deploy, the REPORT.md wrap-up with known issues, the final
+    audit, and the PR from `unraveling` into `main`.
+- **The C5 bar is relaxed:** 1,000 runs, and every §19 row either passes or carries its D-149 ruling. The three fun
+  reviews become one fun pass. These trade-offs are Tim's call for speed, and the README lists them.

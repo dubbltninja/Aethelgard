@@ -300,10 +300,10 @@ describe('the three locations vs WORLD §3.4 blocks', () => {
     expect(byId(loc(PASS).encounters, 'enc_pass_phantom').optionalWhen).toBeUndefined();
   });
 
-  test('return rolls at WORLD’s chances: Moths ×3 (30 %), Glass Motes ×2 (30 %), Harriers ×2 (25 %), each then the pool’s 20 %; the Reach from Loop 3 (10 %, once per loop) first', () => {
+  test('return rolls at WORLD’s chances: Moths ×2 (30 %; U81b2, was ×3), Glass Motes ×2 (30 %), Harriers ×2 (25 %), each then the pool’s 20 %; the Reach from Loop 3 (10 %, once per loop) first', () => {
     const at = (l: string, id: string) => byId(loc(l).encounters, id);
-    expect(WL[PASS]?.block).toContain('return: cr_moment_moth ×3 (30%) or pool 20%.');
-    // U81b2: two Moths (WORLD's three: 76 % deaths at a median L5)
+    expect(WL[PASS]?.block).toContain('return: cr_moment_moth ×2 (30%; ~~×3~~, U81b2) or pool 20%.');
+    // U81b2: two Moths (was three: 76 % deaths at a median L5); WORLD follows (U91)
     expect(at(PASS, 'enc_pass_moths')).toMatchObject({ groups: [{ creatureId: MOTH, count: 2 }], chance: 0.3, respawn: 'on_return', once: false });
     expect(WL[SPIRES]?.block).toContain('return: cr_glass_mote ×2 (30%) or pool 20%. Loop 3+: cr_tyrants_reach ×1 (10%, once per loop).');
     expect(at(SPIRES, 'enc_spires_glass_motes')).toMatchObject({ groups: [{ creatureId: MOTE, count: 2 }], chance: 0.3, respawn: 'on_return', once: false });

@@ -226,7 +226,7 @@ export const quests = [
         // scene_dask_seven_marks_symptom on the Shore
         id: 'marks_seen',
         tags: ['written'],
-        journal: 'Seven frames, one scratch each, low on the left. Tell Dask on the Shore what you saw.',
+        journal: 'Seven frames, one scratch each, low on the left. Tell Dask on the Still Shore what you saw.',
         onExit: daskStage,
         next: 'high_mark',
       },

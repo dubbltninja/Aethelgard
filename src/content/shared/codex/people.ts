@@ -167,7 +167,7 @@ Four stubborn people. The Archive notes that it produced one of them.`,
     order: 80,
     unlockWhen: { echo: 'echo_dreyl_brand' },
     related: ['codex_haldric_vane', 'codex_ironclad', 'codex_region_ashen_steppe', 'codex_creatures_wilds', 'codex_region_silverwood_before'],
-    body: `You've seen the mark now. A flame inside a ring, on the flank of every stone beast in the Orchard, and on things out on the flats that aren't stone yet. That's the Watch-Captain's brand. Dreyl.
+    body: `You've seen the mark now. A flame inside a ring, on the flank of every stone beast in the Orchard, and on things out on the flats that aren't stone yet. That's the Captain's brand. Dreyl.
 
 He wasn't one of the Nine. He was the city's Watch, the man who kept blades sheathed in the Plaza and had you carried if you argued, and his one piece of magic was borrowed. Vane drew him a ward, a fire-ring round the whole city, so nothing could cross it that it didn't burn. Dreyl built it. His ledger's last column is headed *outward*.
 

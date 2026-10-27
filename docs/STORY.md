@@ -988,7 +988,7 @@ Will not fight Mirelings ("They were people. Some of them were people last sprin
 
 **Who.** Apprentice to the Nine, ~16, Veyran's errand-boy; met in Silverwood Before, where he
 carries two messages on the last day and delivers one. Chrono caster (taught by Masque and
-Thal). Signature: *Stutter* (`comp_caelum_stutter`: interrupt and Stun, or Stagger and Slow a
+Thal). Signature: *Skipped Beat* (`comp_caelum_stutter`; U81b2 renamed it from *Stutter*, the Wizard's spell: interrupt and Stun, or Stagger and Slow a
 boss; he calls it "the errand," because it buys someone else a moment).
 
 **Voice.** Eager, formal, old-city diction; "Master Thal"; asks questions he's afraid of.

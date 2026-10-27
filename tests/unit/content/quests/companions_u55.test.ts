@@ -749,7 +749,7 @@ const WRITTEN = {
     'The third of him is at the Chronos Nexus, under the broken dome, a step from the door.',
     'You have heard three of him. Go back to the Pass; the one that talks can finish the sentence now.',
     'It is the door, and it knows his name. Someone who knew the words could take its place.',
-    'Seven frames, one scratch each, low on the left. Tell Dask on the Shore what you saw.',
+    'Seven frames, one scratch each, low on the left. Tell Dask on the Still Shore what you saw.',
     'The eighth frame has no mark. Climb to the High Mark, the Windward Stair, and let Dask show you what he would cut.',
     'At the High Mark Dask cut the outline of an eighth frame and left it empty.',
     'It can gather him; it has said so. Ask Dask, at the Apex, what he wants.',

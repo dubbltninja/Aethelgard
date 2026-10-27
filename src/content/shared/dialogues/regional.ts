@@ -91,7 +91,7 @@ export const dialogues = [
         id: 'bell',
         tags: ['written'],
         speaker: DRAY,
-        text: 'There is a stair under the Archives that the water took in Year 1, and a bell under the stair that it did not. It rings on the hour. I have timed it; it runs four minutes slow, and has since 309.',
+        text: 'There is a stair under the Archives that the water took in Year 0, and a bell under the stair that it did not. It rings on the hour. I have timed it; it runs four minutes slow, and has since 309.',
         next: 'ask',
       },
       {
@@ -138,7 +138,7 @@ export const dialogues = [
         id: 'stopped',
         tags: ['written'],
         speaker: DRAY,
-        text: 'The bell has stopped. I have the hour of it written down: the first silence under the Archives since Year 1.',
+        text: 'The bell has stopped. I have the hour of it written down: the first silence under the Archives since Year 0.',
         next: 'end',
       },
     ],

@@ -895,3 +895,118 @@ wizard 83 %. Ending C's Exploit route finishes on Day 24 of 25 (its proof was re
 - **D-109, the Nexus chain:** the Aberration 4 % deaths / 26 % flee at L11 (989 fights), the Crawlers 5 %: no wall in play.
 
 Traces were re-recorded in the commits that moved them (real-pack only; the fixture traces still replay).
+
+
+---
+
+# After U82: the soft-lock and coverage punch list (C5)
+
+**1,499 runs** at `c826599`: **990 main runs** (6 bots x 5 classes x 33 seeds: `balA` 17 + `balB` 16), 420 pre-Tyrant /
+communion scenario runs (`balS`, 10 seeds per cell, 0 skipped), 8 ending scripts and **81 quest proofs, now inside the batch**.
+**0 engine errors, 0 soft-locks, 0 blockers; determinism 200/200.** The lead cut the release batch from 2,000 to **1,000 main
+runs** (scope message, 2026-10-27), so rows #7 and G3 carry the thin-sample mark (1,499 of 2,000). Run in three foreground
+chunks merged with `--merge` (`balA` with the proofs and scripts, `balB --quest-proofs off --scripts ''`, `balS --bots
+melee,caster,pacifist --scenario-seeds 10 --max-steps 1` with its 150 one-step main runs dropped from the JSON before the merge);
+26m 44s on 2 workers. Reproduce chunk A with `npm run sim:balance -- --seeds 17 --seed-prefix balA --workers 2 --scenario-seeds 0
+--determinism 100 --json a.json --out a.md`.
+
+## §1.2 gates (U81b2 -> U82)
+
+| Gate | After U81b2 | After U82 |
+| --- | --- | --- |
+| Bots complete runs | FAIL: 12 of 600 stop early (FALLEN) | **FAIL, 2 of 990**: both the `random` bot (ranger `balB:9` at the Bellmouth, wizard `balB:8` on the Drowned Stair, L2-3 in a 4-8 band); every policy bot 0. Ruling asked (below) |
+| Loop 1 Escape >= 60 % (melee or caster) | PASS, worst 75 % | **PASS, worst 97 %** (warden, ranger, weaver; N = 33 per class and bot) |
+| Zero soft-locks | PASS: 0 in 1,036 | **PASS: 0 in 1,499** (thin: the release batch is 1,000 main runs by the lead's ruling) |
+| Coverage | quests 42/49, creatures 70/73, items 122/157 | **PASS: quests 49/49, locations 73/73, endings 8/8, creatures killed 70/71 (2 by design), items 146/157 (93 %)** |
+| Determinism | 40/40 | **200/200** |
+
+## The DESIGN §19 rows (U81b2 -> U82), each with pass or its D-149 ruling
+
+| # | Target | After U81b2 | After U82 | |
+| --- | --- | --- | --- | --- |
+| 1 | Escape >= 60 % per class | 75-100 % | elf 100, warden 97, ranger 97, weaver 97, wizard 100 % | pass |
+| 2 | no ability > 35 % | piercing 34.3 % | piercing 32.4 % | pass |
+| 3 | monotone difficulty | 6 violations | **in band** (D-149 ruling 1): 8 violations; all fights: 8 | **fail in band: ruling asked** |
+| 4 | every ending | 6/6 | 6/6 | pass |
+| 5 | every quest | 42/49 | **49/49** (the proofs are in the batch) | pass |
+| 6 | every location | 73/73 | 73/73 | pass |
+| 7 | zero soft-locks | 0 | 0 in 1,499 | pass (1,000-run release batch, lead's ruling) |
+| 8 | fight length | 3 / 4 / 8 / 9 / 13 | **at parity** (D-149 ruling 2): fodder single 3, pair/triple 7, elite 8 (every win: 2 / 4 / 8); regional boss 7 (n = 112); Contained 12; Unveiled 21.5 (n = 32) | fodder and elite pass; boss and Unveiled: thin (ruling 6) |
+| 9 | deaths per loop | melee 2.25, caster 5.01, explorer 2.97 | **in band**: melee 0.40 (73 % zero-death), explorer 0.29, **caster 0.73 but 47 % zero-death**, random 7.35 (every death: melee 1.10, caster 2.58, explorer 1.69) | melee, explorer, random pass; caster: ruling asked |
+| 10 | loop duration | explorer 32 d / 792 | explorer 32 d / 801; speedrunner 22 d; Loop 3+ 175 | ruling 3 (accepted: ~124 travels) |
+| 11 | level at the Apex | explorer 14.5 | explorer 15; speedrunner 9 (ok) | ruling 3 (accepted) |
+| 12 | ability usage | 72-85 %; Blood price 2 % | 73-87 %; Blood price 1 % | ruling 4 (usage accepted; Blood price -> U86) |
+| 13 | 0-MP fights <= 15 % | 1 % | 1 % | pass |
+| 14 | economy | gold 1,286 | **gold 923** (caster 684, melee 958, explorer 1,203; n = 495) | ruling 5: over ~400 -> **U86 adds the sink** |
+| 15 | clock | explorer 15 %, speedrunner 12 % | explorer 14 % (ok), speedrunner 19 % | ruling 6 (speedrunner accepted) |
+| 16 | resistance relevance | band 10 (6 encounters) | same | ruling 6 (thin, accepted) |
+| 17 | companion value | 31 % | 29 % | pass |
+| 18 | variance sanity | n/a | n/a | ruling 6 (dropped for this release) |
+| 19 | Contained Tyrant | wins 100 %; L11 rounds 9-25 | wins 100 % at L11 and L13, solo and with Brak; L11 solo rounds wizard 9.5, ranger 12, weaver 21.8, warden 24.5, elf 25.5 | ruling 6 (rounds -> fun review) |
+| 20 | Unveiled Tyrant | 22 rounds (n = 11) | communion 20/20; fight path 21.5 rounds (n = 32) | ruling 6 (thin, accepted) |
+
+**8 of 20 rows pass outright** (#1, #2, #4, #5, #6, #7, #13, #17); #8 passes for fodder and elite at parity; every other row
+carries a D-149 ruling, except **#3 and #9 (caster) in band**, which D-149 expected to pass once measured inside the band. They
+do not: see "Rulings asked for".
+
+## What U82 changed
+
+1. **Coverage (brief item 1).** Every never-reached quest, creature and item was classified:
+   - **Content bugs, fixed in data:** four items had no source anywhere in the pack, so no player could ever hold them:
+     the **Archivist's Circlet** and the **Oathplate** (WORLD §9's Remnants and Ironclad Sworn gifts: now at Tamsin's Plaza and
+     Tessaly's Hearthring at Sworn, as Nyx's Shardglass already was for the Weavers), **Borin's Hallow's Hammer pattern** (the
+     Emberforge, with `echo_hallows_ember`, WORLD §9) and the **Warder Plate** (the Blighted Outpost once both Golems fall,
+     WORLD §7.13). `src/sim/reachability.ts` finds every item's and creature's sources (places, loot, shelves, recipes, effects,
+     rewards, encounters, wandering pools, anomaly tables); **`reachability.test` fails if new content has none**, if a quest has
+     no proof or an ending no script, or if a by-design entry is not real content with a source and a reason.
+   - **Bot gaps, closed:** the 7 quests no bot finished (Caelum's and Dask's late arcs, the communion's quests) are covered by
+     their proofs, which the batch now plays as script jobs (`--quest-proofs on|off`, default on for `real`): **quests 49/49**.
+     The shopping rows (item 3) and the explorer's collection (one of each thing on a shelf or at the forge it has never held,
+     keeping 100 gold) took items from 122 to **146/157**.
+   - **By design** (`BY_DESIGN` in reachability.ts; G4 leaves them out of the denominator while unreached and names them):
+     `cr_hour_leech` and `cr_redundant_wayfinder`, Loop 4+ only (WORLD §12.1 `ws_loop_4`); the batch plays three loops.
+   - **Bot gaps, listed (reachable by a player; no new bot feature, by the lead's scope ruling):**
+     - `cr_unraveling_tide`: the Horde set piece in the Darkened Corridor after 15 Horde moves; bots go straight to the portal
+       (met twice, both lost; it is meant to be outlasted for 10 rounds, a kill needs ~480 damage).
+     - Seven pattern crafts (`item_breachglass_focus`, `item_breachsteel_blade`, `item_breachwarden_mail`, `item_conflux_robe`,
+       `item_hallows_hammer`, `item_hour_spindle`, `item_sunderforged_plate`; an eighth, the Heartwood Bow, was forged once):
+       the bots buy and read the patterns (339 Sunderforged, 203 Breachwarden) but rarely hold the late materials (breach glass,
+       frayed moments, heartwood, six ember ore) and Trusted Ironclad standing at the forge in the same loop.
+     - `item_voidforged_edge/mail/band`: need the shards *refused* (`flag_shards_refused`) and Ironclad 20; every bot hands the
+       shards over (the refusal is proved by `q_void_shards`' `refused` proof, which does not go on to the forge).
+     - `item_ward_seal`: Tobrin gives it in the Before on Bell 2 to a Wayfinder holding `echo_vask_seal` (Loop 2+); no bot plans
+       that.
+2. **The FALLEN replay loop (D-149 #1).** A bot stays out of a place (and flees a fight there) until it is **two levels above**
+   the level it fell at (`FALLEN_LEVELS`, was one), the Apex excepted (retried after one level: the clock does not wait for
+   two). The replays came from dead ends, not only memory: U81b2's autosave could hold a ranger at 16 HP in the Aetherium Spires
+   with both ways out (the Pass, the Plateau) deadly, and every reload replayed the same death 26 times. **The runner now keeps a
+   save "by hand"** at a checkpoint or full rest at >= 90 % HP (DESIGN §14.2's manual slots) and, after **two FALLEN screens on
+   one autosave**, reloads that instead, as a player would. Same-fight replays in the policy bots: U81b2 181 of 2,969 defeats
+   (caster 69 at the Pass); now **54 of 2,455** over 990 runs (pacifist 26, melee 18, caster 4, explorer 3, speedrunner 3). FALLEN stops: 12 of 600 -> **2 of 990,
+   both `random`** (it has no death memory by design: 520 of its 1,468 defeats are replays).
+3. **Shopping (D-149 #5)** (`src/sim/bots/shopping.ts`, every fighting bot): an inn's paid full rest when hurt (< 80 % HP or < 50 %
+   MP) unless the Apex is due; a Borin's Pattern read; at the forge a recipe whose piece beats the slot, then the upgrade bench
+   for every worn piece (never spending an item a quest still asks for); the best gear upgrade on a shelf; mana draughts to 2;
+   healing to 3 as before. 40 gold always kept (100 for the explorer's collection). In the batch: 786 Diver's Coats, 671
+   Scribe's Robes, 541 Scriptorium Staves, 429 Cinderhorn Plates, 339 Sunderforged patterns bought; 301 forge crafts (U81b2: 0);
+   1,496 upgrades. **End-of-Loop-1 gold 1,286 -> 923** (melee 958, caster 684, explorer 1,203). **Over ~400: U86 adds the sink**
+   (D-149 ruling 5). The quest proofs keep U81's shopping (`TRAINED_TRADE.shop = false`).
+4. **The metrics D-149 ordered** (`metrics.ts`, in the generated report's Targets): **#3 and #9 inside the band** (`inBand`: the
+   player's level within the location's band, else the region's; FightRecord now records `locationId` and `loop`) and **#8 at
+   level parity** (`atParity`: within 1 level of the strongest foe; the Tyrants count every win). The all-fights figures stay in
+   each row's detail. PLAN §7.5 and DESIGN §10.1 (a full sweep of Loop 1 is ~124 travels, not ~60) amended as ordered.
+
+The six real-pack traces were re-recorded (c826599): the bots now shop and keep the two-level death memory, and the Outpost holds
+the Warder Plate once both Golems fall. The fixture traces did not move. `sim:endings` 8/8; quest proofs 81/81.
+
+## Rulings asked for
+
+- **#3 in band (8 violations):** measured inside the band the curve keeps its shape; it is the places, not band entry. Drowned
+  Reach (4-8) 10 rounds / 24 % deaths and the Highlands (5-8) 31 % deaths at in-band levels sit above the Steppe (6-10, 4 rounds,
+  4 %), and the Veil (10-14) 16 % above Skyreach (12-15, 10 %) and the Apex region (13-17, 7 %). A tuning unit or a ruling that
+  #3 compares neighbouring bands loosely.
+- **#9 caster in band:** mean 0.73 (<= 1.0) but only 47 % of caster Loop 1s are death-free in band (>= 55 %); melee 73 %.
+- **G1, the `random` bot:** 2 of 990 runs end on the 26th FALLEN screen in the Drowned Reach at L2-3. It is the stress bot and
+  has no death memory by design (PLAN §7.2); a player would not replay a level-2 walk into a 4-8 band 26 times. Either G1 counts
+  the policy bots only, or `random` gets the danger margin's flee (`DANGER_MARGIN`); U82 changed neither.
+- **#8 regional boss** 7 rounds at parity (n = 112) and **#20** 21.5 (n = 32): thin samples under D-149 ruling 6.

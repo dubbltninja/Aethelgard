@@ -16,7 +16,8 @@
 //              ability it qualifies for (else the cheapest physical one); better gear on; everything on the ground taken;
 //              hp < 50 % or mp < 30 % → rest here or walk to the nearest rest spot (a healing item first below 35 % when
 //              no bed is here); merchant: sell materials/spare gear when gold < 20, buy healing up to 3 when gold ≥ 40,
-//              upgrade the weapon when gold ≥ fee + 30; talk to each NPC once per quest state; each interactable once per
+//              upgrade the weapon when gold ≥ fee + 30, then (U82) shopping.ts's rows (inn, patterns, forge, shelf gear,
+//              mana); talk to each NPC once per quest state; each interactable once per
 //              quest state; gather; then travel: quest hints → the nearest unvisited place whose level band starts at most
 //              2 above the player's → the Apex when ready → otherwise pass time at the nearest rest spot (the clock runs out
 //              and the expiry Horde opens the portal). U81b2: with ≤ 10 dawns left (`apexDue`) the Apex, when ready, comes first.

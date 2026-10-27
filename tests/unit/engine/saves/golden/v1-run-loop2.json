@@ -1,0 +1,1414 @@
+{
+  "kind": "run",
+  "version": 1,
+  "seed": "scenario:loop2_day1:2",
+  "contentVersion": "0.1.0",
+  "profileLoopAtSave": 2,
+  "savedAt": "2026-10-26T12:00:00.000Z",
+  "savedStep": 304,
+  "summary": {
+    "classId": "ranger",
+    "level": 10,
+    "loop": 2,
+    "day": 22,
+    "watch": 0,
+    "locationId": "loc_hearthring",
+    "title": "Loop 2 · Day 22 · Hearthring",
+    "playtimeSteps": 304
+  },
+  "state": {
+    "meta": {
+      "seed": "scenario:loop2_day1:2",
+      "loop": 2,
+      "version": 1,
+      "stepCount": 304,
+      "nextUid": 286,
+      "runId": "scenario:loop2_day1:2:2",
+      "modifiers": [],
+      "playerName": "Wayfinder"
+    },
+    "clock": {
+      "ticks": 84,
+      "limitTicks": 140,
+      "modifiers": [
+        {
+          "source": "choice:stabilize",
+          "watches": 24
+        }
+      ],
+      "frozen": false,
+      "expired": false
+    },
+    "before": null,
+    "player": {
+      "name": "Wayfinder",
+      "classId": "ranger",
+      "level": 10,
+      "xp": 54,
+      "stats": {
+        "strength": 19,
+        "magic": 6,
+        "agility": 8
+      },
+      "hp": 225,
+      "hpMax": 225,
+      "mp": 94,
+      "mpMax": 94,
+      "gold": 553,
+      "corruption": 0,
+      "inventory": [
+        {
+          "uid": "i3",
+          "itemId": "item_amulet_of_echoes",
+          "qty": 1,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i6",
+          "itemId": "mat_wildling_hide",
+          "qty": 8,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i7",
+          "itemId": "mat_ley_resin",
+          "qty": 14,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i10",
+          "itemId": "item_dark_spellbook",
+          "qty": 2,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i11",
+          "itemId": "mat_shadow_ash",
+          "qty": 2,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i14",
+          "itemId": "mat_ley_spark",
+          "qty": 6,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i17",
+          "itemId": "item_ley_touched_tonic",
+          "qty": 8,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i21",
+          "itemId": "mat_rootbone",
+          "qty": 10,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i65",
+          "itemId": "mat_frayed_moment",
+          "qty": 8,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i87",
+          "itemId": "item_chronal_dust",
+          "qty": 1,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i100",
+          "itemId": "mat_slate_core",
+          "qty": 2,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i101",
+          "itemId": "mat_iron_rivet",
+          "qty": 2,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i102",
+          "itemId": "item_ironclad_plate_armor",
+          "qty": 1,
+          "rarity": "uncommon",
+          "affixes": []
+        },
+        {
+          "uid": "i131",
+          "itemId": "item_heartstone_fragment_stable",
+          "qty": 1,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i132",
+          "itemId": "item_heartstone_fragment_stable",
+          "qty": 1,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i171",
+          "itemId": "item_nomad_hardtack",
+          "qty": 2,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i175",
+          "itemId": "mat_ember_ore",
+          "qty": 3,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i129",
+          "itemId": "item_glyphbound_lantern",
+          "qty": 1,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i179",
+          "itemId": "item_sky_whisper_talisman",
+          "qty": 1,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i223",
+          "itemId": "mat_gale_feather",
+          "qty": 2,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i219",
+          "itemId": "mat_cinder_horn",
+          "qty": 1,
+          "rarity": "common",
+          "affixes": []
+        },
+        {
+          "uid": "i265",
+          "itemId": "item_hearth_broth",
+          "qty": 2,
+          "rarity": "common",
+          "affixes": []
+        }
+      ],
+      "equipment": {
+        "weapon": {
+          "uid": "i1",
+          "itemId": "item_rusty_dagger",
+          "qty": 1,
+          "rarity": "common",
+          "affixes": []
+        },
+        "armor": {
+          "uid": "i50",
+          "itemId": "item_ironclad_mail",
+          "qty": 1,
+          "rarity": "uncommon",
+          "affixes": [
+            "affix_of_thorns"
+          ]
+        },
+        "trinket1": {
+          "uid": "i191",
+          "itemId": "item_sky_whisper_talisman",
+          "qty": 1,
+          "rarity": "rare",
+          "affixes": [
+            "affix_of_the_wellspring"
+          ]
+        },
+        "trinket2": {
+          "uid": "i130",
+          "itemId": "item_stabilized_heartstone",
+          "qty": 1,
+          "rarity": "common",
+          "affixes": []
+        }
+      },
+      "abilitiesUnlocked": [
+        "rgr_rend",
+        "rgr_marked_shot",
+        "rgr_riposte_stance",
+        "rgr_piercing_arrow",
+        "rgr_hamstring"
+      ],
+      "apHalf": 10,
+      "statPoints": 0,
+      "statuses": [],
+      "uses": {},
+      "stance": "guarded",
+      "passiveBonuses": {
+        "hpMax": 15
+      }
+    },
+    "companions": {
+      "recruited": {
+        "brak": {
+          "id": "brak",
+          "recruited": true,
+          "loyalty": 15,
+          "hp": 202,
+          "hpMax": 220,
+          "ko": false,
+          "dead": false,
+          "stance": "guarded",
+          "cooldowns": {},
+          "waitingAt": null,
+          "arcFlags": {}
+        }
+      },
+      "activeId": "brak"
+    },
+    "world": {
+      "currentLocationId": "loc_hearthring",
+      "previousLocationId": "loc_ash_wind_flats",
+      "locationStates": {
+        "loc_whispering_ruins": {
+          "visited": true,
+          "visitCount": 4,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_ruins_echo",
+            "ev_ruins_return",
+            "ev_ruins_waking"
+          ],
+          "flags": {
+            "items:v2": true
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_crumbling_archway": {
+          "visited": true,
+          "visitCount": 4,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [
+            "enc_archway_prowler"
+          ],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_archway_whisper"
+          ],
+          "flags": {
+            "items:v2": true
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_darkened_corridor": {
+          "visited": true,
+          "visitCount": 4,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [
+            "enc_corridor_shade"
+          ],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_corridor_hand",
+            "ev_corridor_growl"
+          ],
+          "flags": {
+            "items:v2": true
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_shattered_library": {
+          "visited": true,
+          "visitCount": 7,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [
+            "enc_library_wisp"
+          ],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_library_shiver",
+            "ev_library_pages",
+            "ev_library_seam"
+          ],
+          "flags": {
+            "items:v2": true
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_silverwood_plaza": {
+          "visited": true,
+          "visitCount": 10,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [
+            "enc_plaza_wisp"
+          ],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_plaza_surge"
+          ],
+          "flags": {
+            "items:v2": true,
+            "item:0": "missed"
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_mistwood_path": {
+          "visited": true,
+          "visitCount": 11,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [
+            "enc_mistwood_prowlers"
+          ],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_mistwood_herbs",
+            "ev_mistwood_shapes"
+          ],
+          "flags": {
+            "items:v2": true,
+            "item:0": "placed"
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_ironclad_camp": {
+          "visited": true,
+          "visitCount": 10,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_camp_clamor"
+          ],
+          "flags": {
+            "items:v2": true
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_barren_peaks": {
+          "visited": true,
+          "visitCount": 8,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [
+            "enc_peaks_brute_gate"
+          ],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_peaks_gale",
+            "ev_peaks_den"
+          ],
+          "flags": {
+            "items:v2": true
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [
+            "enc_peaks_brute"
+          ],
+          "encounterHp": {}
+        },
+        "loc_blighted_outpost": {
+          "visited": true,
+          "visitCount": 7,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [
+            "enc_outpost_golems_gate"
+          ],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_outpost_ash",
+            "ev_outpost_seal"
+          ],
+          "flags": {
+            "items:v2": true
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [
+            "enc_outpost_golems"
+          ],
+          "encounterHp": {}
+        },
+        "loc_sunken_archives": {
+          "visited": true,
+          "visitCount": 2,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_archives_murmur",
+            "ev_archives_lamp"
+          ],
+          "flags": {
+            "items:v2": true,
+            "item:0": "placed"
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_heartstone_depths": {
+          "visited": true,
+          "visitCount": 1,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_heartstone_thrum",
+            "ev_depths_choice",
+            "ev_depths_count_beats"
+          ],
+          "flags": {
+            "items:v2": true
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_scorched_gate": {
+          "visited": true,
+          "visitCount": 4,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_gate_horn"
+          ],
+          "flags": {
+            "items:v2": true,
+            "item:0": "placed"
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_sky_whisper_plateau": {
+          "visited": true,
+          "visitCount": 1,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [
+            "enc_plateau_sentinel"
+          ],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_plateau_gale",
+            "ev_plateau_view",
+            "ev_plateau_stair"
+          ],
+          "flags": {
+            "items:v2": true,
+            "item:0": "placed"
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_ash_wind_flats": {
+          "visited": true,
+          "visitCount": 2,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_flats_shake"
+          ],
+          "flags": {
+            "items:v2": true,
+            "item:0": "placed"
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        },
+        "loc_hearthring": {
+          "visited": true,
+          "visitCount": 1,
+          "items": [],
+          "itemsSpawned": true,
+          "encountersCleared": [],
+          "encounterClearedDay": {},
+          "eventsFired": [
+            "ev_hearthring_fire",
+            "ev_hearthring_brothers"
+          ],
+          "flags": {
+            "items:v2": true,
+            "item:0": "placed"
+          },
+          "unlockedExits": [],
+          "lockedExits": [],
+          "scattered": [],
+          "encounterHp": {}
+        }
+      },
+      "discovered": [
+        "loc_whispering_ruins",
+        "loc_crumbling_archway",
+        "loc_darkened_corridor",
+        "loc_shattered_library",
+        "loc_silverwood_plaza",
+        "loc_mistwood_path",
+        "loc_ironclad_camp",
+        "loc_barren_peaks",
+        "loc_blighted_outpost",
+        "loc_sunken_archives",
+        "loc_heartstone_depths",
+        "loc_scorched_gate",
+        "loc_sky_whisper_plateau",
+        "loc_ash_wind_flats",
+        "loc_hearthring"
+      ],
+      "pendingEncounters": {},
+      "npcOverrides": {},
+      "hordeActive": false,
+      "hordeDelay": 0,
+      "infected": [],
+      "hordePending": {},
+      "hordeCause": null,
+      "heartstone": "stabilized",
+      "tyrant": "waiting",
+      "gather": {
+        "loc_mistwood_path:mat_ley_resin": {
+          "day": 20,
+          "taken": 1
+        },
+        "loc_mistwood_path": {
+          "day": 20,
+          "taken": 1
+        },
+        "loc_scorched_gate": {
+          "day": 21,
+          "taken": 1
+        }
+      }
+    },
+    "quests": {
+      "q_echo_crystal": {
+        "status": "active",
+        "stage": "take_crystal",
+        "startedDay": 1,
+        "endedDay": null,
+        "counters": {
+          "stageDay": 1,
+          "stage:reach_library": 1,
+          "kills:cr_mistwood_prowler": 1,
+          "kills:cr_corrupted_shade": 1,
+          "kills:cr_arcane_wisp": 1,
+          "stage:take_crystal": 2
+        },
+        "objectivesDone": []
+      },
+      "q_the_thirtieth_dawn": {
+        "status": "completed",
+        "stage": "done",
+        "startedDay": 1,
+        "endedDay": 13,
+        "counters": {
+          "kills:cr_mistwood_prowler": 5,
+          "kills:cr_corrupted_shade": 2,
+          "kills:cr_arcane_wisp": 5,
+          "stageDay": 13,
+          "stage:drift": 1,
+          "kills:cr_rootling": 2,
+          "kills:cr_wildling_brute": 2,
+          "kills:cr_anomaly_echoed_shade": 2,
+          "kills:cr_anomaly_split_wisp": 3,
+          "kills:cr_stutter_hound": 1,
+          "kills:cr_stone_hide_golem": 2,
+          "stage:count": 2,
+          "stage:compare": 3,
+          "stage:done": 4
+        },
+        "objectivesDone": []
+      },
+      "q_blood_and_salt": {
+        "status": "active",
+        "stage": "salt",
+        "startedDay": 2,
+        "endedDay": null,
+        "counters": {
+          "kills:cr_mistwood_prowler": 3,
+          "kills:cr_corrupted_shade": 1,
+          "kills:cr_arcane_wisp": 2,
+          "stageDay": 2,
+          "stage:salt": 1
+        },
+        "objectivesDone": []
+      },
+      "q_clear_path": {
+        "status": "completed",
+        "stage": "done",
+        "startedDay": 2,
+        "endedDay": 5,
+        "counters": {
+          "kills:cr_mistwood_prowler": 4,
+          "kills:cr_corrupted_shade": 1,
+          "kills:cr_arcane_wisp": 2,
+          "stageDay": 5,
+          "stage:hunt": 1,
+          "kills:cr_rootling": 2,
+          "kills:cr_wildling_brute": 1,
+          "stage:report": 2,
+          "stage:done": 3
+        },
+        "objectivesDone": []
+      },
+      "q_blighted_outpost": {
+        "status": "completed",
+        "stage": "done",
+        "startedDay": 5,
+        "endedDay": 9,
+        "counters": {
+          "kills:cr_mistwood_prowler": 5,
+          "kills:cr_corrupted_shade": 1,
+          "kills:cr_arcane_wisp": 2,
+          "kills:cr_rootling": 2,
+          "kills:cr_wildling_brute": 2,
+          "stageDay": 9,
+          "stage:golems": 1,
+          "kills:cr_anomaly_echoed_shade": 1,
+          "kills:cr_anomaly_split_wisp": 1,
+          "kills:cr_stutter_hound": 1,
+          "kills:cr_stone_hide_golem": 2,
+          "stage:cleared": 2,
+          "stage:done": 3
+        },
+        "objectivesDone": []
+      },
+      "q_echoing_heartbeat": {
+        "status": "completed",
+        "stage": "done_stabilize",
+        "startedDay": 9,
+        "endedDay": 11,
+        "counters": {
+          "kills:cr_mistwood_prowler": 5,
+          "kills:cr_corrupted_shade": 2,
+          "kills:cr_arcane_wisp": 4,
+          "kills:cr_rootling": 2,
+          "kills:cr_wildling_brute": 2,
+          "kills:cr_anomaly_echoed_shade": 1,
+          "kills:cr_anomaly_split_wisp": 2,
+          "kills:cr_stutter_hound": 1,
+          "kills:cr_stone_hide_golem": 2,
+          "stageDay": 11,
+          "stage:descend": 1,
+          "stage:choose": 2,
+          "stage:done_stabilize": 3
+        },
+        "objectivesDone": []
+      },
+      "q_the_scouts_oath": {
+        "status": "active",
+        "stage": "oath",
+        "startedDay": 9,
+        "endedDay": null,
+        "counters": {
+          "kills:cr_mistwood_prowler": 8,
+          "kills:cr_corrupted_shade": 3,
+          "kills:cr_arcane_wisp": 6,
+          "kills:cr_rootling": 3,
+          "kills:cr_wildling_brute": 2,
+          "kills:cr_anomaly_echoed_shade": 2,
+          "kills:cr_anomaly_split_wisp": 3,
+          "kills:cr_stutter_hound": 1,
+          "kills:cr_stone_hide_golem": 2,
+          "stageDay": 22,
+          "stage:ride": 1,
+          "kills:cr_warding_pillar": 2,
+          "kills:cr_salt_jackal": 1,
+          "stage:flats": 2,
+          "kills:cr_sky_whisper_sentinel": 1,
+          "kills:cr_steppe_harrier": 3,
+          "stage:ring": 3,
+          "kills:cr_anomaly_frayed_brute": 1,
+          "kills:cr_anomaly_rootbound_pack": 1,
+          "stage:oath": 4
+        },
+        "objectivesDone": []
+      },
+      "q_high_mark": {
+        "status": "active",
+        "stage": "markers",
+        "startedDay": 15,
+        "endedDay": null,
+        "counters": {
+          "kills:cr_mistwood_prowler": 7,
+          "kills:cr_corrupted_shade": 2,
+          "kills:cr_arcane_wisp": 5,
+          "kills:cr_rootling": 2,
+          "kills:cr_wildling_brute": 2,
+          "kills:cr_anomaly_echoed_shade": 2,
+          "kills:cr_anomaly_split_wisp": 3,
+          "kills:cr_stutter_hound": 1,
+          "kills:cr_stone_hide_golem": 2,
+          "kills:cr_warding_pillar": 2,
+          "kills:cr_salt_jackal": 1,
+          "kills:cr_sky_whisper_sentinel": 1,
+          "stageDay": 15,
+          "stage:markers": 1
+        },
+        "objectivesDone": []
+      }
+    },
+    "flags": {
+      "flag_scene_done_scene_waking_loop_2": true,
+      "flag_scene_done_scene_first_meeting_ilyra": true,
+      "flag_scene_done_scene_ilyra_deja_vu": true,
+      "flag_spellbook_dropped": true,
+      "flag_scene_done_scene_dray_thirtieth_dawn_offer": true,
+      "flag_scene_done_scene_dray_thirtieth_dawn_waiting": true,
+      "flag_scene_done_scene_brak_clear_path_offer": true,
+      "flag_scene_done_scene_brak_deja_vu": true,
+      "flag_scene_done_scene_brak_clear_path_report": true,
+      "flag_scene_done_scene_brak_arc": true,
+      "flag_scene_done_scene_brak_camp_1": true,
+      "flag_scene_done_scene_ilyra_echo_crystal_waiting": true,
+      "flag_scene_done_scene_brak_blighted_outpost_report": true,
+      "flag_scene_done_scene_brak_scouts_oath_waiting": true,
+      "flag_heartstone_stabilized": true,
+      "flag_scene_done_scene_heartstone_choice": true,
+      "flag_scene_done_scene_depths_count_beats": true,
+      "flag_scene_done_scene_dray_thirtieth_dawn_after": true,
+      "flag_scene_done_scene_ferrin_trail_signs": true,
+      "flag_scene_done_scene_plateau_stair": true
+    },
+    "reputation": {
+      "remnants": 15,
+      "weavers": -3,
+      "ironclad": 25
+    },
+    "echoesThisLoop": [
+      "echo_amulet_memory",
+      "echo_ironclad_passwords",
+      "echo_stone_hide_origin",
+      "echo_heartstone_path",
+      "echo_heartstone_resonance",
+      "echo_breach_clock",
+      "echo_vask_seal",
+      "echo_nomad_signs"
+    ],
+    "combat": null,
+    "dialogue": null,
+    "merchants": {
+      "npc_tamsin_reed": {
+        "stock": [
+          {
+            "uid": "i266",
+            "itemId": "item_glow_moss",
+            "qty": 3,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i267",
+            "itemId": "item_ley_touched_tonic",
+            "qty": 2,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i268",
+            "itemId": "item_chronal_dust",
+            "qty": 2,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i269",
+            "itemId": "item_remnant_ink",
+            "qty": 2,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i270",
+            "itemId": "item_apprentice_staff",
+            "qty": 1,
+            "rarity": "rare",
+            "affixes": [
+              "affix_of_thorns"
+            ]
+          },
+          {
+            "uid": "i271",
+            "itemId": "item_scriptorium_staff",
+            "qty": 1,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i272",
+            "itemId": "item_necromancer_staff",
+            "qty": 1,
+            "rarity": "rare",
+            "affixes": [
+              "affix_of_thorns"
+            ]
+          }
+        ],
+        "lastRestockDay": 22,
+        "purchasesThisLoop": 2
+      },
+      "npc_tessaly_varr": {
+        "stock": [
+          {
+            "uid": "i273",
+            "itemId": "item_glow_moss",
+            "qty": 3,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i274",
+            "itemId": "item_nomad_hardtack",
+            "qty": 3,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i275",
+            "itemId": "item_hearth_broth",
+            "qty": 2,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i276",
+            "itemId": "item_ward_salts",
+            "qty": 2,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i277",
+            "itemId": "item_storm_jar",
+            "qty": 2,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i278",
+            "itemId": "mat_steppe_salt",
+            "qty": 3,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i279",
+            "itemId": "mat_iron_rivet",
+            "qty": 3,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i280",
+            "itemId": "mat_ember_ore",
+            "qty": 3,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i281",
+            "itemId": "item_cinderhorn_plate",
+            "qty": 1,
+            "rarity": "rare",
+            "affixes": [
+              "affix_of_the_wellspring"
+            ]
+          },
+          {
+            "uid": "i282",
+            "itemId": "item_pattern_sunderforged_plate",
+            "qty": 1,
+            "rarity": "common",
+            "affixes": []
+          },
+          {
+            "uid": "i283",
+            "itemId": "item_steppe_lamellar",
+            "qty": 1,
+            "rarity": "rare",
+            "affixes": [
+              "affix_of_thorns"
+            ]
+          },
+          {
+            "uid": "i284",
+            "itemId": "item_nomad_sabre",
+            "qty": 1,
+            "rarity": "uncommon",
+            "affixes": []
+          },
+          {
+            "uid": "i285",
+            "itemId": "item_harrier_bow",
+            "qty": 1,
+            "rarity": "uncommon",
+            "affixes": []
+          }
+        ],
+        "lastRestockDay": 22,
+        "purchasesThisLoop": 0
+      }
+    },
+    "rng": [
+      929863363,
+      4175111926,
+      3726631432,
+      1969384204
+    ],
+    "counters": {
+      "kills": {
+        "cr_mistwood_prowler": 8,
+        "cr_corrupted_shade": 3,
+        "cr_arcane_wisp": 6,
+        "cr_rootling": 3,
+        "cr_wildling_brute": 2,
+        "cr_anomaly_echoed_shade": 2,
+        "cr_anomaly_split_wisp": 3,
+        "cr_stutter_hound": 1,
+        "cr_stone_hide_golem": 2,
+        "cr_warding_pillar": 2,
+        "cr_salt_jackal": 1,
+        "cr_sky_whisper_sentinel": 1,
+        "cr_steppe_harrier": 3,
+        "cr_anomaly_frayed_brute": 1,
+        "cr_anomaly_rootbound_pack": 1
+      },
+      "seen": {
+        "cr_mistwood_prowler": 8,
+        "cr_corrupted_shade": 3,
+        "cr_arcane_wisp": 6,
+        "cr_rootling": 3,
+        "cr_wildling_brute": 2,
+        "cr_anomaly_echoed_shade": 2,
+        "cr_anomaly_split_wisp": 3,
+        "cr_stutter_hound": 1,
+        "cr_stone_hide_golem": 2,
+        "cr_warding_pillar": 2,
+        "cr_salt_jackal": 1,
+        "cr_sky_whisper_sentinel": 1,
+        "cr_steppe_harrier": 3,
+        "cr_anomaly_frayed_brute": 1,
+        "cr_anomaly_rootbound_pack": 1
+      },
+      "damageDealt": 2578,
+      "damageTaken": 758,
+      "damageBySource": {
+        "rgr_rend": 98,
+        "status:status_bleed": 28,
+        "rgr_marked_shot": 383,
+        "basic": 92,
+        "rgr_piercing_arrow": 1240,
+        "affix:affix_of_thorns": 41,
+        "companion:brak": 696
+      },
+      "abilitiesUsed": {
+        "rgr_rend": 7,
+        "rgr_marked_shot": 30,
+        "rgr_piercing_arrow": 50,
+        "comp_brak_axe": 51
+      },
+      "itemsCrafted": 0,
+      "itemsUpgraded": 0,
+      "goldEarned": 557,
+      "goldSpent": 34,
+      "fights": 30,
+      "fightsWon": 30,
+      "fled": 0,
+      "rests": 2,
+      "travels": 75,
+      "questsCompleted": 4,
+      "questsFailed": 0,
+      "echoesGainedThisLoop": 8,
+      "deathsThisLoop": 0,
+      "custom": {},
+      "resonance": 45
+    },
+    "pendingEnding": null,
+    "mode": "explore",
+    "recentLog": [
+      {
+        "step": 0,
+        "text": "A low, resonant hum vibrates under your skin, as if the stones are breathing.",
+        "kind": "event"
+      },
+      {
+        "step": 0,
+        "text": "You know this smell. You have stood here before, and the stones know it too.",
+        "kind": "event"
+      },
+      {
+        "step": 13,
+        "text": "A whisper slips through the archway: 'Wayfinder... follow.'",
+        "kind": "event"
+      },
+      {
+        "step": 13,
+        "text": "The fog under the arch has eyes in it.",
+        "kind": "combat"
+      },
+      {
+        "step": 16,
+        "text": "The scorch-hand on the wall is at the height of your own. You do not put yours in it.",
+        "kind": "event"
+      },
+      {
+        "step": 16,
+        "text": "The growl ahead stops when you stop. It starts when you start.",
+        "kind": "event"
+      },
+      {
+        "step": 16,
+        "text": "The growl ahead was never a growl. Something steps out of the wall.",
+        "kind": "combat"
+      },
+      {
+        "step": 19,
+        "text": "A cold gust rattles the shelves, and you smell old ink and rain.",
+        "kind": "event"
+      },
+      {
+        "step": 19,
+        "text": "A page turns itself on a shelf that no longer exists. You read one word before it is gone: 'Conflux.'",
+        "kind": "event"
+      },
+      {
+        "step": 19,
+        "text": "The seam in the air widens a hair when you look at it. It knows you.",
+        "kind": "event"
+      },
+      {
+        "step": 19,
+        "text": "Light knots itself between two shelves and turns toward you.",
+        "kind": "combat"
+      },
+      {
+        "step": 32,
+        "text": "Wild magic surges. A chorus of distant bells rings out, then fades.",
+        "kind": "event"
+      },
+      {
+        "step": 32,
+        "text": "A knot of light lifts off the fountain's rim.",
+        "kind": "combat"
+      },
+      {
+        "step": 35,
+        "text": "You crush a leaf without meaning to. The smell is clean. Nothing here has been clean in a long time.",
+        "kind": "event"
+      },
+      {
+        "step": 35,
+        "text": "A shape between the trunks keeps your pace for ten steps, then is a tree.",
+        "kind": "event"
+      },
+      {
+        "step": 35,
+        "text": "Two shapes pace you through the fog, one on each side of the trail.",
+        "kind": "combat"
+      },
+      {
+        "step": 52,
+        "text": "You gather Ley Resin.",
+        "kind": "narration"
+      },
+      {
+        "step": 53,
+        "text": "You gather Rootbone.",
+        "kind": "narration"
+      },
+      {
+        "step": 54,
+        "text": "Hammer strikes ring out like a steady heartbeat.",
+        "kind": "event"
+      },
+      {
+        "step": 67,
+        "text": "You buy Ley-Touched Tonic for 12 gold.",
+        "kind": "event"
+      },
+      {
+        "step": 68,
+        "text": "You buy Ley-Touched Tonic for 12 gold.",
+        "kind": "event"
+      },
+      {
+        "step": 83,
+        "text": "You gather Ley Resin.",
+        "kind": "narration"
+      },
+      {
+        "step": 84,
+        "text": "You gather Rootbone.",
+        "kind": "narration"
+      },
+      {
+        "step": 87,
+        "text": "A cutting gale whips through the peaks, carrying flecks of stone.",
+        "kind": "event"
+      },
+      {
+        "step": 87,
+        "text": "At the end of the path worn into the scree, roots and bone rise to meet you.",
+        "kind": "combat"
+      },
+      {
+        "step": 111,
+        "text": "You make camp beneath the twisted trees. The whispers keep you company.",
+        "kind": "narration"
+      },
+      {
+        "step": 127,
+        "text": "You gather Ley Resin.",
+        "kind": "narration"
+      },
+      {
+        "step": 128,
+        "text": "You gather Rootbone.",
+        "kind": "narration"
+      },
+      {
+        "step": 130,
+        "text": "The Brute's den is a nest of roots and old steel. Nomad steel. It has been eating patrols.",
+        "kind": "event"
+      },
+      {
+        "step": 130,
+        "text": "A grey hound on the ridge bites at nothing, then bites again.",
+        "kind": "combat"
+      },
+      {
+        "step": 133,
+        "text": "Stone scrapes stone as something massive shifts in the dark.",
+        "kind": "event"
+      },
+      {
+        "step": 133,
+        "text": "Two slate figures stand in the drag furrows, turned to face outward.",
+        "kind": "combat"
+      },
+      {
+        "step": 146,
+        "text": "Max HP +15 for the rest of this loop.",
+        "kind": "event"
+      },
+      {
+        "step": 147,
+        "text": "Salt Jackal appears at The Scorched Gate.",
+        "kind": "event"
+      },
+      {
+        "step": 147,
+        "text": "Steppe Harrier appears at Ash-Wind Flats.",
+        "kind": "event"
+      },
+      {
+        "step": 153,
+        "text": "You gather Ley Resin.",
+        "kind": "narration"
+      },
+      {
+        "step": 154,
+        "text": "You gather Rootbone.",
+        "kind": "narration"
+      },
+      {
+        "step": 169,
+        "text": "A submerged page unfurls, whispering of the Ley Line Conflux.",
+        "kind": "event"
+      },
+      {
+        "step": 169,
+        "text": "On the top step of the drowned stair sits a lantern etched with glyphs. The water below it is black, not dark.",
+        "kind": "event"
+      },
+      {
+        "step": 172,
+        "text": "The Heartstone answers your presence with a tremor that shakes dust from the ceiling.",
+        "kind": "event"
+      },
+      {
+        "step": 178,
+        "text": "The Heartstone beats slow and uneven. One watch of standing still would give a number.",
+        "kind": "event"
+      },
+      {
+        "step": 200,
+        "text": "You gather Ley Resin.",
+        "kind": "narration"
+      },
+      {
+        "step": 201,
+        "text": "You gather Rootbone.",
+        "kind": "narration"
+      },
+      {
+        "step": 206,
+        "text": "Each golem bears the same mark on its brow: a square inside a circle. A warder's seal.",
+        "kind": "event"
+      },
+      {
+        "step": 206,
+        "text": "A standing stone beside the gate, cut with a ring and a bar, begins to hum.",
+        "kind": "combat"
+      },
+      {
+        "step": 210,
+        "text": "Ferrin blows two notes on the horn. Far off, two notes answer. 'Hearthring knows you're coming,' he says.",
+        "kind": "event"
+      },
+      {
+        "step": 218,
+        "text": "You gather Ember Ore.",
+        "kind": "narration"
+      },
+      {
+        "step": 219,
+        "text": "A standing stone beside the gate, cut with a ring and a bar, begins to hum.",
+        "kind": "combat"
+      },
+      {
+        "step": 225,
+        "text": "The wind murmurs in broken syllables, as if the sky itself is speaking.",
+        "kind": "event"
+      },
+      {
+        "step": 225,
+        "text": "From here you can see the Apex. It is not where it was yesterday.",
+        "kind": "event"
+      },
+      {
+        "step": 225,
+        "text": "A guardian turns on its marker, vanes spread, and the wind turns with it.",
+        "kind": "combat"
+      },
+      {
+        "step": 243,
+        "text": "You gather Ley Resin.",
+        "kind": "narration"
+      },
+      {
+        "step": 244,
+        "text": "You gather Rootbone.",
+        "kind": "narration"
+      },
+      {
+        "step": 251,
+        "text": "You gather Ley Resin.",
+        "kind": "narration"
+      },
+      {
+        "step": 252,
+        "text": "You gather Rootbone.",
+        "kind": "narration"
+      },
+      {
+        "step": 257,
+        "text": "You gather Ember Ore.",
+        "kind": "narration"
+      },
+      {
+        "step": 258,
+        "text": "The ground shakes. You step off the herd-path. Something the size of a house passes where you stood, burning.",
+        "kind": "event"
+      },
+      {
+        "step": 273,
+        "text": "You gather Ley Resin.",
+        "kind": "narration"
+      },
+      {
+        "step": 274,
+        "text": "You gather Rootbone.",
+        "kind": "narration"
+      },
+      {
+        "step": 283,
+        "text": "You gather Ley Resin.",
+        "kind": "narration"
+      },
+      {
+        "step": 284,
+        "text": "You gather Rootbone.",
+        "kind": "narration"
+      },
+      {
+        "step": 292,
+        "text": "You gather Ember Ore.",
+        "kind": "narration"
+      },
+      {
+        "step": 293,
+        "text": "Two grey wings fold out of the white sky.",
+        "kind": "combat"
+      },
+      {
+        "step": 302,
+        "text": "Oma Varr does not look up. 'That fire was lit from the last ember of the Burned Hall,' she says. 'Sit. You smell of the Breach.'",
+        "kind": "event"
+      },
+      {
+        "step": 302,
+        "text": "Ketch sings a verse about two brothers and a name laid down. He stops when he sees your face.",
+        "kind": "event"
+      }
+    ],
+    "threshold": null
+  }
+}

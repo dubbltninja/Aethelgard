@@ -1,0 +1,177 @@
+/*
+ * Onboarding (DESIGN §16.8, U70): the callout in the dock, and the glow on the thing it points at. The Callouts container
+ * sets `data-callout="intent|guard|rest|clock|status"` on `.app` while a hint shows. A glow is a dashed outline plus a
+ * label-free pulse: the outline is the cue (never colour alone), the pulse stops under reduced motion (themes.css).
+ */
+.callouts {
+  min-width: 0;
+}
+
+/*
+ * U84a (D-147, REPORT U79 #2): a hint never moves or hides the controls (Callouts.tsx places it).
+ *   - Phones (and the phone fight layout): it stays in the dock, above the pinned bar or pad. The dock grows upward, so the
+ *     controls under the thumb keep their place; the screen above scrolls inside a little less room.
+ *   - Wide screens: it takes the reserved place just above the log (.callout-slot in explore.css and combat.css).
+ */
+.callouts:empty {
+  display: none;
+}
+
+.callout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-2) var(--gutter) 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-left: 4px solid var(--glyph-echo);
+  border-radius: var(--radius-s);
+  background: var(--surface-panel);
+  animation: callout-in var(--dur-panel) var(--ease);
+}
+
+.callout__icon {
+  color: var(--glyph-echo);
+}
+
+.callout__title {
+  color: var(--text-accent);
+  font-size: var(--type-small);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.callout__text {
+  font-size: var(--type-body);
+}
+
+.callout__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1) var(--space-2);
+}
+
+@media (max-width: 759.98px) {
+  /* compact: the words, and the two buttons stacked beside them */
+  .callout {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+  }
+
+  .callout__icon {
+    display: none;
+  }
+
+  .callout__text {
+    font-size: var(--type-small);
+  }
+
+  .callout__actions {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .callout__actions .btn {
+    min-height: var(--target-min);
+    padding-inline: var(--space-2);
+    font-size: var(--type-small);
+  }
+}
+
+/*
+ * U84 (D-148 leftovers): a landscape phone (short screen) keeps the hint to one line in the dock — its title and the start
+ * of its words, the buttons beside them — so the cards and the log above keep their room. The full words stay in the
+ * note's accessible text (the paragraph is only clipped, not removed).
+ */
+@media (max-height: 499.98px) {
+  .callouts .callout,
+  .callout-slot .callout {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+    padding-block: var(--space-1);
+  }
+
+  .callouts .callout__icon,
+  .callout-slot .callout__icon {
+    display: none;
+  }
+
+  .callouts .callout__body,
+  .callout-slot .callout__body {
+    display: flex;
+    gap: var(--space-2);
+    min-width: 0;
+    align-items: baseline;
+  }
+
+  .callouts .callout__title,
+  .callout-slot .callout__title {
+    flex: none;
+  }
+
+  .callouts .callout__text,
+  .callout-slot .callout__text {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--type-small);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .callouts .callout__actions,
+  .callout-slot .callout__actions {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .callouts .callout__actions .btn,
+  .callout-slot .callout__actions .btn {
+    min-height: var(--target-min);
+  }
+}
+
+@keyframes callout-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* ---- what a hint points at ---- */
+.app[data-callout="guard"] [data-action="guard"],
+.app[data-callout="intent"] .enemy-card .intent:not(.intent--next),
+.app[data-callout="rest"] [data-action-id="camp"],
+.app[data-callout="rest"] [data-action-id="rest-full"],
+.app[data-callout="clock"] .clock-chip,
+.app[data-callout="status"] .status-chips {
+  outline: 3px dashed var(--glyph-gold);
+  outline-offset: 3px;
+  animation: callout-glow 1.4s var(--ease) infinite alternate;
+}
+
+@keyframes callout-glow {
+  from {
+    outline-color: var(--glyph-gold);
+  }
+
+  to {
+    outline-color: transparent;
+  }
+}
+
+/* ---- toast tones (U70): a gain is gold-edged, a warning amber; the words carry the meaning, the edge only adds to it ---- */
+.toast--gain {
+  border-left-color: var(--glyph-gold);
+}
+
+.toast--warn {
+  border-left-color: var(--text-warn);
+}
+
+.toasts[data-motion="reduced"] .toast {
+  animation: none;
+}

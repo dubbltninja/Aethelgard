@@ -1,0 +1,425 @@
+/* Shared components: buttons, fields, choices, modal, toasts, key legend, panels (PLAN §6.7: 44 px targets). */
+
+/* ---- buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--target-min);
+  min-width: var(--target-min);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--type-body);
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease), border-color var(--dur-micro) var(--ease);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn--primary {
+  background: var(--fill-primary);
+  color: var(--on-fill-primary);
+  font-weight: 600;
+}
+
+.btn--secondary {
+  border-color: var(--line-strong);
+}
+
+.btn--secondary:hover:not(:disabled),
+.btn--quiet:hover:not(:disabled) {
+  background: var(--hover-wash);
+}
+
+.btn--quiet {
+  color: var(--text-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.btn--danger {
+  background: var(--fill-danger);
+  color: var(--on-fill-danger);
+  font-weight: 600;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+/* ---- fields and choices ---- */
+.field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.field__label {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.field__input {
+  min-height: var(--target-min);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-base);
+  color: var(--text-primary);
+}
+
+.field__input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.field__hint {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.field-group {
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  border: 0;
+}
+
+.field-group > legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+}
+
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--target-min);
+  cursor: pointer;
+}
+
+.choice input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--fill-primary);
+}
+
+details > summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--target-min);
+  cursor: pointer;
+  color: var(--text-accent);
+}
+
+/* ---- modal ---- */
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(36rem, 100%);
+  max-height: min(90dvh, 48rem);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.modal__body {
+  padding: var(--space-5);
+  overflow: auto;
+}
+
+.confirm .modal__body {
+  padding-top: var(--space-4);
+}
+
+.confirm__message {
+  font-size: var(--type-lead);
+}
+
+@media (max-width: 759.98px) {
+  .modal {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: var(--radius-m) var(--radius-m) 0 0;
+    border-width: 1px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+.panel-intro {
+  margin-bottom: var(--space-4);
+  color: var(--text-muted);
+}
+
+/* ---- toasts ---- */
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--glyph-echo);
+  border-radius: var(--radius-s);
+  background: var(--surface-panel);
+  animation: toast-in var(--dur-panel) var(--ease);
+}
+
+.toast--success {
+  border-left-color: var(--glyph-gold);
+}
+
+.toast--error {
+  border-left-color: var(--glyph-hp);
+}
+
+.toast__text {
+  font-size: var(--type-small);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ---- key legend ---- */
+.key-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+  list-style: none;
+}
+
+.key-legend__item {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* ---- help (the ? overlay) ---- */
+.help-list {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.help-list__scope {
+  margin-bottom: var(--space-2);
+  font-size: var(--type-lead);
+}
+
+.help-list__row {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) 1fr;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.help-list__row dd {
+  color: var(--text-muted);
+}
+
+/* ---- save slots ---- */
+.slot-list {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+}
+
+.slot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.slot__name {
+  font-size: var(--type-lead);
+}
+
+.slot__summary {
+  color: var(--text-muted);
+  font-size: var(--type-small);
+}
+
+.slot__summary--bad {
+  color: var(--text-danger);
+}
+
+.slot__time {
+  display: block;
+}
+
+.slot__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.slot__text {
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+
+.slot__summary {
+  overflow-wrap: anywhere;
+}
+
+/* ---- import / profile blocks (U69) ---- */
+.import {
+  margin-top: var(--space-6);
+}
+
+.import__heading {
+  margin-bottom: var(--space-2);
+  font-size: var(--type-lead);
+}
+
+.import__preview {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-s);
+}
+
+.import__file {
+  margin-bottom: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--type-small);
+  overflow-wrap: anywhere;
+}
+
+.import__refused {
+  margin-top: var(--space-3);
+  color: var(--text-danger);
+  overflow-wrap: anywhere;
+}
+
+.import__note {
+  margin-top: var(--space-1);
+  color: var(--text-warn);
+  font-size: var(--type-small);
+}
+
+.file-pick {
+  position: relative;
+  cursor: pointer;
+}
+
+/* the real <input type=file> sits over the label (so it is focusable and tappable) with its own look hidden */
+.file-pick__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-pick:focus-within {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.sliders {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.slider {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr) 3.5ch;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--target-min);
+}
+
+.slider input {
+  width: 100%;
+  min-height: var(--target-min);
+  margin: 0;
+  accent-color: var(--fill-primary);
+}
+
+.slider__value {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 759.98px) {
+  .slider {
+    grid-template-columns: minmax(0, 1fr) 4ch;
+    gap: 0 var(--space-3);
+  }
+
+  .slider__label {
+    grid-column: 1 / -1;
+  }
+}
+
+.profile-block .button-row {
+  margin-top: var(--space-3);
+}
+
+/* ---- placeholder screens ---- */
+.screen--placeholder {
+  display: grid;
+  place-items: center;
+  padding: var(--space-7) var(--gutter);
+}
+
+.placeholder-card {
+  width: min(36rem, 100%);
+  padding: var(--space-6);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+}
+
+.placeholder-card__heading {
+  margin-bottom: var(--space-2);
+}
+
+.placeholder-card__when {
+  margin-bottom: var(--space-4);
+  color: var(--text-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.plain-list {
+  list-style: none;
+}

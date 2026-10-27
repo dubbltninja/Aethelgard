@@ -1,0 +1,281 @@
+/*
+ * Layout (PLAN §6.8, DESIGN §16.1): the Shell frame. 760 px is the one breakpoint: under it every screen is a single
+ * column with a 16 px gutter. Screens own their inner grids (screens.css). U69 adds the dock: the tab bar (Explore ·
+ * Journal · Pack · Map · Menu, DESIGN §16.1) above the key legend, both stuck to the bottom of the viewport.
+ */
+.app {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 100dvh;
+}
+
+.screen-host {
+  position: relative;
+  min-width: 0;
+}
+
+.screen-host:focus {
+  outline: none;
+}
+
+.screen {
+  position: relative;
+  min-height: 100%;
+}
+
+.dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  min-width: 0;
+  background: var(--surface-base);
+}
+
+/*
+ * U84a (D-147): explore and combat are one screen. The frame is exactly the viewport: the screen fills what the dock leaves,
+ * scrolls inside its own regions (never the page), and the dock — callouts, the screen's pinned controls, the tab bar, the
+ * legend — sits on the bottom edge. The dock grows upward, so a hint above the controls never moves them.
+ */
+.app[data-mode="explore"],
+.app[data-mode="combat"] {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app[data-mode="explore"] > .screen-host,
+.app[data-mode="combat"] > .screen-host {
+  min-height: 0;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+}
+
+.app[data-mode="explore"] > .screen-host > *,
+.app[data-mode="combat"] > .screen-host > * {
+  height: 100%;
+}
+
+.app[data-mode="explore"] .dock,
+.app[data-mode="combat"] .dock {
+  position: relative;
+}
+
+.legend-bar {
+  padding: var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface-base);
+  color: var(--text-muted);
+  font-size: var(--type-small);
+}
+
+/* a legend that wraps to a third line would lift everything above it: two lines are kept, whatever they hold (? lists all) */
+.app[data-mode="explore"] .legend-bar,
+.app[data-mode="combat"] .legend-bar {
+  height: calc(2 * 1.75rem + 2 * var(--space-2) + 1px + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+/* Touch-only devices have no keys to show; nor does a phone-sized window, where the dock's room goes to the thumb (? lists them). */
+@media (hover: none) and (pointer: coarse), (max-width: 759.98px) {
+  .legend-bar,
+  .app[data-mode="explore"] .legend-bar,
+  .app[data-mode="combat"] .legend-bar {
+    display: none;
+  }
+}
+
+.toasts {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--gutter);
+  z-index: 60;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-2);
+  width: min(24rem, calc(100vw - 2 * var(--gutter)));
+  pointer-events: none;
+}
+
+/* U84a: a toast's words let a click through to what lies under them (a panel's button); only its own buttons take one */
+.toasts > .toast-count,
+.toasts .toast__dismiss {
+  pointer-events: auto;
+}
+
+.toasts > .toast {
+  grid-column: 1;
+}
+
+/* U84a: one compact stack — the newest toast, the older ones folded into a count beside it */
+.toasts > .toast--folded {
+  display: none;
+}
+
+.toast-count {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: var(--target-min);
+  min-height: var(--target-min);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+/* anchored over the scene or stage (the Shell measures it): small type, at most two lines each, the band's height at most */
+.toasts[data-anchored="true"] {
+  overflow: hidden;
+}
+
+.toasts[data-anchored="true"] .toast__text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  background: var(--backdrop);
+}
+
+@media (max-width: 759.98px) {
+  .toasts {
+    top: auto;
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+
+  .modal-backdrop {
+    place-items: end stretch;
+    padding: 0;
+  }
+}
+
+/* ---- the tab bar (U69) ---- */
+.tab-bar {
+  border-top: 1px solid var(--line-strong);
+  background: var(--surface-panel);
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+}
+
+.tab-bar__list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0 auto;
+  max-width: 40rem;
+  list-style: none;
+}
+
+.tab-bar__cell {
+  min-width: 0;
+}
+
+.tab-bar__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 3.5rem;
+  padding: var(--space-1) var(--space-1);
+  border: 0;
+  border-top: 3px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.tab-bar__tab:hover:not(:disabled) {
+  background: var(--hover-wash);
+  color: var(--text-primary);
+}
+
+.tab-bar__tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* the current tab: a bar above it and brighter text, so colour is not the only cue */
+.tab-bar__tab--current {
+  border-top-color: var(--fill-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tab-bar__label {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 759.98px) {
+  /* under the breakpoint the bar clears the home indicator, and toasts rise above it */
+  .tab-bar {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .app[data-mode="explore"] ~ .toasts {
+    bottom: calc(var(--space-4) + 4.5rem + env(safe-area-inset-bottom));
+  }
+
+  /* the explore tab bar is a little shorter, so the place keeps more of a small screen */
+  .app[data-mode="explore"] .tab-bar__tab {
+    min-height: 3.25rem;
+  }
+}
+
+/* ---- the Menu panel (U69) ---- */
+.menu-list {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.menu-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "icon label" "icon hint";
+  align-items: center;
+  gap: 0 var(--space-3);
+  width: 100%;
+  min-height: var(--target-min);
+  padding: var(--space-3) var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: start;
+  cursor: pointer;
+}
+
+.menu-row:hover {
+  background: var(--hover-wash);
+}
+
+.menu-row .icon {
+  grid-area: icon;
+  color: var(--text-accent);
+}
+
+.menu-row__label {
+  grid-area: label;
+  font-weight: 600;
+}
+
+.menu-row__hint {
+  grid-area: hint;
+  color: var(--text-muted);
+  font-size: var(--type-small);
+}

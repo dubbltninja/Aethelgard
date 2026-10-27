@@ -1,0 +1,11 @@
+{
+  "name": "Echoes of Aethelgard: The Unraveling",
+  "short_name": "Aethelgard",
+  "description": "A time-loop RPG for the browser.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14111c",
+  "theme_color": "#14111c",
+  "icons": [{ "src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

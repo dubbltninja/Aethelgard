@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Echoes of Aethelgard: The Unraveling — a time-loop RPG for the browser." />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0e0f14" />
+    <title>Echoes of Aethelgard</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <!-- Before the stylesheet arrives: the page colour of src/ui/styles/tokens.css, so the first paint does not flash. -->
+    <style>
+      html, body { margin: 0; background: #0e0f14; color: #eceff4; color-scheme: dark; }
+    </style>
+    <!-- tools/build.ts injects the hashed stylesheet and module script here, with relative URLs. -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Echoes of Aethelgard needs JavaScript to run.</noscript>
+  </body>
+</html>

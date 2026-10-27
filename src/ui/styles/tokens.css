@@ -1,0 +1,109 @@
+/*
+ * Design tokens (DESIGN §17, D-062): the default theme. themes.css redefines the same names for high contrast.
+ *
+ * Naming is a contract that tests/unit/ui/tokens.test.ts checks in both themes:
+ *   --text-*     text colours: >= 4.5:1 on every --surface-* (>= 7:1 in high contrast)
+ *   --surface-*  backgrounds text sits on
+ *   --glyph-*    icons, bars, pips (colour plus a label, never colour alone): >= 3:1 on every --surface-*
+ *   --fill-X / --on-fill-X   a filled control and its text: >= 4.5:1 as a pair
+ *   --focus-ring the keyboard focus outline: >= 3:1 on every --surface-*
+ *   --line-strong  control borders (inputs, secondary buttons): >= 3:1 on every --surface-*
+ * Colours come from DESIGN §17.1's UI neutrals and the Ruins palette; region palettes arrive with the art (U71).
+ */
+:root {
+  color-scheme: dark;
+
+  /* surfaces */
+  --surface-base: #0e0f14;
+  --surface-panel: #171922;
+
+  /* text */
+  --text-primary: #eceff4;
+  --text-muted: #a7adbd;
+  --text-accent: #9fd8ff;
+  --text-gold: #e2b14b;
+  --text-danger: #f08a8a;
+  /* the Breach Clock's amber (DESIGN §10.1: 10 dawns left and fewer) */
+  --text-warn: #f2b45a;
+
+  /* glyphs (DESIGN §17.1: HP, MP, gold, Echo, Corruption) */
+  --glyph-hp: #e24b4b;
+  --glyph-mp: #4b8be2;
+  --glyph-gold: #e2b14b;
+  --glyph-echo: #9fd8ff;
+  --glyph-corruption: #7b3fe4;
+  /* damage types and status kinds (DESIGN §17.5; U65): glyph + label always, never colour alone */
+  --glyph-physical: #c3c8d4;
+  --glyph-fire: #f0803c;
+  --glyph-storm: #f5d547;
+  --glyph-ley: #4fd6b0;
+  --glyph-void: #a77bf3;
+  --glyph-chrono: #8fb3ff;
+  --glyph-buff: #6fd38f;
+  /* item rarity (DESIGN §7.3, §17.4; U67): the frame's colour, always with its pattern and the rarity written in words */
+  --glyph-rarity-common: #a7adbd;
+  --glyph-rarity-uncommon: #6fd38f;
+  --glyph-rarity-rare: #6aa8ff;
+  --glyph-rarity-epic: #b58cf5;
+  --glyph-rarity-legendary: #f2b45a;
+
+  /* filled controls */
+  --fill-primary: #9fd8ff;
+  --on-fill-primary: #0e0f14;
+  --fill-danger: #e24b4b;
+  --on-fill-danger: #0e0f14;
+
+  /* lines and focus */
+  --line-strong: #7d8499;
+  --line-soft: #2c3040;
+  --focus-ring: #ffd37a;
+  --focus-width: 3px;
+  --focus-offset: 2px;
+
+  /* translucency (removed in high contrast) */
+  --veil: rgb(23 25 34 / 0.9);
+  --backdrop: rgb(5 6 10 / 0.74);
+  --hover-wash: rgb(159 216 255 / 0.07);
+
+  /* the Ruins (title backdrop) */
+  --ruins-sky-top: #1b1f3b;
+  --ruins-sky-bottom: #4a3f6b;
+  --ruins-glow: #9fd8ff;
+
+  /* type (DESIGN §17.6: system fonts only) */
+  --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif;
+  --font-body: "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, system-ui, sans-serif;
+  /* a classical scale: 14 · 16 · 18 · 21 · 24 · 36 · 48–60 px at 100 % */
+  --type-small: 0.875rem;
+  --type-body: 1rem;
+  --type-lead: 1.125rem;
+  --type-h3: 1.3125rem;
+  --type-h2: 1.5rem;
+  --type-h1: 2.25rem;
+  --type-display: clamp(3rem, 2rem + 3.5vw, 4.25rem);
+  --leading-body: 1.5;
+  --leading-tight: 1.15;
+  --measure: 68ch;
+
+  /* space */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --gutter: 1rem;
+
+  /* shape */
+  --radius-s: 3px;
+  --radius-m: 6px;
+  --target-min: 44px;
+
+  /* motion (DESIGN §17.7) */
+  --dur-micro: 120ms;
+  --dur-panel: 200ms;
+  --dur-scene: 400ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}

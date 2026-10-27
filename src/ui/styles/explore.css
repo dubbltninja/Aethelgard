@@ -1,0 +1,1649 @@
+/*
+ * The Explore screen, its HUD, the ExitBar and ActionBar, the scene frame and the illustrated node map (U64; DESIGN
+ * §16.1–16.6, §17.2, §17.7; PLAN §6.7–6.8). Text uses the contrast-checked tokens; region colours (--region-*, set by
+ * <RegionPalette>) tint frames and map sigils only, and never carry meaning on their own. One column under 760 px; from
+ * 760 px a side column holds the log, and from 1100 px the docked map too. U69 adds the bottom tab bar.
+ */
+
+/* ---- frame (U84a, D-147: one screen; the page never scrolls, the place's words scroll in their own region) ---- */
+.explore-root {
+  min-height: 100%;
+}
+
+.screen--explore {
+  height: 100%;
+  background:
+    radial-gradient(ellipse 90% 40% at 50% 0%, color-mix(in srgb, var(--region-sky-bottom, #4a3f6b) 22%, transparent), transparent 70%),
+    var(--surface-base);
+}
+
+/*
+ * Wide (760 px and up): the HUD across the top; the place — its name, the scene band and the scrolling words, people, things
+ * and actions — on the left; the map, the log and the movement pad down the right, the pad at its foot, so it sits at the
+ * same spot whatever the place says.
+ */
+.explore {
+  --side-w: minmax(17rem, 22rem);
+  display: grid;
+  /* the HUD's rem-sized minimums must not widen the whole screen at 150 % text */
+  grid-template-columns: minmax(0, 1fr) var(--side-w);
+  grid-template-rows: auto auto minmax(5rem, auto) minmax(4rem, 1fr);
+  grid-template-areas:
+    "hud hud"
+    "head side"
+    "scene side"
+    "body side";
+  gap: var(--space-3) var(--space-5);
+  height: 100%;
+  min-height: 0;
+  max-width: 100rem;
+  margin: 0 auto;
+  padding: var(--space-3) var(--gutter);
+}
+
+.explore > .hud {
+  grid-area: hud;
+}
+
+.explore > .place {
+  grid-area: head;
+}
+
+.explore > .place__scene {
+  grid-area: scene;
+  /* the band's height is the viewport's share, not the painting's, so the words below always keep their room */
+  aspect-ratio: auto;
+  height: clamp(6rem, 30dvh, 20rem);
+  max-height: none;
+}
+
+/* the name and its facts on one line: region · band, then the name, then the place's tags */
+.explore > .place {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 var(--space-3);
+}
+
+.explore > .place .place__region {
+  grid-column: 1 / -1;
+}
+
+.explore > .place .place__name {
+  font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2rem);
+  line-height: 1.15;
+}
+
+.explore__body {
+  grid-area: body;
+  display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: var(--space-1);
+}
+
+.explore__side {
+  grid-area: side;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.explore__side > .event-log {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.explore__side .event-log__list {
+  max-height: none;
+  min-height: 0;
+}
+
+.explore__map {
+  min-height: 0;
+}
+
+.explore__pad {
+  align-self: end;
+}
+
+@media (min-width: 1100px) {
+  .explore {
+    --side-w: minmax(22rem, 26rem);
+  }
+
+  /* the docked map takes what the log and the pad leave */
+  .explore__side {
+    grid-template-rows: minmax(10rem, 1fr) auto minmax(5rem, 0.6fr) auto;
+  }
+}
+
+/*
+ * Three columns (1200 px and up, U84a): the width is used, not left as gutters. Left: the place — its name, the scene and the
+ * words (a reading measure, ~70ch). Middle: the map, who is here, the log. Right: the actions, and at its foot the pad.
+ */
+.explore[data-layout="triple"] {
+  grid-template-columns: minmax(0, 1fr) clamp(18rem, 22vw, 30rem) clamp(20rem, 23vw, 30rem);
+  grid-template-areas:
+    "hud hud hud"
+    "head mid right"
+    "scene mid right"
+    "body mid right";
+  max-width: 120rem;
+}
+
+.explore[data-layout="triple"] > .place__scene {
+  height: clamp(10rem, 36dvh, 26rem);
+}
+
+.explore[data-layout="triple"] .place__text {
+  max-width: 70ch;
+}
+
+.explore__middle {
+  grid-area: mid;
+  display: grid;
+  grid-template-rows: minmax(6rem, 1.3fr) auto auto minmax(4rem, 1fr);
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.explore__middle > .explore__map {
+  grid-row: 1;
+}
+
+.explore__middle > .here {
+  grid-row: 2;
+  max-height: 14rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.explore__middle > .event-log {
+  grid-row: 4;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.explore__middle .event-log__list {
+  max-height: none;
+  min-height: 0;
+}
+
+/* who is here, one per row in the narrow column */
+.explore__middle .here__list {
+  display: grid;
+}
+
+.explore__right {
+  grid-area: right;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.explore__actions {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: var(--space-1);
+}
+
+.explore__right .action-bar__list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.explore__right > .explore__pad {
+  align-self: end;
+}
+
+.explore__right .pad {
+  --pad-row: 3.5rem;
+}
+
+/* a short wide screen (a phone held sideways): the side column runs the full height, beside the HUD too */
+@media (min-width: 760px) and (max-height: 559.98px) {
+  .explore {
+    grid-template-rows: auto auto minmax(3.5rem, auto) minmax(3rem, 1fr);
+    grid-template-areas:
+      "hud side"
+      "head side"
+      "scene side"
+      "body side";
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-2);
+  }
+
+  .explore > .place__scene {
+    height: clamp(3.5rem, 22dvh, 8rem);
+  }
+
+  .explore > .place .place__name {
+    font-size: 1.25rem;
+  }
+
+  .explore__side {
+    grid-template-rows: 0 auto minmax(0, 1fr) auto;
+  }
+
+  .explore .pad {
+    --pad-row: 2.875rem;
+  }
+}
+
+/* Phones (under 760 px): a compact HUD, the place's name, a shorter scene band, then the words in their own scroll region;
+   the pad rides in the pinned dock (Shell), under the thumb. */
+@media (max-width: 759.98px) {
+  .explore {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(4.5rem, auto) minmax(5rem, 1fr);
+    grid-template-areas:
+      "hud"
+      "head"
+      "scene"
+      "body";
+    gap: var(--space-2);
+    padding: var(--space-2) var(--gutter) 0;
+  }
+
+  .explore__body {
+    padding-bottom: var(--space-3);
+  }
+
+  .explore > .place__scene {
+    height: clamp(4.5rem, 17dvh, 10rem);
+  }
+
+  .explore > .place .place__name {
+    font-size: 1.375rem;
+  }
+
+  .explore > .place .place__region {
+    font-size: 0.75rem;
+  }
+
+  .explore .place__text {
+    font-size: var(--type-body);
+    line-height: 1.55;
+  }
+}
+
+/* a phone, or a short wide screen: a compact HUD — who and the clock; HP and the resource side by side; small chips */
+@media (max-width: 759.98px), (max-height: 559.98px) {
+  .explore > .hud {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .explore > .hud .hud__who {
+    display: flex;
+    flex: 1 1 12rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--space-2);
+    min-width: 0;
+  }
+
+  /* experience as a short bar beside the name (screen readers still hear its numbers: the meter's value text) */
+  .explore > .hud .hud__who .meter--xp {
+    grid-template-columns: 2.5rem;
+  }
+
+  .explore > .hud .hud__who .meter--xp .meter__label,
+  .explore > .hud .hud__who .meter--xp .meter__value {
+    display: none;
+  }
+
+  .explore > .hud .hud__chips {
+    display: contents;
+  }
+
+  .explore > .hud .clock-chip,
+  .explore > .hud .hud-chip {
+    order: 1;
+    min-height: 1.5rem;
+    padding: 0 var(--space-2);
+    font-size: 0.8125rem;
+  }
+
+  .explore > .hud .hud-chip {
+    order: 3;
+  }
+
+  .explore > .hud .hud__vitals {
+    order: 2;
+    flex: 1 1 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    min-width: 0;
+    font-size: var(--type-small);
+  }
+
+  .explore > .hud .hud__vitals .meter {
+    grid-template-columns: minmax(0, auto) minmax(2rem, 1fr) auto;
+    gap: var(--space-1);
+  }
+
+  .explore > .hud .hud__companion {
+    order: 4;
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    font-size: 0.8125rem;
+  }
+
+  .explore > .hud .hud__companion .portrait {
+    display: none;
+  }
+
+  .explore > .hud .hud__detail {
+    order: 5;
+  }
+}
+
+.explore__side > .explore__map {
+  grid-row: 1;
+}
+
+.explore__side > .event-log {
+  grid-row: 3;
+}
+
+.explore__side > .explore__pad {
+  grid-row: 4;
+}
+
+.section-heading {
+  margin-bottom: var(--space-2);
+  font-size: var(--type-lead);
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* ---- HUD (DESIGN §16.2) ---- */
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-top: 2px solid var(--region-accent, var(--line-strong));
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+}
+
+.hud__who {
+  display: grid;
+  gap: var(--space-1);
+  min-width: min(12rem, 100%);
+}
+
+.hud__name {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.hud__player {
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+  color: var(--text-primary);
+}
+
+.hud__vitals {
+  display: grid;
+  gap: var(--space-1);
+  min-width: min(13rem, 100%);
+  flex: 1 1 min(13rem, 100%);
+}
+
+.hud__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hud__companion {
+  min-width: min(12rem, 100%);
+}
+
+.hud__detail {
+  display: flex;
+  gap: var(--space-4);
+  flex-basis: 100%;
+  font-size: var(--type-small);
+}
+
+.hud__detail > div {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.hud__detail dt {
+  color: var(--text-muted);
+}
+
+.hud__detail dd {
+  font-variant-numeric: tabular-nums;
+}
+
+.meter {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, auto) minmax(4rem, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-small);
+}
+
+.meter__label {
+  color: var(--text-muted);
+}
+
+.meter__track {
+  position: relative;
+  height: 0.6rem;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: var(--surface-base);
+}
+
+.meter__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--text-accent);
+  transition: width var(--dur-panel) var(--ease);
+}
+
+.meter--hp .meter__fill {
+  background: var(--glyph-hp);
+}
+
+.meter--mp .meter__fill {
+  background: var(--glyph-mp);
+}
+
+.meter--xp .meter__fill {
+  background: var(--glyph-gold);
+}
+
+.meter--xp .meter__track {
+  height: 0.35rem;
+}
+
+.meter__value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hud-chip,
+.clock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hud-chip--gold .icon {
+  color: var(--glyph-gold);
+}
+
+.hud-chip--corruption .icon {
+  color: var(--glyph-corruption);
+}
+
+.hud-chip--status .icon {
+  color: var(--glyph-hp);
+}
+
+.hud-chip--points {
+  border-color: var(--glyph-gold);
+}
+
+.pips {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.pip {
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 1.5px solid var(--glyph-corruption);
+  border-radius: 50%;
+}
+
+.pip--on {
+  background: var(--glyph-corruption);
+}
+
+/* the clock chip (DESIGN §10.1: amber from 10 dawns, pulsing from 5, red from 2, bold on the last) */
+.clock-chip {
+  flex-wrap: wrap;
+  white-space: normal;
+}
+
+.clock-chip--breach {
+  border-color: var(--line-strong);
+}
+
+.clock-chip[data-level="amber"],
+.clock-chip[data-level="amber-pulse"] {
+  border-color: var(--text-warn);
+  color: var(--text-warn);
+}
+
+.clock-chip[data-level="amber-pulse"] {
+  animation: clock-pulse 1.8s var(--ease) infinite alternate;
+}
+
+.clock-chip[data-level="red"],
+.clock-chip[data-level="red-bold"],
+.clock-chip[data-level="expired"] {
+  border-color: var(--text-danger);
+  color: var(--text-danger);
+}
+
+.clock-chip[data-level="red-bold"],
+.clock-chip[data-level="expired"] {
+  font-weight: 700;
+  border-width: 2px;
+}
+
+@keyframes clock-pulse {
+  to {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--text-warn) 25%, transparent);
+  }
+}
+
+.clock-chip__modifiers {
+  flex-basis: 100%;
+  padding: var(--space-1) 0;
+  list-style: none;
+  color: var(--text-muted);
+}
+
+/* ---- the place ---- */
+.place {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.place__region {
+  font-size: var(--type-small);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.place__name {
+  font-size: clamp(1.75rem, 1.2rem + 2vw, var(--type-h1));
+}
+
+.place__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.place__facts > li {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-s);
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.place__scene {
+  overflow: hidden;
+  aspect-ratio: 12 / 5;
+  max-height: 44vh;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--region-bg, var(--surface-panel));
+}
+
+.scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* U71: a painted backdrop under the code layers (SceneBackdrop.tsx). The frame's region sky shows while the painting loads,
+   so it is never empty. Smooth scaling (no `image-rendering: pixelated`): the frame shows the pixel art at fractional scales. */
+.scene--painted {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(var(--region-sky-top, var(--ruins-sky-top)), var(--region-sky-bottom, var(--ruins-sky-bottom)));
+}
+
+.scene__backdrop,
+.scene__painting,
+.scene__overlay {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scene__painting {
+  object-fit: cover;
+  object-position: center;
+}
+
+/* High contrast: a framed painting has no text over it, so it stays, dimmed, as a quiet picture of the place (the
+   frame's white border carries the shape); paintings behind text — the Title, the Ending — are hidden instead. */
+:root[data-theme="high-contrast"] .scene__painting {
+  filter: brightness(0.45) saturate(0.6);
+}
+
+.place__text {
+  display: grid;
+  gap: var(--space-3);
+  font-size: var(--type-lead);
+  line-height: 1.6;
+}
+
+.place__notes {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  max-width: var(--measure);
+}
+
+.place__notes > li {
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--region-accent, var(--text-accent));
+  font-size: var(--type-body);
+  font-style: italic;
+  color: var(--text-accent);
+}
+
+.explore[data-infected="true"] .place__scene {
+  border-color: var(--glyph-corruption);
+}
+
+/* scene motion (DESIGN §17.7: one ambient motion per scene; reduced motion stills it) */
+.scene__particle {
+  transform-box: fill-box;
+  animation-name: mote-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.scene__particles--rise .scene__particle {
+  animation-name: mote-rise;
+  animation-timing-function: linear;
+}
+
+.scene__particles--fall .scene__particle {
+  animation-name: mote-fall;
+  animation-timing-function: linear;
+}
+
+@keyframes mote-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.25;
+  }
+
+  50% {
+    transform: translate(18px, -14px);
+    opacity: 0.85;
+  }
+}
+
+@keyframes mote-rise {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+
+  30% {
+    opacity: 0.9;
+  }
+
+  to {
+    transform: translateY(-90px);
+    opacity: 0;
+  }
+}
+
+@keyframes mote-fall {
+  from {
+    transform: translateY(-60px);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.8;
+  }
+
+  to {
+    transform: translateY(90px);
+    opacity: 0;
+  }
+}
+
+.scene__glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: crystal-breath 9s var(--ease) infinite alternate;
+}
+
+/* ---- people and things here ---- */
+.here__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  list-style: none;
+}
+
+.here-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+}
+
+.here-chip--npc .icon {
+  color: var(--text-gold);
+}
+
+.here-chip--item .icon {
+  color: var(--text-accent);
+}
+
+.here-chip__role,
+.here-chip__note {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+/* ---- the movement pad (U84a, D-147; MovePad.tsx): a 3 × 3 compass, every slot always there, every button one size ---- */
+.pad {
+  --pad-row: 3.25rem;
+  min-width: 0;
+}
+
+.pad__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, var(--pad-row));
+  gap: var(--space-1);
+}
+
+.pad__cell {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pad__cell--pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.pad__slot {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pad__btn {
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: var(--target-min);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-bottom: 3px solid var(--region-accent, var(--text-accent));
+  border-radius: var(--radius-s);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease), border-color var(--dur-micro) var(--ease);
+}
+
+.pad__btn:hover:not([aria-disabled="true"]) {
+  background: var(--hover-wash);
+}
+
+.pad__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.pad__head .icon {
+  flex: none;
+  color: var(--text-accent);
+}
+
+.pad__cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pad__name {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* the two-in-a-corner slots (Up/Down, In/Out): the direction alone, the place in the name and on hover */
+.pad__btn--half {
+  justify-items: center;
+  padding: 2px;
+  text-align: center;
+}
+
+.pad__btn--half .pad__head {
+  flex-direction: column;
+  gap: 0;
+}
+
+.pad__btn--half .pad__name {
+  display: none;
+}
+
+/* U84 (D-149 #1): the danger cue in words takes the name's line, on the half slots too (truncated, never reflowing) */
+.pad__threat {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+  color: var(--text-danger);
+}
+
+.pad__btn--half.pad__btn--threat .pad__name {
+  display: block;
+  font-size: 0.6875rem;
+}
+
+.pad__btn--half.pad__btn--threat .pad__threat {
+  font-size: inherit;
+}
+
+.pad__btn--locked {
+  border-style: dashed;
+  border-bottom-color: var(--line-strong);
+  cursor: help;
+}
+
+.pad__btn--locked .pad__name {
+  color: var(--text-muted);
+}
+
+.pad__btn--locked .pad__head .icon {
+  color: var(--text-muted);
+}
+
+.pad__btn--danger {
+  border-bottom-color: var(--glyph-corruption);
+  background:
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--glyph-corruption) 14%, transparent) 0 6px, transparent 6px 14px),
+    var(--surface-panel);
+}
+
+.pad__danger {
+  color: var(--text-danger);
+}
+
+.pad__btn[aria-disabled="true"]:not(.pad__btn--locked) {
+  border-style: dashed;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* no way this way: a faint, empty slot that keeps its place */
+.pad__empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border: 1px dashed var(--line-soft);
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  opacity: 0.45;
+}
+
+.pad__here {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1px;
+  color: var(--text-accent);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* on a phone it rides in the dock, above the tab bar */
+.explore-dock {
+  padding: var(--space-2) max(var(--gutter), env(safe-area-inset-right)) var(--space-2) max(var(--gutter), env(safe-area-inset-left));
+  border-top: 1px solid var(--line-strong);
+  background: var(--surface-panel);
+}
+
+.explore-dock .pad {
+  --pad-row: 2.875rem;
+  max-width: 30rem;
+  margin: 0 auto;
+}
+
+.explore-dock .pad__btn {
+  background: var(--surface-base);
+}
+
+.explore-dock .pad__name {
+  font-size: 0.875rem;
+}
+
+:root[data-theme="high-contrast"] .pad__btn {
+  border-color: var(--line-strong);
+}
+
+/* ---- actions (ActionBar) ---- */
+.action-bar__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.action {
+  display: grid;
+  width: 100%;
+  min-height: var(--target-min);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease), border-color var(--dur-micro) var(--ease);
+}
+
+.action:hover {
+  background: var(--hover-wash);
+}
+
+@media (max-width: 759.98px) {
+  .action-bar__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .action {
+    padding: var(--space-1) var(--space-2);
+  }
+}
+/* ---- actions (ActionBar) ---- */
+.action {
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.action .icon {
+  color: var(--text-accent);
+}
+
+.action__key {
+  min-width: 1.5em;
+}
+
+.action__text {
+  display: grid;
+}
+
+.action__detail {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.action--danger {
+  border-color: var(--text-danger);
+}
+
+.action--danger .icon {
+  color: var(--text-danger);
+}
+
+/* ---- the event log ---- */
+.event-log__list {
+  display: grid;
+  gap: var(--space-2);
+  max-height: 22rem;
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+  list-style: none;
+  font-size: var(--type-small);
+  scroll-behavior: smooth;
+}
+
+.event-log__line--event {
+  color: var(--text-accent);
+}
+
+.event-log__line--system {
+  color: var(--text-muted);
+}
+
+.event-log__line--dialogue {
+  color: var(--text-gold);
+}
+
+.event-log__line--combat {
+  color: var(--text-danger);
+}
+
+/* ---- the map (DESIGN §16.6) ---- */
+.modal.panel--map {
+  width: min(76rem, 100%);
+  max-height: min(94dvh, 60rem);
+}
+
+.map {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.map__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.map__hint {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.map__viewport {
+  position: relative;
+  display: grid;
+  overflow: auto;
+  max-height: min(56dvh, 40rem);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--line-soft) 80%, transparent) 1px, transparent 1.5px) 0 0 / 30px 22px,
+    var(--surface-base);
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+.map--docked .map__viewport {
+  max-height: 22rem;
+}
+
+.map__canvas {
+  position: relative;
+  /* centred while smaller than the viewport; scrolls from its start edge once larger */
+  margin: auto;
+}
+
+.map__edges {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.map-edge {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.map-edge--ghost {
+  stroke-dasharray: 1 7;
+  opacity: 0.8;
+}
+
+.map-edge--remembered {
+  stroke: var(--line-soft);
+}
+
+.map-edge--locked {
+  stroke-dasharray: 9 7;
+  stroke: var(--text-muted);
+}
+
+.map-edge--road {
+  stroke-dasharray: 12 6;
+}
+
+.map-edge--portal {
+  stroke-dasharray: 2 6;
+  stroke: var(--text-accent);
+}
+
+.map-edge--infected {
+  stroke: var(--glyph-corruption);
+  stroke-width: 5;
+  stroke-dasharray: 4 4;
+}
+
+.map-edge--forecast {
+  stroke: var(--glyph-corruption);
+  stroke-width: 3;
+  stroke-dasharray: 2 7;
+}
+
+.map-edge--route {
+  stroke: var(--text-accent);
+  stroke-width: 5;
+  stroke-dasharray: none;
+  opacity: 1;
+}
+
+.map__region {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.map__lock {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  pointer-events: none;
+}
+
+.map__nodes {
+  list-style: none;
+}
+
+.map__node-slot {
+  position: absolute;
+  transform: translate(-50%, -22px);
+}
+
+.map-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 6.75rem;
+  min-height: var(--target-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.map-node__sigil {
+  display: grid;
+  place-items: center;
+  width: var(--target-min);
+  height: var(--target-min);
+  border: 3px solid var(--node-tint, var(--line-strong));
+  border-radius: 50%;
+  background: var(--surface-panel);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: transform var(--dur-micro) var(--ease);
+}
+
+.map-node:hover .map-node__sigil {
+  transform: scale(1.06);
+}
+
+.map-node__name {
+  max-width: 6.75rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: 0 0 3px var(--surface-base), 0 0 6px var(--surface-base);
+}
+
+.map-node__threat {
+  max-width: 6.75rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-danger);
+  white-space: nowrap;
+  text-shadow: 0 0 3px var(--surface-base), 0 0 6px var(--surface-base);
+}
+
+.map-node__marks {
+  position: absolute;
+  top: -6px;
+  right: calc(50% - 30px);
+  display: flex;
+  gap: 1px;
+  color: var(--text-primary);
+}
+
+.map-node__marks .icon {
+  padding: 1px;
+  border-radius: 50%;
+  background: var(--surface-base);
+}
+
+.map-node--visited .map-node__sigil {
+  background: color-mix(in srgb, var(--node-tint, #9fd8ff) 22%, var(--surface-panel));
+}
+
+.map-node--current .map-node__sigil {
+  background: color-mix(in srgb, var(--node-tint, #9fd8ff) 30%, var(--surface-panel));
+  box-shadow: 0 0 0 3px var(--surface-base), 0 0 0 6px var(--text-accent);
+  animation: node-pulse 2.4s var(--ease) infinite;
+}
+
+.map-node--current .map-node__name {
+  font-weight: 700;
+  color: var(--text-accent);
+}
+
+@keyframes node-pulse {
+  50% {
+    box-shadow: 0 0 0 3px var(--surface-base), 0 0 0 10px color-mix(in srgb, var(--text-accent) 30%, transparent);
+  }
+}
+
+.map-node--remembered .map-node__sigil {
+  border-color: var(--line-strong);
+  color: var(--text-muted);
+  filter: grayscale(1);
+}
+
+.map-node--remembered .map-node__name {
+  color: var(--text-muted);
+}
+
+.map-node--adjacent .map-node__sigil {
+  border-style: dashed;
+  border-color: var(--line-strong);
+  background: var(--surface-base);
+  color: var(--text-muted);
+}
+
+.map-node--selected .map-node__sigil {
+  box-shadow: 0 0 0 3px var(--surface-base), 0 0 0 6px var(--text-gold);
+}
+
+.map-node--infected .map-node__sigil {
+  border-color: var(--glyph-corruption);
+  background: repeating-linear-gradient(45deg, #7b3fe4 0 4px, #10061c 4px 9px);
+  color: #ffffff;
+}
+
+.map-node--forecast .map-node__sigil {
+  border-color: var(--glyph-corruption);
+  border-style: dashed;
+  background: repeating-linear-gradient(45deg, rgb(123 63 228 / 0.45) 0 3px, transparent 3px 9px), var(--surface-panel);
+}
+
+.map-node--forecast .map-node__name {
+  color: var(--text-warn);
+}
+
+.map-node__forecast {
+  color: var(--glyph-corruption);
+  opacity: 0.8;
+}
+
+.map__forecast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--glyph-corruption);
+  border-radius: var(--radius-s);
+  color: var(--text-warn);
+  font-size: var(--type-small);
+}
+
+.map-node--infected .map-node__name {
+  color: var(--text-danger);
+}
+
+.map-node--escape .map-node__sigil {
+  border-color: #7cd992;
+  color: #7cd992;
+}
+
+.map__preview {
+  min-height: 2.75rem;
+}
+
+.map-preview {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--text-gold);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+}
+
+.map-preview__name {
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+}
+
+.map-preview__facts {
+  display: grid;
+  gap: var(--space-1);
+  list-style: none;
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.map-preview__facts > li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.map-preview__danger {
+  color: var(--text-danger);
+}
+
+.map-preview__go {
+  justify-self: start;
+}
+
+.map__preview-empty {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.map__legend-list {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) 0;
+  list-style: none;
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.map__legend-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+}
+
+.legend-swatch--current {
+  border-color: var(--text-accent);
+  background: color-mix(in srgb, var(--text-accent) 30%, transparent);
+}
+
+.legend-swatch--visited {
+  border-color: var(--text-accent);
+}
+
+.legend-swatch--adjacent {
+  border-style: dashed;
+}
+
+.legend-swatch--forecast {
+  border-color: var(--glyph-corruption);
+  border-style: dashed;
+  background: repeating-linear-gradient(45deg, rgb(123 63 228 / 0.55) 0 2px, transparent 2px 5px);
+}
+
+/* ---- high contrast: solid fills, no region tints, no translucency ---- */
+:root[data-theme="high-contrast"] .screen--explore {
+  background: var(--surface-base);
+}
+
+:root[data-theme="high-contrast"] .map-node__sigil {
+  border-color: var(--line-strong);
+  background: var(--surface-base);
+}
+
+:root[data-theme="high-contrast"] .map-node--current .map-node__sigil {
+  border-width: 4px;
+  box-shadow: none;
+}
+
+:root[data-theme="high-contrast"] .pad__btn,
+:root[data-theme="high-contrast"] .hud {
+  border-color: var(--line-strong);
+}
+
+/* the Horde's hatch survives high contrast, in solid colours (infection is never colour alone, DESIGN §16.7) */
+:root[data-theme="high-contrast"] .map-node--infected .map-node__sigil {
+  background: repeating-linear-gradient(45deg, #c4a6ff 0 4px, #000000 4px 9px);
+  border-color: var(--glyph-corruption);
+}
+
+:root[data-theme="high-contrast"] .map-node--forecast .map-node__sigil {
+  background: repeating-linear-gradient(45deg, #c4a6ff 0 2px, #000000 2px 9px);
+  border-color: var(--glyph-corruption);
+  border-style: dashed;
+}
+
+/* U72: the painted scene's overlays (overlays.ts). One soft pulse on the focal glow, screened over the painting so it reads as
+   light; the portal marker breathes a little faster. Still under reduced motion (the global rule in themes.css kills the
+   animation; the scene's own data-motion="off" does too, for a prop-driven reducedMotion). Hidden in high contrast, where the
+   painting is dimmed and no light should sit over it. */
+.scene__focus,
+.scene__portal {
+  mix-blend-mode: screen;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: focus-pulse 9s ease-in-out infinite alternate;
+}
+
+.scene__portal {
+  animation-duration: 3.6s;
+}
+
+@keyframes focus-pulse {
+  from {
+    opacity: 0.72;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.scene[data-motion="off"] .scene__focus,
+.scene[data-motion="off"] .scene__portal {
+  animation: none;
+}
+
+/* mist: big soft puffs that wander slowly, never a hard dot */
+.scene__particles--puff .scene__particle {
+  animation-name: mist-drift;
+  animation-timing-function: linear;
+}
+
+@keyframes mist-drift {
+  0%,
+  100% {
+    transform: translate(-40px, 0);
+    opacity: 0.12;
+  }
+
+  50% {
+    transform: translate(40px, -8px);
+    opacity: 0.6;
+  }
+}
+
+:root[data-theme="high-contrast"] .scene--painted .scene__focus {
+  display: none;
+}
+/* U84a: the docked map fills its cell (the side column, or the middle of three) and scrolls inside it */
+.explore__map {
+  overflow: hidden;
+}
+
+.explore__map > .map-panel {
+  height: 100%;
+}
+
+.explore__map .map--docked {
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.explore__map .map--docked .map__viewport {
+  max-height: none;
+  min-height: 0;
+}
+
+/* who is here, in a narrow column: one row each, the name cut short before its button (the full name is the button's) */
+.explore__middle .here-chip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+}
+
+.explore__middle .here-chip__do {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explore__middle .here-chip__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * U84a: a hint's place is the log's. U84 (D-148 leftovers): it lies over the top of the log's cell instead of taking a row
+ * of its own, so the docked map (1280 × 800) never shrinks while a hint is up; the log's newest lines stay at its foot.
+ */
+.explore__side > .callout-slot {
+  grid-row: 3;
+}
+
+.explore__middle > .callout-slot {
+  grid-row: 4;
+}
+
+.explore__side > .callout-slot,
+.explore__middle > .callout-slot,
+.explore__side > .event-log,
+.explore__middle > .event-log {
+  grid-column: 1; /* both definite, so the hint overlaps the log instead of opening a column beside it */
+}
+
+.explore__side > .callout-slot,
+.explore__middle > .callout-slot {
+  z-index: 2;
+  align-self: start;
+  /* under the log's heading row */
+  margin-top: calc(var(--target-min) + var(--space-2));
+  max-height: calc(100% - var(--target-min) - var(--space-2));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 35%);
+}
+
+.explore .callout-slot .callout {
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 0;
+}
+
+.explore .callout-slot .callout__actions {
+  grid-column: 1 / -1;
+}
+
+/* the slot gives way too when room is short: it scrolls rather than push the pad or the log off the column */
+.callout-slot:empty {
+  box-shadow: none;
+}
+
+.callout-slot {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* a log squeezed to nothing by a hint is clipped, never drawn over the pad */
+.explore__side > .event-log,
+.explore__middle > .event-log {
+  overflow: hidden;
+}

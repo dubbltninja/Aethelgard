@@ -1,0 +1,407 @@
+/*
+ * The Dialogue screen and the portrait sigils (U66; DESIGN §13.2, §16.3 screen_dialogue, §16.7, §17.3, §17.7; PLAN §6.7–6.8).
+ * Text uses the contrast-checked tokens; region colours tint the frame only. Every answer is a full-width button of at
+ * least 44 px; a closed answer keeps a dashed border, a lock glyph and its reason in words (never only a dimmer colour).
+ * Nothing here moves: the one transition is the hover wash, which the reduced-motion rules cut.
+ */
+
+.screen--dialogue {
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse 90% 45% at 50% 0%, color-mix(in srgb, var(--region-sky-bottom, #4a3f6b) 24%, transparent), transparent 70%),
+    var(--surface-base);
+}
+
+.dialogue {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: var(--space-4) var(--gutter) var(--space-6);
+}
+
+.dialogue__head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.dialogue__where {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.dialogue__title {
+  font-size: var(--type-h2);
+}
+
+.dialogue__listener {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.dialogue__stage {
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (min-width: 760px) {
+  .dialogue__stage {
+    grid-template-columns: 11rem minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+/* ---- the speaker ---- */
+.dialogue__portrait {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+@media (min-width: 760px) {
+  .dialogue__portrait {
+    flex-direction: column;
+    align-items: flex-start;
+    position: sticky;
+    top: var(--space-4);
+  }
+}
+
+.dialogue__portrait .npc-sigil,
+.dialogue__portrait .creature-sigil {
+  flex: none;
+  max-width: 6rem;
+  height: auto;
+}
+
+@media (max-width: 759.98px) {
+  .dialogue__portrait .npc-sigil,
+  .dialogue__portrait .creature-sigil {
+    width: 4.5rem;
+  }
+}
+
+.dialogue__caption {
+  display: grid;
+  gap: 2px;
+}
+
+.dialogue__name {
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+}
+
+.dialogue__role,
+.dialogue__faction {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.narrator-mark {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 50%;
+  color: var(--text-muted);
+}
+
+/* ---- the line ---- */
+.dialogue__body {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.dialogue__line {
+  --mood: var(--line-strong);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line-soft);
+  border-left: 4px solid var(--mood);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+}
+
+.dialogue__line[data-mood="warm"] { --mood: var(--text-gold); }
+.dialogue__line[data-mood="grim"] { --mood: var(--glyph-corruption); }
+.dialogue__line[data-mood="urgent"] { --mood: var(--glyph-hp); }
+.dialogue__line[data-mood="afraid"] { --mood: var(--glyph-void); }
+.dialogue__line[data-mood="wry"] { --mood: var(--glyph-buff); }
+.dialogue__line[data-mood="cold"] { --mood: var(--glyph-chrono); }
+
+.dialogue__speaker {
+  font-family: var(--font-display);
+  color: var(--text-accent);
+}
+
+.dialogue__text {
+  max-width: var(--measure);
+  font-size: var(--type-lead);
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.dialogue__line[data-speaker-kind="narrator"] .dialogue__text {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.dialogue__line[data-speaker-kind="player"] .dialogue__speaker {
+  color: var(--text-gold);
+}
+
+.dialogue__line[data-speaker-kind="companion"] .dialogue__speaker {
+  color: var(--glyph-buff);
+}
+
+.dialogue__line[data-speaker-kind="creature"] .dialogue__speaker {
+  color: var(--text-danger);
+}
+
+/* ---- answers ---- */
+.choice-list {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.choice-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--target-min);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease);
+}
+
+.choice-btn:hover {
+  background: color-mix(in srgb, var(--text-accent) 9%, var(--surface-panel));
+}
+
+.choice-btn__key {
+  flex: none;
+  margin-top: 1px;
+}
+
+.choice-btn__key--none {
+  width: 1.6em;
+}
+
+.choice-btn__body {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.choice-btn__text {
+  line-height: 1.4;
+}
+
+.choice-btn__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+
+.choice-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--tag, var(--line-strong));
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.choice-tag .icon {
+  color: var(--tag, currentColor);
+}
+
+.choice-tag--echo,
+.choice-tag--known { --tag: var(--glyph-echo); }
+.choice-tag--class { --tag: var(--glyph-gold); }
+.choice-tag--faction { --tag: var(--glyph-ley); }
+.choice-tag--companion { --tag: var(--glyph-buff); }
+
+.choice-btn--closed {
+  border-style: dashed;
+  border-color: var(--line-strong);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.choice-btn--closed:hover {
+  background: transparent;
+}
+
+.choice-btn__reason {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--type-small);
+  font-style: italic;
+}
+
+.dialogue__continue {
+  display: flex;
+}
+
+.dialogue__go {
+  min-width: min(100%, 14rem);
+  justify-content: space-between;
+}
+
+.dialogue__go kbd {
+  border-color: currentColor;
+  color: inherit;
+}
+
+/* ---- the back-log ---- */
+.dialogue__backlog {
+  border-top: 1px solid var(--line-soft);
+  padding-top: var(--space-2);
+}
+
+.backlog {
+  display: grid;
+  gap: var(--space-3);
+  max-height: 16rem;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  overflow: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+
+.backlog__line {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--type-small);
+}
+
+.backlog__text {
+  color: var(--text-primary);
+  white-space: pre-line;
+}
+
+.backlog__chose {
+  color: var(--text-gold);
+}
+
+.backlog__who {
+  font-family: var(--font-display);
+  color: var(--text-muted);
+}
+
+.dialogue--lost {
+  place-content: center;
+  justify-items: start;
+}
+
+/* ---- portrait sigils (DESIGN §17.3): a frame, a warm glow, a bust ---- */
+.npc-sigil {
+  --npc-edge: var(--text-accent);
+  --npc-body: color-mix(in srgb, var(--region-fg, #5b5380) 45%, var(--surface-base));
+  --npc-skin: color-mix(in srgb, var(--text-gold) 38%, var(--surface-base));
+  --npc-line: var(--text-primary);
+  --npc-warm: var(--text-gold);
+  flex: none;
+  overflow: visible;
+}
+
+.npc-sigil[data-accent="remnants"] { --npc-edge: #9fd8ff; }
+.npc-sigil[data-accent="weavers"] { --npc-edge: #c86bff; }
+.npc-sigil[data-accent="ironclad"] { --npc-edge: #d98b3a; }
+.npc-sigil[data-accent="neutral"] { --npc-edge: #c3c8d4; }
+
+.npc-sigil__frame {
+  fill: var(--surface-panel);
+  stroke: var(--npc-edge);
+  stroke-width: 3;
+}
+
+.npc-sigil__warmth {
+  fill: var(--npc-warm);
+  opacity: 0.2;
+}
+
+.npc-sigil__body {
+  fill: var(--npc-body);
+  stroke: var(--npc-line);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.npc-sigil__head {
+  fill: var(--npc-skin);
+  stroke: var(--npc-line);
+  stroke-width: 1.6;
+}
+
+.npc-sigil__gear {
+  fill: var(--npc-body);
+  stroke: var(--npc-edge);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.npc-sigil__mark {
+  fill: none;
+  stroke: var(--npc-edge);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+:root[data-theme="high-contrast"] .npc-sigil {
+  --npc-edge: #ffffff;
+  --npc-body: #000000;
+  --npc-skin: #000000;
+  --npc-line: #ffffff;
+}
+
+:root[data-theme="high-contrast"] .npc-sigil__warmth {
+  display: none;
+}
+
+/* U62a: a line whose words are in a text chunk still on its way (src/ui/text/TextLoading.tsx; also the codex and the
+   ending slides). Quiet: a dim ellipsis that breathes, still under reduced motion. */
+.text-loading {
+  color: var(--text-muted);
+  min-height: 1.55em;
+}
+
+.text-loading__dots {
+  display: inline-block;
+  animation: text-loading-breathe 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes text-loading-breathe {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-loading__dots { animation: none; }
+}

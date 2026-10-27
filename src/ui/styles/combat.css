@@ -1,0 +1,1624 @@
+/*
+ * The Combat screen (U65; DESIGN §16.5, §17.3, §17.5, §17.7; PLAN §6.7–6.8): enemy cards across the top (horizontally
+ * scrollable on phones), the player panel, the ability bar grouped by branch, the companion card and the communion bar
+ * in the main column, the log in a side column from 760 px (collapsed to its last line below that). Text uses the
+ * contrast-checked tokens; damage types and status kinds colour glyphs and borders only, beside their names (D-035).
+ * Every control is at least 44 × 44 px. Motion: the sigil's one detail, the hit flash and the 600 ms damage number,
+ * all stopped by reduced motion (themes.css) — the floating number is not even drawn then (EnemyCard).
+ */
+
+.combat-root {
+  min-height: 100%;
+}
+
+.screen--combat {
+  height: 100%;
+  background:
+    radial-gradient(ellipse 90% 45% at 50% 0%, color-mix(in srgb, var(--region-sky-bottom, #4a3f6b) 26%, transparent), transparent 70%),
+    var(--surface-base);
+}
+
+/*
+ * U84a (D-147, REPORT U79 #2): the fight is one screen. Wide: the heading; then the stage, the cards (scrolling inside if a
+ * fight has many) beside the companion and the log; then the turn's controls as the screen's last row, a fixed region nothing
+ * above can push. Phones: the heading, then everything scrolls inside the screen, and the controls ride in the pinned dock.
+ */
+.combat {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+  max-width: 120rem;
+  margin: 0 auto;
+  padding: var(--space-3) var(--gutter);
+}
+
+.combat__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(16rem, 26vw, 30rem);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3) var(--space-4);
+  min-height: 0;
+  min-width: 0;
+}
+
+/* wide: the stage across the top; the cards (left) and the companion, the log and the menu (right) under it */
+.combat__body > .combat__stagewrap {
+  grid-column: 1 / -1;
+}
+
+.combat__body > .combat__main,
+.combat__body > .combat__side {
+  grid-row: 2;
+}
+
+.combat__main,
+.combat__side {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* (max-content rows: a height-bound grid must not squeeze a card or the stage to make room) */
+.combat__main {
+  grid-auto-rows: max-content;
+}
+
+.combat__side {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
+/* the hint's reserved place (U84a): first in the column, so the log gives way to it and nothing else moves (U84: on a short
+   screen the hint is one line, onboarding.css, so the log keeps its room) */
+.combat__side > .callout-slot {
+  grid-row: 1;
+}
+
+.callout-slot .callout {
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 0;
+}
+
+.callout-slot .callout__actions {
+  grid-column: 1 / -1;
+}
+
+.combat__side > .companion-card {
+  grid-row: 2;
+}
+
+.combat__side > .combat-log {
+  grid-row: 3;
+}
+
+.combat__side > .combat-menu {
+  grid-row: 4;
+}
+
+/* wide: the sprite on the stage is the figure, so the cards keep to their numbers */
+.combat--staged[data-layout="wide"] .enemy-card .creature-sigil {
+  display: none;
+}
+
+.combat[data-layout="wide"] .combat-stage {
+  height: clamp(170px, 28vh, 380px);
+}
+
+/* the log fills the side column and scrolls inside it */
+.combat__side > .combat-log {
+  min-height: 0;
+}
+
+/* a banner floats over the stage's top edge (it never pushes the cards or the controls) */
+.combat__stagewrap {
+  position: relative;
+  min-width: 0;
+}
+
+.combat__stagewrap > .combat-banner {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 3;
+  max-width: min(36rem, calc(100% - 2 * var(--space-2)));
+  padding: var(--space-2) var(--space-3);
+  background: color-mix(in srgb, var(--surface-panel) 94%, transparent);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.4);
+}
+
+/* with no stage (a test without one) the banner stays in the flow */
+.combat__stagewrap > .combat-banner:only-child {
+  position: static;
+  max-width: none;
+}
+
+/* the controls: the player's panel (bars, statuses, Guard · Item · Flee) beside the ability grid */
+.combat__controls {
+  display: grid;
+  grid-template-columns: clamp(17rem, 18vw, 22rem) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line-soft);
+}
+
+.combat__controls > .communion,
+.combat__controls > .ability-bar {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+/* the communion's own "Show abilities" view: the bar below it in the same column */
+.combat__controls > .communion + .ability-bar {
+  grid-row: 2;
+}
+
+.combat[data-layout="phone"] {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  padding-bottom: 0;
+}
+
+.combat[data-layout="phone"] .combat__body {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.combat[data-layout="phone"] .combat__body > .combat__main {
+  grid-row: 1;
+}
+
+.combat[data-layout="phone"] .combat__main {
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.combat[data-layout="phone"] .combat__side {
+  overflow: visible;
+}
+
+/* a phone's banner is short over the short stage: the title and two lines (the whole of it is in the log) */
+.combat[data-layout="phone"] .combat__stagewrap > .combat-banner {
+  gap: 0;
+  padding: var(--space-1) var(--space-2);
+}
+
+.combat[data-layout="phone"] .combat-banner__title {
+  font-size: var(--type-body);
+  line-height: 1.25;
+}
+
+.combat[data-layout="phone"] .combat-banner__line {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.8125rem;
+}
+
+.combat[data-layout="phone"] .combat-banner__line + .combat-banner__line {
+  display: none;
+}
+
+/* ---- heading, turn order, banner ---- */
+.combat__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+}
+
+/* wide (U84a): the game menu in the heading row, after the turn order */
+.combat__head > .combat-menu {
+  align-self: center;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+}
+
+.combat__head > .combat-menu .btn {
+  min-height: var(--target-min);
+  padding-inline: var(--space-3);
+  font-size: var(--type-small);
+}
+
+.combat__head > .turn-order {
+  align-self: center;
+}
+
+.combat__kicker {
+  font-size: var(--type-small);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-danger);
+}
+
+.combat__title {
+  font-size: var(--type-h2);
+  flex: 1 1 14rem;
+}
+
+.turn-order {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-small);
+}
+
+.turn-order__round {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.turn-order__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  list-style: none;
+}
+
+.turn {
+  padding: 0.125rem var(--space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+}
+
+.turn--player {
+  border-color: var(--text-accent);
+}
+
+.turn--done {
+  color: var(--text-muted);
+}
+
+.turn[aria-current="step"] {
+  border-width: 2px;
+  border-color: var(--focus-ring);
+  font-weight: 600;
+}
+
+.combat-banner {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-left: 4px solid var(--text-gold);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+  animation: banner-in var(--dur-panel) var(--ease);
+}
+
+.combat-banner__title {
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+  color: var(--text-gold);
+}
+
+.combat-banner__line {
+  font-style: italic;
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+}
+
+/* ---- enemy cards ---- */
+.combat__enemies {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  gap: var(--space-3);
+  list-style: none;
+}
+
+.enemy-card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-top: 3px solid var(--region-accent, var(--line-strong));
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+}
+
+.enemy-card[data-selected="true"] {
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 1px var(--text-accent);
+}
+
+.enemy-card[data-alive="false"] {
+  border-style: dashed;
+}
+
+.enemy-card__select {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--target-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.enemy-card__select[aria-disabled="true"] {
+  cursor: default;
+}
+
+.enemy-card__who {
+  display: grid;
+  min-width: 0;
+}
+
+.enemy-card__name {
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+  overflow-wrap: anywhere;
+}
+
+.enemy-card__meta {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.enemy-card__rank--boss,
+.enemy-card__rank--elite {
+  color: var(--text-gold);
+  font-weight: 600;
+}
+
+.enemy-card__target {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--type-small);
+  color: var(--text-accent);
+}
+
+.enemy-card__phase {
+  font-size: var(--type-small);
+  color: var(--text-gold);
+}
+
+.enemy-card__down {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.enemy-card__resists {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  list-style: none;
+  font-size: var(--type-small);
+}
+
+.resist {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.resist--weak {
+  color: var(--text-warn);
+}
+
+.resist--resist,
+.resist--immune {
+  color: var(--text-muted);
+}
+
+/* HP bars (segmented at a boss's phase thresholds, DESIGN §4.10) */
+.hp-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-small);
+}
+
+.hp-bar__track {
+  position: relative;
+  height: 0.7rem;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: var(--surface-base);
+}
+
+.hp-bar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--glyph-hp);
+  transition: width var(--dur-panel) var(--ease);
+}
+
+.hp-bar--companion .hp-bar__fill {
+  background: var(--glyph-buff);
+}
+
+.hp-bar__tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text-primary);
+}
+
+.hp-bar__value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* the damage number (DESIGN §17.7: floats 600 ms; a crit scales 1.2× once) */
+.float-number {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-3);
+  font-size: var(--type-h3);
+  font-weight: 700;
+  color: var(--text-danger);
+  pointer-events: none;
+  animation: float-up 600ms var(--ease) forwards;
+}
+
+.float-number--crit {
+  animation: float-crit 600ms var(--ease) forwards;
+}
+
+@keyframes float-up {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-1.5rem);
+  }
+}
+
+@keyframes float-crit {
+  0% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  30% {
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-1.5rem) scale(1);
+  }
+}
+
+/* ---- status chips ---- */
+.status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  list-style: none;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 1.75rem;
+  padding: 0 var(--space-2);
+  border: 1px dashed var(--glyph-hp);
+  border-radius: 999px;
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.status-chip .icon {
+  color: var(--glyph-hp);
+}
+
+.status-chip--buff {
+  border-style: solid;
+  border-color: var(--glyph-buff);
+}
+
+.status-chip--buff .icon {
+  color: var(--glyph-buff);
+}
+
+/* ---- intent chips (DESIGN §4.2) ---- */
+.intent {
+  display: grid;
+  gap: 0.125rem;
+}
+
+.intent__chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  justify-self: start;
+  min-height: 2rem;
+  padding: 0.125rem var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-base);
+  font-weight: 600;
+}
+
+.intent__glyph {
+  color: var(--text-primary);
+}
+
+.intent__range {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-danger);
+}
+
+.intent__target {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.intent__tags {
+  font-size: var(--type-small);
+  color: var(--text-warn);
+}
+
+.intent__line {
+  font-size: var(--type-small);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.intent--hidden .intent__chip,
+.intent--next .intent__chip {
+  border-style: dashed;
+}
+
+.intent--next .intent__chip {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.intent__then {
+  font-size: var(--type-small);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.intent--question .intent__chip {
+  border-color: var(--glyph-chrono);
+}
+
+[data-damage-type="physical"] .intent__glyph { color: var(--glyph-physical); }
+[data-damage-type="fire"] .intent__glyph { color: var(--glyph-fire); }
+[data-damage-type="storm"] .intent__glyph { color: var(--glyph-storm); }
+[data-damage-type="ley"] .intent__glyph { color: var(--glyph-ley); }
+[data-damage-type="void"] .intent__glyph { color: var(--glyph-void); }
+[data-damage-type="chrono"] .intent__glyph { color: var(--glyph-chrono); }
+
+/* ---- creature sigils (DESIGN §17.3) ---- */
+.creature-sigil {
+  --sigil-body: color-mix(in srgb, var(--region-fg, #5b5380) 55%, var(--surface-base));
+  --sigil-edge: var(--region-accent, #9fd8ff);
+  --sigil-accent: var(--region-accent, #9fd8ff);
+  flex: none;
+  overflow: visible;
+}
+
+.creature-sigil[data-accent="remnants"] { --sigil-accent: #9fd8ff; }
+.creature-sigil[data-accent="weavers"] { --sigil-accent: #c86bff; }
+.creature-sigil[data-accent="ironclad"] { --sigil-accent: #d98b3a; }
+.creature-sigil[data-accent="chrono"] { --sigil-accent: #8fb3ff; }
+.creature-sigil[data-accent="neutral"] { --sigil-accent: #c3c8d4; }
+
+.sigil__body {
+  fill: var(--sigil-body);
+  stroke: var(--sigil-edge);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.sigil__outline {
+  fill: none;
+  stroke: var(--sigil-edge);
+  stroke-width: 1.5;
+}
+
+.sigil__ring {
+  fill: none;
+  stroke: var(--text-gold);
+  stroke-width: 3;
+}
+
+.sigil__glyph path,
+.sigil__line {
+  fill: none;
+  stroke: var(--sigil-accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sigil__line {
+  stroke-width: 2.5;
+  opacity: 0.8;
+}
+
+.sigil__glow {
+  fill: var(--sigil-accent);
+  opacity: 0.16;
+}
+
+.sigil__dot,
+.sigil__drip {
+  fill: var(--sigil-accent);
+}
+
+.sigil__embers circle {
+  fill: var(--glyph-fire);
+}
+
+.sigil__ko {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.creature-sigil--ko {
+  opacity: 0.6;
+  filter: grayscale(1);
+}
+
+.creature-sigil--telegraph .sigil__body {
+  stroke: var(--text-warn);
+}
+
+.creature-sigil--hit {
+  animation: sigil-hit 240ms var(--ease);
+}
+
+.creature-sigil--flicker .sigil__glyph {
+  animation: sigil-flicker 2.4s ease-in-out infinite;
+}
+
+.creature-sigil--rotate .sigil__glyph {
+  transform-origin: 48px 48px;
+  animation: sigil-rotate 18s linear infinite;
+}
+
+.sigil__drip {
+  animation: sigil-drip 2.2s ease-in infinite;
+}
+
+.sigil__embers circle {
+  animation: sigil-ember 3s ease-out infinite;
+}
+
+.sigil__embers circle:nth-child(2) {
+  animation-delay: 1s;
+}
+
+.sigil__embers circle:nth-child(3) {
+  animation-delay: 2s;
+}
+
+@keyframes sigil-hit {
+  50% {
+    transform: translateX(2px);
+    filter: brightness(1.6);
+  }
+}
+
+@keyframes sigil-flicker {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes sigil-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sigil-drip {
+  from {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+}
+
+@keyframes sigil-ember {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-40px);
+    opacity: 0;
+  }
+}
+
+:root[data-theme="high-contrast"] .creature-sigil {
+  --sigil-body: #000000;
+  --sigil-edge: #ffffff;
+  --sigil-accent: #ffffff;
+}
+
+/* ---- the main grid ---- */
+
+.player-panel,
+.companion-card,
+.communion,
+.fallen {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+}
+
+.player-panel__guarding {
+  color: var(--text-accent);
+}
+
+.player-panel__vitals {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.player-panel__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
+  gap: var(--space-2);
+}
+
+.combat-action {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--target-min);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease);
+}
+
+.combat-action:hover:not([aria-disabled="true"]),
+.tile:hover:not([aria-disabled="true"]) {
+  background: var(--hover-wash);
+}
+
+.combat-action .icon {
+  color: var(--text-accent);
+}
+
+.combat-action__text {
+  display: grid;
+  min-width: 0;
+}
+
+.combat-action__label {
+  font-weight: 600;
+}
+
+.combat-action__detail {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.combat-action[aria-disabled="true"],
+.tile[aria-disabled="true"] {
+  border-style: dashed;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.combat-action--danger {
+  border-color: var(--text-danger);
+}
+
+/* ---- the ability bar (DESIGN §16.5: grouped by branch colour, tier dots, cost, cooldown, number) ---- */
+.ability-bar__groups {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ability-bar__group {
+  --branch: var(--glyph-physical);
+  display: grid;
+  gap: var(--space-1);
+  padding-left: var(--space-3);
+  border-left: 4px solid var(--branch);
+}
+
+.ability-bar__group[data-branch-index="0"] { --branch: var(--glyph-echo); }
+.ability-bar__group[data-branch-index="1"] { --branch: var(--glyph-gold); }
+.ability-bar__group[data-branch-index="2"] { --branch: var(--glyph-ley); }
+.ability-bar__group[data-branch-index="3"] { --branch: var(--glyph-void); }
+
+.ability-bar__branch {
+  font-size: var(--type-small);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ability-bar__tiles,
+.communion__acts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  width: 100%;
+  min-height: var(--target-min);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease);
+}
+
+.tile__icon {
+  color: var(--branch, var(--text-accent));
+}
+
+/* Effects can be inspected by touch or keyboard without spending an action. */
+.ability-effects {
+  min-width: 0;
+  font-size: var(--type-small);
+  overflow-wrap: anywhere;
+}
+
+.ability-effects > summary {
+  min-height: var(--target-min);
+  display: list-item;
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-accent);
+  cursor: pointer;
+}
+
+.ability-effects > p {
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.tile__name {
+  flex: 1 1 auto;
+  font-weight: 600;
+}
+
+.tile[aria-disabled="true"] .tile__name {
+  font-weight: 400;
+}
+
+.tile__tier {
+  font-size: var(--type-small);
+  letter-spacing: 0.05em;
+  color: var(--text-gold);
+}
+
+.tile__cost {
+  font-size: var(--type-small);
+  color: var(--text-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.tile__cost--blood {
+  color: var(--text-danger);
+}
+
+.tile__cooldown {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--text-warn);
+  border-radius: 999px;
+  background: var(--surface-base);
+  color: var(--text-warn);
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.tile__reason {
+  flex-basis: 100%;
+  font-size: var(--type-small);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* ---- the companion card ---- */
+.companion-card__ko {
+  color: var(--text-danger);
+}
+
+.companion-card__stances {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.companion-card__stances > legend {
+  padding: 0;
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.companion-card__note {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.companion-card__orders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.btn[aria-disabled="true"] {
+  border-style: dashed;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ---- the communion bar (DESIGN §4.11) ---- */
+.communion {
+  border-top: 3px solid var(--glyph-chrono);
+}
+
+.resolve {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-small);
+}
+
+.resolve__label {
+  color: var(--text-muted);
+}
+
+.resolve__pips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.resolve__pip {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid var(--glyph-chrono);
+  border-radius: 50%;
+}
+
+.resolve__pip--on {
+  background: var(--glyph-chrono);
+}
+
+.resolve__value {
+  font-variant-numeric: tabular-nums;
+}
+
+.communion__progress,
+.communion__closed {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.communion__question {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--glyph-chrono);
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+}
+
+.tile--commune .tile__icon {
+  color: var(--glyph-chrono);
+}
+
+.communion__view {
+  justify-self: start;
+}
+
+/* ---- the log ---- */
+.combat-log__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.combat-log__list {
+  display: grid;
+  gap: var(--space-2);
+  max-height: 26rem;
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--surface-panel);
+  list-style: none;
+  font-size: var(--type-small);
+}
+
+.combat-log__line--intent { color: var(--text-warn); }
+.combat-log__line--phase { color: var(--text-gold); }
+.combat-log__line--status { color: var(--text-accent); }
+.combat-log__line--system { color: var(--text-muted); }
+
+.combat-log__explain > summary {
+  min-height: var(--target-min);
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+}
+
+.combat-log__steps {
+  margin: var(--space-1) 0 var(--space-2);
+  padding-left: var(--space-5);
+  color: var(--text-muted);
+}
+
+/* ---- FALLEN, the menu, the sheets ---- */
+.fallen {
+  justify-items: center;
+  text-align: center;
+  border-color: var(--text-danger);
+}
+
+.fallen__icon {
+  color: var(--text-danger);
+}
+
+.fallen__title {
+  font-size: var(--type-h1);
+  letter-spacing: 0.3em;
+  color: var(--text-danger);
+}
+
+.fallen .button-row {
+  justify-content: center;
+  margin-top: var(--space-2);
+}
+
+.combat-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line-soft);
+}
+
+.item-sheet,
+.combat-summary__lines {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+}
+
+.item-sheet__name {
+  font-family: var(--font-display);
+  font-size: var(--type-lead);
+}
+
+.item-sheet__desc {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.item-sheet .button-row {
+  margin-top: var(--space-2);
+}
+
+.combat-summary__lines > li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.combat-summary__lines .icon {
+  color: var(--text-gold);
+}
+
+/* ---- phones (PLAN §6.8, DESIGN §16.5 mobile) ---- */
+@media (max-width: 759.98px), (pointer: coarse) {
+  .enemy-card__select {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .enemy-card__target {
+    grid-column: 2;
+  }
+
+  .player-panel__vitals .meter {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "label value" "track track";
+  }
+
+  .player-panel__vitals .meter__label { grid-area: label; }
+  .player-panel__vitals .meter__value { grid-area: value; }
+  .player-panel__vitals .meter__track { grid-area: track; }
+
+  .combat__enemies {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: var(--space-2);
+  }
+
+  .enemy-card {
+    flex: 0 0 min(19rem, 86%);
+    scroll-snap-align: start;
+  }
+
+  .combat__enemies > .enemy-card:only-child {
+    flex-basis: 100%;
+  }
+
+  .ability-bar__tiles,
+  .communion__acts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .player-panel__actions {
+    grid-template-columns: repeat(auto-fill, minmax(min(9rem, 100%), 1fr));
+  }
+
+  .combat-log[data-expanded="false"] .combat-log__line:not(:last-child) {
+    display: none;
+  }
+}
+
+/* ---- the phone action bar (U73 part B, D-130): pinned in the Shell's dock under 760 px, above the key legend ---- */
+.dock__slot:empty {
+  display: none;
+}
+
+.phone-dock {
+  padding: var(--space-2) max(var(--gutter), env(safe-area-inset-right)) max(var(--space-2), env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+  border-top: 1px solid var(--line-strong);
+  background: var(--surface-panel);
+}
+
+.phone-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  /* sticky is the fallback when there is no dock to sit in (tests) */
+  position: sticky;
+  bottom: 0;
+}
+
+.phone-bar__btn {
+  position: relative;
+  display: flex;
+  flex: 1 1 3.25rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 3rem;
+  padding: var(--space-1) 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.phone-bar__btn .icon {
+  color: var(--text-accent);
+}
+
+.phone-bar__btn:active:not([aria-disabled="true"]) {
+  background: var(--hover-wash);
+}
+
+.phone-bar__btn[aria-disabled="true"] {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.phone-bar__btn[aria-disabled="true"] .icon {
+  color: var(--text-muted);
+}
+
+.phone-bar__btn--danger {
+  border-color: var(--text-danger);
+}
+
+.phone-bar__label {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+/* how many abilities can be used now: a number, so it is not colour alone */
+.phone-bar__badge {
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  min-width: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--glyph-gold);
+  color: var(--surface-base);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1rem;
+  text-align: center;
+}
+
+.player-panel__guard-note {
+  color: var(--text-muted);
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+}
+
+/* the communion takes the bar's place: a short panel that scrolls inside itself, the stage stays in view above it */
+.phone-dock--communion {
+  max-height: 42dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.phone-dock--communion .communion {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* the abilities sheet is the ordinary grid in a bottom sheet (modal rules in components.css) */
+.ability-sheet .ability-bar {
+  margin: 0;
+}
+
+.phone-vitals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--type-small);
+}
+
+/* two lines per bar: the label and its numbers, then the track (half the width each) */
+.phone-vitals .meter {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label value" "track track";
+  gap: 2px var(--space-2);
+}
+
+.phone-vitals .meter__label {
+  grid-area: label;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-vitals .meter__value {
+  grid-area: value;
+}
+
+.phone-vitals .meter__track {
+  grid-area: track;
+}
+
+/* ---- U84a: the wide screen's fixed control row (D-147) ----
+   Every control has one size for the whole fight: a tile's name, tier/cost and reason lines are reserved and cut with an
+   ellipsis (the full text is the tile's name and title); Guard's numbers keep two lines; the statuses keep one row. */
+.combat__side > .combat-log {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.combat__side .combat-log__list {
+  max-height: none;
+  min-height: 4rem;
+}
+
+.combat__side > .combat-menu {
+  padding-top: var(--space-2);
+}
+
+.combat__controls .player-panel {
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+}
+
+.combat__controls .player-panel .section-heading {
+  margin: 0;
+  font-size: var(--type-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combat__controls .player-panel__vitals {
+  gap: 2px;
+  font-size: var(--type-small);
+}
+
+.combat__controls .player-panel__statuses {
+  height: 1.75rem;
+  overflow: hidden;
+}
+
+.combat__controls .player-panel__statuses .status-chips {
+  flex-wrap: nowrap;
+}
+
+.combat__controls .player-panel__actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.combat__controls .combat-action {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: start;
+  align-items: center;
+  gap: 2px var(--space-1);
+  height: 4.5rem;
+  padding: var(--space-1) var(--space-2);
+  overflow: hidden;
+}
+
+.combat__controls .combat-action > .tile__key,
+.combat__controls .combat-action > .icon {
+  display: none;
+}
+
+.combat__controls .combat-action__text {
+  display: contents;
+}
+
+.combat__controls .combat-action__label {
+  grid-row: 1;
+  grid-column: 2;
+  overflow: hidden;
+  font-size: var(--type-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combat__controls .combat-action__detail {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combat__controls .combat-action__detail:nth-of-type(n + 4) {
+  display: none;
+}
+
+/* the ability grid: groups side by side, tiles one size */
+.ability-bar--compact > .section-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.ability-bar--compact {
+  position: relative;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ability-bar--compact .ability-bar__groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--space-2) var(--space-3);
+}
+
+.ability-bar--compact .ability-bar__group {
+  gap: 2px;
+  padding-left: var(--space-2);
+  border-left-width: 3px;
+}
+
+.ability-bar--compact .ability-bar__branch {
+  font-size: 0.6875rem;
+  line-height: 1.2;
+}
+
+.ability-bar--compact .ability-bar__tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.ability-bar--compact .ability-bar__tiles > li {
+  width: 9rem;
+}
+
+.ability-bar--compact .tile {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-rows: 1.25rem 1rem 1rem;
+  align-content: center;
+  align-items: center;
+  gap: 1px var(--space-1);
+  height: 4rem;
+  padding: var(--space-1) var(--space-2);
+}
+
+.ability-bar--compact .tile__key {
+  grid-area: 1 / 1;
+}
+
+.ability-bar--compact .tile__icon {
+  grid-area: 1 / 2;
+}
+
+.ability-bar--compact .tile__name {
+  grid-area: 1 / 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ability-bar--compact .tile__tier,
+.ability-bar--compact .tile__cost,
+.ability-bar--compact .tile__reason {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ability-bar--compact .tile__tier {
+  justify-self: start;
+}
+
+.ability-bar--compact .tile__cost {
+  justify-self: end;
+}
+
+.ability-bar--compact .tile__reason {
+  grid-row: 3;
+}
+
+.ability-bar--compact .tile__cooldown {
+  top: 2px;
+  right: 2px;
+}
+
+/* what the pointed-at or focused tile does, in one reserved strip under the grid */
+.ability-bar__info {
+  display: -webkit-box;
+  overflow: hidden;
+  height: 2.5em;
+  margin: 0;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--type-small);
+  line-height: 1.25;
+  color: var(--text-muted);
+}
+
+.ability-bar--compact .tile__info {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  background: var(--surface-base);
+  color: var(--text-primary);
+}
+
+.tile__info-name {
+  font-weight: 600;
+}
+
+.ability-bar--compact .ability-bar__tiles > li:hover > .tile__info,
+.ability-bar--compact .tile:focus + .tile__info {
+  display: -webkit-box;
+}
+
+.ability-bar--compact .ability-bar__tiles > li:hover > .tile__info {
+  z-index: 2;
+}
+
+/* a short wide screen (fine pointer): a smaller stage, so the cards keep their room */
+@media (max-height: 640px) {
+  .combat[data-layout="wide"] .combat-stage {
+    height: clamp(120px, 26vh, 200px);
+  }
+}
+
+/* a phone held sideways or a tablet uses the phone layout: a short stage */
+.combat[data-layout="phone"] .combat-stage {
+  height: clamp(130px, 27vh, 220px);
+}
+
+/* U84a: a lone enemy on a wide screen spreads across: its numbers on the left, what it means to do on the right, so the
+   intent is in view without scrolling the cards */
+.combat[data-layout="wide"] .combat__enemies > .enemy-card:only-child {
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 42%);
+  grid-auto-flow: row dense;
+  column-gap: var(--space-5);
+}
+
+.combat[data-layout="wide"] .combat__enemies > .enemy-card:only-child > * {
+  grid-column: 1;
+}
+
+.combat[data-layout="wide"] .combat__enemies > .enemy-card:only-child > .intent {
+  grid-column: 2;
+  align-self: start;
+}
+
+/* U84 (DESIGN §5.6): the Weaver's Blood price toggle; pressed, it reads "On · +25 %" in the blood colour (never colour alone) */
+.blood-toggle[aria-pressed='true'] {
+  border-color: var(--text-danger);
+  box-shadow: inset 0 0 0 1px var(--text-danger);
+}

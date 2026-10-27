@@ -191,7 +191,7 @@ describe('the six arc quests (STORY §11.1, §11.4; DESIGN §6.2)', () => {
   });
 
   test('DESIGN §12.5 "personal quest stage completed +5": every stage pays +5 to its companion — on exit, or on entering an outcome', () => {
-    expect(S125).toContain('| personal quest stage completed | +5 |');
+    expect(S125).toContain('| personal quest stage completed | +5; '); // U81b2: +6 for Ilyra's and Brak's arcs only
     for (const q of arcQuests) {
       const who = q.companionId as string;
       for (const st of q.stages) {
@@ -210,15 +210,17 @@ describe('the six arc quests (STORY §11.1, §11.4; DESIGN §6.2)', () => {
       ['q_lantern_in_the_reeds', 'tend'],
       ['q_what_the_light_takes', 'listen'],
       ['q_preserve_or_heal', 'choose'],
-      ['q_the_apprentices_errand', 'errand'],
       ['q_the_apprentices_errand', 'spire_yard'],
-      ['q_a_boy_from_a_doomed_city', 'asked'],
       ['q_a_boy_from_a_doomed_city', 'glimpse'],
       ['q_his_masters_sin', 'sorry'],
     ];
     for (const [questId, stageId] of waits) {
       const st = stage(questId, stageId);
       expect([questId, stageId, st.objectives.filter((o) => !o.optional).length, typeof st.next, st.advanceWhen]).toEqual([questId, stageId, 0, 'string', undefined]);
+    }
+    // the two offer stages pass through by themselves once the quest runs, so a generic Accept cannot strand them (U81b2, D-146)
+    for (const [questId, stageId] of [['q_the_apprentices_errand', 'errand'], ['q_a_boy_from_a_doomed_city', 'asked']] as const) {
+      expect(stage(questId, stageId).advanceWhen).toEqual({ quest: { id: questId, status: 'active' } });
     }
     const ends: [readonly Effect[], string, string][] = [
       [HOLD, 'q_lantern_in_the_reeds', 'tended'],

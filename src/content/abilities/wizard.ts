@@ -113,6 +113,7 @@ export const wizardAbilities = [
     description: '1.7·SP + 4 Storm to one enemy and Shock for 2 turns. Against a Soaked or Shocked target it chains to one other enemy at 50%.',
     flavor: "The sky's own argument.",
     mp: 14,
+    cooldown: 1, // U81b2: the §5.1 budget's rule; 39 % of the Wizard's damage
     target: 'enemy',
     damageType: 'storm',
     spell: true,

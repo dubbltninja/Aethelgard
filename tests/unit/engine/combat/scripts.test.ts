@@ -202,7 +202,9 @@ describe('every DESIGN §5 class ability is data or script (U26b completeness)',
     expect(fixtureClassIds).toEqual(ROWS.map((r) => r.id).sort());
     for (const r of ROWS) {
       const a = content.abilities[r.id] as Ability;
-      expect([r.id, a.branch, a.tier, a.mp, a.cooldown, a.target]).toEqual([r.id, r.branch, r.tier, r.mp, r.cd, TARGETS[r.target]]);
+      // U81b2: DESIGN gave Piercing Arrow, Lightning Bolt and Flurry a 1-turn cooldown; the fixture keeps 0 (its traces, its scripts)
+      const cd = ['rgr_piercing_arrow', 'wiz_lightning_bolt', 'elf_flurry'].includes(r.id) ? 0 : r.cd;
+      expect([r.id, a.branch, a.tier, a.mp, a.cooldown, a.target]).toEqual([r.id, r.branch, r.tier, r.mp, cd, TARGETS[r.target]]);
     }
   });
 

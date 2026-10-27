@@ -59,7 +59,7 @@ export const companionAbilities: A[] = [
   }),
   comp('comp_caelum_haste', 'caelum', 'buff', 'Haste', { target: 'ally', statuses: [{ status: 'status_haste', duration: 2 }] }),
   comp('comp_caelum_foresight', 'caelum', 'shield', 'Foresight', { target: 'ally', shield: { base: 8, coef: 1.0, stat: 'sp' } }),
-  comp('comp_caelum_stutter', 'caelum', 'signature', 'Stutter', {
+  comp('comp_caelum_stutter', 'caelum', 'signature', 'Skipped Beat', {
     target: 'enemy', interrupt: true, statuses: [{ status: 'status_stun', duration: 1, when: notBoss }, { status: 'status_slow', duration: 2, when: boss }],
   }),
 ];

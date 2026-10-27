@@ -10,7 +10,7 @@
 //              Flees only with the companion down, hp < 20 % and the fight fleeable. Never communes.
 //   dialogue   the Loop 1 Apex prompt: *Face it* when ready (level ≥ the strongest fight there − APEX_MARGIN), else
 //              *Not yet*; accepts every offered quest; picks choices by `questStart` > Ironclad rep > first, untaken first;
-//              the Heartstone (no effect schema yet: read from choice ids) is destroyed only by Day 10, else stabilized.
+//              the Heartstone: stabilized (D-146 ruling 1; SIM_HEARTSTONE=destroy destroys it by Day 10, =exploit exploits it).
 //   threshold  buys the cheapest Attunement while Resonance ≥ 10, equips up to 5, keeps the class, starts the next loop.
 //   explore    the portal when it opens; in a Horde, straight to the portal; stat points → STR; the cheapest Steel/Breaker
 //              ability it qualifies for (else the cheapest physical one); better gear on; everything on the ground taken;
@@ -19,7 +19,7 @@
 //              upgrade the weapon when gold ≥ fee + 30; talk to each NPC once per quest state; each interactable once per
 //              quest state; gather; then travel: quest hints → the nearest unvisited place whose level band starts at most
 //              2 above the player's → the Apex when ready → otherwise pass time at the nearest rest spot (the clock runs out
-//              and the expiry Horde opens the portal).
+//              and the expiry Horde opens the portal). U81b2: with ≤ 10 dawns left (`apexDue`) the Apex, when ready, comes first.
 //   routing    never through a place whose band starts more than 2 above the player's level, nor one where the player
 //              fell at its current level or above (a death note survives the reload, so the same walk is not replayed);
 //              a Horde lifts both (no fights start in one).
@@ -54,6 +54,7 @@ import {
   levelBand,
   locationThreat,
   manaFraction,
+  apexDue,
   nearestUnvisited,
   pressOn,
   questSignature,
@@ -85,6 +86,16 @@ export const MELEE = {
   attunementSlots: 5,
 } as const;
 
+/**
+ * The Heartstone choice of the `melee` and `caster` bots (D-146 ruling 1): Stabilize, the plain first-time player's choice,
+ * so DESIGN §19 #1 measures the Tyrant rather than a clock limit. `SIM_HEARTSTONE=destroy|exploit` in the environment (workers
+ * inherit it) plays the focused Destroy (by Day 10) or Exploit Loop 1 instead, for DESIGN §10.1's pacing check (U81b2).
+ */
+export const FOCUS_HEARTSTONE: 'stabilize' | 'destroy' | 'exploit' = ((): 'stabilize' | 'destroy' | 'exploit' => {
+  const v = typeof process === 'undefined' ? undefined : process.env['SIM_HEARTSTONE'];
+  return v === 'destroy' || v === 'exploit' ? v : 'stabilize';
+})();
+
 /** The Apex is "ready" when the player's level is at least the strongest creature there minus this (L11 vs the L14 Contained Tyrant: DESIGN §19 #19's lower sim level). */
 export const APEX_MARGIN = 3;
 
@@ -109,6 +120,8 @@ interface Notes {
   lastHere: string | null;
   lastLevel: number;
   lastFightAt: string | null;
+  /** U81b2: idle full rests since `idleRoam` last walked into a place the bot fell at. */
+  idleRests?: number;
 }
 
 function notes(memory: BotMemory): Notes {
@@ -128,6 +141,40 @@ function notes(memory: BotMemory): Notes {
   memory['melee'] = fresh;
   return fresh;
 }
+
+/**
+ * U81b2: a bot with nothing left in reach that has not faced the Apex walks to a neighbour (the wanderers there are its XP) instead
+ * of resting out the loop: a ranger that fell at the Outpost and on the Plateau at L6 rested there for 33 days, and an L11
+ * wizard that fell at the Sanctum for 23, every way on shut by death notes until a level up that resting never brings.
+ * Hurt (< 50 %), it rests.
+ */
+export function idleRoam(
+  s: GameState,
+  legal: readonly Action[],
+  content: ContentPack,
+  profile: Profile,
+  opts: PathOptions,
+  ready: boolean,
+  n: { idleRests?: number },
+): Action | undefined {
+  if (ready || s.mode !== 'explore' || healthFraction(s) < 0.5) return undefined;
+  const all = allOf(legal, 'move').filter((a) => !dangerAt(s, content, profile, a.to, 'pass'));
+  // a neighbour it does not avoid first; after IDLE_RESTS idle rests, one it avoids only for a fall there (the death notes
+  // are what shut it in)
+  const moves = all.filter((a) => opts.avoid?.(a.to) !== true);
+  const fellOnly = (n.idleRests ?? 0) >= IDLE_RESTS ? all.filter((a) => (levelBand(content, a.to)?.min ?? 0) <= s.player.level + MELEE.bandSlack) : [];
+  const pick = moves.length > 0 ? moves : fellOnly;
+  if (pick.length === 0) {
+    n.idleRests = (n.idleRests ?? 0) + 1; // the caller rests
+    return undefined;
+  }
+  if (moves.length === 0) n.idleRests = 0;
+  // a fixed order that still alternates (by the clock)
+  return pick[s.clock.ticks % pick.length];
+}
+
+/** U81b2: idle full rests before `idleRoam` walks back into a place the bot fell at. */
+export const IDLE_RESTS = 2;
 
 /** Reads the events since the last choice: where fights started, and where the player fell (a reload may follow). */
 function digest(n: Notes, events: readonly GameEvent[]): void {
@@ -208,9 +255,11 @@ function pickChoice(s: GameState, choices: readonly Extract<Action, { type: 'cho
       if (c.effects.some((e) => 'questStart' in e)) v += 4;
       if (c.effects.some((e) => 'rep' in e && e.rep.faction === 'ironclad' && e.rep.delta > 0)) v += 2;
     }
-    // the Heartstone (D-017): destroy early, otherwise stabilize (REVIEW-DESIGN-PLAN F20); no effect schema yet
-    if (/destroy/.test(choiceId)) v += day <= MELEE.heartstoneDestroyByDay ? 3 : -3;
-    if (/stabili[sz]e/.test(choiceId)) v += day <= MELEE.heartstoneDestroyByDay ? 1 : 3;
+    // the Heartstone (D-017): Stabilize (D-146 ruling 1; `SIM_HEARTSTONE` plays Destroy by Day 10 or Exploit instead)
+    const flag = c?.effects.flatMap((e) => ('setFlag' in e && e.setFlag.startsWith('flag_heartstone_') ? [e.setFlag as string] : []))[0] ?? choiceId;
+    const hs = /destroy/.test(flag) ? 'destroy' : /exploit/.test(flag) ? 'exploit' : /stabili[sz]e/.test(flag) ? 'stabilize' : undefined;
+    const wanted = FOCUS_HEARTSTONE === 'destroy' && day > MELEE.heartstoneDestroyByDay ? 'stabilize' : FOCUS_HEARTSTONE;
+    if (hs !== undefined) v += hs === wanted ? 3 : -3;
     if (d !== null && node !== undefined && d.choicesTaken.includes(`${node.id}:${choiceId}`)) v -= 1;
     return v;
   };
@@ -314,7 +363,12 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
   const errand = questErrand(s, legal, content, memory); // U81b1: search a hint for an objective's item, or buy it (questFollow.ts)
   if (errand !== undefined) return errand;
 
-  // where next: quest hints → the nearest unvisited place in reach → the Apex → pass the time
+  // where next: quest hints → the nearest unvisited place in reach → the Apex → pass the time (U81b2: the Apex first once it is due)
+  const apexOk = n.apexFaced !== s.meta.runId && n.apexDeclined !== `${s.meta.runId}:${level}` && !fell(APEX_LOCATION_ID) && apexReady(s, content, profile);
+  if (apexOk && apexDue(s)) {
+    const toApex = step(bfsPath(s, content, profile, here, APEX_LOCATION_ID, opts));
+    if (toApex !== undefined) return toApex;
+  }
   const qsig = questSignature(s);
   if (questTargets(s, content, profile).map((t) => t.locationId).includes(here)) n.hintsReached[here] = qsig;
   for (const hint of questTargets(s, content, profile).map((t) => t.locationId)) {
@@ -325,11 +379,15 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
   const fresh = nearestUnvisited(s, content, profile, safe, opts);
   const go = step(fresh?.path ?? null);
   if (go !== undefined) return go;
-  if (n.apexFaced !== s.meta.runId && n.apexDeclined !== `${s.meta.runId}:${level}` && !fell(APEX_LOCATION_ID) && apexReady(s, content, profile)) {
+  if (apexOk) {
     const toApex = step(bfsPath(s, content, profile, here, APEX_LOCATION_ID, opts));
     if (toApex !== undefined) return toApex;
   }
   const bed = legal.find((a) => a.type === 'rest' && a.kind === 'full') ?? firstOf(legal, 'rest') ?? firstOf(legal, 'wait');
+  // U81b2: nothing left in reach and the Apex not faced (not ready, or its road shut by death notes): roam for the wanderers'
+  // XP instead of resting out the loop
+  const roam = idleRoam(s, legal, content, profile, opts, n.apexFaced === s.meta.runId, n);
+  if (roam !== undefined) return roam;
   if (bed !== undefined) return bed;
   const toBed = bedStep(s, legal, content, profile, opts);
   // U81b1: a step that is not into a place it avoids first (a dead end whose only way out is where it fell walked it back in)

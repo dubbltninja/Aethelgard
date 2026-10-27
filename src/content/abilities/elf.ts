@@ -51,6 +51,7 @@ export const elfAbilities = [
     description: 'Three hits of 0.55·ATK Physical to one enemy; a crit adds a fourth hit (once).',
     flavor: 'The fountain-step, the arch-step, the fall.',
     mp: 14,
+    cooldown: 1, // U81b2: the §5.1 budget's rule; 40.9 % of the Elf's damage
     target: 'enemy',
     damageType: 'physical',
     power: { coef: 0.55, stat: 'atk', hits: 3 },

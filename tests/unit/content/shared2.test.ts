@@ -38,6 +38,9 @@ import { freshProfile } from '@tests/fixtures/helpers';
 import { miniContentTables } from '@tests/fixtures/miniContent';
 import { main as validateCli } from '../../../tools/validate-content';
 
+/** U81b2: abilities whose cooldown moved off the fixture's (DESIGN §5.1's budget rule). */
+const U81B2_COOLDOWN: readonly string[] = ['rgr_piercing_arrow', 'wiz_lightning_bolt', 'elf_flurry'];
+
 const ROOT = path.resolve(import.meta.dirname, '../../..');
 const read = (file: string): string => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const DESIGN = read('docs/DESIGN.md');
@@ -314,7 +317,8 @@ describe('the Elf, Warden and Weaver trees vs DESIGN §5.4–5.6', () => {
     for (const a of [...elfAbilities, ...wardenAbilities, ...weaverAbilities, ...itemAbilities] as AbilityInput[]) {
       const twin = fixture.get(a.id);
       expect([a.id, twin !== undefined]).toEqual([a.id, true]);
-      if (twin) expect(mechanics(a)).toEqual(mechanics(twin));
+      // U81b2: the three strikes that took > 35 % of their class's damage carry a 1-turn cooldown (DESIGN §5.1); the fixture keeps 0
+      if (twin) expect(mechanics(a)).toEqual({ ...mechanics(twin), ...(U81B2_COOLDOWN.includes(a.id) ? { cooldown: 1 } : {}) });
     }
   });
 
@@ -548,7 +552,8 @@ describe('the 24 companion abilities vs DESIGN §12.4', () => {
     for (const a of companionAbilities as AbilityInput[]) {
       const twin = fixture.get(a.id);
       expect([a.id, twin !== undefined]).toEqual([a.id, true]);
-      if (twin) expect(mechanics(a)).toEqual(mechanics(twin));
+      // U81b2: the three strikes that took > 35 % of their class's damage carry a 1-turn cooldown (DESIGN §5.1); the fixture keeps 0
+      if (twin) expect(mechanics(a)).toEqual({ ...mechanics(twin), ...(U81B2_COOLDOWN.includes(a.id) ? { cooldown: 1 } : {}) });
     }
   });
 

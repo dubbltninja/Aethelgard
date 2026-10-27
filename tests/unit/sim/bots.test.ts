@@ -359,7 +359,7 @@ describe('melee bot: explore', () => {
     expect(pick(bot, questing, content, profile, memory)).toEqual({ type: 'move', to: LIBRARY }); // the hint
   });
 
-  test('stays out of places above its band and where it fell; passes the time at a bed', () => {
+  test('stays out of places above its band and where it fell; with nothing left, roams (U81b2) or passes the time at a bed', () => {
     const memory: BotMemory = {};
     const visited = (d: GameState): void => {
       d.player.apHalf = 0;
@@ -372,7 +372,11 @@ describe('melee bot: explore', () => {
     const atCamp = makeState({ patch: visited });
     const m2: BotMemory = {};
     pick(bot, atCamp, content, profile, m2); // talk to Ilyra
-    expect(pick(bot, atCamp, content, profile, m2)).toEqual({ type: 'rest', kind: 'full' });
+    // U81b2 (`idleRoam`): not ready for the Apex, it walks to a neighbour for the wanderers' XP instead of resting out the loop
+    expect(pick(bot, atCamp, content, profile, m2)).toEqual({ type: 'move', to: LIBRARY });
+    // hurt, it rests
+    const hurt = edit(atCamp, (d) => (d.player.hp = Math.floor(d.player.hpMax / 3)));
+    expect(pick(bot, hurt, content, profile, m2)).toEqual({ type: 'rest', kind: 'full' });
     // a death at the Library (the fight began there) is remembered across the reload: the unvisited Library is skipped
     const fresh = makeState({ patch: (d) => (d.player.apHalf = 0) });
     const m3: BotMemory = {};
@@ -503,7 +507,7 @@ describe('melee bot: dialogue, the Threshold, endings', () => {
     expect(pick(bot, weak, h, p)).toEqual({ type: 'choose', choiceId: 'not_yet' });
   });
 
-  test('choices: questStart > Ironclad rep > first; untaken first; the Heartstone by the day', () => {
+  test('choices: questStart > Ironclad rep > first; untaken first; the Heartstone stabilized (D-146)', () => {
     const s = makeState({ patch: (d) => (d.player.apHalf = 0) });
     const talked = step(s, { type: 'talk', npcId: 'npc_ilyra' }, content, profile).state;
     expect(pick(bot, talked)).toEqual({ type: 'acceptQuest', questId: 'q_echo_crystal' }); // every quest is accepted
@@ -529,10 +533,11 @@ describe('melee bot: dialogue, the Threshold, endings', () => {
     const legal = (ids: string[]): Action[] => ids.map((choiceId) => ({ type: 'choose', choiceId }));
     expect(bot.choose(at(5), legal(['plain', 'iron']), c2, {}, ctxOf())).toEqual({ type: 'choose', choiceId: 'iron' });
     expect(bot.choose(at(5), legal(['plain', 'stabilize_it']), c2, {}, ctxOf())).toEqual({ type: 'choose', choiceId: 'stabilize_it' });
-    expect(bot.choose(at(5), legal(['iron', 'destroy_it', 'stabilize_it']), c2, {}, ctxOf())).toEqual({ type: 'choose', choiceId: 'destroy_it' });
+    // D-146 ruling 1 (U81b2): the Heartstone is stabilized on any day (SIM_HEARTSTONE plays Destroy by Day 10 or Exploit instead)
+    expect(bot.choose(at(5), legal(['iron', 'destroy_it', 'stabilize_it']), c2, {}, ctxOf())).toEqual({ type: 'choose', choiceId: 'stabilize_it' });
     expect(bot.choose(at(12), legal(['iron', 'destroy_it', 'stabilize_it']), c2, {}, ctxOf())).toEqual({ type: 'choose', choiceId: 'stabilize_it' });
     expect(bot.choose(at(5, ['n:iron']), legal(['plain', 'iron']), c2, {}, ctxOf())).toEqual({ type: 'choose', choiceId: 'iron' }); // 2 − 1 > 0
-    expect(bot.choose(at(5, ['n:plain']), legal(['plain', 'destroy_it']), c2, {}, ctxOf())).toEqual({ type: 'choose', choiceId: 'destroy_it' });
+    expect(bot.choose(at(5, ['n:plain']), legal(['plain', 'destroy_it']), c2, {}, ctxOf())).toEqual({ type: 'choose', choiceId: 'plain' }); // −1 > −3
     expect(bot.choose(at(5), [{ type: 'acceptQuest', questId: 'q_echo_crystal' }, ...legal(['plain'])], c2, {}, ctxOf())).toEqual({ type: 'acceptQuest', questId: 'q_echo_crystal' });
     expect(bot.choose(at(5), [{ type: 'continue' }], c2, {}, ctxOf())).toEqual({ type: 'continue' });
   });

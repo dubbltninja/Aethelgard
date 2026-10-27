@@ -52,7 +52,7 @@ import type { QuestInput } from '@schema/quest';
 import { FROM_LOOP_2 } from '../dialogues/common';
 
 /** DESIGN §12.5 "personal quest stage completed". */
-export const LOYALTY_STAGE = 5;
+export const LOYALTY_STAGE = 6; // U81b2 (D-113): +6, was +5 (Ilyra's nine stages reached about 46 in one loop, four short of Loyal 50 for ending E)
 
 type CompanionId = 'ilyra' | 'brak';
 

@@ -540,6 +540,11 @@ describe('the creatures vs WORLD §6', () => {
     expect(block('cr_spore_drift')).toContain('`spore_burst` · "It bursts, sweetly." · 0.8× all · poison 100% 4 · onDeath');
     // the Contained form's Phase 2 and the Unveiled's Phases 1–3 name the Contained's moves "as Contained": same records
     for (const id of ['tyr_grasp', 'tyr_shear', 'tyr_time_lash', 'tyr_remember', 'tyr_gather', 'tyr_chrono_strike', 'tyr_unraveling']) {
+      // U81b2: the Contained's Unraveling is 0.8·SP (DESIGN §4.10); the Unveiled keeps 1.1
+      if (id === 'tyr_unraveling') {
+        expect(cr(UNVEILED).moves[id]).toEqual({ ...cr(CONTAINED).moves[id], power: { ...cr(CONTAINED).moves[id]!.power!, coef: 1.1 } });
+        continue;
+      }
       expect([id, cr(UNVEILED).moves[id]]).toEqual([id, cr(CONTAINED).moves[id]]);
     }
   });
@@ -750,7 +755,7 @@ describe('the Tyrants vs DESIGN §4.10, field by field (D-062: DESIGN owns the n
       ['tyr_chrono_strike', 'Stun 1 unless the target Guarded', [['status_stun', 1, 1, 'target', { playerGuarding: false }]]],
       ['tyr_sallow_breathes', 'Poison 70% 4; **no regen**', [['status_poison', 0.7, 4, 'target', undefined]]],
       ['tyr_remember', '`tyr_remember` (self Rewind 2)', [['status_rewind', 1, 2, 'self', undefined]]],
-      ['tyr_unraveling', 'Armor Break 100% 2) every turn', [['status_armor_break', 1, 2, 'target', undefined]]],
+      ['tyr_unraveling', 'Armor Break 100% 2; U81b2', [['status_armor_break', 1, 2, 'target', undefined]]],
     ] as const) {
       expect(C1).toContain(snippet);
       expect([id, rows(id)]).toEqual([id, expected]);
@@ -760,7 +765,7 @@ describe('the Tyrants vs DESIGN §4.10, field by field (D-062: DESIGN owns the n
     expect(cr(CONTAINED).moves['tyr_chrono_strike']?.hidden).toBe(true);
   });
 
-  test('the Contained’s phases: ids, names, triggers, the Aberrations at 40 % (one solo), ×1.5 taken in Phase 3; WORLD’s transition lines', () => {
+  test('the Contained’s phases: ids, names, triggers, the Aberration at 40 % (none solo; U81b2), ×1.5 taken in Phase 3; WORLD’s transition lines', () => {
     const c = cr(CONTAINED);
     expect(c.phases.map((p) => [p.id, p.name, p.enterWhen])).toEqual([
       ['tyr_movement_1', 'The Holding', []],
@@ -768,8 +773,8 @@ describe('the Tyrants vs DESIGN §4.10, field by field (D-062: DESIGN owns the n
       ['tyr_movement_3', 'The Nine Speak', [{ hpBelow: 0.33 }, { round: 12 }]],
     ]);
     for (const s of ['**`tyr_movement_1` The Holding** (100–66%)', '**`tyr_movement_2` The Fracture** (`hpBelow 0.66`)', '**`tyr_movement_3` The Nine Speak** (`hpBelow 0.33` OR `round 12`)']) expect(C1).toContain(s);
-    expect(C1).toContain('`onEnter` spawn 2× `cr_temporal_aberration` at 40% HP (1 if no companion)');
-    expect(c.phases[1]?.adds).toEqual([{ creatureId: 'cr_temporal_aberration', count: 2, countSolo: 1, hpPct: 0.4 }]);
+    expect(C1).toContain('`onEnter` spawn 1× `cr_temporal_aberration` at 40% HP (none if no companion; U81b2, was 2 / 1 solo)');
+    expect(c.phases[1]?.adds).toEqual([{ creatureId: 'cr_temporal_aberration', count: 1, countSolo: 0, hpPct: 0.4 }]);
     expect(C1).toContain('takes ×1.5 damage');
     expect(c.phases.map((p) => p.damageTakenMult)).toEqual([1, 1, 1.5]);
     // Remember once in each phase it appears in (a step-scoped once-key per phase)
@@ -824,9 +829,12 @@ describe('the Tyrants vs DESIGN §4.10, field by field (D-062: DESIGN owns the n
     expect(cr(CONTAINED).stats).toEqual(fc.stats);
     expect(cr(UNVEILED).stats).toEqual(fu.stats);
     for (const [id, m] of Object.entries(fc.moves)) {
+      if (id === 'tyr_unraveling') continue; // U81b2: the Contained's is 0.8·SP (DESIGN §4.10); the fixture keeps 1.1
       expect([id, cr(CONTAINED).moves[id]?.type, cr(CONTAINED).moves[id]?.power, cr(CONTAINED).moves[id]?.shield, cr(CONTAINED).moves[id]?.statuses]).toEqual([id, m.type, m.power, m.shield, m.statuses]);
     }
-    expect(cr(CONTAINED).phases.map((p) => [p.enterWhen, p.adds, p.damageTakenMult])).toEqual(fc.phases.map((p) => [p.enterWhen, p.adds, p.damageTakenMult]));
+    expect(cr(CONTAINED).phases.map((p) => [p.enterWhen, p.damageTakenMult])).toEqual(fc.phases.map((p) => [p.enterWhen, p.damageTakenMult]));
+    // the adds: U81b2 tuned DESIGN's to 1 (none solo); the fixture keeps the old 2 / 1 so the engine tests still exercise `countSolo`
+    expect(fc.phases[1]?.adds).toEqual([{ creatureId: 'cr_temporal_aberration', count: 2, countSolo: 1, hpPct: 0.4 }]);
     // DESIGN over the fixture: four phases, the Reaches as Phase 2's adds, no round trigger before Phase 4
     expect([fu.phases.length, cr(UNVEILED).phases.length]).toEqual([3, 4]);
     expect(fu.phases[1]?.adds[0]?.creatureId).toBe('cr_temporal_aberration');

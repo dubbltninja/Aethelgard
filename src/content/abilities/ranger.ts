@@ -34,6 +34,7 @@ export const rangerAbilities = [
     description: '1.5·ATK Physical to one enemy, ignoring armor; ×1.25 against a Marked target.',
     flavor: 'Hide, plate, bark. It does not care.',
     mp: 12,
+    cooldown: 1, // U81b2: the §5.1 budget's rule (above 1.3U needs a cooldown or a condition); 44.7 % of the Ranger's damage
     target: 'enemy',
     damageType: 'physical',
     power: { coef: 1.5, stat: 'atk', ignoresArmor: true },

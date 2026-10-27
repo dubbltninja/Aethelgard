@@ -28,14 +28,14 @@
 //              then travel: from Loop 2 with the Tyrant to talk to, straight to the Apex once it is open (level bands and fleeable
 //              fights do not matter to a conversation) — otherwise quest hints (Weavers' and Remnants' quests first) → the nearest
 //              unvisited place whose band starts at most 2 above the player's → the Apex when level ≥ the fight − 3 → pass the
-//              time at a bed (melee).
+//              time at a bed (melee). U81b2: with ≤ 10 dawns left (`apexDue`) the Apex, when ready, comes first.
 //   routing    melee's: never through a place whose band starts more than 2 above the player's level, nor one where the player
 //              fell at its current level or above, nor one that has turned it back 4 times by wanderers it fled (U38: `shunned`,
 //              since fleeing returns the party to the previous node); a Horde, and the rush to a conversation, lift the band rule.
 import { APEX_LOCATION_ID, sceneForNpc, type Action } from '@engine/index';
 import type { Ability } from '@schema/ability';
 import { classFight, healRow, type ClassFightCfg } from './classFight';
-import { APEX_MARGIN, MELEE } from './melee';
+import { APEX_MARGIN, FOCUS_HEARTSTONE, MELEE } from './melee';
 import {
   MELEE_REST,
   MELEE_TRADE,
@@ -69,7 +69,7 @@ import {
   type ThresholdCfg,
   type TradeCfg,
 } from './policy';
-import { bfsPath, canReachApex, firstOf, healthFraction, levelBand, nearestUnvisited, pressOn, stepAlong, type PathOptions } from './shared';
+import { apexDue, bfsPath, canReachApex, firstOf, healthFraction, levelBand, nearestUnvisited, pressOn, stepAlong, type PathOptions } from './shared';
 import { dangerAt, DANGER_MARGIN } from './danger';
 import { questErrand } from './questFollow';
 import type { Bot, BotMemory } from './types';
@@ -105,14 +105,14 @@ const TRADE: TradeCfg = {
 
 const THRESHOLD: ThresholdCfg = { prefer: ['att_deep_well', 'att_quick_study'], modifiers: [], keepResonance: MELEE.thresholdKeepResonance, slots: MELEE.attunementSlots };
 
-const SOCIAL: SocialCfg = { talk: 'npc', heartstone: 'exploit', interact: true, gather: true };
+const SOCIAL: SocialCfg = { talk: 'npc', heartstone: FOCUS_HEARTSTONE, interact: true, gather: true };
 
 /** The factions whose quests the caster follows first (PLAN §7.2), and whose reputation it likes. */
 const LEAN = ['weavers', 'remnants'] as const;
 
 const DIALOGUE: DialogueCfg = {
   apexReady: (env) => rushing(env) || apexReadyBy(env, APEX_MARGIN),
-  heartstone: 'exploit',
+  heartstone: FOCUS_HEARTSTONE,
   factions: { weavers: 2, remnants: 2 },
   // the Echo Crystal: keep it (PLAN §7.2); no effect schema says "keep", so it is read from the choice id
   score: (choiceId) => (/(^|_)keep(_|$)/.test(choiceId) ? 3 : 0),
@@ -181,6 +181,11 @@ function explore(env: Env, memory: BotMemory): Action {
 
   // where next
   const ready = !apexSettled(env) && (rush || apexReadyBy(env, APEX_MARGIN));
+  // U81b2: once the Apex is due (≤ 10 dawns left) a ready caster goes there before hints and unvisited places
+  if (ready && !rush && apexDue(s)) {
+    const toApex = stepAlong(legal, bfsPath(s, content, profile, here, APEX_LOCATION_ID, opts));
+    if (toApex !== undefined) return toApex;
+  }
   if (rush && ready && canReachApex(s, content, profile, { avoid: fell })) {
     const toApex = stepAlong(legal, bfsPath(s, content, profile, here, APEX_LOCATION_ID, { avoid: fell }));
     if (toApex !== undefined) return toApex;

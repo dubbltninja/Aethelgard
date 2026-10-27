@@ -49,7 +49,7 @@ const tideClerk = {
   materialKin: 'drowned',
   role: 'fodder',
   level: 5,
-  stats: { hp: 70, atk: 12, sp: 12, armor: 2, ward: 2, agi: 5 },
+  stats: { hp: 70, atk: 10, sp: 10, armor: 2, ward: 2, agi: 5 }, // U81b2 (D-110): ATK/SP 12 -> 10
   tags: ['breach_born', 'drowned'],
   resistances: { fire: 'resist' },
   statusImmunities: ['status_poison'],
@@ -109,7 +109,7 @@ const paleDiver = {
   materialKin: 'drowned',
   role: 'fodder',
   level: 6,
-  stats: { hp: 80, atk: 14, sp: 14, armor: 1, ward: 3, agi: 7 },
+  stats: { hp: 80, atk: 12, sp: 12, armor: 1, ward: 3, agi: 7 }, // U81b2 (D-110): ATK/SP 14 -> 12
   tags: ['breach_born', 'drowned'],
   resistances: { fire: 'resist' },
   statusImmunities: ['status_poison'],
@@ -125,7 +125,7 @@ const paleDiver = {
       name: 'Hold Under',
       line: 'It wraps around you and the water closes over.',
       type: 'physical',
-      power: { coef: 1.4, stat: 'atk' },
+      power: { coef: 1.1, stat: 'atk' }, // U81b2: was 1.4 (two Divers chained it on a Slowed player: 85 % deaths at L7)
       statuses: [{ status: 'status_soaked', chance: 1, duration: 3 }],
     },
     diver_rise: { name: 'Rise', line: 'It sinks out of reach and rises behind you.', statuses: [{ status: 'status_phase', duration: 1, target: 'self' }] },
@@ -166,7 +166,7 @@ const brineLamprey = {
   materialKin: 'drowned',
   role: 'fodder',
   level: 5,
-  stats: { hp: 56, atk: 12, sp: 12, armor: 0, ward: 1, agi: 9 },
+  stats: { hp: 56, atk: 10, sp: 10, armor: 0, ward: 1, agi: 9 }, // U81b2 (D-110): ATK/SP 12 -> 10
   tags: ['breach_born', 'drowned', 'warden_add'],
   resistances: { fire: 'resist' },
   statusImmunities: ['status_poison'],
@@ -223,7 +223,7 @@ const ledgerChoir = {
   materialKin: 'drowned',
   role: 'elite',
   level: 7,
-  stats: { hp: 180, atk: 15, sp: 15, armor: 2, ward: 4, agi: 4 },
+  stats: { hp: 180, atk: 13, sp: 13, armor: 2, ward: 4, agi: 4 }, // U81b2 (D-110): ATK/SP 15 -> 13
   tags: ['breach_born', 'drowned'],
   resistances: { fire: 'resist' },
   statusImmunities: ['status_poison'],
@@ -235,7 +235,7 @@ const ledgerChoir = {
       power: { coef: 0.8, stat: 'sp' },
       statuses: [{ status: 'status_weaken', chance: 0.4, duration: 2 }],
     },
-    choir_amend: { name: 'Amend', line: "The pages turn back. An ally's wound closes.", heal: { power: { coef: 1.5, stat: 'atk' }, target: 'ally' } },
+    choir_amend: { name: 'Amend', line: "The pages turn back. An ally's wound closes.", heal: { power: { coef: 0.9, stat: 'atk' }, target: 'ally' } }, // U81b2: was 1.5 (12 rounds, 35 % deaths at band 5)
     choir_reinscribe: { name: 'Reinscribe', line: 'They read a fallen name back into the book.', revive: { hpPct: 0.4 } },
     choir_verse: {
       name: 'Verse',
@@ -284,7 +284,7 @@ const bellRinger = {
   materialKin: 'drowned',
   role: 'elite',
   level: 7,
-  stats: { hp: 180, atk: 15, sp: 15, armor: 4, ward: 2, agi: 3 },
+  stats: { hp: 180, atk: 13, sp: 13, armor: 4, ward: 2, agi: 3 }, // U81b2 (D-110): ATK/SP 15 -> 13
   tags: ['breach_born', 'drowned'],
   resistances: { void: 'weak', fire: 'resist' },
   statusImmunities: ['status_poison'],

@@ -1503,7 +1503,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'silent',
     name: 'Loop 2: the Weaver route (Crystal kept, shards given), a Shard offered, nothing said',
     classId: CLASS,
-    seed: 'quest:choir:shard:i', // U81b1: re-seeded (the class-aware fight)
+    seed: 'quest:choir:shard:i:b2a', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81b1: re-seeded (the class-aware fight)
     profile: { loop: 2, echoes: ['echo_crystal_location'], bestLevel: 17 },
     steps: [...weaverRouteToSanctum, ...choirHeard('shard', 'silent', 'silent')],
   },
@@ -1709,7 +1709,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'agreed',
     name: 'Loop 2: the plan at the Hollow, agreed (the path to C)',
     classId: CLASS,
-    seed: 'quest:undo:agreed:g', // U81b1: re-seeded (the class-aware fight)
+    seed: 'quest:undo:agreed:g:b2a', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81b1: re-seeded (the class-aware fight)
     profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nyx_bond'], bestLevel: 17 },
     steps: nyxPlanAnswered('agreed', 'agreed'),
   },
@@ -1777,7 +1777,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'rests',
     name: 'Loop 3: the communion carried through; Dask rests',
     classId: CLASS,
-    seed: 'quest:instant:rest:5', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
+    seed: 'quest:instant:rest:5:b2a', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: {
       loop: 3,
       echoes: ['echo_flickering_man', 'echo_dask_bond', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_tyrant_jailer', 'echo_thirtieth_dawn', 'echo_seven_wayfinders', 'echo_tyrant_never_struck', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4', 'echo_litany_verse_5', 'echo_litany_verse_6', 'echo_litany_verse_7', 'echo_hallow_said_stop', 'echo_ritual_inevitable'],
@@ -1795,7 +1795,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'stays',
     name: "Loop 3: the communion carried through; Dask stays until it's done",
     classId: CLASS,
-    seed: 'quest:instant:stay:f', // U81b1: re-seeded (the class-aware fight)
+    seed: 'quest:instant:stay:f:b2a', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81b1: re-seeded (the class-aware fight)
     profile: {
       loop: 3,
       echoes: ['echo_flickering_man', 'echo_dask_bond', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_tyrant_jailer', 'echo_thirtieth_dawn', 'echo_seven_wayfinders', 'echo_tyrant_never_struck', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4', 'echo_litany_verse_5', 'echo_litany_verse_6', 'echo_litany_verse_7', 'echo_hallow_said_stop', 'echo_ritual_inevitable'],
@@ -1872,7 +1872,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'crossed',
     name: 'Loop 2: the Breach-door from the Before side; he comes, and walks out beside you to the Nexus',
     classId: CLASS,
-    seed: 'quest:boy:come',
+    seed: 'quest:boy:come:b2a', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned);
     profile: { loop: 2, echoes: ['echo_litany_verse_1'], bestLevel: 17 },
     steps: [
       ...caelumAtTheDoor('come', 'crossed'),
@@ -1942,7 +1942,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'done',
     name: 'Loop 2: the same without Borin\'s mark (the ember, verse IV; not the iron)',
     classId: CLASS,
-    seed: 'quest:bone:plain',
+    seed: 'quest:bone:plain:b2a', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned);
     profile: { loop: 2, echoes: ['echo_ironclad_passwords', 'echo_nomad_signs'], bestLevel: 17 },
     steps: boneRoad(false),
   },
@@ -1952,7 +1952,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'choir',
     name: 'Loop 2: the curtain\'s stair taken without a light, the Mouth and the Stair fled, the Choir reached; Ysmay',
     classId: CLASS,
-    seed: 'quest:lightless',
+    seed: 'quest:lightless:b2a', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned);
     profile: { loop: 2, echoes: ['echo_hollow_path'], bestLevel: 17 },
     steps: lightlessStair,
   },
@@ -2076,7 +2076,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'dawn',
     name: "Loop 2 with the sign and Nyx's bond: her arc, the Heartstone exploited, her ask, the Apex and the hold's failing (ending C)",
     classId: CLASS,
-    seed: 'quest:dawn:c:4', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
+    seed: 'quest:dawn:c:4:u9', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nyx_bond', 'echo_weaver_sign', 'echo_apex_resonance'], bestLevel: 20 },
     steps: weaversDawn,
   },

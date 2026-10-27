@@ -267,7 +267,7 @@ export const companionAbilities = [
     id: 'comp_caelum_stutter',
     ownerId: 'caelum',
     kind: 'signature',
-    name: 'Stutter',
+    name: 'Skipped Beat', // U81b2: renamed from 'Stutter' (D-137: the Wizard's wiz_stutter keeps the name)
     description: "Interrupt one enemy's intent and Stun it for 1 turn (a boss is Staggered and Slowed for 2 turns instead).",
     target: 'enemy',
     interrupt: true,

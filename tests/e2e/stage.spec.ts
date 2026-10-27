@@ -201,6 +201,8 @@ test.describe('the combat stage', () => {
 
   test('the Tyrant stands huge, whole inside the band, over its add and over you', async ({ page }) => {
     await boot(page, 'combat_tyrant_contained_p2');
+    // U81b2: solo, the Fracture brings no Aberration (DESIGN §4.10); one is put beside the Tyrant, as a companion's fight has it
+    await reshape(page, { more: [{ refId: 'cr_temporal_aberration', name: 'Temporal Aberration', level: 12, hp: 112, hpMax: 280, phase: 0, isAdd: true } as { refId: string; name: string }] });
     const tyrant = stage(page).getByRole('button', { name: /^Target The Chronos Tyrant, level \d+, boss/ });
     await expect(tyrant).toHaveAttribute('data-size', 'huge');
     expect(await loaded(tyrant)).toEqual({ file: 'art/sprites/cr_chronos_tyrant_contained.webp', height: 768 });

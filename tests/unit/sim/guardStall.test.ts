@@ -142,9 +142,9 @@ describe('from PRESS_ROUND a fight is pressed to its end (the mend loops of the 
   // the batch's scenario runs that stalled with a self-heal every other turn: the Hourglass Crawlers' Rewind, the Contained
   // Tyrant's Unravelling, the Orrery Knight
   const STALLED: readonly { bot: string; classId: string; seed: string; scenario: 'pre_tyrant_l11_ranger' | 'pre_tyrant_l13_ranger'; companionId?: string }[] = [
-    { bot: 'melee', classId: 'elf', seed: 'bal:2', scenario: 'pre_tyrant_l11_ranger' },
+    { bot: 'melee', classId: 'elf', seed: 'bal:3', scenario: 'pre_tyrant_l11_ranger' }, // U81b2: bal:2's walk to the Apex now falls (a ScenarioDefeat)
     { bot: 'caster', classId: 'elf', seed: 'bal:0', scenario: 'pre_tyrant_l11_ranger' },
-    { bot: 'caster', classId: 'elf', seed: 'bal:2', scenario: 'pre_tyrant_l11_ranger' },
+    { bot: 'caster', classId: 'elf', seed: 'bal:3', scenario: 'pre_tyrant_l11_ranger' }, // U81b2: as above
     { bot: 'caster', classId: 'ironclad_warden', seed: 'bal:0', scenario: 'pre_tyrant_l11_ranger', companionId: 'brak' },
     { bot: 'melee', classId: 'elf', seed: 'bal:2', scenario: 'pre_tyrant_l13_ranger' },
   ];

@@ -141,7 +141,7 @@ const stoneHideGolem = {
   role: 'elite',
   level: 6,
   // HP 130 (DESIGN §6.5 Mistwood elite); legacy HP 50 · dmg 12 · def 5 · agi 2 · XP 85 · magic resistance 80 %
-  stats: { hp: 130, atk: 14, sp: 14, armor: 6, ward: 4, agi: 2 },
+  stats: { hp: 90, atk: 12, sp: 12, armor: 3, ward: 4, agi: 2 }, // U81b2 (D-140): was 130 HP, ATK 14, armor 6 (the pair took 11-15 rounds, 29-54 % deaths at L6)
   tags: ['construct', 'legacy'],
   resistances: { fire: 'resist', ley: 'resist', void: 'resist', chrono: 'resist' },
   statusImmunities: ['status_poison', 'status_bleed'],

@@ -121,7 +121,7 @@ const nullMouth = {
       name: 'Gape',
       line: 'It opens wide enough to step into.',
       type: 'void',
-      power: { coef: 1.6, stat: 'sp' },
+      power: { coef: 1.2, stat: 'sp' }, // U81b2: was 1.6 (two at the Orchard: 88 % deaths at L10, band 10-11)
       statuses: [{ status: 'status_weaken', chance: 0.5, duration: 2 }],
     },
     // "regen self 0.4×/3": 0.4 × ATK a turn for 3 turns, as the Mireling's Breathe In
@@ -188,7 +188,7 @@ const starvedShadow = {
       power: { coef: 1.3, stat: 'sp' },
       statuses: [{ status: 'status_curse', chance: 0.5, duration: 3 }],
     },
-    starved_feed: { name: 'Feed', line: 'It swallows the dark it made and swells.', heal: { power: { coef: 1.5, stat: 'atk' }, target: 'self' } },
+    starved_feed: { name: 'Feed', line: 'It swallows the dark it made and swells.', heal: { power: { coef: 0.8, stat: 'atk' }, target: 'self' } }, // U81b2: was 1.5 (the Gallery: 85 % deaths, fights to 24 rounds)
     starved_hunger: { name: 'Hunger', line: 'It goes thin and fast toward the brightest thing here.', type: 'void', power: { coef: 1.8, stat: 'sp' } },
   },
   // `first` → the Snuff; `ifTargetHas:blind` → the Feed; `everyNthTurn:4` → the Hunger (the highest-MAG target); the Gnaw is the
@@ -232,7 +232,7 @@ const vellsUmbra = {
   family: 'fam_hollowed',
   materialKin: 'void_touched',
   role: 'boss',
-  level: 16,
+  level: 15, // U81b2 (D-137): band top + 2 (Eye of the Scar 10-13); was 16
   stats: { hp: 480, atk: 29, sp: 29, armor: 2, ward: 8, agi: 11 },
   tags: ['breach_born', 'regional_boss'],
   resistances: { ley: 'weak', fire: 'weak', void: 'resist' },

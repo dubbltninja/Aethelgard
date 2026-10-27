@@ -566,10 +566,12 @@ describe('the creatures vs WORLD §6', () => {
   test('stats: HP · ATK · DEF armor/ward · AGI, with SP = ATK (WORLD: ATK doubles as SP) — including the Golem’s annotated HP line', () => {
     for (const c of creatures) {
       const w = worldCreature(c.id);
-      expect([c.id, c.stats]).toEqual([c.id, { hp: w.stats.hp, atk: w.stats.atk, sp: w.stats.atk, armor: w.stats.armor, ward: w.stats.ward, agi: w.stats.agi }]);
+      // U81b2 (D-140): the Golem is 90 HP, ATK/SP 12, armor 3 (WORLD's 130 / 14 / 6)
+      const golem = c.id === 'cr_stone_hide_golem' ? { hp: 90, atk: 12, sp: 12, armor: 3 } : {};
+      expect([c.id, c.stats]).toEqual([c.id, { hp: w.stats.hp, atk: w.stats.atk, sp: w.stats.atk, armor: w.stats.armor, ward: w.stats.ward, agi: w.stats.agi, ...golem }]);
     }
-    expect(byId(creatures, 'cr_stone_hide_golem').stats.hp).toBe(130); // DESIGN §6.5: Mistwood elite
-    expect(DESIGN).toContain('| 40–80 (elite 130) |');
+    expect(byId(creatures, 'cr_stone_hide_golem').stats.hp).toBe(90); // DESIGN §6.5: Mistwood elite (U81b2, D-140: was 130)
+    expect(DESIGN).toContain('| 40–80 (elite 90: the Golem pair, U81b2/D-140, was 130) |');
   });
 
   test('resistances and immunities are exactly WORLD’s Resist line', () => {

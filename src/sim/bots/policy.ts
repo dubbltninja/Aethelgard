@@ -54,7 +54,7 @@ import {
   stepAlong,
   type PathOptions,
 } from './shared';
-import { MELEE, MELEE_BRANCHES } from './melee';
+import { idleRoam, MELEE, MELEE_BRANCHES } from './melee';
 import { classFight, classStat, classUnlockRank, type ClassFightCfg } from './classFight';
 import { acceptable, questTargets } from './questFollow';
 import { dangerAt } from './danger';
@@ -88,6 +88,8 @@ export interface Notes {
   choicesTaken: string[];
   /** `${runId}|${location}` → fights fled there this loop (a place that keeps turning the bot back is given up). */
   bounces: Record<string, number>;
+  /** U81b2: idle full rests (melee.ts `idleRoam`). */
+  idleRests?: number;
   /** Fights the bot started a blow in (the pacifist's "forced" count). */
   forced: number;
   /** `${runId}|${stage}` communion actions already tried this loop (guards against a loop in the policy). */
@@ -587,6 +589,9 @@ export function foeLevel(s: GameState): number {
 export function passTime(env: Env, opts: PathOptions): Action {
   const { s, content, profile, legal } = env;
   const bed = legal.find((a) => a.type === 'rest' && a.kind === 'full') ?? firstOf(legal, 'rest') ?? firstOf(legal, 'wait');
+  // U81b2: not ready for the Apex and nothing left in reach: roam for the wanderers' XP (melee.ts `idleRoam`)
+  const roam = idleRoam(s, legal, content, profile, opts, env.n.apexFaced === s.meta.runId, env.n);
+  if (roam !== undefined) return roam;
   if (bed !== undefined) return bed;
   return (
     stepAlong(legal, nearestWhere(s, content, profile, (id) => restAvailable(s, content, profile, id) && opts.avoid?.(id) !== true, opts)?.path ?? null) ??

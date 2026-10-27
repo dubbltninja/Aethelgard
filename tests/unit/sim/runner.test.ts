@@ -91,7 +91,9 @@ describe('melee: a Loop 1 closer on the fixture packs', () => {
     expect(r.itemsObtained).toContain('item_echo_crystal');
     expect(r.fights.length).toBeGreaterThan(0);
     for (const f of r.fights) {
-      expect(f).toMatchObject({ regionId: 'region_silverwood_ruins', boss: false });
+      // U81b2: an idle bot roams (melee.ts `idleRoam`), so its wanderers may be met outside the Ruins too
+      expect(f.boss).toBe(false);
+      expect(storyPack().regions[f.regionId]).toBeDefined();
       expect(['victory', 'defeat', 'fled']).toContain(f.result);
       expect(f.rounds).toBeGreaterThan(0);
     }

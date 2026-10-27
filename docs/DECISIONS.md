@@ -2587,3 +2587,31 @@ owning unit (PLAN §9.1).
   faster than the explorer; the pacifist attacks what it can't kill. → **U81b1** (Opus, `docs/briefs/u81b1.md`): fair bots, the
   scenario kits, the communion scenario crash, a mid-size re-batch. No balance changes. **U81b2** (the old U81b brief) tunes
   from U81b1's numbers.
+
+### D-146 · U81b1 details — fair bots; rulings on the Escape metric and the generic-Accept bug, 2026-10-26
+- **U81b1 (df2b745, 813dd9e, then after a container restart 2280b5a, db61c91, 1d4e33e; Opus, spot-reviewed):**
+  - Every bot plays its class; the bots respect danger and follow quest offers (`questFollow.ts`: Caelum is recruited now;
+    he was never recruited in U80).
+  - The speedrunner takes the short route; the pacifist flees what it can't pass; the scenario kits are fair (the Warden at
+    L11 solo went from 5% to 100% wins); the communion scenario crash is fixed; the explorer walks the Before and the
+    Threshold's rooms (the runner now counts them).
+  - 22 traces re-recorded.
+  - **Mid batch** (1,016 runs): 0 errors, **0 soft-locks** (U80: 33), determinism 40/40, quests 41/49, **locations 73/73**.
+    Deaths per loop: melee 1.56, explorer 3.14, caster 3.79 (U80: 4.9 / 10.4 / 6.7). Vell's Umbra is met 5 times, not 540.
+    4,899 unit; full e2e 343 passed.
+- **Ruling 1, the Escape metric (§19 #1).** U80's 94–98% counted portal arrivals through the expiry Horde, so it never
+  checked the Tyrant. Counted honestly, the melee bot (Destroy at Day 10, limit 20) and the caster bot (Exploit, limit 25) reach
+  the Tyrant in time 0–25%; with Stabilize, the melee bot escapes 67–100% (6 seeds).
+  - **#1 is measured with the melee and caster bots taking Stabilize,** the plain first-time player's choice. The Destroy and
+    Exploit routes are measured by the scripts and the explorer.
+  - **U81b2 tunes pacing** so a focused Destroy or Exploit Loop 1 can still reach the Tyrant (a design intent of DESIGN §10.1:
+    the clock is a trade-off, not a lock).
+- **Ruling 2, a content bug (→ U81b2):** the generic **Accept** on Caelum's errand and the boy's quest starts them on a stage
+  nothing advances, and the offer scene never plays again, so the quest is lost for the loop. **Fix:** quests whose offer
+  scene starts them get no generic Accept (or the generic Accept routes to the scene). Add a content test across all quests.
+- **Game findings for U81b2:**
+  - ability use is over band for every class (69–84%) and Blood price is at 2%, because MP almost never runs out (0-MP
+    fights 1%);
+  - the speedrunner's best route reaches the Apex around Day 15 at L9–10 and loses the Tyrant there;
+  - the ranger at the Tyrant (20% at L11, 10% at L13); the elf and the ranger with Brak (0%);
+  - damage dominance: Piercing Arrow 47%, Lightning Bolt 42%, Flurry 41%.

@@ -2747,7 +2747,8 @@ owning unit (PLAN §9.1).
     - #13: "Camp" only where it works;
   - **the layout leftovers:** a hint lies over the log, not the map, and short screens get a one-line hint;
   - **the fun pass,** in REPORT.md "U84 fun pass".
-  - Gates: proofs 87/87, endings 8/8, full e2e 361 passed, a11y 0 failures, JS 529.4 kB.
+  - Gates: proofs 81/81 (U84 reported 87/87; the merged and clean-clone runs count 81), endings 8/8, full e2e 361 passed,
+    a11y 0 failures, JS 529.4 kB.
 - **The lead's fix at merge:** the danger cue fired on every road at Level 1 ("Dangerous (L2+)"). It now starts at **2
   levels above** the party ("Dangerous"), and at **4 or more** it says "Deadly" (D-066's flee line). DESIGN §16.6 is
   updated.
@@ -2762,3 +2763,20 @@ owning unit (PLAN §9.1).
   - the `'dialogueOutcome'` autosave reason.
 - **Known issues for the README** (from the fun pass): toasts pile up over the first fight; the class ability point is easy
   to miss.
+
+### D-153 · U91 merged: the release. The PR from `unraveling` into `main` is open, 2026-10-27
+- **Merged** (`a132d41`):
+  - continuity: STORY and WORLD now match the shipped content, plus three text fixes in the game;
+  - README and `docs/CONTENT.md`;
+  - 22 screenshots regenerated from the final build;
+  - REPORT.md's final sections, with the audit table and PLAN §10.7's checklist;
+  - `docs/PR.md`.
+- **Clean-clone audit** of `2b3b53d`:
+  - `npm run check` green (4,944 unit tests, JS 529.5 kB);
+  - full e2e 361 passed, 0 failed;
+  - proofs 81/81, endings 8/8;
+  - the production `dist/` served from `/Aethelgard/` with no 404s and no console errors.
+- **The lead's check of the PR body:** "Loop 1 Escape ≥ 97 %" matches BALANCE "After U82". The credit "a game by Tim
+  Dibert" is D-027's line and Tim's own git name.
+- The PR is opened by the lead with `gh` and is **not merged**: merging it and the one-time Pages setting are Tim's.
+  **C6.**

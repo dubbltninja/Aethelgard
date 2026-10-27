@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { memoryStorage, slotKey } from '@engine/index';
 import { ImportSection, SlotList, defaultImportSlot } from '@ui/panels/SavesPanel';
 import { PanelHost } from '@ui/panels/PanelHost';
-import { IMPORT_SLOTS, overwriteQuestion, previewCard, savedAtText, slotCards, slotName, type ImportDraft } from '@ui/panels/savesModel';
+import { IMPORT_SLOTS, loadQuestion, overwriteQuestion, previewCard, savedAtText, slotCards, slotName, type ImportDraft } from '@ui/panels/savesModel';
 import { createGameStore, type SlotInfo } from '@ui/store/gameStore';
 import { freshProfile } from '@ui/store/profile';
 import { GameProvider } from '@ui/store/useGame';
@@ -34,6 +34,13 @@ describe('slotCards', () => {
     const [, , three, auto] = slotCards(SLOTS, ctx);
     expect(three).toMatchObject({ headline: 'Damaged: this save cannot be read.', facts: ['version: is missing'], load: false, restore: true, exportLabel: 'Export raw text', exportFile: true, remove: true });
     expect(auto).toMatchObject({ restore: false, save: false, exportFile: true });
+  });
+
+  test('U84 (REPORT U79 #12): loading mid-run asks first, naming the newest save; at the title it does not', () => {
+    const later: SlotInfo = { slot: 'auto', status: 'ok', summary, savedAt: '2026-10-17T10:30:00.000Z' };
+    expect(loadQuestion(1, [ok(1), later], true)).toBe('Load slot 1? Unsaved progress since the last save (17 Oct 2026, 10:30) will be lost.');
+    expect(loadQuestion(1, [ok(1), later], false)).toBeNull();
+    expect(loadQuestion(3, SLOTS, true)).toBeNull(); // a damaged slot cannot be loaded
   });
 
   test('loading is off where the game cannot go back to the title (a fight)', () => {

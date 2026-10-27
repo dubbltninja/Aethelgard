@@ -284,6 +284,23 @@
   height: 100%;
 }
 
+/*
+ * U84 fun pass: a full ability bar (four branches and more wrap to three rows) left the boss's HP bar below the fold at
+ * 1280 × 800; on a wide screen up to 900 px tall the stage gives that room back, so the target's card is whole.
+ */
+@media (min-width: 760px) and (max-height: 899.98px) {
+  .combat:has(.ability-bar--compact .ability-bar__group:nth-child(4)) .combat-stage {
+    height: clamp(140px, 19vh, 190px);
+  }
+}
+
+/* U84 (D-148 leftovers): a landscape phone (844 × 390) gives the cards and the log the room; the stage is a strip */
+@media (max-height: 499.98px) {
+  .combat-stage {
+    height: clamp(96px, 26vh, 130px);
+  }
+}
+
 /* no focal glow on the stage: the figures are the light now */
 .combat-stage .scene__focus,
 .combat-stage .scene__portal {

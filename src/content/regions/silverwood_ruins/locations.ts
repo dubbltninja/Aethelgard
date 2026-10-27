@@ -97,7 +97,8 @@ export const locations = [
     // `chance`, rolled once a loop at the first entry where the condition holds (was hidden at 100 %, D-091 gap 1).
     items: [{ itemId: 'item_remnant_wax_seal', chance: 0.3, when: { all: [{ loop: { min: 2 } }, { echo: 'echo_nine_voices' }] } }],
     encounters: [
-      { id: 'enc_archway_prowler', groups: [{ creatureId: 'cr_mistwood_prowler' }], chance: 0.4, intro: 'The fog under the arch has eyes in it.' },
+      // U84 (REPORT U79 #3, DESIGN §16.8): from Loop 2 only, so Loop 1's first fight is the corridor Shade with its taught intents
+      { id: 'enc_archway_prowler', groups: [{ creatureId: 'cr_mistwood_prowler' }], chance: 0.4, when: { loop: { min: 2 } }, intro: 'The fog under the arch has eyes in it.' },
     ],
     events: [
       { id: 'ev_archway_whisper', text: "A whisper slips through the archway: 'Wayfinder... follow.'" },
@@ -201,12 +202,14 @@ export const locations = [
       // the alcove: `hidden` is the search sub-step (examine); echo_crystal_location skips it (D-010). D-098 (U34d): an
       // entry now waits for its condition, so the skipped search would add a second Crystal once the Echo is earned in
       // this very loop (by taking the first): it needs the Crystal not carried and its quest not done
-      { itemId: 'item_echo_crystal', hidden: true, when: { not: { echo: 'echo_crystal_location' } } },
+      // U84 (REPORT U79 #5): while Ilyra's quest is open the journal says "take the Crystal", so it lies in plain sight then;
+      // the alcove search is for one who comes without the quest or the Echo
+      { itemId: 'item_echo_crystal', hidden: true, when: { all: [{ not: { echo: 'echo_crystal_location' } }, { not: { quest: { id: 'q_echo_crystal' } } }] } },
       {
         itemId: 'item_echo_crystal',
         when: {
           all: [
-            { echo: 'echo_crystal_location' },
+            { any: [{ echo: 'echo_crystal_location' }, { quest: { id: 'q_echo_crystal', status: 'active' } }] },
             { not: { item: { id: 'item_echo_crystal' } } },
             { not: { quest: { id: 'q_echo_crystal', status: 'completed' } } },
           ],

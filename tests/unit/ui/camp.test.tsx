@@ -38,7 +38,7 @@ describe('campModel', () => {
     expect(m.restNotes[1]).toContain('A bed costs 10 gold');
     expect(m.restNotes[1]).toContain('You wake Rested');
     expect(m.respec.available).toBe(false);
-    expect(m.respec.text).toBe('You can only rethink your path at a camp fire.');
+    expect(m.respec.text).toBe('You can only rethink your path at a camp fire: rest at a place marked Camp or Wild camp.');
   });
 
   test('a bed you cannot pay for is off with the price; a running Horde says run', () => {

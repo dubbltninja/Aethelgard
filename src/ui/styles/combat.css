@@ -74,7 +74,8 @@
   align-content: stretch;
 }
 
-/* the hint's reserved place (U84a): first in the column, so the log gives way to it and nothing else moves */
+/* the hint's reserved place (U84a): first in the column, so the log gives way to it and nothing else moves (U84: on a short
+   screen the hint is one line, onboarding.css, so the log keeps its room) */
 .combat__side > .callout-slot {
   grid-row: 1;
 }

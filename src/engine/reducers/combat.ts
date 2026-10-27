@@ -591,6 +591,7 @@ function finishVictory(ctx: StepCtx, combat: CombatState, survived = false): voi
   if (gold > 0) apply({ gold }, ctx, { source: `encounter:${combat.encounterId}` });
   if (xp > 0) grantXp(ctx, xp);
   s.counters.fightsWon += 1;
+  quietTheWilds(s);
   clearEncounter(ctx, combat);
   recordSeen(ctx, combat);
   ctx.emit({ t: 'combatEnded', result: 'victory', rounds: combat.round, xp, gold, loot });
@@ -824,6 +825,7 @@ function finishFled(ctx: StepCtx, combat: CombatState): void {
   s.combat = null;
   enterMode(ctx, 'explore');
   s.counters.fled += 1;
+  quietTheWilds(s);
   recordSeen(ctx, combat); // U27
   ctx.emit({ t: 'combatEnded', result: 'fled', rounds: combat.round, xp: 0, gold: 0, loot: [] });
   applyAll(combat.onFleeEffects as Effect[], ctx, { source: `encounter:${combat.encounterId}` });
@@ -903,6 +905,16 @@ const fledThisStep = (ctx: StepCtx): boolean => ctx.events.some((e) => e.t === '
 
 // ---- arrival encounters --------------------------------------------------------------------------------------------------
 
+/**
+ * U84 (REPORT U79 #6, DESIGN §10.1 "the wilds go quiet"): `counters.custom` key holding the travel count up to which no
+ * wandering encounter rolls — set to the run's travels + QUIET_TRAVELS when a fight ends (won or fled).
+ */
+export const QUIET_UNTIL_COUNTER = 'quiet_until_travel';
+export const QUIET_TRAVELS = 2;
+function quietTheWilds(s: GameState): void {
+  s.counters.custom[QUIET_UNTIL_COUNTER] = s.counters.travels + QUIET_TRAVELS;
+}
+
 /** A region's wandering pool as it stands now: the entries whose `when` holds (U34d: the Barrow-light at dusk and night). */
 export function poolNow(ctx: StepCtx, regionId: string): { creatureId: string; weight: number }[] {
   const { s, profile, content } = ctx;
@@ -938,6 +950,8 @@ function wanderingEncounter(ctx: StepCtx, loc: Location, arrival: Arrival): Enco
     if (group) group.count += 1;
     else groups.push({ creatureId, count: 1 });
   }
+  // U84 (DESIGN §10.1 "the wilds go quiet"): the roll is still made (the run's draws do not shift), and then dropped
+  if (ctx.s.counters.travels <= (ctx.s.counters.custom[QUIET_UNTIL_COUNTER] ?? -1)) return null;
   // U34e: a wandering roll is an ambush (WORLD's "at ambush onset" hazards; a fixed group is one only when it says so)
   return { id: WANDERING_ENCOUNTER_ID, groups, fleeable: true, onFlee: 'previous', ambush: true, onVictory: [], onDefeat: [], onFleeEffects: [] };
 }

@@ -624,15 +624,16 @@ describe('played on the real pack (makeState + play: the engine runs the scenes)
     expect(alcove.state.quests.q_echo_crystal?.stage).toBe('take_crystal');
   });
 
-  test('the Crystal given: Remnants +15, the Crystal taken, 120 XP and 20 gold; verse I on the next talk (once); then the scroll is offered', () => {
+  test('the Crystal given: Remnants +15, the Crystal taken, 120 XP and 20 gold; the scroll offered in the same talk (U84); verse I on the next talk (once)', () => {
     const s = at({ locationId: 'loc_whispering_ruins', items: ['item_echo_crystal'], quests: { q_echo_crystal: 'return' } });
     const gold = s.player.gold;
-    const out = run(s, [talk('npc_ilyra'), pick('give'), go, go]);
+    const out = run(s, [talk('npc_ilyra'), pick('give'), go, go, pick('no'), go]);
     expect(out.state.reputation.remnants).toBe(15);
     expect(out.state.quests.q_echo_crystal?.status).toBe('completed');
     expect(out.state.player.inventory.some((i) => i.itemId === 'item_echo_crystal')).toBe(false);
     expect(out.state.player.gold).toBe(gold + 20);
     expect(out.events.filter((e) => e.t === 'xpGained').reduce((t, e) => t + (e as { amount: number }).amount, 0)).toBe(120);
+    // U84 (REPORT U79 #4): refused in the moment, the offer stands on a later talk, as before
     const next = run(out.state, [talk('npc_ilyra'), go, go]);
     expect(next.events.some((e) => e.t === 'echoGained' && e.echoId === 'echo_litany_verse_1')).toBe(true);
     const then = run(next.state, [talk('npc_ilyra')]);

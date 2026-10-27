@@ -131,6 +131,10 @@ describe('CombatView', () => {
     expect(calls).toEqual(['load auto', 'load 2', 'title']);
     const bare = expand(<CombatView {...props} fallen={{ loads: [], canTitle: true }} />);
     expect(byName(bare, 'button', 'Return to title').props['data-autofocus']).toBe('');
+    // U84 (REPORT U79 #8, D-049): the words match the offer — a save to load means the loop is not over
+    expect(renderToStaticMarkup(<CombatView {...props} fallen={fallen} />)).toContain('Load a save to go back before it');
+    expect(renderToStaticMarkup(<CombatView {...props} fallen={fallen} />)).not.toContain('This loop is over');
+    expect(renderToStaticMarkup(<CombatView {...props} fallen={{ loads: [], canTitle: true }} />)).toContain('This loop is over');
   });
 
   test('while communing the communion takes the bar; "Show abilities" brings it back', () => {

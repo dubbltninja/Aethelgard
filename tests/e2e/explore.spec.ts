@@ -93,7 +93,7 @@ test.describe('explore', () => {
 
     // keyboard: ↓ chooses the way south, Enter travels; ↑ and Enter come back
     await page.keyboard.press('ArrowDown');
-    await expect(exits(page).getByRole('button', { name: /^South: Sunken Archives, 1 watch/ })).toBeFocused();
+    await expect(exits(page).getByRole('button', { name: /^South: Sunken Archives, (Dangerous \(L\d+\+\), )?1 watch/ })).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(place(page, 'Sunken Archives')).toBeVisible();
     await expect(place(page, 'Sunken Archives')).toBeFocused(); // the new place's heading takes focus

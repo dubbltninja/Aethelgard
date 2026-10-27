@@ -109,6 +109,20 @@ export function previewCard(preview: RunPreview, className: (classId: string) =>
   };
 }
 
+/**
+ * U84 (REPORT U79 #12): loading over a run in progress asks first — "Unsaved progress since <the newest save> will be
+ * lost." Null at the title (no run to lose) or when the slot cannot be loaded.
+ */
+export function loadQuestion(slot: SaveSlot, slots: readonly SlotInfo[], midRun: boolean): string | null {
+  if (!midRun) return null;
+  const target = slots.find((s) => s.slot === slot);
+  if (target?.status !== 'ok') return null;
+  const times = slots.flatMap((s) => (s.status === 'ok' ? [s.savedAt] : [])).sort();
+  const newest = times[times.length - 1];
+  const since = newest === undefined ? 'this run began' : `the last save (${savedAtText(newest)})`;
+  return `Load ${slotName(slot).toLowerCase()}? Unsaved progress since ${since} will be lost.`;
+}
+
 /** The confirmation question before a slot is overwritten, or null when the slot is empty. */
 export function overwriteQuestion(slot: SaveSlot, current: SlotInfo | undefined, what: 'save' | 'import'): string | null {
   if (current === undefined || current.status === 'empty') return null;

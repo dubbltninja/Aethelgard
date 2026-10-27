@@ -75,7 +75,7 @@ export const ENDING_SCRIPTS: readonly EndingScript[] = [
     endingId: 'ending_weavers_dawn',
     name: "Loop 2 with the sign and Nyx's bond: her arc, the Heartstone exploited, her ask, the hold's failing",
     classId: CLASS,
-    seed: 'quest:dawn:c:4:u9', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
+    seed: 'quest:dawn:c:4:u9:u84:35', // U84 re-seed: the wilds go quiet after a fight (DESIGN §10.1); // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nyx_bond', 'echo_weaver_sign', 'echo_apex_resonance'], bestLevel: 20 },
     loops: [weaversDawn],
   },

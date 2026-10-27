@@ -81,6 +81,59 @@
   }
 }
 
+/*
+ * U84 (D-148 leftovers): a landscape phone (short screen) keeps the hint to one line in the dock — its title and the start
+ * of its words, the buttons beside them — so the cards and the log above keep their room. The full words stay in the
+ * note's accessible text (the paragraph is only clipped, not removed).
+ */
+@media (max-height: 499.98px) {
+  .callouts .callout,
+  .callout-slot .callout {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+    padding-block: var(--space-1);
+  }
+
+  .callouts .callout__icon,
+  .callout-slot .callout__icon {
+    display: none;
+  }
+
+  .callouts .callout__body,
+  .callout-slot .callout__body {
+    display: flex;
+    gap: var(--space-2);
+    min-width: 0;
+    align-items: baseline;
+  }
+
+  .callouts .callout__title,
+  .callout-slot .callout__title {
+    flex: none;
+  }
+
+  .callouts .callout__text,
+  .callout-slot .callout__text {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--type-small);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .callouts .callout__actions,
+  .callout-slot .callout__actions {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .callouts .callout__actions .btn,
+  .callout-slot .callout__actions .btn {
+    min-height: var(--target-min);
+  }
+}
+
 @keyframes callout-in {
   from {
     opacity: 0;

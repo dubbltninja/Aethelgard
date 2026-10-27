@@ -71,13 +71,14 @@ export const FORCED_TAG = 'forced:';
  * the first one is its opening intent, each next one follows when the one before is played, then its pattern from the start.
  * No draw: deterministic.
  */
-function forceOpening(ctx: StepCtx, spec: EncounterSpec, enemies: readonly Combatant[]): void {
+function forceOpening(ctx: StepCtx, spec: EncounterSpec, enemies: readonly Combatant[]): boolean {
   const forced = spec.forcedIntents;
-  if (forced === undefined || (forced.when !== undefined && !evaluate(forced.when, ctx.s, ctx.profile, ctx.content))) return;
+  if (forced === undefined || (forced.when !== undefined && !evaluate(forced.when, ctx.s, ctx.profile, ctx.content))) return false;
   for (const e of enemies) {
     const moves = ctx.content.creatures[e.refId]?.moves ?? {};
     for (const id of forced.moves) if (moves[id] !== undefined && !e.pattern.firedOnce.includes(`${FORCED_TAG}${id}`)) e.pattern.firedOnce.push(`${FORCED_TAG}${id}`);
   }
+  return true;
 }
 
 /** An encounter record (location or table) as a fight spec. */
@@ -497,7 +498,7 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
   if (spec.ambush) addTag(party[0] as Combatant, AMBUSH_TAG); // U34e: the onset hazards read it (reducers/combat.ts)
   shareInitiative(content, enemies); // U34e: the One Herd
   enemies.forEach((e, i) => void (spec.elites?.[i] && makeEliteVariant(e))); // Horde Rising (U34b)
-  forceOpening(ctx, spec, enemies); // U81a (D-121): the first fight's Wail, then Rake
+  const taught = forceOpening(ctx, spec, enemies); // U81a (D-121): the first fight's Wail, then Rake
   const canFlee = spec.fleeable && creatureIds.every((id) => content.creatures[id]?.fleeable ?? true);
 
   const combat: CombatState = {
@@ -523,6 +524,8 @@ export function beginCombat(ctx: StepCtx, spec: EncounterSpec): CombatState {
     pendingSelection: null,
   };
   startRound(combat, content);
+  // U84 (REPORT U79 #3, DESIGN §16.8): in a fight with forced intents the player acts first in round 1, so the opening intent is read before it lands
+  if (taught) combat.turnOrder = [party[0]!.uid, ...combat.turnOrder.filter((uid) => uid !== party[0]!.uid)];
   s.combat = combat;
   if (s.dialogue !== null) {
     ctx.emit({ t: 'dialogueEnded', sceneId: s.dialogue.sceneId });

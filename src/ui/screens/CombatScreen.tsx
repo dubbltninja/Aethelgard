@@ -102,6 +102,16 @@ export interface FallenModel {
 
 export type CombatMenuId = 'inventory' | 'bestiary' | 'help' | 'settings';
 
+/**
+ * U84 (REPORT U79 #8, D-049): the FALLEN words match what the screen offers — with a save to load, the loop is not over
+ * yet; with none, it is (the title is the only way on). What was learned stays with you either way.
+ */
+export function fallenText(fallen: Pick<FallenModel, 'loads'>): string {
+  return fallen.loads.length > 0
+    ? 'You fall, and the Breach closes over you. Load a save to go back before it, or return to the title. What you learned stays with you.'
+    : 'The Breach closes over you. This loop is over; what you learned stays with you.';
+}
+
 export interface CombatViewProps {
   title: string;
   regionId: string;
@@ -257,7 +267,7 @@ export function CombatView(p: CombatViewProps): ReactNode {
                 <h2 id="fallen-heading" className="fallen__title">
                   FALLEN
                 </h2>
-                <p className="fallen__text">The Breach closes over you. This loop is over; what you learned stays with you.</p>
+                <p className="fallen__text">{fallenText(p.fallen)}</p>
                 <div className="button-row">
                   {p.fallen.loads.map((l, i) => (
                     <Button key={String(l.slot)} variant={i === 0 ? 'primary' : 'secondary'} onClick={() => p.onLoad(l.slot)} data-autofocus={i === 0 ? '' : undefined}>

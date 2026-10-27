@@ -254,7 +254,8 @@ export function checkReadBook(s: GameState, content: ContentPack, action: Action
 export function checkRespec(s: GameState, content: ContentPack, profile: Readonly<Profile>): { plan: RespecPlan; cost: number } | string {
   const rest = content.locations[s.world.currentLocationId]?.rest;
   if (!rest || !RESPEC_REST_KINDS.includes(rest.kind) || (rest.when !== undefined && !evaluate(rest.when, s, profile, content))) {
-    return 'You can only rethink your path at a camp fire';
+    // U84 (REPORT U79 #13): say where to go — the place card and the map mark every usable camp fire "Camp" or "Wild camp"
+    return 'You can only rethink your path at a camp fire: rest at a place marked Camp or Wild camp';
   }
   if (s.player.uses[USES_RESPEC]?.day === dayOf(s.clock.ticks)) return 'You have already rethought your path today';
   const plan = respecPlan(s, content, profile);

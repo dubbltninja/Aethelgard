@@ -124,7 +124,9 @@ describe('the pacifist', () => {
       expect(r.closers).toHaveLength(1); // still ends its loop (the portal, or the Horde of the thirtieth dawn)
     }
     expect(runs.some((r) => r.fights.some((f) => f.result === 'fled'))).toBe(true);
-    expect(runs.some((r) => Object.keys(r.creaturesKilled).length > 0)).toBe(true);
+    // U84 (DESIGN §10.1 "the wilds go quiet"): a flight buys two travels with no wandering roll, so the pacifist is no longer
+    // cornered into a stand on this path; it still never stalls (the closer above) and never needs one
+    expect(runs.every((r) => !r.softLock.detected)).toBe(true);
   });
 
   test('a Loop 2+ communion run kills nothing and ends in an ending', () => {

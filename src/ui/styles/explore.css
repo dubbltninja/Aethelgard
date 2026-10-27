@@ -896,6 +896,24 @@
   display: none;
 }
 
+/* U84 (D-149 #1): the danger cue in words takes the name's line, on the half slots too (truncated, never reflowing) */
+.pad__threat {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+  color: var(--text-danger);
+}
+
+.pad__btn--half.pad__btn--threat .pad__name {
+  display: block;
+  font-size: 0.6875rem;
+}
+
+.pad__btn--half.pad__btn--threat .pad__threat {
+  font-size: inherit;
+}
+
 .pad__btn--locked {
   border-style: dashed;
   border-bottom-color: var(--line-strong);
@@ -1251,6 +1269,16 @@
   text-shadow: 0 0 3px var(--surface-base), 0 0 6px var(--surface-base);
 }
 
+.map-node__threat {
+  max-width: 6.75rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-danger);
+  white-space: nowrap;
+  text-shadow: 0 0 3px var(--surface-base), 0 0 6px var(--surface-base);
+}
+
 .map-node__marks {
   position: absolute;
   top: -6px;
@@ -1565,13 +1593,33 @@
   white-space: nowrap;
 }
 
-/* U84a: a hint's reserved place, just above the log (the log gives way to it; the pad and the actions never move) */
+/*
+ * U84a: a hint's place is the log's. U84 (D-148 leftovers): it lies over the top of the log's cell instead of taking a row
+ * of its own, so the docked map (1280 × 800) never shrinks while a hint is up; the log's newest lines stay at its foot.
+ */
 .explore__side > .callout-slot {
-  grid-row: 2;
+  grid-row: 3;
 }
 
 .explore__middle > .callout-slot {
-  grid-row: 3;
+  grid-row: 4;
+}
+
+.explore__side > .callout-slot,
+.explore__middle > .callout-slot,
+.explore__side > .event-log,
+.explore__middle > .event-log {
+  grid-column: 1; /* both definite, so the hint overlaps the log instead of opening a column beside it */
+}
+
+.explore__side > .callout-slot,
+.explore__middle > .callout-slot {
+  z-index: 2;
+  align-self: start;
+  /* under the log's heading row */
+  margin-top: calc(var(--target-min) + var(--space-2));
+  max-height: calc(100% - var(--target-min) - var(--space-2));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 35%);
 }
 
 .explore .callout-slot .callout {
@@ -1584,6 +1632,10 @@
 }
 
 /* the slot gives way too when room is short: it scrolls rather than push the pad or the log off the column */
+.callout-slot:empty {
+  box-shadow: none;
+}
+
 .callout-slot {
   min-height: 0;
   overflow-y: auto;

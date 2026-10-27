@@ -67,3 +67,53 @@ and the final audit. Each section is dated. Findings are numbered and carried to
 
 **Gates:** `npm run check` green (4,761 unit tests, the coverage gate, smoke 10/10); full e2e 343 passed, 15 skipped; replay
 parity in bun and in the browser.
+
+---
+
+## U84 fun pass — 2026-10-27
+
+**How it was played.** An `--e2e --real-art` build, driven by hand-written Playwright steps with screenshots after each beat, as a
+first-time player: desktop 1280×800 (Ranger) and a phone 390×844 (Shadow Weaver), plus the phone turned to 844×390.
+- **Loop 1, the first hour:** class select; Ilyra's quest; the Amulet; the Archway; the Corridor's Shade (the first fight);
+  the Library's Wisp; the Crystal; the walk back south; *Give*; the Lost Scroll.
+- **A boss and a death:** `?scenario=pre_tyrant_l13_ranger` (*Face it*), won at L13 with abilities (≈11 rounds; phases at
+  rounds 1, 6 and 8); lost at L13 with plain attacks only (round 15, Phase 3), which is the death and the Apex FALLEN screen.
+- **The long Tyrant (D-149 #6):** the Contained Tyrant at L13, 6 seeds per class with the melee bot (`runLoop` on the
+  scenario): elf 20–30 rounds, warden 13–22, weaver 15–20, ranger 10–14, wizard 7–10.
+
+**What was fun** (2026-10-27):
+- The first fight now teaches. The Shade is the first fight (the Archway's Prowler waits for Loop 2), you act first, the
+  Wail chip is read before it lands, Guard visibly halves the Rake. The hint sits beside the intent, not on the controls.
+- The first hour flows: the Crystal lies on the Library floor while the journal asks for it; Ilyra offers the Scroll in the
+  same talk; **0 fights on the 3-step walk back** (U79: ~35 % HP).
+- The Tyrant reads as a final boss: three phase banners with their lines, the segmented HP bar, Remember's rewind as a threat.
+- The Blood price toggle is clear on the phone sheet: "On · +25 %", the cost in red HP.
+
+**What dragged:**
+- **The elf's and warden's Tyrant (D-149 #6).** 20–30 rounds against the wizard's 7–10. The brief's "last 15 % faster" was
+  tried (×1.5 below 15 % HP): it saved about **one** round (elf 25 → 24 median), because the length is the whole fight
+  (armor 6 / ward 8, Brace shields, Remember's +46 HP), not a tail. **Ruled: not a slog to fix with a rule** — the three phase
+  banners and the Phase 3 round-12 trigger already pace it; the class spread is §19 #19's, accepted in D-149. Reverted; known
+  issue.
+- Remember rewinding +46 HP late in Phase 3 reads as lost progress (known issue).
+
+**What confused:**
+1. A full ability bar (13 tiles in five branches) at 1280×800 pushed the Tyrant's HP bar below the fold of its card. **Fixed:**
+   on a wide screen up to 900 px tall the stage shrinks when the bar has four or more branches.
+2. The pad's danger cue truncated to "Dangerous…", losing the level. **Fixed:** the cue's type is smaller so "Dangerous (L2+)"
+   fits the slot.
+3. Landscape phone (844×390): the hint (three lines) and a 210 px stage left no room for the card or the log. **Fixed:** on
+   short screens the hint is one line (title, the start of its words, its buttons) and the stage is a strip.
+4. At 1280×800 a hint shrank the docked map (D-148). **Fixed:** in explore the hint lies over the top of the log's cell, under
+   its heading, instead of taking a row. (Tried in a fight too: it hid the log's lines you click to read a hit, so a fight keeps
+   U84a's reserved row, and on short screens the hint is one line.)
+5. The Apex FALLEN said "This loop is over" while offering loads (U79 #8). **Fixed:** the words follow the offer.
+- Known issues (not fixed): at Level 1 every exit from the Ruins reads "Dangerous (L2+)" (the rule is the brief's; it is loud in
+  the first hour); four queued toasts ("Achievement: First Steps" +4) sit over the stage as the first fight opens; a new
+  character enters the first fight without a class ability unless the AP toast was heeded; the hint covers the log's only
+  line at the start of the first fight on desktop.
+
+**U84's other fixes, for the record:** the danger cue on the pad and the map (D-149 #1); the empowered Blood price (D-149 #4);
+U79 #3, #4, #5, #6 ("the wilds go quiet": 2 travels after any fight), #8, #11 (autosave on quest completion and after a
+flag-setting choice, written when the scene closes), #12 (load confirms mid-run), #13 (the place card says "Camp" only where
+the fire is usable; respec's refusal names the way).

@@ -10,7 +10,7 @@ import { useShell } from '../shellContext';
 import type { Result, SlotInfo } from '../store/gameStore';
 import { useContent, useGame, useStore } from '../store/useGame';
 import { downloadText, readFileText } from '../util/files';
-import { IMPORT_SLOTS, overwriteQuestion, previewCard, slotCards, slotName, type ImportDraft, type SlotCard } from './savesModel';
+import { IMPORT_SLOTS, loadQuestion, overwriteQuestion, previewCard, slotCards, slotName, type ImportDraft, type SlotCard } from './savesModel';
 
 export { savedAtText, slotName } from './savesModel';
 
@@ -226,7 +226,10 @@ export function SavesPanel(): ReactNode {
       <SlotList
         cards={cards}
         onLoad={(slot) => {
-          if (report(store.shell.load(slot))) shell.closePanel();
+          // U84 (REPORT U79 #12): mid-run, loading asks first
+          void ask(loadQuestion(slot, slots, mode !== 'title'), 'Load').then((yes) => {
+            if (yes && report(store.shell.load(slot))) shell.closePanel();
+          });
         }}
         onSave={save}
         onRestore={(slot) => {

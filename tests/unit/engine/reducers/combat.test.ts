@@ -15,6 +15,8 @@ import {
   FLAG_TYRANT_DEAD,
   NON_LETHAL_TAG,
   WANDERING_ENCOUNTER_ID,
+  QUIET_TRAVELS,
+  QUIET_UNTIL_COUNTER,
   applyHit,
   applyStatus,
   applyStatusRows,
@@ -203,6 +205,22 @@ describe('arrival encounters (ARRIVAL_HOOKS)', () => {
     expect(single.combat?.enemies.map((e) => e.refId)).toEqual([SHADE]);
     expect(go(pack, state(), []).mode).toBe('explore');
     expect(go(withMistwood([]), visited(), []).mode).toBe('explore');
+  });
+
+  test('U84 (DESIGN §10.1 "the wilds go quiet"): after a fight the next 2 travels roll no wandering encounter; the third does', () => {
+    const pack = combatPack();
+    const quiet = (travelsSince: number) =>
+      state({ patch: (st) => void ((st.world.locationStates[MISTWOOD] = emptyLs()), (st.counters.custom[QUIET_UNTIL_COUNTER] = st.counters.travels + QUIET_TRAVELS - travelsSince)) });
+    // the roll is still drawn (the run's draws never shift), then dropped
+    expect(go(pack, quiet(0), [D.no, 0.75]).mode).toBe('explore'); // the first travel after the fight
+    expect(go(pack, quiet(1), [D.no, 0.75]).mode).toBe('explore'); // the second
+    expect(go(pack, quiet(2), [D.no, 0.75, D.d4(4), D.d4(1)]).combat?.encounterId).toBe(WANDERING_ENCOUNTER_ID); // the third rolls
+    // a won fight sets it: the run's travels + 2
+    const fought = go(pack, visited(), [D.no, 0.75, D.d4(4), D.d4(1)]);
+    const shade = fought.combat!.enemies[0]!;
+    const won = scriptedStep(patched(fought, (c) => void (c.enemies[0]!.hp = 1)), { type: 'attack', targetUid: shade.uid }, [D.pct(0), D.variance(1), D.pct(99), ...Array<number>(40).fill(0.5)], pack, profile);
+    expect(won.state.mode).toBe('explore');
+    expect(won.state.counters.custom[QUIET_UNTIL_COUNTER]).toBe(won.state.counters.travels + QUIET_TRAVELS);
   });
 
   /** The combat pack with Mistwood's region pool (and its return chance) replaced, and its locations patched. */

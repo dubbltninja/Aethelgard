@@ -271,7 +271,9 @@ export function placeModel(s: GameState, content: ContentPack, profile: Pr): Pla
   const region = content.regions[loc.regionId];
   const band = loc.levelBand ?? region?.levelBand;
   const facts: string[] = [];
-  if (loc.rest !== undefined) facts.push(loc.rest.kind === 'inn' ? `Inn · ${plural(loc.rest.cost, 'gold', 'gold')}` : cap(loc.rest.kind));
+  // U84 (REPORT U79 #13): a rest whose `when` fails is not shown (the Library's nook said "Camp" before Ilyra opened it)
+  const rest = loc.rest !== undefined && (loc.rest.when === undefined || evaluate(loc.rest.when, s, profile, content)) ? loc.rest : undefined;
+  if (rest !== undefined) facts.push(rest.kind === 'inn' ? `Inn · ${plural(rest.cost, 'gold', 'gold')}` : rest.kind === 'wild' ? 'Wild camp' : cap(rest.kind));
   if (loc.merchantId !== undefined) facts.push(`Trader: ${content.npcs[loc.merchantId]?.name ?? loc.merchantId}`);
   if (loc.craftingStation !== undefined) facts.push(loc.craftingStation === 'forge' ? 'Forge' : cap(loc.craftingStation));
   if (loc.safe) facts.push('Safe');
@@ -289,6 +291,20 @@ export function placeModel(s: GameState, content: ContentPack, profile: Pr): Pla
     art: resolvedArt(s, content, profile, loc.id) ?? loc.art,
     infected: s.world.infected.includes(loc.id),
   };
+}
+
+// ---- the danger cue (U84, D-149 #1; DESIGN §16.6) -----------------------------------------------------------------------------
+
+/**
+ * A place whose level band starts above the party's level, in words (never colour alone): "Dangerous (L8+)" when it
+ * starts 1–2 levels above, "Deadly (L12+)" when 3 or more; null at or below the party's level, or for a safe place.
+ */
+export function threatCue(content: ContentPack, locationId: string, level: number): string | null {
+  const loc = content.locations[locationId];
+  if (loc === undefined || loc.safe) return null;
+  const band = loc.levelBand ?? content.regions[loc.regionId]?.levelBand;
+  if (band === undefined || band.min <= level) return null;
+  return `${band.min - level >= 3 ? 'Deadly' : 'Dangerous'} (L${band.min}+)`;
 }
 
 // ---- exits (ExitBar) ---------------------------------------------------------------------------------------------------------
@@ -328,6 +344,8 @@ export interface ExitRow {
   reason: string | null;
   /** The destination is Horde-infected: entering costs HP. */
   danger: string | null;
+  /** U84: the destination's band starts above the party's level: "Dangerous (L8+)" / "Deadly (L12+)" (`threatCue`). */
+  threat?: string | null;
   road: boolean;
 }
 
@@ -355,6 +373,7 @@ export function exitRows(s: GameState, content: ContentPack, profile: Pr, legal:
       canGo: isLegal({ type: 'move', to: exit.to }),
       reason: state === 'locked' ? lockedReason(s, content, profile, here, exit) : null,
       danger: infected ? exit.dangerText ?? `⚠ −${hpPct}% HP: the Horde is there` : null,
+      threat: threatCue(content, exit.to, s.player.level),
       road: exit.kind === 'road',
     });
   }

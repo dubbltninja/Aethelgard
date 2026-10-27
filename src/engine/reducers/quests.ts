@@ -175,7 +175,8 @@ export const questPostStep: PostStepHook = (ctx) => {
   }
   shortcutsFrom(ctx, shortcutsSeen);
   const completed = ctx.events.some((e) => e.t === 'questCompleted');
-  if (completed && (ctx.s.mode === 'explore' || ctx.s.mode === 'threshold')) autosave(ctx, 'questCompleted');
+  // U84 (REPORT U79 #11): inside a scene too — the shell writes a checkpoint reached in a scene when the scene closes
+  if (completed && (ctx.s.mode === 'explore' || ctx.s.mode === 'threshold' || ctx.s.mode === 'dialogue')) autosave(ctx, 'questCompleted');
 };
 
 // ---- acceptQuest ----------------------------------------------------------------------------------------------------------

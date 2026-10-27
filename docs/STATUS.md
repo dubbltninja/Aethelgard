@@ -130,7 +130,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U81b1 | Fair bots (class-aware casting, Blood price, a real speedrunner, danger, pacifist stalls, quest following, scenario kits) + mid batch (D-145) — brief `briefs/u81b1.md` | Opus | ✅ 1d4e33e (spot-reviewed; resumed after a restart) — 0 soft-locks, 73/73 locations, deaths 1.6–3.8; D-146 |
 | U81b2 | Tune every DESIGN §19 row from BALANCE.md's after-U81b1 numbers — brief `briefs/u81b.md` | Opus | ✅ done (D-149) |
 | U84a | Stable layout: fixed movement pad, combat controls that never jump, phones without page-scrolling (Tim, D-147) — brief `briefs/u84a.md` | Opus | ✅ done (D-148) |
-| U82 | Soft-lock and coverage punch list, FALLEN memory, bot shopping, a 1,000-run batch (D-150) — brief `briefs/u82.md` | Opus | 🔄 running (4408) |
+| U82 | Soft-lock and coverage punch list, FALLEN memory, bot shopping, a 1,000-run batch (D-150) — brief `briefs/u82.md` | Opus | ✅ done (D-151) |
 | U84 | Merges U83–U87: playtest fixes, danger cue, empowered Blood price, fun pass (D-150) — brief `briefs/u84.md` | Opus | 🔄 running (4409) |
 | U91 | Merges U88–U91: continuity, docs, screenshots, Pages, audit, PR to main (D-150) | Opus | ⏳ after U82 + U84 |
 | U75 | Region ambience, Threshold drone, Tyrant theme — brief `briefs/u75.md` | Sonnet | ✅ 23d0c9c (spot-reviewed) — 14 ambient beds, Threshold drone, Tyrant theme; 4524 tests; JS 520 kB; D-134 |

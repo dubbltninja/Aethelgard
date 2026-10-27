@@ -2707,3 +2707,26 @@ owning unit (PLAN §9.1).
     audit, and the PR from `unraveling` into `main`.
 - **The C5 bar is relaxed:** 1,000 runs, and every §19 row either passes or carries its D-149 ruling. The three fun
   reviews become one fun pass. These trade-offs are Tim's call for speed, and the README lists them.
+
+### D-151 · U82 merged; the last balance rulings, 2026-10-27
+- **Merged** (`b045e21`):
+  - 1,499 runs (990 main, 420 scenario, 8 ending scripts, 81 proofs): 0 engine errors, 0 soft-locks, determinism
+    200/200;
+  - coverage: quests 49/49, locations 73/73, endings 8/8, creatures 70/71 (two Loop 4+ creatures by design);
+  - four items with no source are now placed where WORLD puts them (the Archivist's Circlet, the Oathplate, Borin's
+    Hallow's Hammer pattern, the Warder Plate), and `reachability.test` fails on anything unplaced;
+  - the bots remember FALLEN fights (replays 181 → 54) and shop (end-of-loop gold 1,286 → 923);
+  - PLAN §7.5 and DESIGN §10.1 amended (D-149);
+  - 8 of 20 §19 rows pass.
+- **Rulings (wrap-up, D-150):**
+  1. **#3 in band:** the Drowned Reach and the Highlands are still too lethal; 8 violations. Accepted for this release
+     as a README known issue, now that U84's danger cue warns the player.
+  2. **#9:** the caster bot's 47 % zero-death loops against a 55 % target is accepted. The sample is small (N=20 per
+     class), and its in-band deaths are 0.73.
+  3. **G1** counts the policy bots only. The random bot is a stress bot with no memory by design. Its 2 of 990
+     FALLEN stops are noted.
+  4. **Gold (#14):** 923 at the end of Loop 1 is over the ~400 bar, but gold resets at the Threshold, so a surplus costs
+     no choices in later loops. **No sink in this release**: it goes under "what's next" (D-149 #5 is superseded). U84 is
+     not given more scope.
+- **Deviations accepted:** the Apex retried after 1 level, not 2; the runner's hand save; `FightRecord` gains
+  `locationId` and `loop` (sim-only type).

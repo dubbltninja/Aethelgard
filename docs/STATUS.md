@@ -128,7 +128,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U81c | Flee: always fall back; quest-drop groups hold, never scatter (Tim's bugs, D-143) — brief `briefs/u81c.md` | Opus | ✅ 7565887 (spot-reviewed) — fall back on every flee; 34 quest-drop groups regroup at dawn; pacifist 26 locations; D-144 |
 | U80 | 2,000-run balance batch → `BALANCE.md` — brief `briefs/u80.md` | Sonnet | ✅ 2c30985 (spot-reviewed) — 4,835 runs; 3/20 §19 rows pass; BALANCE.md; D-145 |
 | U81b1 | Fair bots (class-aware casting, Blood price, a real speedrunner, danger, pacifist stalls, quest following, scenario kits) + mid batch (D-145) — brief `briefs/u81b1.md` | Opus | ✅ 1d4e33e (spot-reviewed; resumed after a restart) — 0 soft-locks, 73/73 locations, deaths 1.6–3.8; D-146 |
-| U81b2 | Tune every DESIGN §19 row from BALANCE.md's after-U81b1 numbers — brief `briefs/u81b.md` | Opus | 🔄 running (4404) |
+| U81b2 | Tune every DESIGN §19 row from BALANCE.md's after-U81b1 numbers — brief `briefs/u81b.md` | Opus | ✅ done (D-149) |
 | U84a | Stable layout: fixed movement pad, combat controls that never jump, phones without page-scrolling (Tim, D-147) — brief `briefs/u84a.md` | Opus | ✅ done (D-148) |
 | U75 | Region ambience, Threshold drone, Tyrant theme — brief `briefs/u75.md` | Sonnet | ✅ 23d0c9c (spot-reviewed) — 14 ambient beds, Threshold drone, Tyrant theme; 4524 tests; JS 520 kB; D-134 |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
@@ -246,26 +246,23 @@ drowned (= Drowned Archivist); Hallow walked. Prior Wayfinders: years 44/110/178
 
 ## 4. Next actions, in order
 
-Done since U69: U70, U57, U58, U71, the art (both sessions), U72, U59, U73a, U73, U61, U62a, U74, U75, U62 + U62b (D-121…D-136).
-**All content is complete; the game is playable with art and sound.** After every UI merge the lead runs the **full** e2e suite
+Done since U69: U70, U57, U58, U71, the art (both sessions), U72, U59, U73a, U73, U61, U62a, U74, U75, U62 + U62b, U76–U80,
+U81a, U81c, U81b1, U81b2, U84a (D-121…D-149). **All content is complete; 8/8 endings are reachable by play; §19: 7 of 20 rows
+pass and the rest are ruled (D-149); the layout is fixed (D-148).** After every UI merge the lead runs the **full** e2e suite
 (D-120) on `E2E_PORT=4380`; parallel units each get their own port (D-132).
 
-1. **U76** (Sonnet; content tests — counts, reachability, legacy text, codex voice, static balance) · **U77** (Sonnet; Playwright
-   flows, mobile, noNetwork, persistence, replay) · **U78** (Sonnet; in-repo a11y checks, gallery and screenshot specs).
-   These three can run in parallel (separate ports).
-2. **U79** (Opus; integration checkpoint: saves frozen at `version: 1`, fixture traces, Loop 1 → Loop 2 by hand).
-3. **Balance:** U80 (Sonnet; 2,000-run batch → `BALANCE.md`) → U81 (Opus; tuning against DESIGN §19). Open flags:
-   - **ending D unreachable by play** (D-123);
-   - bots guarding forever; Drowned Reach at L6 in Loop 2 (D-110); the Nexus chain (D-109); Tyrant numbers (D-101; a button-pressing L13 player loses to the Contained Tyrant, D-138); Warden vs
-     bosses (D-089);
-   - Ilyra's loyalty arithmetic for E (D-113); the affix on Uncommon upgrade (D-118);
-   - the achievement engine and 13 `tally_*` counters (D-119); the first fight's forced intents (D-121);
-   - the Cairns, Scriptorium and Windward fights (D-122); 9 out-of-band creature placements, Vell's Umbra at L16, the shared
-     "Stutter" name (D-137).
-
-   Then U82 (Opus; soft-lock and coverage punch list — **C5 verified**).
-4. **Fun reviews:** U83/U85/U87 (planned ✦ Fable; given Tim's Fable budget, D-134, run them on Opus unless Fable is available),
-   fixes U84/U86, U88 continuity, U89 docs, U90 screenshots + Pages, U91 the final audit + the PR to `main` — **C6**.
+1. **U82** (Opus; soft-lock and coverage punch list, **C5**). Also from D-149: the bots remember a FALLEN fight and don't
+   replay it; a buy-what-you-need shopping policy; re-measure #3, #9 inside the band and gold at the end of the loop.
+2. **Fun reviews:** U83/U85/U87 (planned ✦ Fable; run on Opus given Tim's Fable budget, D-134). Include D-148's "still looks
+   off" items, the Tyrant's 24–25-round fights for the elf and warden (D-149 #6), and a lore-fitting gold sink (D-149 #5).
+3. **Fixes U84/U86:**
+   - REPORT U79's open items: autosave after choices, a confirmation before loading, Ilyra revisit cues, the Echo Crystal
+     hint, backtrack re-fights, the FALLEN text, the respec camp message;
+   - the danger cue (D-149 #1);
+   - an empowered Blood price (D-149 #4);
+   - the gold sink if U82 shows one is needed.
+4. **U88** continuity (Caelum's *Skipped Beat* in STORY; WORLD's creature rows), **U89** docs, **U90** screenshots + Pages,
+   **U91** the final audit + the PR to `main`: **C6**.
 
 ## 4b. Dev quickstart
 

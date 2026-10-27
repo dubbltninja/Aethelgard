@@ -2656,3 +2656,41 @@ owning unit (PLAN §9.1).
 - **Still looks off → the fun reviews (U83/U85) and U84:** at 1280×800 the docked map gets short while a hint is up; the
   landscape phone (844×390) is cramped and a hint squeezes the log; a wide fight against one weak enemy leaves empty space;
   the Up/Down/In/Out corners are empty most of the time.
+
+### D-149 · U81b2 merged: §19 tuning, and the lead's rulings on the rows left open, 2026-10-27
+- **Merged** (`69d528d`): 7 of 20 §19 rows pass (U80: 3). Loop 1 Escape is 75–100 % per class (worst: ranger). The
+  Contained Tyrant's Fracture brings 1 Aberration (none solo) and its Unraveling is 0.8·SP. Piercing Arrow, Lightning Bolt
+  and Flurry get a 1-turn cooldown (top share 34.3 %). Six lethal fights are softened, the Drowned Reach hits 2 softer
+  (D-110), and the Golems are 90 / 12 / 3 (D-140). Vell's Umbra is L15. Caelum's move is *Skipped Beat* (the Wizard keeps
+  *Stutter*), and Ilyra's and Brak's arc stages pay +6 (D-113). Plus the generic-Accept fix (D-146). Bot-only changes:
+  `apexDue`, `GIVE_UP_ROUND` 45, `idleRoam`. 0 errors, 0 soft-locks, determinism 40/40 in 1,036 runs. Proofs 81/81,
+  endings 8/8.
+- **The lead's rulings** (the reasons are in BALANCE.md "Rulings asked for"):
+  1. **#3, #9 (difficulty, deaths):**
+     - Accepted as band-entry deaths: a player who walks into the Drowned Reach at L3 should get hurt. But the game must
+       *say so*, so U84 adds a danger cue (the location's band vs the party's level on the pad and the map, in words, not
+       colour alone).
+     - The bots' FALLEN-replay loop (181 identical defeats) is a bot bug → U82 (the bot remembers a FALLEN fight and doesn't
+       re-enter it at the same level).
+     - #3 and #9 are re-measured inside the band.
+  2. **#8 (fight length):** measured at level parity (the player within 1 level of the strongest foe), as DESIGN §6.6
+     intends. It is in band there. PLAN §7.5 is amended.
+  3. **#10, #11 (loop duration, level at the Apex):** accepted. A thorough Loop 1 can't see everything; that's the premise
+     of the loop. DESIGN §10.1's "~60 travels" becomes the measured ~124 for a full sweep. The clock stays D-017's
+     (Borin's and STORY's lines are written to it).
+  4. **#12 (ability usage, Blood price):**
+     - Usage of 72–85 % is accepted: abilities are the fun part, and the new cooldowns already stop one-button play.
+     - Blood price at 2 % is not accepted, because it is the Weaver's identity mechanic and almost never comes up. **U86**
+       (engine, small) makes it a choice instead of a last resort: a Blood-priced cast is **empowered (+25 % effect)**, so
+       a healthy Weaver chooses to pay in blood. The bots pay when HP > 60 %. Target: 10–30 % of Weaver casts.
+     - DESIGN §5 is edited first.
+  5. **#14 (economy):** first check whether the bots ever shop (DESIGN §9's sinks exist: consumables, gear, upgrades,
+     inns, recipes). **U82** adds a buy-what-you-need policy and re-measures. If gold still piles up past ~400 at the end of
+     the loop, **U86** adds a sink that fits the lore: the fun review proposes it.
+  6. **#15:** the speedrunner's 12 % expiry is accepted; it is a stress bot. **#19:** the Tyrant's rounds follow class
+     damage. The elf's and warden's 24–25 rounds go to the fun review (does a long fight against the final boss feel
+     epic or like a slog?), not to a Tyrant number. **#16, #20:** thin samples, accepted. **#18:** dropped for this
+     release (it needs an engine hook; no player-facing effect).
+  7. **D-137's 9 pins kept. D-122, D-089 and D-109 are closed** (in band in play).
+- **Contradictions → U88 (continuity):** STORY still calls Caelum's move *Stutter*; WORLD's creature rows don't match the
+  retuned numbers.

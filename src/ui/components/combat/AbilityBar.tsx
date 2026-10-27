@@ -14,6 +14,12 @@ export interface AbilityBarProps {
   onUse: (tile: AbilityTileModel) => void;
   /** More controls at the end of the bar (the Commune toggle). */
   extra?: ReactNode;
+  /**
+   * U84a: the wide screen's fixed control row — every tile one size, its lines reserved, and what a tile does shown in one
+   * reserved strip under the bar while the tile is pointed at or focused (instead of a disclosure under each tile, which
+   * would change the bar's height). Touch screens get the full grid with its disclosures in the Abilities sheet.
+   */
+  compact?: boolean;
 }
 
 interface Group {
@@ -41,9 +47,9 @@ function tileIcon(tile: AbilityTileModel): IconKind {
   return tile.target === 'ally' ? 'heal' : 'ability';
 }
 
-export function AbilityBar({ tiles, targetName, onUse, extra }: AbilityBarProps): ReactNode {
+export function AbilityBar({ tiles, targetName, onUse, extra, compact = false }: AbilityBarProps): ReactNode {
   return (
-    <section className="ability-bar" aria-labelledby="abilities-heading">
+    <section className={compact ? 'ability-bar ability-bar--compact' : 'ability-bar'} aria-labelledby="abilities-heading">
       <h2 id="abilities-heading" className="section-heading">
         Attack and abilities
       </h2>
@@ -86,7 +92,11 @@ export function AbilityBar({ tiles, targetName, onUse, extra }: AbilityBarProps)
                     ) : null}
                     {tile.reason === null ? null : <span className="tile__reason">{tile.reason}</span>}
                   </button>
-                  {tile.description === '' ? null : (
+                  {tile.description === '' ? null : compact ? (
+                    <p className="ability-bar__info tile__info" aria-hidden="true">
+                      <span className="tile__info-name">{tile.name}:</span> {tile.description}
+                    </p>
+                  ) : (
                     <details className="ability-effects">
                       <summary aria-label={`${tile.name}: effects`}>Effects</summary>
                       <p>{tile.description}</p>
@@ -99,6 +109,11 @@ export function AbilityBar({ tiles, targetName, onUse, extra }: AbilityBarProps)
         ))}
         {extra === undefined || extra === null ? null : <div className="ability-bar__extra">{extra}</div>}
       </div>
+      {compact ? (
+        <p className="ability-bar__info ability-bar__hint" aria-hidden="true">
+          Point at an ability, or focus it, to read what it does.
+        </p>
+      ) : null}
     </section>
   );
 }

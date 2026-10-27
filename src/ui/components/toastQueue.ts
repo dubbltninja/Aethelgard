@@ -49,9 +49,12 @@ export function toastText(item: Pick<ToastItem, 'label' | 'amount' | 'unit' | 'c
   return item.count > 1 ? `${item.label} ×${item.count}` : item.label;
 }
 
-/** Adds a toast, or merges it into the live one with the same key. */
-export function enqueue(queue: ToastQueue, spec: ToastSpec, now: number): ToastQueue {
-  const expiresAt = now + lifetime(spec.tone);
+/** On a phone a toast stays this much of its time (U84a: the screen is small, so it clears sooner). */
+export const PHONE_LIFETIME_SCALE = 0.7;
+
+/** Adds a toast, or merges it into the live one with the same key. `scale` shortens its life (PHONE_LIFETIME_SCALE). */
+export function enqueue(queue: ToastQueue, spec: ToastSpec, now: number, scale = 1): ToastQueue {
+  const expiresAt = now + Math.round(lifetime(spec.tone) * scale);
   const at = queue.items.findIndex((t) => t.key === spec.key && t.expiresAt > now);
   if (at >= 0) {
     const live = queue.items[at] as ToastItem;

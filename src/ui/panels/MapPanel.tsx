@@ -8,7 +8,7 @@
 // Two placements, one component: the overlay panel (M, the Map button; PANEL_COMPONENTS) and, on wide desktops,
 // docked in the Explore screen's side column (PLAN §6.3 "docked on desktop ≥ 1100px"). The container holds the
 // selection and the keys; `MapView` is pure.
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { Icon } from '../art/Icon';
 import { scenePalette } from '../art/palettes';
 import { Button, cx } from '../components/Button';
@@ -318,6 +318,16 @@ export function MapPanel({ docked = false }: { docked?: boolean } = {}): ReactNo
   useLayoutEffect(() => {
     centerOn(viewportRef.current, current);
   }, [current?.px, current?.py]);
+  // U84a: a docked map's cell changes size as the screen settles (a hint above the log, a resize): keep the Wayfinder centred
+  const here = useRef(current);
+  here.current = current;
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!docked || viewport === null || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => centerOn(viewport, here.current));
+    ro.observe(viewport);
+    return () => ro.disconnect();
+  }, [docked]);
 
   return (
     <div ref={rootRef} className="map-panel" data-docked={docked ? 'true' : 'false'}>

@@ -79,7 +79,7 @@ describe('CombatView', () => {
     const h1 = all(tree, 'h1');
     expect(h1.map(nameOf)).toEqual(['Corrupted Shade A and Corrupted Shade B']);
     expect(all(tree, 'ul').find((n) => n.props['aria-label'] === 'Enemies')?.children).toHaveLength(2);
-    expect(all(tree, 'h2').map(nameOf)).toEqual(['Wayfinder', 'Attack and abilities', 'Ilyra', 'Combat log']);
+    expect(all(tree, 'h2').map(nameOf)).toEqual(['Ilyra', 'Combat log', 'Wayfinder', 'Attack and abilities']); // (U84a: the turn's controls are the screen's last row)
     expect(all(tree, 'ol').find((n) => n.props.role === 'log')).toBeDefined();
     expect(all(tree, 'aside').map((n) => n.props['aria-label'])).toEqual(['What changed', 'Combat log']);
     const html = renderToStaticMarkup(<CombatView {...props} />);

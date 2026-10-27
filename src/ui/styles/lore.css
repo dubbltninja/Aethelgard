@@ -679,3 +679,68 @@
 .map-node__quest {
   color: var(--text-gold);
 }
+
+/*
+ * U84a (D-147): the panels use the screen. A phone opens them as full-height sheets; from 1200 px they are wide and tall,
+ * the list beside the entry, and each scrolls by itself (the page and the panel's frame never do).
+ */
+@media (max-width: 759.98px) {
+  .modal-backdrop > .modal.panel--inventory,
+  .modal-backdrop > .modal.panel--equipment,
+  .modal-backdrop > .modal.panel--abilities,
+  .modal-backdrop > .modal.panel--merchant,
+  .modal-backdrop > .modal.panel--crafting,
+  .modal-backdrop > .modal.panel--journal,
+  .modal-backdrop > .modal.panel--codex,
+  .modal-backdrop > .modal.panel--bestiary,
+  .modal-backdrop > .modal.panel--timeline,
+  .modal-backdrop > .modal.panel--achievements,
+  .modal-backdrop > .modal.panel--map {
+    height: 92dvh;
+  }
+}
+
+@media (min-width: 1200px) {
+  .modal-backdrop > .modal.panel--inventory,
+  .modal-backdrop > .modal.panel--equipment,
+  .modal-backdrop > .modal.panel--abilities,
+  .modal-backdrop > .modal.panel--merchant,
+  .modal-backdrop > .modal.panel--crafting,
+  .modal-backdrop > .modal.panel--journal,
+  .modal-backdrop > .modal.panel--codex,
+  .modal-backdrop > .modal.panel--bestiary,
+  .modal-backdrop > .modal.panel--timeline,
+  .modal-backdrop > .modal.panel--achievements,
+  .modal-backdrop > .modal.panel--map {
+    --panel-h: min(92dvh, 70rem);
+    width: min(110rem, calc(100vw - 4rem));
+    height: var(--panel-h);
+    max-height: none;
+  }
+
+  .modal.panel > .modal__body {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .modal.panel .lore:not(.lore--single) {
+    grid-template-columns: minmax(18rem, 28rem) minmax(0, 1fr);
+  }
+
+  /* the list and the entry each scroll inside the panel's height (header, intro and filters above them) */
+  .modal.panel .lore__list,
+  .modal.panel .lore:not(.lore--single) > .lore__detail {
+    max-height: calc(var(--panel-h, 80dvh) - 15rem);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .modal.panel .lore__detail {
+    padding-right: var(--space-2);
+  }
+
+  /* prose keeps a reading measure */
+  .modal.panel .lore__detail p {
+    max-width: 75ch;
+  }
+}

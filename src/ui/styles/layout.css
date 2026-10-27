@@ -31,6 +31,35 @@
   background: var(--surface-base);
 }
 
+/*
+ * U84a (D-147): explore and combat are one screen. The frame is exactly the viewport: the screen fills what the dock leaves,
+ * scrolls inside its own regions (never the page), and the dock — callouts, the screen's pinned controls, the tab bar, the
+ * legend — sits on the bottom edge. The dock grows upward, so a hint above the controls never moves them.
+ */
+.app[data-mode="explore"],
+.app[data-mode="combat"] {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app[data-mode="explore"] > .screen-host,
+.app[data-mode="combat"] > .screen-host {
+  min-height: 0;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+}
+
+.app[data-mode="explore"] > .screen-host > *,
+.app[data-mode="combat"] > .screen-host > * {
+  height: 100%;
+}
+
+.app[data-mode="explore"] .dock,
+.app[data-mode="combat"] .dock {
+  position: relative;
+}
+
 .legend-bar {
   padding: var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line-soft);
@@ -39,9 +68,18 @@
   font-size: var(--type-small);
 }
 
-/* Touch-only devices have no keys to show. */
-@media (hover: none) and (pointer: coarse) {
-  .legend-bar {
+/* a legend that wraps to a third line would lift everything above it: two lines are kept, whatever they hold (? lists all) */
+.app[data-mode="explore"] .legend-bar,
+.app[data-mode="combat"] .legend-bar {
+  height: calc(2 * 1.75rem + 2 * var(--space-2) + 1px + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+/* Touch-only devices have no keys to show; nor does a phone-sized window, where the dock's room goes to the thumb (? lists them). */
+@media (hover: none) and (pointer: coarse), (max-width: 759.98px) {
+  .legend-bar,
+  .app[data-mode="explore"] .legend-bar,
+  .app[data-mode="combat"] .legend-bar {
     display: none;
   }
 }
@@ -52,13 +90,53 @@
   right: var(--gutter);
   z-index: 60;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: var(--space-2);
   width: min(24rem, calc(100vw - 2 * var(--gutter)));
   pointer-events: none;
 }
 
-.toasts > * {
+/* U84a: a toast's words let a click through to what lies under them (a panel's button); only its own buttons take one */
+.toasts > .toast-count,
+.toasts .toast__dismiss {
   pointer-events: auto;
+}
+
+.toasts > .toast {
+  grid-column: 1;
+}
+
+/* U84a: one compact stack — the newest toast, the older ones folded into a count beside it */
+.toasts > .toast--folded {
+  display: none;
+}
+
+.toast-count {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: var(--target-min);
+  min-height: var(--target-min);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface-panel);
+  color: var(--text-primary);
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+/* anchored over the scene or stage (the Shell measures it): small type, at most two lines each, the band's height at most */
+.toasts[data-anchored="true"] {
+  overflow: hidden;
+}
+
+.toasts[data-anchored="true"] .toast__text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .modal-backdrop {
@@ -150,6 +228,11 @@
 
   .app[data-mode="explore"] ~ .toasts {
     bottom: calc(var(--space-4) + 4.5rem + env(safe-area-inset-bottom));
+  }
+
+  /* the explore tab bar is a little shorter, so the place keeps more of a small screen */
+  .app[data-mode="explore"] .tab-bar__tab {
+    min-height: 3.25rem;
   }
 }
 

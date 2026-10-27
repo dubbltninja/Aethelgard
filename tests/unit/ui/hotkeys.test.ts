@@ -164,6 +164,19 @@ describe('legend', () => {
     expect(legendItems([{ ...layers[0]!, modal: true }, layers[1]!])).toEqual([{ keys: ['enter'], label: 'Choose' }]);
     expect(legendItems(layers, 1)).toHaveLength(1);
   });
+
+  test('in a fight the panel letters show with Shift, so "I" is listed once (REPORT U79 #9)', () => {
+    const layers: HotkeyLayer[] = [
+      { id: 'screen', scope: 'Combat', map: { i: { run: run(), label: 'Use an item', group: 'action' } } },
+      { id: 'global', scope: 'Anywhere', map: { i: { run: run(), label: 'Inventory', group: 'panel' }, 'ctrl+m': { run: run(), label: 'Mute' } } },
+    ];
+    expect(legendItems(layers, 8, true)).toEqual([
+      { keys: ['i'], label: 'Use an item' },
+      { keys: ['shift+i'], label: 'Inventory' },
+      { keys: ['ctrl+m'], label: 'Mute' },
+    ]);
+    expect(legendItems(layers)[1]).toEqual({ keys: ['i'], label: 'Inventory' });
+  });
 });
 
 describe('registry', () => {

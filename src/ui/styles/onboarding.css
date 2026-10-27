@@ -7,6 +7,12 @@
   min-width: 0;
 }
 
+/*
+ * U84a (D-147, REPORT U79 #2): a hint never moves or hides the controls (Callouts.tsx places it).
+ *   - Phones (and the phone fight layout): it stays in the dock, above the pinned bar or pad. The dock grows upward, so the
+ *     controls under the thumb keep their place; the screen above scrolls inside a little less room.
+ *   - Wide screens: it takes the reserved place just above the log (.callout-slot in explore.css and combat.css).
+ */
 .callouts:empty {
   display: none;
 }
@@ -48,16 +54,30 @@
 }
 
 @media (max-width: 759.98px) {
+  /* compact: the words, and the two buttons stacked beside them */
   .callout {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
   }
 
   .callout__icon {
     display: none;
   }
 
+  .callout__text {
+    font-size: var(--type-small);
+  }
+
   .callout__actions {
-    justify-content: flex-start;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .callout__actions .btn {
+    min-height: var(--target-min);
+    padding-inline: var(--space-2);
+    font-size: var(--type-small);
   }
 }
 

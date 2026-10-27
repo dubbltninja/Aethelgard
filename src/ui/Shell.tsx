@@ -10,7 +10,7 @@
 // Pattern for later screens: render inside <Shell> (App does), declare keys with useHotkeys, open panels with
 // useShell().openPanel, ask yes/no with useShell().confirm, and never manage focus by hand: give the view's first
 // control `data-autofocus` (or rely on its heading) and the Shell focuses it when the screen changes.
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { announceStep } from './a11y/announce';
 import { focusView, isTextEntry, nativeKeysOf } from './a11y/focus';
 import { LiveRegion, type Announcement } from './a11y/LiveRegion';
@@ -23,9 +23,9 @@ import { Modal } from './components/Modal';
 import { TabBar } from './components/TabBar';
 import { Toasts, noticeLifetime } from './components/Toasts';
 import { toastsFor } from './components/toastModel';
-import { EMPTY_QUEUE, dismiss as dismissToast, enqueue, expire, nextExpiry } from './components/toastQueue';
+import { EMPTY_QUEUE, PHONE_LIFETIME_SCALE, dismiss as dismissToast, enqueue, expire, nextExpiry } from './components/toastQueue';
 import { sharedAudio, useAudio } from './hooks/useAudio';
-import { useReducedMotion } from './hooks/useMediaQuery';
+import { useMediaQuery, useReducedMotion } from './hooks/useMediaQuery';
 import { resolveHotkey, type HotkeyMap } from './hooks/hotkeys';
 import { HotkeyRegistryContext, createHotkeyRegistry, useHotkeyLayers, useHotkeys, type HotkeyRegistry } from './hooks/useHotkeys';
 import { PANEL_COMPONENTS, PanelHost } from './panels/PanelHost';
@@ -54,6 +54,8 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [toastQueue, setToastQueue] = useState(EMPTY_QUEUE);
   const reducedMotion = useReducedMotion();
+  const phone = useMediaQuery(PHONE_WIDTH_QUERY);
+  const [toastsOpen, setToastsOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   useAudio(settings, reducedMotion);
 
@@ -150,9 +152,15 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
     const specs = toastsFor(events, store.getContent(), state.meta.loop);
     if (specs.length > 0) {
       const now = Date.now();
-      setToastQueue((queue) => specs.reduce((acc, spec) => enqueue(acc, spec, now), queue));
+      const scale = phone ? PHONE_LIFETIME_SCALE : 1;
+      setToastQueue((queue) => specs.reduce((acc, spec) => enqueue(acc, spec, now, scale), queue));
     }
   });
+  const toastCount = notices.length + toastQueue.items.length;
+  const toastPlacement = useToastAnchor(toastCount > 0, `${mode}:${place ?? ''}:${panel ?? ''}`);
+  useEffect(() => {
+    if (toastCount <= 1) setToastsOpen(false);
+  }, [toastCount]);
   useEffect(() => {
     const at = nextExpiry(toastQueue);
     if (at === null) return undefined;
@@ -160,9 +168,9 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
     return () => clearTimeout(timer);
   }, [toastQueue]);
   useEffect(() => {
-    const timers = notices.map((n) => setTimeout(() => store.dismissNotice(n.id), noticeLifetime(n)));
+    const timers = notices.map((n) => setTimeout(() => store.dismissNotice(n.id), noticeLifetime(n, phone ? PHONE_LIFETIME_SCALE : 1)));
     return () => timers.forEach(clearTimeout);
-  }, [notices, store]);
+  }, [notices, store, phone]);
 
   return (
     <HotkeyRegistryContext value={registry}>
@@ -178,7 +186,7 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
             <div id={DOCK_SLOT_ID} className="dock__slot" />
             {mode === 'explore' ? <TabBar /> : null}
             <footer className="legend-bar">
-              <LegendFromRegistry />
+              <LegendFromRegistry inCombat={mode === 'combat'} />
             </footer>
           </div>
         </div>
@@ -188,6 +196,9 @@ export function Shell({ children }: { children?: ReactNode }): ReactNode {
           items={toastQueue.items}
           onDismissItem={(id) => setToastQueue((queue) => dismissToast(queue, id))}
           reducedMotion={reducedMotion}
+          expanded={toastsOpen}
+          onToggleExpanded={() => setToastsOpen((open) => !open)}
+          {...(toastPlacement === null ? {} : { placement: toastPlacement })}
         />
         <LiveRegion announcement={announcement} />
         {panel !== null ? <PanelHost id={panel} onClose={() => setPanel(null)} /> : null}
@@ -215,8 +226,48 @@ function GlobalKeys({ map }: { map: HotkeyMap }): ReactNode {
   return null;
 }
 
-function LegendFromRegistry(): ReactNode {
-  return <KeyLegend layers={useHotkeyLayers()} />;
+function LegendFromRegistry({ inCombat }: { inCombat: boolean }): ReactNode {
+  return <KeyLegend layers={useHotkeyLayers()} inCombat={inCombat} />;
+}
+
+/** U84a: the phone breakpoint (DESIGN §16.1, 760 px). */
+export const PHONE_WIDTH_QUERY = '(max-width: 759.98px)';
+
+/**
+ * U84a: where the toast stack goes — the top corner of the screen's `[data-toast-anchor]` (the place's scene, the fight's
+ * stage), which holds no text, map or control; on a short screen whose band is too small, the top of the log
+ * (`[data-toast-anchor-alt]`); null (the stylesheet's corner) when the screen has neither. Measured when toasts appear, when
+ * the screen or panel changes and on resize.
+ */
+function useToastAnchor(showing: boolean, screenKey: string): CSSProperties | null {
+  const [placement, setPlacement] = useState<CSSProperties | null>(null);
+  useLayoutEffect(() => {
+    if (!showing) return undefined;
+    const fits = (r: DOMRect | undefined): r is DOMRect => r !== undefined && r.width >= 160 && r.height >= 64 && r.bottom > 0 && r.top < window.innerHeight;
+    const place = (): void => {
+      const main = document.querySelector<HTMLElement>('[data-toast-anchor]')?.getBoundingClientRect();
+      const alt = document.querySelector<HTMLElement>('[data-toast-anchor-alt]')?.getBoundingClientRect();
+      const r = fits(main) ? main : fits(alt) ? alt : undefined;
+      if (r === undefined) {
+        setPlacement(null);
+        return;
+      }
+      const inset = 8;
+      const top = Math.max(inset, r.top + inset);
+      setPlacement({
+        top: `${Math.round(top)}px`,
+        right: `${Math.round(Math.max(inset, window.innerWidth - r.right + inset))}px`,
+        bottom: 'auto',
+        left: 'auto',
+        width: `${Math.round(Math.min(r.width - 2 * inset, 384))}px`,
+        maxHeight: `${Math.round(Math.max(48, r.bottom - top - inset))}px`,
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [showing, screenKey]);
+  return showing ? placement : null;
 }
 
 /** One window keydown listener for the whole app: resolve against the registry, then run (or ask, then run). */

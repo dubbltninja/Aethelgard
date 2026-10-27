@@ -78,7 +78,7 @@ test.describe('flows', () => {
       await finishFight(g, (await g.mode()) === 'combat' ? await g.fight({ abilities: true }) : 'left');
       await expect(g.placeHeading(place)).toBeVisible();
       // the Horde holds the place behind us: the way back to the Apex says what it costs
-      if (place === 'The Chronos Nexus') await expect(g.exits().getByText(/the Horde is there/)).toBeVisible();
+      if (place === 'The Chronos Nexus') await expect(g.exits().getByRole('button', { name: /the Horde is there/ })).toBeVisible(); // (U84a: the pad's fixed-size button hatches the slot and names the cost)
     }
     await expect(page.getByText(/Ilyra stands before it/)).toBeVisible();
 

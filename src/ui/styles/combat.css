@@ -12,18 +12,199 @@
 }
 
 .screen--combat {
-  min-height: 100%;
+  height: 100%;
   background:
     radial-gradient(ellipse 90% 45% at 50% 0%, color-mix(in srgb, var(--region-sky-bottom, #4a3f6b) 26%, transparent), transparent 70%),
     var(--surface-base);
 }
 
+/*
+ * U84a (D-147, REPORT U79 #2): the fight is one screen. Wide: the heading; then the stage, the cards (scrolling inside if a
+ * fight has many) beside the companion and the log; then the turn's controls as the screen's last row, a fixed region nothing
+ * above can push. Phones: the heading, then everything scrolls inside the screen, and the controls ride in the pinned dock.
+ */
 .combat {
   display: grid;
-  gap: var(--space-4);
-  max-width: 92rem;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+  max-width: 120rem;
   margin: 0 auto;
-  padding: var(--space-3) var(--gutter) var(--space-6);
+  padding: var(--space-3) var(--gutter);
+}
+
+.combat__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(16rem, 26vw, 30rem);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3) var(--space-4);
+  min-height: 0;
+  min-width: 0;
+}
+
+/* wide: the stage across the top; the cards (left) and the companion, the log and the menu (right) under it */
+.combat__body > .combat__stagewrap {
+  grid-column: 1 / -1;
+}
+
+.combat__body > .combat__main,
+.combat__body > .combat__side {
+  grid-row: 2;
+}
+
+.combat__main,
+.combat__side {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* (max-content rows: a height-bound grid must not squeeze a card or the stage to make room) */
+.combat__main {
+  grid-auto-rows: max-content;
+}
+
+.combat__side {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
+/* the hint's reserved place (U84a): first in the column, so the log gives way to it and nothing else moves */
+.combat__side > .callout-slot {
+  grid-row: 1;
+}
+
+.callout-slot .callout {
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 0;
+}
+
+.callout-slot .callout__actions {
+  grid-column: 1 / -1;
+}
+
+.combat__side > .companion-card {
+  grid-row: 2;
+}
+
+.combat__side > .combat-log {
+  grid-row: 3;
+}
+
+.combat__side > .combat-menu {
+  grid-row: 4;
+}
+
+/* wide: the sprite on the stage is the figure, so the cards keep to their numbers */
+.combat--staged[data-layout="wide"] .enemy-card .creature-sigil {
+  display: none;
+}
+
+.combat[data-layout="wide"] .combat-stage {
+  height: clamp(170px, 28vh, 380px);
+}
+
+/* the log fills the side column and scrolls inside it */
+.combat__side > .combat-log {
+  min-height: 0;
+}
+
+/* a banner floats over the stage's top edge (it never pushes the cards or the controls) */
+.combat__stagewrap {
+  position: relative;
+  min-width: 0;
+}
+
+.combat__stagewrap > .combat-banner {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 3;
+  max-width: min(36rem, calc(100% - 2 * var(--space-2)));
+  padding: var(--space-2) var(--space-3);
+  background: color-mix(in srgb, var(--surface-panel) 94%, transparent);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.4);
+}
+
+/* with no stage (a test without one) the banner stays in the flow */
+.combat__stagewrap > .combat-banner:only-child {
+  position: static;
+  max-width: none;
+}
+
+/* the controls: the player's panel (bars, statuses, Guard · Item · Flee) beside the ability grid */
+.combat__controls {
+  display: grid;
+  grid-template-columns: clamp(17rem, 18vw, 22rem) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line-soft);
+}
+
+.combat__controls > .communion,
+.combat__controls > .ability-bar {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+/* the communion's own "Show abilities" view: the bar below it in the same column */
+.combat__controls > .communion + .ability-bar {
+  grid-row: 2;
+}
+
+.combat[data-layout="phone"] {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  padding-bottom: 0;
+}
+
+.combat[data-layout="phone"] .combat__body {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.combat[data-layout="phone"] .combat__body > .combat__main {
+  grid-row: 1;
+}
+
+.combat[data-layout="phone"] .combat__main {
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.combat[data-layout="phone"] .combat__side {
+  overflow: visible;
+}
+
+/* a phone's banner is short over the short stage: the title and two lines (the whole of it is in the log) */
+.combat[data-layout="phone"] .combat__stagewrap > .combat-banner {
+  gap: 0;
+  padding: var(--space-1) var(--space-2);
+}
+
+.combat[data-layout="phone"] .combat-banner__title {
+  font-size: var(--type-body);
+  line-height: 1.25;
+}
+
+.combat[data-layout="phone"] .combat-banner__line {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.8125rem;
+}
+
+.combat[data-layout="phone"] .combat-banner__line + .combat-banner__line {
+  display: none;
 }
 
 /* ---- heading, turn order, banner ---- */
@@ -32,6 +213,26 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-1) var(--space-4);
+}
+
+/* wide (U84a): the game menu in the heading row, after the turn order */
+.combat__head > .combat-menu {
+  align-self: center;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+}
+
+.combat__head > .combat-menu .btn {
+  min-height: var(--target-min);
+  padding-inline: var(--space-3);
+  font-size: var(--type-small);
+}
+
+.combat__head > .turn-order {
+  align-self: center;
 }
 
 .combat__kicker {
@@ -574,37 +775,6 @@
 }
 
 /* ---- the main grid ---- */
-.combat__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-5);
-  min-width: 0;
-}
-
-.combat__main {
-  display: grid;
-  align-content: start;
-  gap: var(--space-4);
-  min-width: 0;
-}
-
-.combat__side {
-  display: grid;
-  align-content: start;
-  min-width: 0;
-}
-
-@media (min-width: 760px) {
-  .combat__grid {
-    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
-    align-items: start;
-  }
-
-  .combat__side {
-    position: sticky;
-    top: var(--space-3);
-  }
-}
 
 .player-panel,
 .companion-card,
@@ -1004,7 +1174,7 @@
 }
 
 /* ---- phones (PLAN §6.8, DESIGN §16.5 mobile) ---- */
-@media (max-width: 759.98px), (pointer: coarse) and (max-height: 500px) {
+@media (max-width: 759.98px), (pointer: coarse) {
   .enemy-card__select {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -1189,4 +1359,259 @@
 
 .phone-vitals .meter__track {
   grid-area: track;
+}
+
+/* ---- U84a: the wide screen's fixed control row (D-147) ----
+   Every control has one size for the whole fight: a tile's name, tier/cost and reason lines are reserved and cut with an
+   ellipsis (the full text is the tile's name and title); Guard's numbers keep two lines; the statuses keep one row. */
+.combat__side > .combat-log {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.combat__side .combat-log__list {
+  max-height: none;
+  min-height: 4rem;
+}
+
+.combat__side > .combat-menu {
+  padding-top: var(--space-2);
+}
+
+.combat__controls .player-panel {
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+}
+
+.combat__controls .player-panel .section-heading {
+  margin: 0;
+  font-size: var(--type-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combat__controls .player-panel__vitals {
+  gap: 2px;
+  font-size: var(--type-small);
+}
+
+.combat__controls .player-panel__statuses {
+  height: 1.75rem;
+  overflow: hidden;
+}
+
+.combat__controls .player-panel__statuses .status-chips {
+  flex-wrap: nowrap;
+}
+
+.combat__controls .player-panel__actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.combat__controls .combat-action {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: start;
+  align-items: center;
+  gap: 2px var(--space-1);
+  height: 4.5rem;
+  padding: var(--space-1) var(--space-2);
+  overflow: hidden;
+}
+
+.combat__controls .combat-action > .tile__key,
+.combat__controls .combat-action > .icon {
+  display: none;
+}
+
+.combat__controls .combat-action__text {
+  display: contents;
+}
+
+.combat__controls .combat-action__label {
+  grid-row: 1;
+  grid-column: 2;
+  overflow: hidden;
+  font-size: var(--type-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combat__controls .combat-action__detail {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combat__controls .combat-action__detail:nth-of-type(n + 4) {
+  display: none;
+}
+
+/* the ability grid: groups side by side, tiles one size */
+.ability-bar--compact > .section-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.ability-bar--compact {
+  position: relative;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ability-bar--compact .ability-bar__groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--space-2) var(--space-3);
+}
+
+.ability-bar--compact .ability-bar__group {
+  gap: 2px;
+  padding-left: var(--space-2);
+  border-left-width: 3px;
+}
+
+.ability-bar--compact .ability-bar__branch {
+  font-size: 0.6875rem;
+  line-height: 1.2;
+}
+
+.ability-bar--compact .ability-bar__tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.ability-bar--compact .ability-bar__tiles > li {
+  width: 9rem;
+}
+
+.ability-bar--compact .tile {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-rows: 1.25rem 1rem 1rem;
+  align-content: center;
+  align-items: center;
+  gap: 1px var(--space-1);
+  height: 4rem;
+  padding: var(--space-1) var(--space-2);
+}
+
+.ability-bar--compact .tile__key {
+  grid-area: 1 / 1;
+}
+
+.ability-bar--compact .tile__icon {
+  grid-area: 1 / 2;
+}
+
+.ability-bar--compact .tile__name {
+  grid-area: 1 / 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ability-bar--compact .tile__tier,
+.ability-bar--compact .tile__cost,
+.ability-bar--compact .tile__reason {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ability-bar--compact .tile__tier {
+  justify-self: start;
+}
+
+.ability-bar--compact .tile__cost {
+  justify-self: end;
+}
+
+.ability-bar--compact .tile__reason {
+  grid-row: 3;
+}
+
+.ability-bar--compact .tile__cooldown {
+  top: 2px;
+  right: 2px;
+}
+
+/* what the pointed-at or focused tile does, in one reserved strip under the grid */
+.ability-bar__info {
+  display: -webkit-box;
+  overflow: hidden;
+  height: 2.5em;
+  margin: 0;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--type-small);
+  line-height: 1.25;
+  color: var(--text-muted);
+}
+
+.ability-bar--compact .tile__info {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  background: var(--surface-base);
+  color: var(--text-primary);
+}
+
+.tile__info-name {
+  font-weight: 600;
+}
+
+.ability-bar--compact .ability-bar__tiles > li:hover > .tile__info,
+.ability-bar--compact .tile:focus + .tile__info {
+  display: -webkit-box;
+}
+
+.ability-bar--compact .ability-bar__tiles > li:hover > .tile__info {
+  z-index: 2;
+}
+
+/* a short wide screen (fine pointer): a smaller stage, so the cards keep their room */
+@media (max-height: 640px) {
+  .combat[data-layout="wide"] .combat-stage {
+    height: clamp(120px, 26vh, 200px);
+  }
+}
+
+/* a phone held sideways or a tablet uses the phone layout: a short stage */
+.combat[data-layout="phone"] .combat-stage {
+  height: clamp(130px, 27vh, 220px);
+}
+
+/* U84a: a lone enemy on a wide screen spreads across: its numbers on the left, what it means to do on the right, so the
+   intent is in view without scrolling the cards */
+.combat[data-layout="wide"] .combat__enemies > .enemy-card:only-child {
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 42%);
+  grid-auto-flow: row dense;
+  column-gap: var(--space-5);
+}
+
+.combat[data-layout="wide"] .combat__enemies > .enemy-card:only-child > * {
+  grid-column: 1;
+}
+
+.combat[data-layout="wide"] .combat__enemies > .enemy-card:only-child > .intent {
+  grid-column: 2;
+  align-self: start;
 }

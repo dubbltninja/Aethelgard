@@ -92,6 +92,8 @@ export interface Notes {
   bounces: Record<string, number>;
   /** U81b2: idle full rests (melee.ts `idleRoam`). */
   idleRests?: number;
+  /** U82: every item id the player has held in the run (the explorer's collection, shopping.ts `collectNew`). */
+  held?: string[];
   /** Fights the bot started a blow in (the pacifist's "forced" count). */
   forced: number;
   /** `${runId}|${stage}` communion actions already tried this loop (guards against a loop in the policy). */

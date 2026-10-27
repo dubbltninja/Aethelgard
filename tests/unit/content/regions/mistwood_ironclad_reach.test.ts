@@ -220,7 +220,11 @@ describe('the six locations vs WORLD §3.2 blocks', () => {
         // Tobrin's failsafe copy is in the Events bullet, not the Items bullet
         expect(w?.block).toContain('`item_breach_anchor_schematic_b` (100%, once per loop');
         expected.add('item_breach_anchor_schematic_b');
+        // U82: WORLD §7.13 places the Warder Plate here "after both cr_stone_hide_golem fall"; the §3.2 block omits it
+        expected.add('item_warder_plate');
       }
+      // U82: WORLD §9 Borin "item_pattern_hallows_hammer with echo_hallows_ember" (a free shelf; it had no source)
+      if (l.id === EF) expected.add('item_pattern_hallows_hammer');
       expect([l.id, [...placed].sort()]).toEqual([l.id, [...expected].sort()]);
     }
     // what lies on the ground at the first entry is the legacy Tonic only; the rest is found by examining

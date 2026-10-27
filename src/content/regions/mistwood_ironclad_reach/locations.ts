@@ -283,6 +283,8 @@ export const locations = [
       // ev_outpost_seal, Loop 2+ with echo_vask_seal: "the seal opens a slot under the burned gate's sill", Tobrin's failsafe
       // copy (100 %, once per loop; D-067.6)
       { itemId: 'item_breach_anchor_schematic_b', hidden: true, when: { all: [{ loop: { min: 2 } }, { echo: 'echo_vask_seal' }] } },
+      // U82 (WORLD §7.13 "loc_blighted_outpost (after both cr_stone_hide_golem fall)"): authored with no source until now
+      { itemId: 'item_warder_plate', when: { killed: { id: 'cr_stone_hide_golem', count: 2 } } },
     ],
     encounters: [
       // legacy: two Stone-Hide Golems (100 %, one group of two); a story gate while `q_blighted_outpost` is active
@@ -342,7 +344,11 @@ export const locations = [
     exits: [{ dir: 'south', to: 'loc_blighted_outpost' }],
     // Loop 2+, if `echo_vask_seal`: Borin "found it in the slag" (100 %, once). The Breach-anchor itself is forged here for
     // 0 gold at Neutral while q_the_mending or q_iron_silence is active (D-066.10, §8.2): the recipe unit's.
-    items: [{ itemId: 'item_tobrins_warding_primer', when: { all: [{ loop: { min: 2 } }, { echo: 'echo_vask_seal' }] } }],
+    items: [
+      { itemId: 'item_tobrins_warding_primer', when: { all: [{ loop: { min: 2 } }, { echo: 'echo_vask_seal' }] } },
+      // U82 (WORLD §9 Borin "item_pattern_hallows_hammer with echo_hallows_ember"): authored with no source until now
+      { itemId: 'item_pattern_hallows_hammer', when: { echo: 'echo_hallows_ember' } },
+    ],
     // "none. Horde: none (the heat holds them off one extra move)": the extra move is the engine's slow edge BO → EF
     safe: true,
     npcs: ['npc_borin_stonefist'],

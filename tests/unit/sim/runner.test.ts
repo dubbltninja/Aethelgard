@@ -9,7 +9,7 @@ import { stateHash } from '@engine/util/hash';
 import { meleeBot } from '@sim/bots/melee';
 import { randomBot } from '@sim/bots/random';
 import type { Bot } from '@sim/bots/types';
-import { DEFAULT_MAX_FALLEN, DEFAULT_MAX_STEPS, isFallenScreen, resolveClass, runLoop, type RunConfig, type RunResult } from '@sim/runner';
+import { DEFAULT_MAX_FALLEN, DEFAULT_MAX_STEPS, REPLAY_LIMIT, isFallenScreen, resolveClass, runLoop, type RunConfig, type RunResult } from '@sim/runner';
 import { newProfile } from '@sim/scenarios';
 import { beforePack } from '@tests/fixtures/beforeContent';
 import { combatPack } from '@tests/fixtures/combatContent';
@@ -271,4 +271,15 @@ describe('configuration', () => {
     expect(modes.has('title')).toBe(false);
     expect(modes.has('combat')).toBe(true);
   });
+});
+
+describe('U82: the hand save (D-149 #1)', () => {
+  test('a dead end at a few HP is left for the last healthy save after REPLAY_LIMIT FALLEN screens on one autosave', () => {
+    // U81b2's batch: this ranger fled the Pass's Moths to the Spires at 16 HP, the autosave kept it there, and every way out
+    // (the Pass, the Plateau) killed it again: 26 FALLEN screens and a stopped run. Now it goes back to its last healthy save.
+    const r = runLoop({ seed: 'balA:1', classId: 'ranger', bot: meleeBot(), stopAt: 'loop_end', maxSteps: 6000 }, buildContentPack());
+    expect(REPLAY_LIMIT).toBe(2);
+    expect(r.stopReason).toBe('loop_end');
+    expect(r.fallen).toBeLessThan(DEFAULT_MAX_FALLEN);
+  }, 120_000);
 });

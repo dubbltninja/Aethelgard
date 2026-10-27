@@ -29,7 +29,9 @@ import {
   type BatchConfig,
   type BatchResult,
 } from '@sim/batch';
-import { PackCache, runJob, type Job, type JobOutcome } from '@sim/worker';
+import { PackCache, reproOf, runJob, type Job, type JobOutcome } from '@sim/worker';
+import { QUEST_SCRIPTS } from '@sim/scripts/quests';
+import { buildContentPack } from '@content/index';
 import { storyPack } from '@tests/fixtures/storyContent';
 import { blankResult } from './helpers';
 
@@ -102,6 +104,27 @@ describe('sampleEvenly and defaultScripts', () => {
 describe('jobsOf', () => {
   const content = storyPack();
   const cfg = (over: Partial<BatchConfig> = {}): ReturnType<typeof resolveConfig> => resolveConfig(small({ bots: ['melee', 'caster', 'pacifist'], classes: ['ranger', 'wizard'], seeds: 3, scenarioSeeds: 2, ...over }));
+
+  test('U82: the real pack also plays every quest proof as a script job (the coverage union), unless --quest-proofs off', async () => {
+    const real = buildContentPack();
+    const realCfg = (over: Partial<BatchConfig> = {}): ReturnType<typeof resolveConfig> => resolveConfig(small({ packs: ['real'], bots: ['melee'], classes: ['ranger'], seeds: 1, scripts: [], ...over }));
+    const quests = (await jobsOf('real', real, realCfg())).filter((j) => j.quest !== undefined);
+    expect(quests).toHaveLength(QUEST_SCRIPTS.length);
+    expect(quests.every((j) => j.suite === 'script' && j.bot === 'pathBot' && j.stopAt === 'max_steps')).toBe(true);
+    expect(quests.map((j) => j.seed)).toEqual(QUEST_SCRIPTS.map((s) => s.seed));
+    expect(reproOf({ ...(quests[0] as Job), id: 0 })).toContain(`npm run sim -- quest ${QUEST_SCRIPTS[0]?.questId}`);
+    expect((await jobsOf('real', real, realCfg({ questProofs: false }))).some((j) => j.quest !== undefined)).toBe(false);
+    expect((await jobsOf('fixture:story', content, cfg())).some((j) => j.quest !== undefined)).toBe(false);
+    expect(parseBatchArgs(['--quest-proofs', 'off']).config.questProofs).toBe(false);
+    expect(() => parseBatchArgs(['--quest-proofs', 'maybe'])).toThrow('--quest-proofs is on or off');
+  });
+
+  test('U82: a quest-proof job runs its proof and carries it', async () => {
+    const out = await runJob({ id: 7, pack: 'real', suite: 'script', seed: 'x', classId: 'ranger', bot: 'pathBot', stopAt: 'max_steps', maxSteps: 6000, maxLoops: 1, modifiers: [], quest: { index: 0 }, verify: false }, new PackCache());
+    expect(out.kind).toBe('run');
+    if (out.kind === 'run') expect(out.proof).toMatchObject({ label: `quest:${QUEST_SCRIPTS[0]?.questId}:${QUEST_SCRIPTS[0]?.outcome}#0`, reached: true });
+    expect((await runJob({ id: 8, pack: 'real', suite: 'script', seed: 'x', classId: 'ranger', bot: 'pathBot', stopAt: 'max_steps', maxSteps: 1, maxLoops: 1, modifiers: [], quest: { index: 99999 }, verify: false }, new PackCache())).kind).toBe('failed');
+  }, 120_000);
 
   test('main jobs run bot × class × seed in that order', async () => {
     const jobs = await jobsOf('fixture:story', content, cfg({ scenarioSeeds: 0 }));

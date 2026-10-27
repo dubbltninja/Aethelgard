@@ -323,7 +323,7 @@ export const trinkets = [
     fixedAffixes: ['affix_of_ley', 'affix_of_echoes'],
     stats: { magic: 3, mpMax: 10 },
     value: 380,
-    sources: ['merchant:npc_tamsin_reed'],
+    sources: ['merchant:npc_tamsin_reed', 'loc:loc_silverwood_plaza'], // U82: Tamsin's Sworn gift lies at the Plaza (it had no source)
     art: { icon: 'circlet' },
   },
 ] satisfies ItemInput[];

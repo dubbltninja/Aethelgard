@@ -228,7 +228,7 @@ export const armor = [
     fixedAffixes: ['affix_of_the_warden', 'affix_of_vigor'],
     stats: { armor: 12, ward: 2, hpMaxPct: 0.1 },
     value: 380,
-    sources: ['merchant:npc_tessaly_varr'],
+    sources: ['merchant:npc_tessaly_varr', 'loc:loc_hearthring'], // U82: Tessaly's Sworn gift lies at the Hearthring (it had no source)
     art: { icon: 'plate' },
   },
   {

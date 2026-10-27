@@ -171,3 +171,37 @@ export function readPattern(s: GameState, legal: readonly Action[], content: Con
 export function shop(s: GameState, legal: readonly Action[], content: ContentPack, profile: Profile): Action | undefined {
   return innRest(s, legal, content) ?? readPattern(s, legal, content) ?? forgeWork(s, legal, content, profile) ?? shelfBuy(s, legal, content, profile) ?? manaBuy(s, legal, content, profile);
 }
+
+// ---- the explorer's collection (U82: coverage of DESIGN §9's shelves and recipes) ---------------------------------------------
+
+/** Gold the explorer keeps back when it buys or forges a piece only to have held it. */
+export const COLLECT_RESERVE = 100;
+
+/** Notes every item id the player has held (pack or gear) into `seen`. */
+export function noteHeld(s: GameState, seen: Set<string>): void {
+  for (const i of s.player.inventory) seen.add(i.itemId);
+  for (const i of Object.values(s.player.equipment)) if (i !== null) seen.add(i.itemId);
+}
+
+/**
+ * The explorer opens every panel (PLAN §7.2): one of each thing on a shelf it has never held, and at the forge each recipe whose
+ * piece it has never held, cheapest first, while COLLECT_RESERVE stays in the purse (never spending what a quest asks for).
+ */
+export function collectNew(s: GameState, legal: readonly Action[], content: ContentPack, profile: Profile, seen: ReadonlySet<string>): Action | undefined {
+  const gold = s.player.gold;
+  const reserved = questReserved(s, content);
+  const forge = allOf(legal, 'craft')
+    .flatMap((a) => {
+      const q = craftQuote(s, content, profile, a.recipeId);
+      return typeof q === 'string' || seen.has(q.output.id) || gold < q.fee + COLLECT_RESERVE || q.pay.some((p) => reserved.has(p.itemId)) ? [] : [{ a: a as Action, cost: q.fee }];
+    })
+    .sort((x, y) => x.cost - y.cost)[0];
+  if (forge !== undefined) return forge.a;
+  return allOf(legal, 'buy')
+    .flatMap((a) => {
+      const inst = stockItem(s, a);
+      const price = priceOf(s, content, profile, a);
+      return inst === undefined || seen.has(inst.itemId) || gold < price + COLLECT_RESERVE ? [] : [{ a: a as Action, cost: price }];
+    })
+    .sort((x, y) => x.cost - y.cost)[0]?.a;
+}

@@ -15,6 +15,7 @@
 //              ability (melee), better gear on, everything on the ground taken; `examine` each item and person once and each
 //              place once; `readBook` up to corruption 4 (the caster's bound; PLAN gives none); a bed at hp < 70 % when one is
 //              here, else hp < 50 % or mp < 30 % → a draught or the walk to the nearest bed (melee); the merchant (melee);
+//              (U82) one of each thing on a shelf or at the forge it has never held, while 100 gold stays in the purse;
 //              talk to each scene once per quest state; interact with every event once per quest state; gather; then travel:
 //              the nearest unvisited place (backtracking by BFS) until none is left or Day 26, then the quest hints not yet
 //              reached, then the Apex when level ≥ the fight − 3 (melee), otherwise pass the time at a bed.
@@ -52,6 +53,7 @@ import {
 } from './policy';
 import { bfsPath, firstOf, healthFraction, nearestUnvisited, nearestWhere, pressOn, questSignature, stepAlong, type PathOptions } from './shared';
 import { dangerAt } from './danger';
+import { collectNew, noteHeld } from './shopping';
 import { CLASS_FIGHT } from './classFight';
 import { beforeAppointmentsNow, beforeWait, hintTimely, questErrand, questTargets } from './questFollow';
 import type { Bot, BotMemory } from './types';
@@ -116,6 +118,12 @@ function explore(env: Env, memory: BotMemory): Action {
   }
   const trade = pickTrade(env, MELEE_TRADE);
   if (trade !== undefined) return trade;
+  // U82: one of each thing on a shelf or at the forge it has never held (shopping.ts `collectNew`)
+  const held = new Set(n.held ?? []);
+  noteHeld(s, held);
+  n.held = [...held];
+  const collect = collectNew(s, legal, content, profile, held);
+  if (collect !== undefined) return collect;
   const people = social(env, SOCIAL, (npcId) => sceneForNpc(s, content, profile, npcId)?.id);
   if (people !== undefined) return people;
   const errand = questErrand(s, legal, content, memory); // U81b1: search a hint for an objective's item, or buy it (questFollow.ts)

@@ -93,6 +93,9 @@ export interface RunConfig {
 export interface FightRecord {
   encounterId: string;
   regionId: string;
+  /** U82: where the fight began and in which loop (DESIGN §19 #3/#9 inside the location's band, D-149). Absent in older batches. */
+  locationId?: string;
+  loop?: number;
   playerLevel: number;
   rounds: number;
   result: 'victory' | 'defeat' | 'fled';
@@ -352,6 +355,8 @@ export class Recorder {
     this.open = {
       encounterId,
       regionId: this.content.locations[at]?.regionId ?? '',
+      locationId: at,
+      loop: next.meta.loop,
       playerLevel: prev.player.level,
       taken: 0,
       dealt: 0,

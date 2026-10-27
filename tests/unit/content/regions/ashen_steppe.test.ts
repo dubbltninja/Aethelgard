@@ -337,6 +337,8 @@ describe('the nine locations vs WORLD §3.7 blocks', () => {
       for (const g of l.gather ?? []) expected.delete(g.itemId);
       // the Grave: the fight pays the heart and the horn (Ashmaw's loot); only the bypass's Pyre Ledger is placed here
       if (l.id === HG) for (const id of ['item_cinder_heart', 'mat_cinder_horn']) expected.delete(id);
+      // U82: Tessaly's Sworn gift (WORLD §9 "Sworn: item_oathplate (gift, once per loop)") had no source; it lies at the Hearthring
+      if (l.id === HR) expected.add('item_oathplate');
       expect([l.id, l.items.map((i) => i.itemId).sort()]).toEqual([l.id, [...expected].sort()]);
     }
     const item = (o: object) => ({ count: 1, hidden: false, once: true, chance: 1, onTake: [], ...o }); // U34d's defaults
@@ -345,7 +347,7 @@ describe('the nine locations vs WORLD §3.7 blocks', () => {
     expect(WL[SG]?.block).toContain('gathering: mat_ember_ore ×1');
     expect(loc(GP).gather).toEqual([{ itemId: 'mat_steppe_salt', perDay: 2 }]);
     expect(WL[GP]?.block).toContain('gathering: mat_steppe_salt ×2');
-    expect(loc(HR).items).toEqual([item({ itemId: 'item_hearth_broth', count: 2 })]);
+    expect(loc(HR).items).toEqual([item({ itemId: 'item_hearth_broth', count: 2 }), item({ itemId: 'item_oathplate', when: { rep: { faction: 'ironclad', min: 60 } } })]); // U82: + the Sworn gift
     expect(loc(BN).items).toEqual([item({ itemId: 'mat_cinder_horn', count: 2 }), item({ itemId: 'mat_iron_rivet' })]);
     expect(loc(SC).items).toEqual([item({ itemId: 'mat_storm_glass', count: 2 }), item({ itemId: 'item_storm_jar' })]);
     expect(loc(WF).items).toEqual([item({ itemId: 'item_whetstone_strip' })]);

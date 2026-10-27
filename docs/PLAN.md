@@ -2388,6 +2388,10 @@ export interface Metrics {
 }
 ```
 
+How three rows are measured (D-149, U82):
+- **#8 fight length is measured at level parity**: fodder, elite and regional-boss fights count only when the player is within 1 level of the strongest foe (`atParity`), as DESIGN §6.6 intends (a level-9 Wayfinder one-shots Wisps; that is the point). The two Tyrants count every won fight. The median over every win stays in the row's detail.
+- **#3 and #9 are measured inside the band**: #3's curve uses the fights whose player stood inside the band of the place it fought in (the location's band, else its region's: `inBand`); #9 counts the `melee`, `caster` and `explorer` Loop 1 deaths in such fights (band-entry deaths are the player's risk, shown by U84's danger cue). `random`'s floor (≥ 3) counts every death. The all-fights figures stay in the details.
+
 ### 7.6 Soft-lock detector (`softlock.ts`)
 
 Progress signature per step = hash of `(mode, world.currentLocationId, clock.ticks, before?.day, quest stages, inventory itemId multiset, player.hp, player.level, Object.keys(flags).length, combat?.round, dialogue?.nodeId, echoesThisLoop.length)`. Detector rules:

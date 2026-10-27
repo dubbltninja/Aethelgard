@@ -89,7 +89,7 @@
 .explore__side {
   grid-area: side;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: var(--space-3);
   min-width: 0;
   min-height: 0;
@@ -121,7 +121,7 @@
 
   /* the docked map takes what the log and the pad leave */
   .explore__side {
-    grid-template-rows: minmax(10rem, 1fr) minmax(5rem, 0.6fr) auto;
+    grid-template-rows: minmax(10rem, 1fr) auto minmax(5rem, 0.6fr) auto;
   }
 }
 
@@ -150,7 +150,7 @@
 .explore__middle {
   grid-area: mid;
   display: grid;
-  grid-template-rows: minmax(12rem, 1.3fr) auto minmax(6rem, 1fr);
+  grid-template-rows: minmax(6rem, 1.3fr) auto auto minmax(4rem, 1fr);
   gap: var(--space-3);
   min-width: 0;
   min-height: 0;
@@ -168,7 +168,7 @@
 }
 
 .explore__middle > .event-log {
-  grid-row: 3;
+  grid-row: 4;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
@@ -234,7 +234,7 @@
   }
 
   .explore__side {
-    grid-template-rows: 0 minmax(0, 1fr) auto;
+    grid-template-rows: 0 auto minmax(0, 1fr) auto;
   }
 
   .explore .pad {
@@ -290,11 +290,21 @@
   }
 
   .explore > .hud .hud__who {
+    display: flex;
     flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--space-2);
     min-width: 0;
   }
 
+  /* experience as a short bar beside the name (screen readers still hear its numbers: the meter's value text) */
   .explore > .hud .hud__who .meter--xp {
+    grid-template-columns: 3.5rem;
+  }
+
+  .explore > .hud .hud__who .meter--xp .meter__label,
+  .explore > .hud .hud__who .meter--xp .meter__value {
     display: none;
   }
 
@@ -352,11 +362,11 @@
 }
 
 .explore__side > .event-log {
-  grid-row: 2;
+  grid-row: 3;
 }
 
 .explore__side > .explore__pad {
-  grid-row: 3;
+  grid-row: 4;
 }
 
 .section-heading {
@@ -1551,4 +1561,35 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* U84a: a hint's reserved place, just above the log (the log gives way to it; the pad and the actions never move) */
+.explore__side > .callout-slot {
+  grid-row: 2;
+}
+
+.explore__middle > .callout-slot {
+  grid-row: 3;
+}
+
+.explore .callout-slot .callout {
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 0;
+}
+
+.explore .callout-slot .callout__actions {
+  grid-column: 1 / -1;
+}
+
+/* the slot gives way too when room is short: it scrolls rather than push the pad or the log off the column */
+.callout-slot {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* a log squeezed to nothing by a hint is clipped, never drawn over the pad */
+.explore__side > .event-log,
+.explore__middle > .event-log {
+  overflow: hidden;
 }

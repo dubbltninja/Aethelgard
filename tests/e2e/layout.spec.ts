@@ -302,6 +302,10 @@ for (const size of [
         expect(b.y, 'on screen').toBeGreaterThanOrEqual(0);
         expect(b.y + b.h, 'on screen').toBeLessThanOrEqual(size.height);
       }
+      // the boss's intent is in view without scrolling the cards' region
+      const cards = await boxOf(page.locator('.combat__main'));
+      const intent = await boxOf(page.locator('.combat__enemies .intent__chip').first());
+      expect(intent.y + intent.h, 'the intent shows in the cards region').toBeLessThanOrEqual(cards.y + cards.h + 1);
       g.expectClean();
     });
   });

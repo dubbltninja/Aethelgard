@@ -1598,3 +1598,20 @@
 .combat[data-layout="phone"] .combat-stage {
   height: clamp(130px, 27vh, 220px);
 }
+
+/* U84a: a lone enemy on a wide screen spreads across: its numbers on the left, what it means to do on the right, so the
+   intent is in view without scrolling the cards */
+.combat[data-layout="wide"] .combat__enemies > .enemy-card:only-child {
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 42%);
+  grid-auto-flow: row dense;
+  column-gap: var(--space-5);
+}
+
+.combat[data-layout="wide"] .combat__enemies > .enemy-card:only-child > * {
+  grid-column: 1;
+}
+
+.combat[data-layout="wide"] .combat__enemies > .enemy-card:only-child > .intent {
+  grid-column: 2;
+  align-self: start;
+}

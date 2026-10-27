@@ -3,7 +3,7 @@
 // next action (or a rest, for the camp one), on "Got it", or for good on "Turn tutorials off". The frame gets
 // `data-callout="<target>"` while one shows, which the stylesheet uses to light the Guard button, the intent chip, the
 // rest row or the clock chip.
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AP_TOAST, pickApToast, pickCallout, type CalloutDef } from '../onboarding/model';
 import { onboardingSnapshot } from '../onboarding/snapshot';
 import { sharedTutorialStore, type TutorialStore } from '../store/tutorials';
@@ -65,55 +65,31 @@ function useTargetMark(callout: CalloutDef | null): void {
   }, [id, target]);
 }
 
-/** U84a: a screen's reserved place for the hint (a wide fight's side column, CombatView); null where there is none. */
+/** U84a: a screen's reserved place for the hint (wide explore and combat screens draw it above their log). */
 export const CALLOUT_SLOT_ID = 'callout-slot';
 
 /**
- * U84a (D-147): a hint never hides or moves a control.
- *   - A wide fight reserves room for it at the top of the log column (`#callout-slot`): the log gives way, the controls don't.
- *   - A wide explore screen floats it over the foot of the place's scene band — art, not words or controls.
- *   - A phone keeps it in the dock, above the pinned controls (the dock grows upward; the controls stay put).
- * Returns the slot to render into (or null) and the floating style (or null: the stylesheet's place).
+ * U84a (D-147): a hint never hides or moves a control. A wide screen reserves room for it just above the log
+ * (`#callout-slot`): the log gives way, and the pad, the actions and the turn's controls stay where they are. A phone keeps
+ * it in the dock, above the pinned controls (the dock grows upward, so the controls under the thumb stay put).
  */
-function useCalloutPlace(id: string | null): { slot: HTMLElement | null; style: CSSProperties | null } {
+function useCalloutSlot(id: string | null): HTMLElement | null {
   const mode = useGame((s) => s.mode);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
-  const [style, setStyle] = useState<CSSProperties | null>(null);
   useLayoutEffect(() => {
     if (typeof document === 'undefined') return undefined;
-    const place = (): void => {
-      setSlot(document.getElementById(CALLOUT_SLOT_ID));
-      const wide = typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 760px)').matches;
-      const r = id === null || mode !== 'explore' || !wide ? undefined : document.querySelector('.explore .place__scene')?.getBoundingClientRect();
-      if (r === undefined || r.width === 0) {
-        setStyle(null);
-        return;
-      }
-      const inset = 8;
-      setStyle({
-        position: 'fixed',
-        left: `${Math.round(r.left + inset)}px`,
-        right: 'auto',
-        top: 'auto',
-        bottom: `${Math.round(Math.max(inset, window.innerHeight - r.bottom + inset))}px`,
-        width: `${Math.round(Math.min(r.width - 2 * inset, 640))}px`,
-      });
-    };
-    place();
-    window.addEventListener('resize', place);
-    return () => window.removeEventListener('resize', place);
+    const find = (): void => setSlot(document.getElementById(CALLOUT_SLOT_ID));
+    find();
+    window.addEventListener('resize', find);
+    return () => window.removeEventListener('resize', find);
   }, [id, mode]);
-  return { slot: slot !== null && slot.isConnected ? slot : null, style };
+  return slot !== null && slot.isConnected ? slot : null;
 }
 
 export function Callouts(): ReactNode {
   const { callout, dismiss, turnOff } = useCallout();
   useTargetMark(callout);
-  const { slot, style } = useCalloutPlace(callout?.id ?? null);
-  const region = (
-    <CalloutRegion placement={slot === null ? style : null}>
-      {callout === null ? null : <CalloutView key={callout.id} callout={callout} onDismiss={dismiss} onTurnOff={turnOff} />}
-    </CalloutRegion>
-  );
+  const slot = useCalloutSlot(callout?.id ?? null);
+  const region = <CalloutRegion>{callout === null ? null : <CalloutView key={callout.id} callout={callout} onDismiss={dismiss} onTurnOff={turnOff} />}</CalloutRegion>;
   return slot === null ? region : createPortal(region, slot);
 }

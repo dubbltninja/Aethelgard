@@ -235,17 +235,20 @@ export const PHONE_WIDTH_QUERY = '(max-width: 759.98px)';
 
 /**
  * U84a: where the toast stack goes — the top corner of the screen's `[data-toast-anchor]` (the place's scene, the fight's
- * stage), which holds no text, map or control; null (the stylesheet's corner) when the screen has none. Measured when toasts
- * appear, when the screen or panel changes and on resize.
+ * stage), which holds no text, map or control; on a short screen whose band is too small, the top of the log
+ * (`[data-toast-anchor-alt]`); null (the stylesheet's corner) when the screen has neither. Measured when toasts appear, when
+ * the screen or panel changes and on resize.
  */
 function useToastAnchor(showing: boolean, screenKey: string): CSSProperties | null {
   const [placement, setPlacement] = useState<CSSProperties | null>(null);
   useLayoutEffect(() => {
     if (!showing) return undefined;
+    const fits = (r: DOMRect | undefined): r is DOMRect => r !== undefined && r.width >= 160 && r.height >= 64 && r.bottom > 0 && r.top < window.innerHeight;
     const place = (): void => {
-      const anchor = document.querySelector<HTMLElement>('[data-toast-anchor]');
-      const r = anchor?.getBoundingClientRect();
-      if (anchor == null || r === undefined || r.width < 160 || r.height < 48 || r.bottom <= 0 || r.top >= window.innerHeight) {
+      const main = document.querySelector<HTMLElement>('[data-toast-anchor]')?.getBoundingClientRect();
+      const alt = document.querySelector<HTMLElement>('[data-toast-anchor-alt]')?.getBoundingClientRect();
+      const r = fits(main) ? main : fits(alt) ? alt : undefined;
+      if (r === undefined) {
         setPlacement(null);
         return;
       }

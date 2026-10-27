@@ -11,18 +11,8 @@
  * U84a (D-147, REPORT U79 #2): a hint never moves or hides the controls (Callouts.tsx places it).
  *   - Phones (and the phone fight layout): it stays in the dock, above the pinned bar or pad. The dock grows upward, so the
  *     controls under the thumb keep their place; the screen above scrolls inside a little less room.
- *   - A wide explore screen: it floats over the foot of the place's scene band (data-floating).
- *   - A wide fight: it takes the reserved place at the top of the log column (combat.css, .callout-slot).
+ *   - Wide screens: it takes the reserved place just above the log (.callout-slot in explore.css and combat.css).
  */
-.callouts[data-floating="true"] {
-  z-index: 6;
-}
-
-.callouts[data-floating="true"] .callout {
-  margin: 0;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.4);
-}
-
 .callouts:empty {
   display: none;
 }

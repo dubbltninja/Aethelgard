@@ -21,6 +21,7 @@ import type { Backdrop } from '../art/backdropChooser';
 import { useBackdrop, usePreloadExits } from '../art/useBackdrop';
 import { ActionBar, actionKey } from '../components/ActionBar';
 import { Button } from '../components/Button';
+import { CALLOUT_SLOT_ID } from '../components/Callouts';
 import { DockPortal } from '../components/DockPortal';
 import { MovePad } from '../components/MovePad';
 import { StatusBar } from '../components/StatusBar';
@@ -120,7 +121,7 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
         What has happened
       </h2>
       {/* The Shell's live region speaks each step once; this list is the record, so it is not live itself. */}
-      <ol className="event-log__list" role="log" aria-live="off" ref={p.logRef} tabIndex={0} aria-labelledby="log-heading">
+      <ol className="event-log__list" data-toast-anchor-alt="" role="log" aria-live="off" ref={p.logRef} tabIndex={0} aria-labelledby="log-heading">
         {p.log.map((line) => (
           <li key={line.key} className={`event-log__line event-log__line--${line.kind}`}>
             {line.text}
@@ -171,6 +172,8 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
       </section>
     );
   const triple = layout === 'triple';
+  // U84a: a hint's reserved place on a wide screen (Callouts renders into it), just above the log, which gives way to it
+  const calloutSlot = <div id={CALLOUT_SLOT_ID} className="callout-slot" />;
   return (
     <RegionPalette regionId={place.regionId} region={p.region} className="screen screen--explore">
       <section className="explore" data-screen="explore" data-layout={layout} aria-labelledby="place-heading" data-infected={place.infected ? 'true' : undefined}>
@@ -210,6 +213,7 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
         {layout === 'wide' ? (
           <aside className="explore__side" aria-label="Map and log">
             {map}
+            {calloutSlot}
             {log}
             <div className="explore__pad">{pad}</div>
           </aside>
@@ -219,6 +223,7 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
             <aside className="explore__middle" aria-label="Map, who is here, and the log">
               {map}
               {here}
+              {calloutSlot}
               {log}
             </aside>
             <div className="explore__right">

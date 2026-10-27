@@ -2730,3 +2730,35 @@ owning unit (PLAN §9.1).
      not given more scope.
 - **Deviations accepted:** the Apex retried after 1 level, not 2; the runner's hand save; `FightRecord` gains
   `locationId` and `loop` (sim-only type).
+
+### D-152 · U84 merged (U83–U87): the playtest fixes, the danger cue, the empowered Blood price, the fun pass, 2026-10-27
+- **Merged** (`ee5529d`):
+  - **the danger cue** on the pad and the map, in words and in the accessible name;
+  - **the empowered Blood price:** a Weaver may pay any MP cost in HP (2 per MP), and the cast does ×1.25. It's a toggle
+    (key B, click, or the phone's Abilities sheet), with the red cost preview, and it is never lethal;
+  - **REPORT U79's findings:**
+    - #3: the Shade is Loop 1's first fight, and you act first;
+    - #4: the scroll is offered in the same talk;
+    - #5: the Echo Crystal is visible;
+    - #6: two quiet travels after any fight;
+    - #8: the FALLEN text matches what it offers;
+    - #11: extra autosaves;
+    - #12: loading asks first;
+    - #13: "Camp" only where it works;
+  - **the layout leftovers:** a hint lies over the log, not the map, and short screens get a one-line hint;
+  - **the fun pass,** in REPORT.md "U84 fun pass".
+  - Gates: proofs 87/87, endings 8/8, full e2e 361 passed, a11y 0 failures, JS 529.4 kB.
+- **The lead's fix at merge:** the danger cue fired on every road at Level 1 ("Dangerous (L2+)"). It now starts at **2
+  levels above** the party ("Dangerous"), and at **4 or more** it says "Deadly" (D-066's flee line). DESIGN §16.6 is
+  updated.
+- **Traces:** U82 and U84 each re-recorded them. All 24 were re-recorded on the merged code.
+- **Rulings:**
+  - **The Tyrant's 20–30 rounds for the elf and warden come from class damage, not a slog:** the "last 15 % faster"
+    trial saved about one round, so it was reverted (closes D-149 #6).
+  - **The bots don't use the Blood toggle yet,** so §19's Blood price share is unmeasured under the new rule. It's a known
+    issue / what's next, not a blocker.
+- **Contract additions accepted:**
+  - `blood?: boolean` on the ability action (checked by `isLegal`);
+  - the `'dialogueOutcome'` autosave reason.
+- **Known issues for the README** (from the fun pass): toasts pile up over the first fight; the class ability point is easy
+  to miss.

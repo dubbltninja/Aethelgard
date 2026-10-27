@@ -706,7 +706,7 @@ describe('the creatures vs WORLD §6.1', () => {
     expect(hit('cr_null_mouth', 'null_bite')).toEqual(['void', 1.2, 'sp']);
     expect(hit('cr_null_mouth', 'null_unmake')).toEqual(['void', 0.5, 'sp']);
     expect(m('cr_null_mouth', 'null_unmake')?.effects).toEqual([{ stripBuffs: { kinds: ['shield', 'regen', 'haste', 'rewind'] } }]);
-    expect(hit('cr_null_mouth', 'null_gape')).toEqual(['void', 1.6, 'sp']);
+    expect(hit('cr_null_mouth', 'null_gape')).toEqual(['void', 1.2, 'sp']); // U81b2: WORLD's 1.6 (88 % deaths at the Orchard)
     expect(rows('cr_null_mouth', 'null_gape')).toEqual([['weaken', 0.5, 2, 'target']]);
     expect(rows('cr_null_mouth', 'null_fill')).toEqual([['regen', 1, 3, 'self']]);
     expect(m('cr_null_mouth', 'null_fill')?.statuses[0]?.power).toEqual({ base: 0, coef: 0.4, stat: 'atk' });
@@ -714,7 +714,7 @@ describe('the creatures vs WORLD §6.1', () => {
     expect(rows('cr_starved_shadow', 'starved_snuff')).toEqual([['blind', 0.6, 2, 'target']]);
     expect(hit('cr_starved_shadow', 'starved_gnaw')).toEqual(['void', 1.3, 'sp']);
     expect(rows('cr_starved_shadow', 'starved_gnaw')).toEqual([['curse', 0.5, 3, 'target']]);
-    expect(m('cr_starved_shadow', 'starved_feed')?.heal).toMatchObject({ target: 'self', power: { coef: 1.5, stat: 'atk' } });
+    expect(m('cr_starved_shadow', 'starved_feed')?.heal).toMatchObject({ target: 'self', power: { coef: 0.8, stat: 'atk' } }); // U81b2: WORLD's 1.5
     expect(hit('cr_starved_shadow', 'starved_hunger')).toEqual(['void', 1.8, 'sp']);
     expect(hit(UMBRA, 'umbra_her_hand')).toEqual(['void', 1.0, 'sp']);
     expect(rows(UMBRA, 'umbra_her_hand')?.[0]).toEqual(['curse', 0.5, 3, 'target']);

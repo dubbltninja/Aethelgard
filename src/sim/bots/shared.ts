@@ -418,6 +418,8 @@ export const byId = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 
 export const GUARD_STREAK_MAX = 2;
 /** From this round a fight is pressed to its end (DESIGN §19 #8's longest band, the Unveiled Tyrant, is 14–20 rounds). */
 export const PRESS_ROUND = 30;
+/** U81b2: from this round a fleeable fight is left even while the bot strikes (a foe that heals more than every blow the bot has deals, the Barrow-Light vs a resisted Elf, stalled to round 61). */
+export const GIVE_UP_ROUND = 45;
 
 const GUARD_KEY = 'guard:streak';
 
@@ -490,7 +492,10 @@ export function pressOn(memory: BotMemory, s: GameState, legal: readonly Action[
   if (s.combat === null) return chosen;
   let a = chosen;
   const streak = guardStreak(memory, s);
-  if (s.combat.round >= PRESS_ROUND && a.type !== 'commune' && a.type !== 'flee' && !isStrike(s, content, a)) {
+  const giveUp = s.combat.round >= GIVE_UP_ROUND && s.combat.canFlee && a.type !== 'commune' ? firstOf(legal, 'flee') : undefined;
+  if (giveUp !== undefined) {
+    a = giveUp;
+  } else if (s.combat.round >= PRESS_ROUND && a.type !== 'commune' && a.type !== 'flee' && !isStrike(s, content, a)) {
     a = (s.combat.canFlee ? firstOf(legal, 'flee') : undefined) ?? bestStrike(s, legal, content) ?? firstOf(legal, 'attack') ?? a;
   } else if (a.type === 'guard' && streak >= GUARD_STREAK_MAX) {
     a =

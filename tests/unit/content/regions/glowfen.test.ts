@@ -670,7 +670,7 @@ describe('the creatures vs WORLD §6.6', () => {
     expect(rows(BARROW, 'barrow_cold_glow')).toEqual([['weaken', 0.4, 2, 'target']]);
     expect(hit(BARROW, 'barrow_say_a_name')).toEqual(['ley', 0.5, 'sp']);
     expect(rows(BARROW, 'barrow_say_a_name')).toEqual([['stun', 0.3, 1, 'target']]);
-    expect(m(BARROW, 'barrow_gather')?.heal).toMatchObject({ target: 'self', power: { coef: 1.0, stat: 'atk' } });
+    expect(m(BARROW, 'barrow_gather')?.heal).toMatchObject({ target: 'self', power: { coef: 0.5, stat: 'atk' } }); // U81b2: WORLD's 1.0 stalled a resisted Elf
     expect(hit(MATRON, 'matron_hum')).toEqual(['ley', 0.4, 'sp']);
     expect(rows(MATRON, 'matron_hum')).toEqual([['slow', 0.6, 2, 'target']]);
     expect(m(MATRON, 'matron_lantern_light')?.shield?.power).toEqual({ base: 0, coef: 1.2, stat: 'atk', hits: 1 });

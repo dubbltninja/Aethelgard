@@ -642,7 +642,7 @@ describe('the creatures vs WORLD §6.3', () => {
     expect(rows('cr_tide_clerk', 'clerk_strike_out')).toEqual([['weaken', 0.4, 2, 'target']]);
     expect(hit('cr_pale_diver', 'diver_grapple')).toEqual(['physical', 0.9, 'atk']);
     expect(rows('cr_pale_diver', 'diver_grapple')).toEqual([['slow', 0.6, 2, 'target']]);
-    expect(hit('cr_pale_diver', 'diver_hold_under')).toEqual(['physical', 1.4, 'atk']);
+    expect(hit('cr_pale_diver', 'diver_hold_under')).toEqual(['physical', 1.1, 'atk']); // U81b2: WORLD's 1.4 (85 % deaths)
     expect(rows('cr_pale_diver', 'diver_hold_under')).toEqual([['soaked', 1, 3, 'target']]);
     expect(rows('cr_pale_diver', 'diver_rise')).toEqual([['phase', 1, 1, 'self']]);
     expect(hit('cr_brine_lamprey', 'lamprey_latch')).toEqual(['physical', 0.8, 'atk']);
@@ -652,7 +652,7 @@ describe('the creatures vs WORLD §6.3', () => {
     expect(rows('cr_brine_lamprey', 'lamprey_eddy')).toEqual([['phase', 1, 1, 'self']]);
     expect(hit('cr_ledger_choir', 'choir_intone')).toEqual(['ley', 0.8, 'sp']);
     expect(rows('cr_ledger_choir', 'choir_intone')).toEqual([['weaken', 0.4, 2, 'target']]);
-    expect(m('cr_ledger_choir', 'choir_amend')?.heal).toMatchObject({ target: 'ally', power: { coef: 1.5, stat: 'atk' } });
+    expect(m('cr_ledger_choir', 'choir_amend')?.heal).toMatchObject({ target: 'ally', power: { coef: 0.9, stat: 'atk' } }); // U81b2: WORLD's 1.5
     expect(m('cr_ledger_choir', 'choir_reinscribe')?.revive).toEqual({ hpPct: 0.4 });
     expect(hit('cr_ledger_choir', 'choir_verse')).toEqual(['ley', 1.4, 'sp']);
     expect(rows('cr_ledger_choir', 'choir_verse')).toEqual([['soaked', 1, 3, 'target']]);

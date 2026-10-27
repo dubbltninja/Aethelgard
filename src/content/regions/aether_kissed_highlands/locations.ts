@@ -64,7 +64,7 @@ export const locations = [
       // return: Moment Moths ×3 (30 %), then the pool's 20 %
       {
         id: 'enc_pass_moths',
-        groups: [{ creatureId: 'cr_moment_moth', count: 3 }],
+        groups: [{ creatureId: 'cr_moment_moth', count: 2 }], // U81b2: 2, was 3 (76 % deaths at a median L5 on the road east)
         chance: 0.3,
         once: false,
         respawn: 'on_return',

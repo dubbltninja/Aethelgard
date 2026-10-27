@@ -678,7 +678,7 @@ const containedTyrant = {
       statuses: [{ status: 'status_poison', chance: 0.7, duration: 4 }],
     },
     tyr_remember: tyrRemember,
-    tyr_unraveling: tyrUnraveling,
+    tyr_unraveling: { ...tyrUnraveling, power: { coef: 0.8, stat: 'sp' } }, // U81b2: 0.8·SP in this form (DESIGN §4.10; the Unveiled keeps 1.1)
   },
   phases: [
     {

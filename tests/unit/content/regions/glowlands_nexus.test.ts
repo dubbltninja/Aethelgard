@@ -540,6 +540,11 @@ describe('the creatures vs WORLD §6', () => {
     expect(block('cr_spore_drift')).toContain('`spore_burst` · "It bursts, sweetly." · 0.8× all · poison 100% 4 · onDeath');
     // the Contained form's Phase 2 and the Unveiled's Phases 1–3 name the Contained's moves "as Contained": same records
     for (const id of ['tyr_grasp', 'tyr_shear', 'tyr_time_lash', 'tyr_remember', 'tyr_gather', 'tyr_chrono_strike', 'tyr_unraveling']) {
+      // U81b2: the Contained's Unraveling is 0.8·SP (DESIGN §4.10); the Unveiled keeps 1.1
+      if (id === 'tyr_unraveling') {
+        expect(cr(UNVEILED).moves[id]).toEqual({ ...cr(CONTAINED).moves[id], power: { ...cr(CONTAINED).moves[id]!.power!, coef: 1.1 } });
+        continue;
+      }
       expect([id, cr(UNVEILED).moves[id]]).toEqual([id, cr(CONTAINED).moves[id]]);
     }
   });
@@ -750,7 +755,7 @@ describe('the Tyrants vs DESIGN §4.10, field by field (D-062: DESIGN owns the n
       ['tyr_chrono_strike', 'Stun 1 unless the target Guarded', [['status_stun', 1, 1, 'target', { playerGuarding: false }]]],
       ['tyr_sallow_breathes', 'Poison 70% 4; **no regen**', [['status_poison', 0.7, 4, 'target', undefined]]],
       ['tyr_remember', '`tyr_remember` (self Rewind 2)', [['status_rewind', 1, 2, 'self', undefined]]],
-      ['tyr_unraveling', 'Armor Break 100% 2) every turn', [['status_armor_break', 1, 2, 'target', undefined]]],
+      ['tyr_unraveling', 'Armor Break 100% 2; U81b2', [['status_armor_break', 1, 2, 'target', undefined]]],
     ] as const) {
       expect(C1).toContain(snippet);
       expect([id, rows(id)]).toEqual([id, expected]);
@@ -824,6 +829,7 @@ describe('the Tyrants vs DESIGN §4.10, field by field (D-062: DESIGN owns the n
     expect(cr(CONTAINED).stats).toEqual(fc.stats);
     expect(cr(UNVEILED).stats).toEqual(fu.stats);
     for (const [id, m] of Object.entries(fc.moves)) {
+      if (id === 'tyr_unraveling') continue; // U81b2: the Contained's is 0.8·SP (DESIGN §4.10); the fixture keeps 1.1
       expect([id, cr(CONTAINED).moves[id]?.type, cr(CONTAINED).moves[id]?.power, cr(CONTAINED).moves[id]?.shield, cr(CONTAINED).moves[id]?.statuses]).toEqual([id, m.type, m.power, m.shield, m.statuses]);
     }
     expect(cr(CONTAINED).phases.map((p) => [p.enterWhen, p.damageTakenMult])).toEqual(fc.phases.map((p) => [p.enterWhen, p.damageTakenMult]));

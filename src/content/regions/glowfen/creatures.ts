@@ -81,7 +81,7 @@ const barrowLight = {
     barrow_gather: {
       name: 'Gather',
       line: 'More light leaks out of the mound into it.',
-      heal: { power: { coef: 1.0, stat: 'atk' }, target: 'self' },
+      heal: { power: { coef: 0.5, stat: 'atk' }, target: 'self' }, // U81b2: was 1.0 (every turn below 40 %: a resisted physical Elf stalled at round 61)
     },
   },
   // `first` → Keep Watch; `everyNthTurn:3` → Say a Name; `ifHpBelow:40` → Gather (WORLD's order, top to bottom); the Cold Glow is

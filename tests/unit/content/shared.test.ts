@@ -38,6 +38,9 @@ import { freshProfile } from '@tests/fixtures/helpers';
 import { miniContentTables } from '@tests/fixtures/miniContent';
 import { main as validateCli } from '../../../tools/validate-content';
 
+/** U81b2: abilities whose cooldown moved off the fixture's (DESIGN §5.1's budget rule). */
+const U81B2_COOLDOWN: readonly string[] = ['rgr_piercing_arrow', 'wiz_lightning_bolt', 'elf_flurry'];
+
 const ROOT = path.resolve(import.meta.dirname, '../../..');
 const DESIGN = fs.readFileSync(path.join(ROOT, 'docs/DESIGN.md'), 'utf8');
 const pack = buildContentPack();
@@ -367,7 +370,8 @@ describe('the Ranger and Wizard trees vs DESIGN §5.2–5.3', () => {
     for (const a of [...rangerAbilities, ...wizardAbilities]) {
       const twin = fixture.get(a.id);
       expect([a.id, twin !== undefined]).toEqual([a.id, true]);
-      if (twin) expect(mechanics(a)).toEqual(mechanics(twin));
+      // U81b2: the three strikes that took > 35 % of their class's damage carry a 1-turn cooldown (DESIGN §5.1); the fixture keeps 0
+      if (twin) expect(mechanics(a)).toEqual({ ...mechanics(twin), ...(U81B2_COOLDOWN.includes(a.id) ? { cooldown: 1 } : {}) });
     }
   });
 });

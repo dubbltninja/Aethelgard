@@ -475,14 +475,14 @@ describe('the creatures vs WORLD §6', () => {
     expect(creatures.map((c) => c.id).sort()).toEqual([...first, 'cr_tyrants_reach', 'cr_horde_husk'].sort());
   });
 
-  test('name, family, role, level and XP as WORLD’s table (the Orrery Knight’s XP by DESIGN §6.2, D-062)', () => {
+  test('name, family, role, level and XP as WORLD’s table (the Orrery Knight’s 589 by DESIGN §6.2, D-062; WORLD follows since U91)', () => {
     for (const c of creatures) {
       const row = CREATURE_TABLE[c.id];
       expect([c.id, row?.name.startsWith(c.name), c.family, c.role, c.level]).toEqual([c.id, true, row?.family, row?.role, row?.level]);
-      if (c.id !== 'cr_orrery_knight') expect([c.id, c.xp]).toEqual([c.id, row?.xp]);
+      expect([c.id, c.xp]).toEqual([c.id, row?.xp]);
     }
-    // WORLD writes 588 (326.8 × 1.8); DESIGN §6.2's rounded fodder × 1.8 is 589 (the engine's expectedKillXp)
-    expect([CREATURE_TABLE['cr_orrery_knight']?.xp, byId(creatures, 'cr_orrery_knight').xp]).toEqual([588, 589]);
+    // WORLD wrote 588 (326.8 × 1.8) until U91; DESIGN §6.2's rounded fodder × 1.8 is 589 (the engine's expectedKillXp)
+    expect([CREATURE_TABLE['cr_orrery_knight']?.xp, byId(creatures, 'cr_orrery_knight').xp]).toEqual([589, 589]);
   });
 
   test('XP follows DESIGN §6.2: fodder round(20 + 8L + 1.2L²), elite ×1.8, anomaly ×1.3 of the rounded fodder; the Tyrants 900 / 1,600', () => {

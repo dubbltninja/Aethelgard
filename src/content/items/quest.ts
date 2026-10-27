@@ -528,7 +528,7 @@ export const tomes = [
   {
     id: 'item_dreyls_pyre_ledger',
     name: "Dreyl's Pyre Ledger",
-    description: 'The Watch-Captain\'s record of the pyre-ward. The last column is headed "outward".',
+    description: 'Captain Dreyl\'s record of the pyre-ward. The last column is headed "outward".',
     type: 'tome',
     tier: 0,
     usableInCombat: false,

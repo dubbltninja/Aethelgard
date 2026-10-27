@@ -657,7 +657,7 @@ Map positions are grid coordinates (x spacing 8, y spacing 2) extending the lega
 | east | loc_aetherium_spires | — |
 
 - **Items:** item_chronal_dust (legacy). mat_frayed_moment ×1 (50% after killing cr_shimmering_phantom).
-- **Encounters:** first: cr_shimmering_phantom ×1 (100%; legacy). return: cr_moment_moth ×3 (30%) or pool 20%. Mirage hazard: first visit, 25% chance the chosen exit costs an extra watch (negated by `echo_flickering_man`).
+- **Encounters:** first: cr_shimmering_phantom ×1 (100%; legacy). return: cr_moment_moth ×2 (30%; ~~×3~~, U81b2) or pool 20%. Mirage hazard: first visit, 25% chance the chosen exit costs an extra watch (negated by `echo_flickering_man`).
 - **NPCs:** npc_dask (companion anchor; in Loop 1 he is a flicker the player cannot speak to — Loop 2+ only, STORY §4.4, D-066.12; his first scene gives only the warning, the full sentence waits for `q_the_flickering_man`, D-067.16).
 - **Events:** `pass_shimmer` — "Light fractures into false paths, then snaps back into focus." — once. `ev_pass_flicker` — "In the cleft a man in a Wayfinder's coat raises a hand. He is gone before it finishes rising." — once per loop. `ev_pass_true_path` — "You remember which path is real. The others fold away ashamed." — once, requires `echo_flickering_man` (Dask shows the true path; the Echo is STORY §12's).
 - **Art spec:** horizon 0.50; silhouettes: crystal-laced rock walls, a path that doubles, Dask's cleft; particles: refracted light shards that duplicate and snap.
@@ -1770,7 +1770,7 @@ Ley-neutral on purpose. The Wizard's `wiz_echo_bolt` is the real spell.
 | `cr_moment_moth` | Moment Moth | Watch-wardens | fodder | 6 | Highlands | 111 |
 | `cr_ninefold_knight` | Ninefold Knight | Wards | elite | 15 | Silverwood Before | 738 |
 | `cr_null_mouth` | Null Mouth | Hollowed | fodder | 12 | Veil | 289 |
-| `cr_orrery_knight` | Orrery Knight | Watch-wardens | elite | 13 | Chronos Nexus | 588 |
+| `cr_orrery_knight` | Orrery Knight | Watch-wardens | elite | 13 | Chronos Nexus | 589 |
 | `cr_pale_diver` | Pale Diver | Drowned | fodder | 6 | Drowned Reach | 111 |
 | `cr_paradox_wisp` | Paradox Wisp | Spireborn | anomaly (Loop 2+) | 4 | Silverwood Ruins | 92 |
 | `cr_redundant_wayfinder` | Redundant Wayfinder | Unravelled | anomaly (Loop 4+) | 12 | Silverwood Ruins, Veil | 676 |
@@ -1793,7 +1793,7 @@ Ley-neutral on purpose. The Wizard's `wiz_echo_bolt` is the real spell.
 | `cr_unmade` | The Unmade | Unravelled | anomaly (Loop 3+) | 13 | Depths (exploited), Drowned Reach | 425 |
 | `cr_unraveling_tide` | The Unraveling Tide | Unravelled | **boss** (Horde) | 14 | Horde: loc_darkened_corridor | 500 |
 | `cr_veil_sentry` | Veil Sentry | Mortal | fodder | 10 | Voidscar, Veil | 220 |
-| `cr_vells_umbra` | Vell's Umbra | Hollowed | **boss** | 16 | Veil | 880 |
+| `cr_vells_umbra` | Vell's Umbra | Hollowed | **boss** | 15 | Veil | 880 |
 | `cr_void_touched_stalker` | Void-Touched Stalker | Hollowed | fodder | 6 | Voidscar, Veil | 111 |
 | `cr_warding_pillar` | Warding Pillar | Wards | fodder | 6 | Mistwood & Reach, Silverwood Before | 111 |
 | `cr_wildling_brute` | Wildling Brute | Wilds | fodder | 4 | Mistwood & Reach | 71 |
@@ -1826,7 +1826,7 @@ Ley-neutral on purpose. The Wizard's `wiz_echo_bolt` is the real spell.
 - **Intents:**
   - `starved_snuff` · "It leans over the light you carry and inhales." · 0.6× all · blind 60% 2 · first
   - `starved_gnaw` · "It folds around your arm, mouth first." · 1.3× you · curse 50% 3
-  - `starved_feed` · "It swallows the dark it made and swells." · heal self 1.5× · ifTargetHas:blind
+  - `starved_feed` · "It swallows the dark it made and swells." · heal self 0.8× (~~1.5×~~, U81b2) · ifTargetHas:blind
   - `starved_hunger` · "It goes thin and fast toward the brightest thing here." · 1.8× highest-MAG target · everyNthTurn:4
 - **Loot:** 54–84 g · `mat_shadow_ash` ×2 100% · `mat_breach_glass` 30% · `item_dark_spellbook` 25%
 - **Bestiary** (Wayfinder's Notes): Blind on the first turn, every time, unless I carry the Hollow
@@ -1858,7 +1858,7 @@ no longer in the destroyed-state Depths (E12)
 - **Intents:**
   - `null_bite` · "Its edge opens toward your shield arm." · 1.2× you (Void: destroys Shield)
   - `null_unmake` · "It swallows something of yours you were relying on." · 0.5× you · strips your shield, regen, haste, rewind
-  - `null_gape` · "It opens wide enough to step into." · 1.6× you · weaken 50% 2 · everyNthTurn:3
+  - `null_gape` · "It opens wide enough to step into." · 1.2× you (~~1.6×~~, U81b2) · weaken 50% 2 · everyNthTurn:3
   - `null_fill` · "It closes on nothing and is briefly less hungry." · regen self 0.4×/3 · ifHpBelow:40
 - **Loot:** 27–42 g · `mat_breach_glass` 40% · `item_void_shard` 25% · `mat_umbral_thread`† 30%
 - **Bestiary** (Remnant Archive): Year 488, the Null Orchard. A mouth with no head attached, roughly
@@ -1887,8 +1887,8 @@ q_bone_road ambushes · *legacy: HP 40 · dmg 9 · def 2 · agi 6 · XP 55*
 - **Tactics:** Guard or buff on turn one; answer every Curse with a Ley hit (removes it, ×1.25).
 
 #### `cr_vells_umbra` — Vell's Umbra (boss)
-**Hollowed (Void) · L16 boss · XP 880** · loc_eye_of_the_scar (forced; adds `cr_hollow_lantern`) · the
-Veil's regional boss (band 10–14 top + 2)
+**Hollowed (Void) · L15 boss (~~L16~~, U81b2) · XP 880** · loc_eye_of_the_scar (forced; adds `cr_hollow_lantern`) · the
+Veil's regional boss (D-137: the Eye's band 13 + 2)
 - **Stats:** HP 480 (~~600~~; 12 × (42 − 2 armor) = 480, D-067.20) · ATK 29 (~~27~~) · DEF 2/8 · AGI 11 (~~9~~) ·
   void · breach-born · cannot be fled
 - **Resist:** weak ley, fire · **resist void** (~~immune~~, D-067.18) · neutral physical (~~resist~~, #19) ·
@@ -2088,7 +2088,7 @@ loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 
 
 #### `cr_tide_clerk` — Tide Clerk
 **Drowned · L5 fodder · XP 90** · loc_tidewell_hall
-- **Stats:** HP 70 · ATK 12 · DEF 2/2 · AGI 5 · physical · breach-born, drowned
+- **Stats:** HP 70 · ATK 10 (~~12~~, U81b2) · DEF 2/2 · AGI 5 · physical · breach-born, drowned
 - **Resist:** weak — (Soaked does the work; the Drowned lost "weak ley", D-067.19) · resist fire · immune poison
 - **Intents:**
   - `clerk_check_name` · "It runs a wet finger down the ledger to your name." · mark 100% 3 · first
@@ -2102,11 +2102,11 @@ loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 
 
 #### `cr_pale_diver` — Pale Diver
 **Drowned · L6 fodder · XP 111** · loc_cistern_of_names (×2), loc_bellmouth (×2, return)
-- **Stats:** HP 80 · ATK 14 · DEF 1/3 · AGI 7 · physical · breach-born, drowned
+- **Stats:** HP 80 · ATK 12 (~~14~~, U81b2) · DEF 1/3 · AGI 7 · physical · breach-born, drowned
 - **Resist:** weak — (Soaked does the work; the Drowned lost "weak ley", D-067.19) · resist fire · immune poison
 - **Intents:**
   - `diver_grapple` · "Pale hands close on your belt and pull downward." · 0.9× you · slow 60% 2
-  - `diver_hold_under` · "It wraps around you and the water closes over." · 1.4× you · soaked 100% 3 · ifTargetHas:slow
+  - `diver_hold_under` · "It wraps around you and the water closes over." · 1.1× you (~~1.4×~~, U81b2) · soaked 100% 3 · ifTargetHas:slow
   - `diver_rise` · "It sinks out of reach and rises behind you." · phase self 1 · everyNthTurn:3
 - **Loot:** 15–24 g · `mat_drowned_pearl` 30% · `item_lantern_oil` 25% · `mat_sodden_vellum` 30%
 - **Bestiary** (Remnant Archive): Year 140 to the present. Remnant divers lost in the Cistern of
@@ -2116,7 +2116,7 @@ loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 
 
 #### `cr_brine_lamprey` — Brine Lamprey
 **Drowned · L5 fodder · XP 90** · loc_drowned_stair (×2), loc_black_sluice (×2–3); Bell-Warden add
-- **Stats:** HP 56 · ATK 12 · DEF 0/1 · AGI 9 · physical · breach-born, drowned
+- **Stats:** HP 56 · ATK 10 (~~12~~, U81b2) · DEF 0/1 · AGI 9 · physical · breach-born, drowned
 - **Resist:** weak — (Soaked does the work) · resist fire · immune poison
 - **Intents:**
   - `lamprey_latch` · "A pale shape with too many mouths finds your calf." · 0.8× you · bleed 50% 3
@@ -2130,11 +2130,11 @@ loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 
 
 #### `cr_ledger_choir` — Ledger Choir
 **Drowned · L7 elite · XP 243** · loc_sunken_scriptorium (with 2× `cr_drowned_archivist`)
-- **Stats:** HP 180 · ATK 15 · DEF 2/4 · AGI 4 · ley · breach-born, drowned
+- **Stats:** HP 180 · ATK 13 (~~15~~, U81b2) · DEF 2/4 · AGI 4 · ley · breach-born, drowned
 - **Resist:** weak — (Soaked does the work; the Drowned lost "weak ley", D-067.19) · resist fire · immune poison
 - **Intents:**
   - `choir_intone` · "Many wet voices read one name together." · 0.8× all · weaken 40% 2
-  - `choir_amend` · "The pages turn back. An ally's wound closes." · heal ally 1.5× · ifAllyPresent
+  - `choir_amend` · "The pages turn back. An ally's wound closes." · heal ally 0.9× (~~1.5×~~, U81b2) · ifAllyPresent
   - `choir_reinscribe` · "They read a fallen name back into the book." · revives one fallen Drowned ally at 40% HP · ifAllyDown · once per fight
   - `choir_verse` · "The voices find a note under the water." · 1.4× you · soaked 100% 3 · everyNthTurn:3
 - **Loot:** 34–54 g · `mat_sodden_vellum` ×2 100% · `mat_drowned_pearl` 40% · `item_remnant_ink` 50%
@@ -2146,7 +2146,7 @@ loc_sunken_scriptorium (×2), loc_bellmouth · *legacy: HP 35 · dmg 7 · def 2 
 
 #### `cr_bell_ringer` — Bell-Ringer
 **Drowned · L7 elite · XP 243** · loc_bellmouth (with `cr_drowned_archivist`)
-- **Stats:** HP 180 · ATK 15 · DEF 4/2 · AGI 3 · storm (physical on Rope) · breach-born, drowned
+- **Stats:** HP 180 · ATK 13 (~~15~~, U81b2) · DEF 4/2 · AGI 3 · storm (physical on Rope) · breach-born, drowned
 - **Resist:** weak void (ley neutral, D-067.19) · resist fire · immune poison
 - **Intents:**
   - `ringer_low_note` · "The great bell speaks one low note. The water shivers." · 0.7× all · shock 40% 2
@@ -2195,7 +2195,7 @@ Reach's regional boss (band 4–8 top + 2)
 #### `cr_stone_hide_golem` — Stone-Hide Golem
 **Wards · L6 elite · XP 200** · loc_blighted_outpost (×2; q_blighted_outpost target) ·
 *legacy: HP 50 · dmg 12 · def 5 · agi 2 · XP 85 · magic resistance 80%*
-- **Stats:** HP 130 (DESIGN §6.5 Mistwood elite) · ATK 14 · DEF 6/4 · AGI 2 · physical · construct
+- **Stats:** HP 90 (~~130~~, DESIGN §6.5 Mistwood elite; U81b2, D-140) · ATK 12 (~~14~~) · DEF 3/4 (~~6/4~~) · AGI 2 · physical · construct
 - **Resist:** weak — · resist fire, ley, void, chrono · immune poison, bleed
 - **Intents:**
   - `golem_slam` · "Slate fists rise together over your head." · 1.2× you · stun 20% 1
@@ -2513,7 +2513,7 @@ loc_elder_mangrove, loc_pale_gullet (×3) · *legacy: HP 36 · dmg 7 · def 2 ·
   - `barrow_keep_watch` · "The light paces the mound's edge and turns to you." · mark 100% 3 · first
   - `barrow_cold_glow` · "It brightens, and the warmth leaves your hands." · 1.1× you · weaken 40% 2
   - `barrow_say_a_name` · "It speaks a name. You turn before you can stop." · 0.5× you · stun 30% 1 · everyNthTurn:3
-  - `barrow_gather` · "More light leaks out of the mound into it." · heal self 1.0× · ifHpBelow:40
+  - `barrow_gather` · "More light leaks out of the mound into it." · heal self 0.5× (~~1.0×~~, U81b2) · ifHpBelow:40
 - **Loot:** 25–39 g · `item_barrow_light_vial` (the first one killed at loc_firefly_barrows, 100%, WORLD
   §3.9) · `mat_ley_resin` 40% · `mat_glow_gland` 30%
 - **Bestiary** (Wayfinder's Notes): The Glowfen bury their dead in the water and the dead do not stay
@@ -2590,7 +2590,7 @@ target); Contained Tyrant Phase 2 add (at 40% HP = 112, D-066.1; 1 when solo) ·
 - **Tactics:** Chrono ignores Phase; otherwise Guard the Teeth turn.
 
 #### `cr_moment_moth` — Moment Moth
-**Watch-wardens · L6 fodder · XP 111** · loc_shimmering_pass (×3, return)
+**Watch-wardens · L6 fodder · XP 111** · loc_shimmering_pass (×2, return; ~~×3~~, U81b2)
 - **Stats:** HP 54 · ATK 14 · DEF 0/2 · AGI 11 · chrono · breach-born
 - **Resist:** weak fire, void · resist chrono · immune poison
 - **Intents:**
@@ -2619,7 +2619,7 @@ target); Contained Tyrant Phase 2 add (at 40% HP = 112, D-066.1; 1 when solo) ·
 - **Tactics:** Void during Rewind; Storm cracks the glass.
 
 #### `cr_orrery_knight` — Orrery Knight
-**Watch-wardens · L13 elite · XP 588** · loc_chronos_nexus (20%, only while `item_orrery_key` is untaken)
+**Watch-wardens · L13 elite · XP 589** · loc_chronos_nexus (20%, only while `item_orrery_key` is untaken)
 - **Stats:** HP 300 · ATK 24 · DEF 6/5 · AGI 5 · chrono (physical on Epicycle) · construct
 - **Resist:** weak void, storm · resist chrono, fire · immune poison, bleed
 - **Intents:**
@@ -2779,7 +2779,7 @@ XP 180 · magic resistance 30% · scaled to player level +1*
   - `tyr_grasp` · "A skeletal limb surfaces, reaching." · 1.2× ATK physical you · slow 100% 2
   - `tyr_shear` · "Time thickens around your feet." · 1.0× SP all
   - `tyr_time_lash` · "The hour draws tight, then lashes at you." · 1.3× SP you
-  - *Transition (<66%):* "The mass splits along old seams. Things that were people surface and do not sink back." onEnter: 2× `cr_temporal_aberration` at 40% HP (~~60%~~), 1 if the player has no active companion (`countSolo`).
+  - *Transition (<66%):* "The mass splits along old seams. Things that were people surface and do not sink back." onEnter: 1× `cr_temporal_aberration` at 40% HP (~~60%~~), none if the player has no active companion (`countSolo`; U81b2, was 2 / 1).
 - **Phase 2 — The Fracture** (<66%; the five strike once per rotation, STORY §8.4):
   - `tyr_korr_burns` · "Something that was a scholar burns." · 1.0× SP fire you · burn 60% 3
   - `tyr_vane_closes` · "Stone-grey hands close on your left." · 1.1× ATK physical you · armor_break 60% 3
@@ -2789,7 +2789,7 @@ XP 180 · magic resistance 30% · scaled to player level +1*
   - `tyr_remember` · "An eye opens in the mass and looks back a moment." · rewind self 2 (Masque; a boss Rewind restores at most 10% max HP and any Void or Ley hit removes it — `itm_echo_bolt` answers it for every class) · **once in this phase**
   - *Transition (<33% or round 12):* "It stops guarding itself. Every wound you give it is answered by a voice."
 - **Phase 3 — The Nine Speak** (`hpBelow 0.33` OR `round 12`, ~~14~~; takes ×1.5 damage, STORY §8.4 — provisional until the §19 #19 sims, D-068.3; no more Brace):
-  - `tyr_unraveling` · "The Tyrant stops guarding itself. Everything here comes loose." · 1.1× SP all · armor_break 100% 2 · every turn
+  - `tyr_unraveling` · "The Tyrant stops guarding itself. Everything here comes loose." · 0.8× SP all (~~1.1×~~, U81b2; the Unveiled keeps 1.1×) · armor_break 100% 2 · every turn
   - `tyr_remember` · **once in this phase**
 - **Loot:** none (legacy); `mat_frayed_moment` ×3 lie at the Apex afterwards (WORLD §3.5). The Horde
   begins (D-060).
@@ -3186,7 +3186,7 @@ unlock their codex entry (ids per STORY §14) and any Echo listed.
 | `item_tobrins_warding_primer` | Tobrin's Warding Primer | codex (Tobrin Vask) | 30 | `loc_emberforge` (Loop 2+, once, `echo_vask_seal`; Borin found it in the slag) | An apprentice's primer of ward-sigils. Someone corrected every page in red. |
 | `item_oriels_ledger` | Oriel's Ledger | codex (Oriel Danthe) | 30 | `loc_sunken_scriptorium` (Loop 2+ or `echo_oriel_lineage`) | The Circle's archivist's own accounts. The last entry is a list of nine names. |
 | `item_rhunes_hydromancy` | Rhune's Hydromancy | codex (Ilsabet Rhune) | 30 | `loc_bell_wardens_deep` (first clear) | The Warden of Waters' sluice tables. One page is a drowning, worked out to the hour. |
-| `item_dreyls_pyre_ledger` | Dreyl's Pyre Ledger | codex (Corvin Dreyl) | 30 | `loc_herd_grave` (first clear) | The Watch-Captain's record of the pyre-ward. The last column is headed "outward". |
+| `item_dreyls_pyre_ledger` | Dreyl's Pyre Ledger | codex (Corvin Dreyl) | 30 | `loc_herd_grave` (first clear) | Captain Dreyl's record of the pyre-ward. The last column is headed "outward". |
 | `item_auldes_spire_notes` | Aulde's Spire Notes | codex (Seraphine Aulde) | 30 | `loc_auldes_eyrie` 100% | Tuning notes for nine spires, and one line in a different ink: *begin*. |
 
 ---

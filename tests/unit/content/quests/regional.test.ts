@@ -463,12 +463,12 @@ describe('the scenes (the conventions of src/content/shared/dialogues/index.ts; 
 const WRITTEN = {
   nodes: [
     // Dray
-    'There is a stair under the Archives that the water took in Year 1, and a bell under the stair that it did not. It rings on the hour. I have timed it; it runs four minutes slow, and has since 309.',
+    'There is a stair under the Archives that the water took in Year 0, and a bell under the stair that it did not. It rings on the hour. I have timed it; it runs four minutes slow, and has since 309.',
     "Silverwood hung three bells: Plaza, Gate, Archive. Ring them as the city rang them and the sluices will answer. Ashcombe's notes say the order is cut on the Plaza fountain. Will you go down?",
     'Take a lantern. Take two. And count the hours while you are under; the bell will not count them for you.',
     'Then it rings on. It has rung five hundred years without you.',
     'Plaza, Gate, Archive, if the fountain is to be believed. Ashcombe believed it. He never went down.',
-    'The bell has stopped. I have the hour of it written down: the first silence under the Archives since Year 1.',
+    'The bell has stopped. I have the hour of it written down: the first silence under the Archives since Year 0.',
     // the flooded stair and the bells (narrator)
     'Under the ninth lamp the stair goes on down, and from under the water a bell speaks one low note. It is the hour. Something down there is keeping it.',
     'You count the lamps as you go. The bell does not ring twice.',

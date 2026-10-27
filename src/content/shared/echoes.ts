@@ -405,7 +405,7 @@ export const echoes = [
   {
     id: 'echo_six_in_the_mass',
     name: 'Six',
-    codexLine: 'Six of the Nine are in it: Korr, Vane, Aulde, Sallow, Masque, and him. Finished the second movement, or the Shore hinted. I can see what the limbs mean to do now.',
+    codexLine: 'Six of the Nine are in it: Korr, Vane, Aulde, Sallow, Masque, and him. Finished the second movement, or the Still Shore hinted. I can see what the limbs mean to do now.',
     description: "Codex; the Tyrants' hidden intents shown",
     category: 'lore',
     obtainedBy: ['communion:movement_ii_complete', 'quest:q_the_still_shore'],
@@ -461,7 +461,7 @@ export const echoes = [
   {
     id: 'echo_thirtieth_dawn',
     name: 'It Happened Anyway',
-    codexLine: "The clock ran out with the Tyrant alive and the sky tore anyway. I get this on waking or at the Shore. The communion hears it, Dray's notes open, and with the Ledger it names the jailer.",
+    codexLine: "The clock ran out with the Tyrant alive and the sky tore anyway. I get this on waking or at the Still Shore. The communion hears it, Dray's notes open, and with the Ledger it names the jailer.",
     description: 'Communion answer; Keeper Dray\'s notes; a source of echo_tyrant_jailer with the Ledger',
     category: 'dialogue',
     obtainedBy: ['engine:clock_expiry_with_the_tyrant_alive'],

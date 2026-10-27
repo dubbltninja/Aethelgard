@@ -143,6 +143,8 @@ describe('AbilityBar (PLAN §8.3 abilityBar.test)', () => {
     tier: null,
     cost: null,
     blood: false,
+    bloodable: false,
+    empowered: false,
     cooldown: 0,
     target: 'enemy',
     damageType: 'physical',

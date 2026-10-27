@@ -167,11 +167,11 @@ const blood = { bloodPrice: weaver.resource.bloodPrice! };
 
 describe('ability costs and self-costs (DESIGN §5.1, §5.6, D-066 #5)', () => {
   test('% max-HP self-cost rounds down; enough MP → no Blood price', () => {
-    expect(abilityCost(voidLance, { hp: 90, hpMax: 90, mp: 48 }, blood)).toEqual({ mp: 10, mpPaid: 10, hp: 7, ok: true, reason: null });
+    expect(abilityCost(voidLance, { hp: 90, hpMax: 90, mp: 48 }, blood)).toEqual({ mp: 10, mpPaid: 10, hp: 7, bloodHp: 0, ok: true, reason: null });
   });
 
   test('Weaver Blood price: 2 HP per missing MP, total HP cost must be < current HP', () => {
-    expect(abilityCost(voidLance, { hp: 90, hpMax: 90, mp: 4 }, blood)).toEqual({ mp: 10, mpPaid: 4, hp: 19, ok: true, reason: null });
+    expect(abilityCost(voidLance, { hp: 90, hpMax: 90, mp: 4 }, blood)).toEqual({ mp: 10, mpPaid: 4, hp: 19, bloodHp: 12, ok: true, reason: null });
     expect(abilityCost(voidLance, { hp: 20, hpMax: 90, mp: 4 }, blood).ok).toBe(true);
     expect(abilityCost(voidLance, { hp: 19, hpMax: 90, mp: 4 }, blood)).toMatchObject({ ok: false, reason: 'Not enough blood' });
   });

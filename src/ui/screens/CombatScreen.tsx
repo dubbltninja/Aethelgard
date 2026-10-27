@@ -37,7 +37,7 @@ import { CALLOUT_SLOT_ID } from '../components/Callouts';
 import { DockPortal } from '../components/DockPortal';
 import { Modal } from '../components/Modal';
 import { Meter } from '../components/StatusBar';
-import { AbilityBar } from '../components/combat/AbilityBar';
+import { AbilityBar, BloodToggle } from '../components/combat/AbilityBar';
 import { CombatLog } from '../components/combat/CombatLog';
 import { CommunionBar } from '../components/combat/CommunionBar';
 import { CombatStage, useStageSize } from '../components/combat/CombatStage';
@@ -118,6 +118,8 @@ export interface CombatViewProps {
   itemCount: number;
   canItem: boolean;
   tiles: readonly AbilityTileModel[];
+  /** U84: the Blood price toggle (a class with Blood price), or absent. */
+  blood?: { on: boolean; onToggle: () => void } | null;
   targetName: string | null;
   companion: CompanionCardModel | null;
   communion: CommunionModel | null;
@@ -215,7 +217,9 @@ export function CombatView(p: CombatViewProps): ReactNode {
         {p.communion === null ? null : (
           <CommunionBar model={p.communion} buttons={p.communionButtons} showingAbilities={p.showAbilities} onAct={p.onAct} onToggleView={p.onToggleCommuneView} />
         )}
-        {communing ? null : <AbilityBar tiles={p.tiles} targetName={p.targetName} onUse={p.onTile} compact />}
+        {communing ? null : (
+          <AbilityBar tiles={p.tiles} targetName={p.targetName} onUse={p.onTile} compact extra={p.blood == null ? undefined : <BloodToggle on={p.blood.on} onToggle={p.blood.onToggle} />} />
+        )}
       </div>
     );
   // the stage band; a phase change or a boss's line shows over its top edge, so it never pushes the cards or the controls
@@ -358,6 +362,7 @@ export function CombatScreen(): ReactNode {
   const [allyFor, setAllyFor] = useState<AbilityTileModel | null>(null);
   const [logExpanded, setLogExpanded] = useState(false);
   const [showAbilities, setShowAbilities] = useState(false);
+  const [bloodOn, setBloodOn] = useState(false);
   const [explained, setExplained] = useState<ReadonlyMap<string, string[]>>(() => new Map());
   const [hits, setHits] = useState<Record<string, HitFlash>>({});
   const [cues, setCues] = useState<StageCues>(NO_CUES);
@@ -396,13 +401,14 @@ export function CombatScreen(): ReactNode {
       guard: guardModel(state, content, profile, legal),
       flee: fleeModel(state, content, legal),
       items,
-      tiles: abilityTiles(state, content, legal, target),
+      tiles: abilityTiles(state, content, legal, target, bloodOn),
       companion: companionCard(state, content, legal, target),
       communion,
       communionButtons: communionButtons(communion),
       log: combatLogLines(combat, logExpanded ? COMBAT_LOG_EXPANDED : COMBAT_LOG_LINES, explained),
     };
-  }, [state, content, profile, legal, combat, target, logExpanded, explained]);
+  }, [state, content, profile, legal, combat, target, logExpanded, explained, bloodOn]);
+  const canBleed = content.classes[state.player.classId]?.resource.bloodPrice !== undefined;
 
   const dispatch = (action: Action): void => void store.dispatch(action);
   const communing = model.communion?.active === true && !showAbilities;
@@ -411,6 +417,7 @@ export function CombatScreen(): ReactNode {
 
   const pressTile = (tile: AbilityTileModel): void => {
     if (!tile.enabled) return;
+    const blood = bloodOn && tile.bloodable ? { blood: true } : {}; // U84: the Blood price toggle
     if (tile.kind === 'attack') {
       if (target === null) return;
       setChosen(target);
@@ -420,7 +427,7 @@ export function CombatScreen(): ReactNode {
     if (tile.target === 'enemy') {
       if (target === null) return;
       setChosen(target);
-      dispatch({ type: 'ability', abilityId: tile.id, targetUid: target });
+      dispatch({ type: 'ability', abilityId: tile.id, targetUid: target, ...blood });
       return;
     }
     if (tile.target === 'ally') {
@@ -429,10 +436,10 @@ export function CombatScreen(): ReactNode {
         setAllyFor(tile);
         return;
       }
-      dispatch(choices[0]?.action ?? { type: 'ability', abilityId: tile.id });
+      dispatch({ ...(choices[0]?.action ?? { type: 'ability', abilityId: tile.id }), ...blood });
       return;
     }
-    dispatch({ type: 'ability', abilityId: tile.id });
+    dispatch({ type: 'ability', abilityId: tile.id, ...blood });
   };
   const guard = (): void => {
     if (model.guard.enabled) dispatch({ type: 'guard' });
@@ -476,6 +483,7 @@ export function CombatScreen(): ReactNode {
     }
   }
   keys.g = { run: guard, label: 'Guard', group: 'action', when: () => model.guard.enabled };
+  if (canBleed && !communing) keys.b = { run: () => setBloodOn((on) => !on), label: 'Toggle the Blood price', group: 'action' };
   if (model.flee.shown) keys.f = { run: flee, label: model.flee.leave ? 'Leave' : 'Flee', group: 'action', when: () => model.flee.enabled };
   keys.i = { run: () => setItemsOpen(true), label: 'Use an item', group: 'action', when: () => canItem };
   if (model.companion?.signature != null) keys.c = { run: command, label: 'Command the companion', group: 'action', when: () => model.companion?.signature?.enabled === true };
@@ -596,6 +604,7 @@ export function CombatScreen(): ReactNode {
         itemCount={model.items.length}
         canItem={canItem}
         tiles={model.tiles}
+        blood={canBleed ? { on: bloodOn, onToggle: () => setBloodOn((on) => !on) } : null}
         targetName={targetName}
         companion={model.companion}
         communion={model.communion}
@@ -630,6 +639,7 @@ export function CombatScreen(): ReactNode {
           <AbilityBar
             tiles={model.tiles.filter((t) => t.kind !== 'attack')}
             targetName={targetName}
+            extra={canBleed ? <BloodToggle on={bloodOn} onToggle={() => setBloodOn((on) => !on)} /> : undefined}
             onUse={(tile) => {
               setAbilitiesOpen(false);
               pressTile(tile);
@@ -656,7 +666,7 @@ export function CombatScreen(): ReactNode {
                 key={choice.uid}
                 onClick={() => {
                   setAllyFor(null);
-                  act(choice.action);
+                  act(bloodOn && allyFor.bloodable ? { ...choice.action, blood: true } as Action : choice.action);
                 }}
                 data-autofocus={i === 0 ? '' : undefined}
               >

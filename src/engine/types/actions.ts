@@ -73,7 +73,11 @@ export type Action =
   | { type: 'acceptQuest'; questId: string }
   // combat
   | { type: 'attack'; targetUid: string }
-  | { type: 'ability'; abilityId: string; targetUid?: string }
+  /**
+   * U84 (C1 addition, D-149 #4): `blood: true` pays the whole MP cost in HP (the Shadow Weaver's Blood price, DESIGN §5.6)
+   * even with MP to spare; any Blood-priced cast is empowered (×1.25). A modifier: legalActions lists the plain spelling.
+   */
+  | { type: 'ability'; abilityId: string; targetUid?: string; blood?: boolean }
   | { type: 'guard' }
   | { type: 'item'; uid: string; targetUid?: string }
   | { type: 'flee' }

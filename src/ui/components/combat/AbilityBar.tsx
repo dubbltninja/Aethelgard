@@ -47,6 +47,30 @@ function tileIcon(tile: AbilityTileModel): IconKind {
   return tile.target === 'ally' ? 'heal' : 'ability';
 }
 
+/**
+ * U84 (DESIGN §5.6, §16.5): the Shadow Weaver's Blood price toggle — while it is pressed, every tile with an MP cost is paid
+ * in HP (2 per MP, the cost in red) and the cast is empowered (+25 %). Key B in a fight; also in the phone's Abilities sheet.
+ */
+export function BloodToggle({ on, onToggle }: { on: boolean; onToggle: () => void }): ReactNode {
+  return (
+    <button
+      type="button"
+      className={on ? 'tile blood-toggle blood-toggle--on' : 'tile blood-toggle'}
+      data-blood-toggle=""
+      aria-pressed={on}
+      aria-keyshortcuts="B"
+      aria-label={`B: Blood price, ${on ? 'on: abilities cost HP and are empowered' : 'off'}`}
+      title="Pay abilities in HP (2 per MP) for +25 % damage, healing and Shield. Never lethal."
+      onClick={onToggle}
+    >
+      <kbd className="tile__key">B</kbd>
+      <Icon kind="heal" size={20} className="tile__icon" />
+      <span className="tile__name">Blood price</span>
+      <span className={on ? 'tile__cost tile__cost--blood' : 'tile__cost'}>{on ? 'On · +25 %' : 'Off'}</span>
+    </button>
+  );
+}
+
 export function AbilityBar({ tiles, targetName, onUse, extra, compact = false }: AbilityBarProps): ReactNode {
   return (
     <section className={compact ? 'ability-bar ability-bar--compact' : 'ability-bar'} aria-labelledby="abilities-heading">

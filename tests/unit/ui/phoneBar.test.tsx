@@ -43,6 +43,8 @@ const tile = (over: Partial<AbilityTileModel>): AbilityTileModel => ({
   tier: 1,
   cost: '8 Focus',
   blood: false,
+  bloodable: false,
+  empowered: false,
   cooldown: 0,
   target: 'enemy',
   damageType: 'physical',

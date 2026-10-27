@@ -701,3 +701,85 @@ In detail (10 of 33):
 - Some bot did not finish its runs — see Blockers.
 - Content is out of reach of the sims — see Coverage for the punch list; add a pathBot script (scripts/quests.ts) for anything a policy bot cannot do.
 - 40 scenario sim(s) were skipped on this pack (it, or the class, cannot get through them): pre_tyrant_l11_ranger: the Wayfinder fell | pre_tyrant_l13_ranger: the Wayfinder fell.
+
+<!-- U81b1 re-measure (hand-written, appended; the generated U80 report above is unchanged). -->
+# After U81b1: the fair bots, re-measured
+
+**1,016 runs** at `db61c91` (U81b1's bots, no balance change): 600 main runs (6 bots x 5 classes x 20 seeds), 392 pre-Tyrant / communion
+scenario runs (10 seeds per cell; 28 more skipped, all `pre_tyrant_l11/l13_ranger` with the companion: "the Wayfinder fell" on the walk,
+as in U80), 24 ending-script runs. **0 engine errors, 0 soft-locks, 0 blockers; determinism 40/40.** Three foreground chunks, merged with
+`--merge` (U80's method): `balA` 10 seeds all bots; `balB` 10 seeds explorer, random, speedrunner; `balB` 10 seeds melee, caster, pacifist
+with `--scenario-seeds 10`. Reproduce chunk 1 with `npm run sim:balance -- --seeds 10 --seed-prefix balA --workers 2 --scenario-seeds 0
+--determinism 20 --json a.json --out a.md`. N is 20 per class and bot (U80: 100-200), so every rate below has a wide interval (one run = 5 %).
+
+**Read this first: row #1 changed meaning, not only value.** U80 counted the portal reached with the Tyrant untouched (the expiry Horde
+opens Ilyra's portal too, DESIGN §10.2) as an Escape: most of its 94-98 % were that. U81b1 counts it as an expiry (`metrics.ts`), as
+DESIGN §19 #1 reads ("kill the Contained Tyrant and reach the portal"). Under the honest count the `melee` bot escapes 0-5 % and the
+`caster` 0-25 %, because of their Heartstone policies (PLAN §7.2, kept): `melee` **destroys** it by Day 10 (limit Day 20, Loop 1 ends at a
+median Day 21, never at L11 for the Apex) and `caster` **exploits** it (limit Day 25). A 6-seed check with the melee bot stabilizing
+instead (not committed): Escape elf 67 %, warden 83 %, ranger 67 %, weaver 67 %, wizard 100 %. The `explorer` (stabilizes) escapes 50-90 %.
+Whether #1's bots should keep those choices is a lead decision before U81b2 tunes anything from row #1.
+
+## §1.2 gates (U80 -> after U81b1)
+
+| Gate | U80 | After U81b1 |
+| --- | --- | --- |
+| Bots complete runs | FAIL: 458 of 4,000 stop early (11 %) | FAIL: 16 of 600 (2.7 %), all FALLEN stops; 0 engine errors |
+| Loop 1 Escape >= 60 % (melee or caster) | "PASS" (counted expiry portals) | FAIL under the honest count: worst class 0 % (see above) |
+| Zero soft-locks | FAIL: 33 (31 pacifist) | **PASS: 0** in 1,016 runs (pacifist stalls 0) |
+| Coverage | quests 38/49, locations 59/73, endings 8/8 | quests **41/49**, locations **73/73**, endings 8/8, creatures killed 68/73, items 120/157 |
+| Determinism | 248/248 | 40/40 |
+
+## The DESIGN §19 rows (U80 -> after U81b1)
+
+| # | Target | U80 | After U81b1 | Bot or game? |
+| --- | --- | --- | --- | --- |
+| 1 | Escape >= 60 % per class | 61 % worst ("pass", see above) | worst 0 %; melee 0-5 %, caster 0-25 %, explorer 50-90 % | bot policy (Heartstone) + metric; then the Tyrant (#19) |
+| 2 | no ability > 35 % | elf_ambush 62.9 %, rgr_piercing_arrow 46.9 % | rgr_piercing_arrow 47.3 %, wiz_lightning_bolt 41.8 %, elf_flurry 40.9 % (elf_ambush now 14.5 %) | game: the kit used in full concentrates on these three |
+| 3 | monotone difficulty | 8 violations | 7 violations (Drowned Reach 4-8: 17 % deaths, 5 rounds; Skyreach 12-15: 25 %) | game |
+| 4 | every ending | 6/6 | 6/6 | pass |
+| 5 | every quest | 38/49 | 41/49 (never started: q_his_masters_sin, q_preserve_or_heal, q_the_first_drowned, q_the_last_instant; started, never done: q_seven_marks, q_stop_the_ritual, q_the_line_he_holds, q_what_the_light_takes) | late arcs that need loyalty, bonds or the communion; `scripts/quests.ts` proves them |
+| 6 | every location | 59/73 | **73/73** | pass |
+| 7 | zero soft-locks | 33 | **0** | pass (thin: 1,016 runs) |
+| 8 | fight length | single 2, pair 4, elite 9, boss 9, Tyrant 13 | single 2, pair 4, elite 8, boss 8, Tyrant 13 | game (fodder and bosses die fast to a full kit) |
+| 9 | deaths per loop | melee 4.88, caster 6.73, explorer 10.38, random 7.88 | melee **1.56** (47 % zero-death), caster 3.79 (7 %), explorer **3.14**, random 7.87 | partly game: Drowned Reach, Skyreach, the Tyrant retries |
+| 10 | loop duration | explorer 36 days / 670 actions; speedrunner 33 days | explorer 32 days / 802 actions; speedrunner 37 days median (min 14); Loop 3+ 503 actions | see the speedrunner below |
+| 11 | level at the Apex | explorer 14; speedrunner not measured | explorer 15; speedrunner **10** (>= 9 ok) | explorer: game (XP curve vs days) |
+| 12 | ability usage | ranger 50, warden 54, elf 68, wizard 25, weaver 37 %; Blood price 0 % | ranger 69, warden 79, elf 71, wizard 84, weaver 81 %; Blood price **2 %** | game: resources are plentiful (see below) |
+| 13 | 0-MP fights <= 15 % | 1 % | 1 % | pass |
+| 14 | economy | end-of-Loop-1 gold 596.5 | 1,018 (n = 295; more kills, same lack of sinks) | game |
+| 15 | clock | explorer 6 %, speedrunner 58 % | explorer 29 % (stabilized 96/100), speedrunner 56 % | speedrunner: the Tyrant at L9-11 (below) |
+| 16 | resistance relevance | 1 band off (band 10, 6 encounters) | same | thin sample |
+| 17 | companion value | 39 % | **32 %** | pass |
+| 18 | variance sanity | not measurable | not measurable | needs an engine hook |
+| 19 | Contained Tyrant (scenarios) | L11 solo wins elf 79, ranger 80, wizard 70, warden 5, weaver 0 % (caster bot) | L11 solo wins elf 100, warden **100**, ranger 20, wizard 80 %; L13 solo elf 88, warden 20, ranger 10, weaver 90, wizard 90 %; with Brak at L11 elf 0, ranger 0, warden 30, weaver 100, wizard 90 %; L11 median rounds elf 27, warden 27, ranger 20.8, wizard 11.5; effective HP 589 solo / 756 with a companion | game: the ranger at L11-13, the elf and ranger with a companion, the round counts |
+| 20 | Unveiled Tyrant | communion 19/19, fight path unmeasured | communion 20/20, fight path unmeasured | n/a |
+
+## What the fair bots changed, item by item (brief U81b1)
+
+1. **Every bot plays its class** (`classFight.ts`): Wizard and Weaver ability share under melee / explorer / speedrunner is now 82-87 %
+   (U80: 0-5 %). Usage is now **over** #12's bands for every class (69-84 %), with 0-MP fights at 1 %: a bot that spends its pool whenever an
+   ability beats a basic attack never runs dry, so the bands read the resource economy (pools, costs, Focus/Grit gain), not the policy.
+   A U81b2 finding, not a bot fix.
+2. **Blood price** is cast when HP stays comfortable (>= 40 % after the cost and above the telegraphed blows): 2 % of 14,105 Weaver casts
+   (explorer 2.7 %, melee 2.8 %, speedrunner 3.4 %, caster 1.0 %). It is rare because the Weaver is almost never short of MP: in a 4-run
+   trace only 1 of 368 combat decisions had a damaging spell it could not pay in MP. 10-30 % needs a smaller pool or dearer spells (U81b2).
+3. **The speedrunner runs** (fights what it meets, flees >= +3, takes only the gate's quests, stabilizes, short rests): it reaches the Apex
+   at **Day 12-21 (median about 15) at L9-10** in every class (traces of 21 runs), inside DESIGN §10's 12-16. It then loses the Contained
+   Tyrant at L9-11 and retries after each level up until the clock runs out (deaths 6-15 a loop): wizard 75 % Escape at a median Day 22.5,
+   warden 45 %, elf 40 %, weaver 20 %, ranger 0 %. **The best Loop 1 the route allows is about 15 days; what fails is the Tyrant at
+   §19 #11's "speedrunner >= 9"** (a game finding for U81b2, with #19's ranger).
+4. **Danger**: Vell's Umbra (L16 at the Eye) fought 5 times (U80: 540 fights, 1 % wins); the danger rules leave such fights for later.
+5. **Pacifist stalls: 0** (U80: 31).
+6. **Quest following**: quests 41/49 and locations 73/73. U81b1's second pass made Caelum recruitable by a policy bot (0 recruits in
+   U80's 4,000 runs): the explorer keeps the Before's appointments (the errand's offer at the Garret at noon on Last Bell, the Plaza at
+   noon, the Silver Gate after dusk with Caelum at its side) by resting at the Garret, and swaps a companion in when an objective asks for
+   it. **Game finding:** the generic quest *Accept* on any talk with Caelum starts `q_the_apprentices_errand` (and `q_a_boy_from_a_doomed_city`)
+   on their first stage, which only the offer scene's `questAdvance` leaves; the offer scene then never plays again (`notStarted`), so a
+   player who presses Accept strands the quest for the loop. Bots now leave those two to their scene (`acceptable()`); the content or the
+   Accept rule needs the fix.
+7. **Scenario kits**: the Warden's L11 solo win went from 5 % to 100 % with the typical-player kit (full runs: the Warden is the best class
+   at the Tyrant). The kit no longer explains #19; the ranger (20 % / 10 %) and the companion cases (elf and ranger 0 % with Brak at L11) do.
+8. **`communion_movement_2`**: no crash (0 errors in 392 scenario runs).
+
+Traces were re-recorded (`db61c91`): they are recorded by the policy bots, whose choices changed.

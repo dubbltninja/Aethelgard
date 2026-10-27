@@ -470,13 +470,15 @@ describe('melee bot: combat', () => {
     expect(bot.choose(standing, legal, content, {}, ctxOf(fp))).toEqual({ type: 'guard' });
   });
 
-  test('a physical ability beats a basic attack when it promises more', () => {
+  test('a class ability beats a basic attack: a setup (Venom Coat) first, else a physical strike (U81b1)', () => {
     const h = hordePack();
     const { state, profile: p } = loadScenario('pre_tyrant_l13_ranger', h);
     const s = step(state, { type: 'choose', choiceId: 'face_it' }, h, p).state;
     const a = pick(bot, s, h, p);
     expect(a.type).toBe('ability');
-    expect(h.abilities[(a as Extract<Action, { type: 'ability' }>).abilityId]?.damageType).toBe('physical');
+    const ab = h.abilities[(a as Extract<Action, { type: 'ability' }>).abilityId];
+    if (ab?.power !== undefined) expect(ab.damageType).toBe('physical');
+    else expect(ab?.statuses.length).toBeGreaterThan(0);
   });
 
   test('with no draught left, Field Dressing before Guard', () => {

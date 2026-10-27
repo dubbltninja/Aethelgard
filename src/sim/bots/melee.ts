@@ -31,7 +31,6 @@ import {
   dayOf,
   isApexPromptOpen,
   masteredFor,
-  playerOf,
   unlockCostHalf,
   upgradeQuote,
   type Action,
@@ -42,9 +41,9 @@ import {
 } from '@engine/index';
 import {
   allOf,
+  bedStep,
+  hordeRoute,
   bfsPath,
-  enemyWeakness,
-  expectedDamage,
   firstOf,
   foesOf,
   healAmount,
@@ -56,14 +55,14 @@ import {
   locationThreat,
   manaFraction,
   nearestUnvisited,
-  nearestWhere,
   pressOn,
-  questHints,
   questSignature,
-  restAvailable,
   scoreEquipment,
   type PathOptions,
 } from './shared';
+import { classFight, classStat, classUnlockRank, healRow } from './classFight';
+import { DANGER_MARGIN, dangerAt } from './danger';
+import { acceptable, questErrand, questTargets } from './questFollow';
 import type { Bot, BotMemory } from './types';
 
 /** PLAN §7.2 thresholds (fractions of max). */
@@ -139,53 +138,36 @@ function digest(n: Notes, events: readonly GameEvent[]): void {
     else if (e.t === 'playerDied') {
       const where = n.lastFightAt ?? at;
       if (where !== null) n.fellAt[where] = Math.max(n.fellAt[where] ?? 0, n.lastLevel);
+      // U81b1: a lost Apex fight is not "faced" for the loop: the reload stands before it, and the death note sets the level to retry at
+      n.apexFaced = null;
     }
   }
 }
 
-const fallback = (legal: readonly Action[]): Action => legal.find((a) => !isShellAction(a)) ?? (legal[0] as Action);
+const fallback = (legal: readonly Action[]): Action => legal.find((a) => !isShellAction(a) && a.type !== 'examine') ?? (legal[0] as Action);
 
 // ---- combat --------------------------------------------------------------------------------------------------------------
 
-function fight(s: GameState, legal: readonly Action[], content: ContentPack): Action {
+/** The highest level among the standing foes. */
+const strongestFoe = (s: GameState): number => Math.max(0, ...foesOf(s).map((f) => f.level));
+
+/**
+ * U81b1: a fight ≥ 4 levels above the player is left (D-066; `danger.ts`), and so is one where it fell at this level (a reload
+ * stands next to it: the FALLEN loop replayed the same death up to 25 times); the draught (or self-heal) below 30 %; the flight
+ * with the companion down below 20 %; then the class-aware fight (`classFight`) with a weapon lean — physical abilities first,
+ * but a Wizard's or a Weaver's spells too (before U81b1 only physical strikes, D-145).
+ */
+function fight(s: GameState, legal: readonly Action[], content: ContentPack, memory: BotMemory, fellHere: boolean): Action {
   const combat = s.combat;
   if (combat === null) return fallback(legal);
-  const me = playerOf(combat);
   const hp = healthFraction(s);
-  const heals = allOf(legal, 'item')
-    .filter((a) => a.targetUid === undefined || a.targetUid === me.uid)
-    .map((a) => ({ a, hp: healAmount(content, itemOf(s, a.uid)?.itemId ?? '') }))
-    .filter((x) => x.hp > 0)
-    .sort((x, y) => y.hp - x.hp);
-  if (hp < MELEE.healItemBelow && heals[0] !== undefined) return heals[0].a;
-  // U37 reading: with no draught left, a self-heal ability (Field Dressing) before Guard
-  const mend = allOf(legal, 'ability').find((a) => content.abilities[a.abilityId]?.heal !== undefined && (a.targetUid === undefined || a.targetUid === me.uid));
-  if (hp < MELEE.healItemBelow && mend !== undefined) return mend;
+  const flee = combat.canFlee ? firstOf(legal, 'flee') : undefined;
+  if (flee !== undefined && (strongestFoe(s) >= s.player.level + DANGER_MARGIN || fellHere)) return flee;
+  const heal = healRow(s, legal, content, MELEE.healItemBelow);
+  if (heal !== undefined) return heal;
   const companionDown = combat.party.some((c) => c.kind === 'companion' && !c.alive);
-  const flee = firstOf(legal, 'flee');
-  if (companionDown && hp < MELEE.fleeBelow && combat.canFlee && flee !== undefined) return flee;
-  if (hp < MELEE.guardBelow && heals.length === 0 && firstOf(legal, 'guard') !== undefined) return { type: 'guard' };
-
-  const foes = foesOf(s);
-  const weak = (uid: string): boolean => {
-    const foe = foes.find((f) => f.uid === uid);
-    return foe !== undefined && (foe.resistances.physical === 'weak' || enemyWeakness(content, foe.refId).includes('physical'));
-  };
-  const hpOf = (uid: string | undefined): number => foes.find((f) => f.uid === uid)?.hp ?? Number.POSITIVE_INFINITY;
-  // U81a: the creatures the fight is about before what they summoned (a summoner calls more; D-110)
-  const target = [...foes].sort((a, b) => Number(a.isAdd) - Number(b.isAdd) || Number(weak(b.uid)) - Number(weak(a.uid)) || a.hp - b.hp)[0];
-  const strikes = legal.filter((a) => {
-    if (a.type === 'attack') return true;
-    if (a.type !== 'ability') return false;
-    const ab = content.abilities[a.abilityId];
-    return ab?.power !== undefined && ab.damageType === 'physical' && (a.targetUid === undefined || foes.some((f) => f.uid === a.targetUid));
-  });
-  const aim = (a: Action): string | undefined => (a.type === 'attack' || a.type === 'ability' ? a.targetUid : undefined);
-  const onTarget = strikes.filter((a) => aim(a) === undefined || aim(a) === target?.uid);
-  const pool = onTarget.length > 0 ? onTarget : strikes;
-  const best = [...pool].sort((a, b) => expectedDamage(content, me, b, foes.length) - expectedDamage(content, me, a, foes.length) || hpOf(aim(a)) - hpOf(aim(b)))[0];
-  if (best !== undefined && expectedDamage(content, me, best, foes.length) > 0) return best;
-  return firstOf(legal, 'guard') ?? fallback(legal);
+  if (flee !== undefined && companionDown && hp < MELEE.fleeBelow) return flee;
+  return classFight(s, legal, content, memory, { lean: 'weapon', healBelow: MELEE.healItemBelow });
 }
 
 // ---- dialogue ------------------------------------------------------------------------------------------------------------
@@ -206,7 +188,7 @@ function talkThrough(s: GameState, legal: readonly Action[], content: ContentPac
     n.apexFaced = s.meta.runId;
     return legal.find((a) => a.type === 'choose' && a.choiceId === APEX_FACE_IT) ?? fallback(legal);
   }
-  const accept = firstOf(legal, 'acceptQuest');
+  const accept = allOf(legal, 'acceptQuest').find((a) => acceptable(content, a.questId)); // U81b1: never a quest its scene carries
   if (accept !== undefined) return accept;
   const choices = allOf(legal, 'choose');
   if (choices.length > 0) return pickChoice(s, choices, content);
@@ -263,7 +245,7 @@ function threshold(s: GameState, legal: readonly Action[], content: ContentPack,
 
 // ---- explore -------------------------------------------------------------------------------------------------------------
 
-function explore(s: GameState, legal: readonly Action[], content: ContentPack, profile: Profile, n: Notes): Action {
+function explore(s: GameState, legal: readonly Action[], content: ContentPack, profile: Profile, n: Notes, memory: BotMemory): Action {
   const here = s.world.currentLocationId;
   const level = s.player.level;
   const horde = s.world.hordeActive;
@@ -275,10 +257,11 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
     const to = path?.[0];
     return to === undefined ? undefined : legal.find((a) => a.type === 'move' && a.to === to);
   };
-  if (horde) return step(bfsPath(s, content, profile, here, PORTAL_LOCATION_ID)) ?? firstOf(legal, 'wait') ?? fallback(legal);
+  if (horde) return step(hordeRoute(s, content, profile, PORTAL_LOCATION_ID)) ?? firstOf(legal, 'wait') ?? fallback(legal);
 
   // the character
-  const stat = legal.find((a) => a.type === 'allocateStat' && a.stat === 'strength') ?? firstOf(legal, 'allocateStat');
+  const want = classStat(content, s.player.classId, 'strength');
+  const stat = legal.find((a) => a.type === 'allocateStat' && a.stat === want) ?? firstOf(legal, 'allocateStat');
   if (stat !== undefined) return stat;
   const unlock = pickUnlock(s, legal, content, profile);
   if (unlock !== undefined) return unlock;
@@ -289,13 +272,15 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
 
   // routing rules (see the header)
   const fell = (id: string): boolean => (n.fellAt[id] ?? 0) >= level;
-  const tooHard = (id: string): boolean => (levelBand(content, id)?.min ?? 0) > level + MELEE.bandSlack;
+  // U81b1 (danger.ts): never through an unfleeable fight ≥ level + 4; never to a place with any such fight
+  const tooHard = (id: string): boolean => (levelBand(content, id)?.min ?? 0) > level + MELEE.bandSlack || dangerAt(s, content, profile, id, 'pass');
   const opts: PathOptions = { avoid: (id) => fell(id) || tooHard(id) };
-  const safe = (id: string): boolean => !fell(id) && !tooHard(id);
+  const safe = (id: string): boolean => !fell(id) && !tooHard(id) && !dangerAt(s, content, profile, id, 'visit');
 
   // hurt or drained: a bed here, a draught, or the walk to the nearest bed
   const hp = healthFraction(s);
-  if (hp < MELEE.restHpBelow || manaFraction(s) < MELEE.restMpBelow) {
+  const mpBelow = content.classes[s.player.classId]?.resource.bloodPrice !== undefined ? 0 : MELEE.restMpBelow; // U81b1: the Weaver pays in blood
+  if (hp < MELEE.restHpBelow || manaFraction(s) < mpBelow) {
     const bed = legal.find((a) => a.type === 'rest' && a.kind === 'full') ?? firstOf(legal, 'rest');
     if (bed !== undefined) return bed;
     if (hp < MELEE.drinkBelow) {
@@ -305,7 +290,7 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
         .sort((x, y) => y.hp - x.hp)[0];
       if (drink !== undefined) return drink.a;
     }
-    const walk = step(nearestWhere(s, content, profile, (id) => restAvailable(s, content, profile, id), opts)?.path ?? null);
+    const walk = bedStep(s, legal, content, profile, opts); // U81b1: a bed no fight guards first
     if (walk !== undefined) return walk;
   }
 
@@ -326,11 +311,13 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
   }
   const gather = firstOf(legal, 'gather');
   if (gather !== undefined) return gather;
+  const errand = questErrand(s, legal, content, memory); // U81b1: search a hint for an objective's item, or buy it (questFollow.ts)
+  if (errand !== undefined) return errand;
 
   // where next: quest hints → the nearest unvisited place in reach → the Apex → pass the time
   const qsig = questSignature(s);
-  if (questHints(s, content).includes(here)) n.hintsReached[here] = qsig;
-  for (const hint of questHints(s, content)) {
+  if (questTargets(s, content, profile).map((t) => t.locationId).includes(here)) n.hintsReached[here] = qsig;
+  for (const hint of questTargets(s, content, profile).map((t) => t.locationId)) {
     if (hint === here || n.hintsReached[hint] === qsig || !safe(hint)) continue;
     const go = step(bfsPath(s, content, profile, here, hint, opts));
     if (go !== undefined) return go;
@@ -338,25 +325,34 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
   const fresh = nearestUnvisited(s, content, profile, safe, opts);
   const go = step(fresh?.path ?? null);
   if (go !== undefined) return go;
-  if (n.apexFaced !== s.meta.runId && n.apexDeclined !== `${s.meta.runId}:${level}` && apexReady(s, content, profile)) {
+  if (n.apexFaced !== s.meta.runId && n.apexDeclined !== `${s.meta.runId}:${level}` && !fell(APEX_LOCATION_ID) && apexReady(s, content, profile)) {
     const toApex = step(bfsPath(s, content, profile, here, APEX_LOCATION_ID, opts));
     if (toApex !== undefined) return toApex;
   }
   const bed = legal.find((a) => a.type === 'rest' && a.kind === 'full') ?? firstOf(legal, 'rest') ?? firstOf(legal, 'wait');
   if (bed !== undefined) return bed;
-  const toBed = step(nearestWhere(s, content, profile, (id) => restAvailable(s, content, profile, id), opts)?.path ?? null);
-  return toBed ?? firstOf(legal, 'move') ?? fallback(legal);
+  const toBed = bedStep(s, legal, content, profile, opts);
+  // U81b1: a step that is not into a place it avoids first (a dead end whose only way out is where it fell walked it back in)
+  return (
+    toBed ??
+    allOf(legal, 'move').find((a) => opts.avoid?.(a.to) !== true) ??
+    allOf(legal, 'move').find((a) => (n.fellAt[a.to] ?? 0) < level && !dangerAt(s, content, profile, a.to, 'pass')) ??
+    allOf(legal, 'move').find((a) => !dangerAt(s, content, profile, a.to, 'pass')) ??
+    firstOf(legal, 'move') ??
+    fallback(legal)
+  );
 }
 
-/** PLAN §7.2: the cheapest Steel/Breaker ability it qualifies for; failing those, the cheapest physical damage one. */
+/**
+ * PLAN §7.2: the cheapest Steel/Breaker ability it qualifies for; then (U81b1, `classUnlockRank`) the class's own damaging
+ * abilities, the rest of its kit after them — before U81b1 a melee Wizard or Weaver learned nothing it could cast.
+ */
 function pickUnlock(s: GameState, legal: readonly Action[], content: ContentPack, profile: Profile): Action | undefined {
   const mastered = masteredFor(profile, s.player.classId);
+  const rank = classUnlockRank(content, s.player.classId, MELEE_BRANCHES);
   const options = allOf(legal, 'unlockAbility').flatMap((a) => {
     const ab = content.abilities[a.abilityId];
-    if (ab === undefined) return [];
-    const melee = ab.branch !== undefined && MELEE_BRANCHES.includes(ab.branch);
-    const physical = ab.power !== undefined && ab.damageType === 'physical';
-    return melee || physical ? [{ a, rank: melee ? 0 : 1, cost: unlockCostHalf(ab, mastered) }] : [];
+    return ab === undefined ? [] : [{ a, rank: rank(ab), cost: unlockCostHalf(ab, mastered) }];
   });
   options.sort((x, y) => x.rank - y.rank || x.cost - y.cost || (x.a.abilityId < y.a.abilityId ? -1 : 1));
   return options[0]?.a;
@@ -419,6 +415,7 @@ export function meleeBot(): Bot {
   return {
     name: 'melee',
     preferredClasses: ['ranger', 'ironclad_warden'],
+    examines: true, // U81b1: only to search a quest hint (questErrand)
     init: () => ({}),
     choose(state, legal, content, memory, ctx) {
       const n = notes(memory);
@@ -428,7 +425,7 @@ export function meleeBot(): Bot {
       if (state.combat !== null) n.lastFightAt = state.combat.locationId;
       switch (state.mode) {
         case 'combat':
-          return pressOn(memory, state, legal, content, fight(state, legal, content));
+          return pressOn(memory, state, legal, content, fight(state, legal, content, memory, (n.fellAt[state.combat?.locationId ?? ''] ?? 0) >= state.player.level));
         case 'dialogue':
           return talkThrough(state, legal, content, ctx.profile, n);
         case 'threshold':
@@ -436,7 +433,7 @@ export function meleeBot(): Bot {
         case 'ending':
           return firstOf(legal, 'acknowledgeEnding') ?? fallback(legal);
         case 'explore':
-          return explore(state, legal, content, ctx.profile, n);
+          return explore(state, legal, content, ctx.profile, n, memory);
         default:
           return fallback(legal);
       }

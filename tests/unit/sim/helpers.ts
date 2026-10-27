@@ -30,7 +30,7 @@ export const blankLoop = (over: Partial<LoopRecord> = {}): LoopRecord => ({
   questsCompleted: [],
   echoesGained: [],
   heartstone: 'intact',
-  tyrant: 'untouched',
+  tyrant: 'defeated', // U81b1: an Escape is through the Tyrant (an untouched one is the expiry Horde's portal: metrics.ts)
   steps: 400,
   deaths: 0,
   gold: 100,

@@ -144,6 +144,8 @@ export interface PathOptions {
   allowLocked?: boolean;
   /** Locations never passed through (the goal itself is the caller's decision and is always allowed). */
   avoid?: (locationId: string) => boolean;
+  /** U81b1: walk Silverwood Before like any region (the explorer's coverage; its own rules: a frozen clock, a dawn to leave). */
+  enterBefore?: boolean;
 }
 
 /**
@@ -154,7 +156,7 @@ export interface PathOptions {
 export function routes(s: GameState, content: ContentPack, profile: Profile, from: string, opts: PathOptions = {}, goal?: string): Map<string, string[]> {
   const special = (id: string): boolean => {
     const region = content.locations[id]?.regionId;
-    return region === BEFORE_REGION_ID || region === 'region_threshold';
+    return (region === BEFORE_REGION_ID && opts.enterBefore !== true) || region === 'region_threshold';
   };
   const out = new Map<string, string[]>();
   const queue: string[] = [from];
@@ -418,7 +420,8 @@ interface GuardStreak {
   n: number;
 }
 
-const fightKey = (s: GameState): string => (s.combat === null ? '' : `${s.meta.loop}|${s.clock.ticks}|${s.combat.encounterId}|${s.combat.locationId}`);
+/** The identity of the fight on screen (loop, clock, encounter, place); empty outside one. */
+export const fightKey = (s: GameState): string => (s.combat === null ? '' : `${s.meta.loop}|${s.clock.ticks}|${s.combat.encounterId}|${s.combat.locationId}`);
 
 /** Guards in a row this fight before the current turn (0 outside a fight or after any other action). */
 export function guardStreak(memory: BotMemory, s: GameState): number {
@@ -499,4 +502,26 @@ export function pressOn(memory: BotMemory, s: GameState, legal: readonly Action[
 export function stepAlong(legal: readonly Action[], path: readonly string[] | null | undefined): Action | undefined {
   const to = path?.[0];
   return to === undefined ? undefined : legal.find((a) => a.type === 'move' && a.to === to);
+}
+
+// ---- U81b1 (D-145): where a hurt bot walks to rest ---------------------------------------------------------------------------
+
+/**
+ * The first step to the nearest usable bed that `opts` does not avoid and that no fight guards (a pending fight at or above the
+ * player's level: a hurt player does not walk to the bed the Moment Moths sit on), else to the nearest usable bed.
+ */
+export function bedStep(s: GameState, legal: readonly Action[], content: ContentPack, profile: Profile, opts: PathOptions): Action | undefined {
+  const usable = (id: string): boolean => restAvailable(s, content, profile, id) && opts.avoid?.(id) !== true;
+  const quiet = (id: string): boolean => usable(id) && pendingFights(s, content, profile, id).every((f) => f.level < s.player.level);
+  return stepAlong(legal, (nearestWhere(s, content, profile, quiet, opts) ?? nearestWhere(s, content, profile, usable, opts))?.path ?? null);
+}
+
+/**
+ * U81b1: the way to the portal in a Horde, around the places an unfleeable fight still holds (a boss that does not wait for the
+ * Horde to pass: Vell's Umbra fired on a pacifist running from Where She Fell); the plain shortest way if there is no other.
+ */
+export function hordeRoute(s: GameState, content: ContentPack, profile: Profile, portal: string): string[] | null {
+  const held = (id: string): boolean => id !== s.world.currentLocationId && pendingFights(s, content, profile, id).some((f) => !f.fleeable && !f.communion);
+  const here = s.world.currentLocationId;
+  return bfsPath(s, content, profile, here, portal, { avoid: held }) ?? bfsPath(s, content, profile, here, portal);
 }

@@ -8,13 +8,16 @@
 //   combat     the communion first (Loop 2+, the Tyrant: *Commune* on the first turn, then every held answer Echo — Speak, else
 //              Listen, else Offer; a question nothing can answer is forfeited with a blow; at the Resolution the ending it likes
 //              best: C, B, A, F, E, D); a rejected communion is fought on (PLAN: "else fights"). Otherwise: flee a fight ≥ 3 levels
-//              above it when rushing to the Apex, or with the companion down below 20 % hp (melee); heal below 35 % (a draught,
-//              else a self-heal spell; melee's draught-before-spell order); Guard below 25 % with no draught (melee); a boss
-//              gets Weaken/Curse (a `hex` spell) first; Soaked then a Storm spell when the pack has both; else the spell with
-//              the most expected damage (× 1.5 on a weakness, × 0.5 on a resistance, never on an immunity), a damaging spell
-//              always, any other spell only when mana stays ≥ the cheapest damaging spell afterwards; with nothing affordable,
-//              Guard when hp < 50 % (it feeds the mana pool) else a basic attack. A Weaver (blood price) or any self-cost spell
-//              is cast only above 60 % hp.
+//              above it when rushing to the Apex, any fight ≥ 4 levels above it (U81b1, D-066's explorer rule: deaths should
+//              come from fights a player would take), or with the companion down below 20 % hp (melee); then the class-aware
+//              fight (`classFight`, U81b1) with a spell lean and a heal below 35 %: a draught, else a self-heal spell; Guard
+//              below 25 % with no draught; the class's debuffs (Weaken/Curse on a boss first, Soaked before Storm) and buffs on
+//              their cooldowns while one damaging spell's mana stays in hand; else the strike worth the most (× 1.5 on a
+//              weakness, × 0.5 on a resistance, never on an immunity); with nothing affordable, Guard when hp < 50 % (it feeds
+//              the mana pool) else a basic attack. The Weaver's Blood price (and any self-cost spell) is paid when HP stays
+//              comfortable (U81b1: ≥ 40 % of max after the cost and above the telegraphed blows; before U81b1 only above 60 %
+//              hp, which the Weaver never was when short of mana: 0 of 47,083 casts, D-145). Played on a martial class it
+//              uses that class's kit.
 //   dialogue   the Loop 1 Apex prompt as melee; accepts every quest; questStart > Remnants/Weavers reputation > first, with the
 //              Echo Crystal kept (`keep`), the Heartstone exploited, untaken choices first (melee).
 //   threshold  melee's with a caster's lean (Deep Well, Quick Study first); keeps the class (melee).
@@ -29,8 +32,9 @@
 //   routing    melee's: never through a place whose band starts more than 2 above the player's level, nor one where the player
 //              fell at its current level or above, nor one that has turned it back 4 times by wanderers it fled (U38: `shunned`,
 //              since fleeing returns the party to the previous node); a Horde, and the rush to a conversation, lift the band rule.
-import { APEX_LOCATION_ID, playerOf, sceneForNpc, type Action, type ContentPack, type GameState } from '@engine/index';
+import { APEX_LOCATION_ID, sceneForNpc, type Action } from '@engine/index';
 import type { Ability } from '@schema/ability';
+import { classFight, healRow, type ClassFightCfg } from './classFight';
 import { APEX_MARGIN, MELEE } from './melee';
 import {
   MELEE_REST,
@@ -38,13 +42,13 @@ import {
   apexCommunion,
   apexReadyBy,
   apexSettled,
+  classHead,
+  fellHere,
   communion,
   fallback,
   foeLevel,
   forfeitBlow,
   head,
-  healItems,
-  mendAbility,
   companionDown,
   notesOf,
   passTime,
@@ -65,47 +69,22 @@ import {
   type ThresholdCfg,
   type TradeCfg,
 } from './policy';
-import {
-  allOf,
-  appliesStatus,
-  bfsPath,
-  canReachApex,
-  firstOf,
-  foesOf,
-  expectedDamage,
-  hasStatus,
-  healthFraction,
-  levelBand,
-  nearestUnvisited,
-  pressOn,
-  resistanceOf,
-  stepAlong,
-  type PathOptions,
-} from './shared';
+import { bfsPath, canReachApex, firstOf, healthFraction, levelBand, nearestUnvisited, pressOn, stepAlong, type PathOptions } from './shared';
+import { dangerAt, DANGER_MARGIN } from './danger';
+import { questErrand } from './questFollow';
 import type { Bot, BotMemory } from './types';
 
 export const CASTER = {
   /** Heal below this fraction of max HP. */
   healBelow: 0.35,
-  /** A Weaver pays blood (and any self-cost spell is cast) only above this fraction. */
-  bloodAbove: 0.6,
-  /** Guard for mana when nothing is affordable and hp is below this. */
-  guardForManaBelow: 0.5,
   /** Rushing to the Apex: flee a fight whose strongest foe is this many levels above the player. */
   rushFleeMargin: 3,
   /** Never read a book that would take corruption past this. */
   maxCorruption: 4,
-  /** Weakness / resistance multipliers on a spell's expected damage. */
-  weakMult: 1.5,
-  resistMult: 0.5,
-  /** A Storm spell on a Soaked foe. */
-  soakedStormMult: 1.5,
-  /** The statuses a `hex` spell is used for on a boss. */
-  hexStatuses: ['status_weaken', 'status_curse'],
-  soaked: 'status_soaked',
-  /** The damage types of the combo. */
-  storm: 'storm',
 } as const;
+
+/** The caster's fight (`classFight`): spells first, heal below 35 %. */
+export const SPELL_FIGHT: ClassFightCfg = { lean: 'spell', healBelow: CASTER.healBelow, hexBossFirst: true };
 
 /** PLAN §7.2: Pyre/Storm (Wizard) and Hex/Drain (Weaver). */
 export const CASTER_BRANCHES: readonly string[] = ['pyre', 'storm', 'hex', 'drain'];
@@ -144,7 +123,7 @@ const notes = (memory: BotMemory): Notes => notesOf(memory, 'caster');
 /** From Loop 2, with the Tyrant at the Apex to be talked to: a conversation needs no level, so the caster goes straight there. */
 export const rushing = (env: Env): boolean => env.s.meta.loop >= 2 && apexCommunion(env);
 
-/** Pyre/Storm/Hex/Drain spells first, then any other non-physical damaging spell. */
+/** Pyre/Storm/Hex/Drain spells first, then any other non-physical damaging spell (the caster's own lean; `classUnlockRank` fits it to the class). */
 export function casterUnlockRank(ab: Ability): number | undefined {
   if (ab.branch !== undefined && CASTER_BRANCHES.includes(ab.branch)) return 0;
   return ab.power !== undefined && ab.damageType !== undefined && ab.damageType !== 'physical' ? 1 : undefined;
@@ -152,19 +131,7 @@ export function casterUnlockRank(ab: Ability): number | undefined {
 
 // ---- combat --------------------------------------------------------------------------------------------------------------------
 
-/** What the spell costs in blood (Weaver) or self-harm, as a reason to wait for a healthy moment. */
-function bloody(env: Env, ab: Ability, mp: number): boolean {
-  const weaver = env.content.classes[env.s.player.classId]?.resource.bloodPrice !== undefined;
-  return ab.selfCost !== undefined || (weaver && ab.mp > mp);
-}
-
-/** The cheapest damaging spell the player has unlocked (the mana it keeps in hand), 0 if none. */
-function reserve(s: GameState, content: ContentPack): number {
-  const costs = s.player.abilitiesUnlocked.map((id) => content.abilities[id]).filter((a): a is Ability => a?.power !== undefined && a.mp > 0).map((a) => a.mp);
-  return costs.length === 0 ? 0 : Math.min(...costs);
-}
-
-function fight(env: Env): Action {
+function fight(env: Env, memory: BotMemory): Action {
   const { s, legal, content } = env;
   const combat = s.combat;
   if (combat === null) return fallback(legal);
@@ -172,110 +139,36 @@ function fight(env: Env): Action {
   // the conversation (Loop 2+)
   const talk = communion(env, COMMUNE);
   if (talk.kind === 'act') return talk.action;
-  const stuck = talk.kind === 'stuck';
+  if (talk.kind === 'stuck') return healRow(s, legal, content, CASTER.healBelow) ?? forfeitBlow(env);
 
-  const me = playerOf(combat);
   const hp = healthFraction(s);
-  const foes = foesOf(s);
   const flee = firstOf(legal, 'flee');
-  if (!stuck && flee !== undefined && combat.canFlee) {
+  if (flee !== undefined && combat.canFlee) {
     if (rushing(env) && foeLevel(s) >= s.player.level + CASTER.rushFleeMargin) return flee;
+    if (foeLevel(s) >= s.player.level + DANGER_MARGIN || fellHere(env)) return flee;
     if (companionDown(s) && hp < MELEE.fleeBelow) return flee;
   }
-  const heals = healItems(env);
-  if (hp < CASTER.healBelow && heals[0] !== undefined) return heals[0].a;
-  const mend = mendAbility(env);
-  if (hp < CASTER.healBelow && mend !== undefined) return mend;
-  if (!stuck && hp < MELEE.guardBelow && heals.length === 0 && firstOf(legal, 'guard') !== undefined) return { type: 'guard' };
-
-  const aimed = (a: Extract<Action, { type: 'ability' | 'attack' }>): ReturnType<typeof foesOf> => {
-    if (a.targetUid !== undefined) return foes.filter((f) => f.uid === a.targetUid);
-    const ab = a.type === 'ability' ? content.abilities[a.abilityId] : undefined;
-    return ab?.target === 'all_enemies' ? foes : foes.slice(0, 1);
-  };
-  const spells = allOf(legal, 'ability').filter((a) => content.abilities[a.abilityId] !== undefined);
-  const abilityOf = (a: Extract<Action, { type: 'ability' }>): Ability => content.abilities[a.abilityId] as Ability;
-  const cheapestStrike = reserve(s, content);
-  const blood = (ab: Ability): boolean => bloody(env, ab, me.mp);
-  const healthy = hp > CASTER.bloodAbove;
-  const allowed = (a: Extract<Action, { type: 'ability' }>): boolean => {
-    const ab = abilityOf(a);
-    if (blood(ab) && !healthy) return false;
-    if (ab.power !== undefined) return true;
-    return me.mp - ab.mp >= cheapestStrike; // keeps one damaging spell in hand
-  };
-
-  // a boss first gets Weaken / Curse (a `hex` spell), once
-  if (!stuck) {
-    const boss = foes.find((f) => content.creatures[f.refId]?.role === 'boss');
-    if (boss !== undefined) {
-      const hex = spells.find(
-        (a) => (a.targetUid === undefined || a.targetUid === boss.uid) && allowed(a) && CASTER.hexStatuses.some((st) => appliesStatus(abilityOf(a), st) && !hasStatus(boss, st)),
-      );
-      if (hex !== undefined) return hex;
-    }
-    // Soaked, then Storm
-    const stormy = spells.filter((a) => abilityOf(a).damageType === CASTER.storm && abilityOf(a).power !== undefined && allowed(a));
-    if (stormy.length > 0) {
-      const soak = spells.find((a) => appliesStatus(abilityOf(a), CASTER.soaked) && allowed(a));
-      const dry = foes.find((f) => !hasStatus(f, CASTER.soaked));
-      if (soak !== undefined && dry !== undefined && (soak.targetUid === undefined || foes.some((f) => f.uid === soak.targetUid && !hasStatus(f, CASTER.soaked)))) return soak;
-    }
-  }
-
-  // the strike worth the most
-  const value = (a: Extract<Action, { type: 'ability' | 'attack' }>): number => {
-    const targets = aimed(a);
-    if (targets.length === 0) return 0;
-    const ab = a.type === 'ability' ? abilityOf(a) : undefined;
-    let total = 0;
-    for (const f of targets) {
-      let mult = 1;
-      if (ab?.damageType !== undefined) {
-        const r = resistanceOf(content, f, ab.damageType);
-        mult = r === 'weak' ? CASTER.weakMult : r === 'resist' ? CASTER.resistMult : r === 'immune' ? 0 : 1;
-        if (ab.damageType === CASTER.storm && hasStatus(f, CASTER.soaked)) mult *= CASTER.soakedStormMult;
-      } else {
-        mult = resistanceOf(content, f, 'physical') === 'immune' ? 0 : 1;
-      }
-      total += mult;
-    }
-    const per = expectedDamage(content, me, a, foes.length);
-    return per * (total / targets.length);
-  };
-  const hpOf = (a: Extract<Action, { type: 'ability' | 'attack' }>): number => aimed(a)[0]?.hp ?? Number.POSITIVE_INFINITY;
-  const strikes = [...spells.filter((a) => abilityOf(a).power !== undefined && allowed(a)), ...allOf(legal, 'attack')].filter((a) => value(a) > 0);
-  const best = [...strikes].sort((a, b) => value(b) - value(a) || hpOf(a) - hpOf(b))[0];
-  const spell = best !== undefined && best.type === 'ability' ? best : undefined;
-  if (stuck) return forfeitBlow(env);
-  if (spell !== undefined) return spell;
-  // nothing to cast: Guard feeds the mana pool — when mana is what is missing (U81a, D-110: a spell it holds costs more than it
-  // has); a basic attack otherwise
-  const starved = s.player.abilitiesUnlocked.some((id) => {
-    const ab = content.abilities[id];
-    return ab?.power !== undefined && ab.mp > me.mp;
-  });
-  if (starved && hp < CASTER.guardForManaBelow && firstOf(legal, 'guard') !== undefined) return { type: 'guard' };
-  return best ?? firstOf(legal, 'guard') ?? fallback(legal);
+  return classFight(s, legal, content, memory, SPELL_FIGHT);
 }
 
 // ---- explore ---------------------------------------------------------------------------------------------------------------------
 
-function explore(env: Env): Action {
+function explore(env: Env, memory: BotMemory): Action {
   const { s, legal, content, profile } = env;
   const here = s.world.currentLocationId;
   const level = s.player.level;
   const rush = rushing(env);
 
-  const early = head(env, { stat: 'magic', unlock: casterUnlockRank });
+  const early = head(env, classHead(env, 'magic', CASTER_BRANCHES));
   if (early !== undefined) return early;
   const book = pickBook(env, CASTER.maxCorruption);
   if (book !== undefined) return book;
 
   const fell = (id: string): boolean => shunned(env, id);
-  const tooHard = (id: string): boolean => (levelBand(content, id)?.min ?? 0) > level + MELEE.bandSlack;
+  // U81b1 (danger.ts): never through an unfleeable fight ≥ level + 4; never to a place with any such fight
+  const tooHard = (id: string): boolean => (levelBand(content, id)?.min ?? 0) > level + MELEE.bandSlack || dangerAt(s, content, profile, id, 'pass');
   const opts: PathOptions = { avoid: (id) => fell(id) || tooHard(id) };
-  const safe = (id: string): boolean => !fell(id) && !tooHard(id);
+  const safe = (id: string): boolean => !fell(id) && !tooHard(id) && !dangerAt(s, content, profile, id, 'visit');
 
   const recovery = recover(env, MELEE_REST, opts);
   if (recovery !== undefined) return recovery;
@@ -283,6 +176,8 @@ function explore(env: Env): Action {
   if (trade !== undefined) return trade;
   const people = social(env, SOCIAL, (npcId) => sceneForNpc(s, content, profile, npcId)?.id);
   if (people !== undefined) return people;
+  const errand = questErrand(s, legal, content, memory); // U81b1: search a hint for an objective's item, or buy it (questFollow.ts)
+  if (errand !== undefined) return errand;
 
   // where next
   const ready = !apexSettled(env) && (rush || apexReadyBy(env, APEX_MARGIN));
@@ -306,6 +201,7 @@ export function casterBot(): Bot {
   return {
     name: 'caster',
     preferredClasses: ['wizard', 'shadow_weaver'],
+    examines: true, // U81b1: only to search a quest hint (questErrand)
     init: () => ({}),
     choose(state, legal, content, memory, ctx) {
       const n = notes(memory);
@@ -313,7 +209,7 @@ export function casterBot(): Bot {
       const env: Env = { s: state, legal, content, profile: ctx.profile, n };
       switch (state.mode) {
         case 'combat':
-          return pressOn(memory, state, legal, content, fight(env));
+          return pressOn(memory, state, legal, content, fight(env, memory));
         case 'dialogue':
           return talkThrough(env, DIALOGUE);
         case 'threshold':
@@ -321,7 +217,7 @@ export function casterBot(): Bot {
         case 'ending':
           return firstOf(legal, 'acknowledgeEnding') ?? fallback(legal);
         case 'explore':
-          return explore(env);
+          return explore(env, memory);
         default:
           return fallback(legal);
       }

@@ -361,6 +361,10 @@ class Run {
     for (let i = 0; i < 200; i++) {
       if (this.s.world.currentLocationId === goal) return;
       if (untilLoopEnds && this.s.mode === 'ending') return;
+      // U81b1 (D-145): a fight on the way that fells the Wayfinder (Loop 2+: a closer) is a lost fight, retried on the next
+      // derived seed like any other (`loadScenario`), not a broken script — U80's communion_movement_2 crash (caster ranger,
+      // balS:16: felled at the Nexus on the walk to the Tyrant)
+      if (this.s.mode === 'ending' || this.s.combat?.phase === 'defeat') throw new ScenarioDefeat(this.id, `the Wayfinder fell on the way to ${goal}`);
       if (this.s.mode !== 'explore') throw this.fail(`cannot walk in ${this.s.mode} mode`);
       const path = this.route(goal);
       if (path === null) throw this.fail(`no route to ${goal}`);
@@ -830,22 +834,48 @@ function buildCharacter(run: Run, level: number, opts: ScenarioOptions, withGear
       throw new ScenarioUnavailable(run.id, `the pack has no companion '${opts.companionId}'`);
     }
   });
-  spendPoints(run);
+  spendPoints(run, withGear);
   if (withGear) equipBestGear(run, level);
 }
 
-/** Spends stat points on the primary stat and ability points on the cheapest unlockable abilities, all through `step`. */
-function spendPoints(run: Run): void {
+/**
+ * U81b1 (D-145): the stat a typical player of the class raises — the one its damage reads: MAG for a caster class (SP), STR
+ * otherwise (ATK = STR + weapon power, DESIGN §3.2; the Elf's highest base stat is AGI, which its blades do not read).
+ */
+export function powerStat(content: ContentPack, classId: string): 'strength' | 'magic' {
+  return primaryStat(content, classId) === 'magic' ? 'magic' : 'strength';
+}
+
+/**
+ * U81b1: the order a typical player unlocks in (lower first): damaging abilities on the class's own stat, other damaging ones,
+ * heals and shields, the rest.
+ */
+export function typicalUnlockRank(content: ContentPack, classId: string, abilityId: string): number {
+  const ab = content.abilities[abilityId];
+  if (ab === undefined) return 9;
+  const sp = powerStat(content, classId) === 'magic';
+  if (ab.power !== undefined) return (ab.power.stat === 'sp') === sp ? 0 : 1;
+  return ab.heal !== undefined || ab.shield !== undefined ? 2 : 3;
+}
+
+/**
+ * Spends stat points and ability points, all through `step`: the primary stat and the cheapest unlockable abilities; with
+ * `typical` (U81b1: the Tyrant scenarios' "typical player at L11/L13", D-145) the power stat (`powerStat`) and the class's
+ * damaging abilities first (`typicalUnlockRank`) — U80's kit put an Elf's points into AGI and filled a Warden's tree by id.
+ */
+function spendPoints(run: Run, typical = false): void {
   const { content } = run;
-  const stat = primaryStat(content, run.s.player.classId);
+  const classId = run.s.player.classId;
+  const stat = primaryStat(content, classId);
   while (run.s.player.statPoints > 0) run.act({ type: 'allocateStat', stat });
   for (let i = 0; i < 200; i++) {
-    const mastered = masteredFor(run.profile, run.s.player.classId);
+    const mastered = masteredFor(run.profile, classId);
     const cost = (id: string): number => unlockCostHalf(content.abilities[id] as NonNullable<ContentPack['abilities'][string]>, mastered);
+    const rank = (id: string): number => (typical ? typicalUnlockRank(content, classId, id) : 0);
     const options = run
       .legal()
       .filter((a): a is Extract<Action, { type: 'unlockAbility' }> => a.type === 'unlockAbility')
-      .sort((a, b) => cost(a.abilityId) - cost(b.abilityId) || (a.abilityId < b.abilityId ? -1 : 1));
+      .sort((a, b) => rank(a.abilityId) - rank(b.abilityId) || cost(a.abilityId) - cost(b.abilityId) || (a.abilityId < b.abilityId ? -1 : 1));
     const next = options[0];
     if (next === undefined) return;
     run.act(next);

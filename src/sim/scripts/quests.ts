@@ -1463,7 +1463,9 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'whole',
     name: 'Loop 2: the whole Litany copied; the thirtieth dawn read with the Ledger (the Jailer, with the Recoil)',
     classId: CLASS,
-    seed: 'quest:ledger:whole:e', // since U34e's hazards and anomalies, a level-6 ranger dies on the Drowned route in 4 of 5 seeds (D-110 balance flag): a seed that wins
+    // since U34e's hazards and anomalies, a level-6 ranger dies on the Drowned route in 4 of 5 seeds (D-110 balance flag): a seed
+    // that wins (U81b1: re-seeded, the class-aware fight moved which seeds win; D-145)
+    seed: 'quest:ledger:whole:e:i',
     profile: { loop: 2, echoes: ['echo_ilyra_watchword', 'echo_thirtieth_dawn', 'echo_breach_recoil'], bestLevel: 10 },
     steps: [...ledgerCopied('whole', 'whole'), holds({ all: [{ flag: 'flag_remnants_hold_litany' }, { echo: 'echo_tyrant_jailer' }] }, 'the flag or the Jailer is missing')],
   },
@@ -1481,7 +1483,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     questId: 'q_day_of_teeth',
     outcome: 'told_truth',
     name: 'Loop 3: the axe from the Horde-echo; the truth told with the Jailer',
-    seed: 'quest:teeth:truth:b', // the Aberration at level 11 and the three waves behind it beat a carry-over Warden about two seeds in three (a balance note): a seed that wins
+    seed: 'quest:teeth:truth:b:f', // U81b1: re-seeded (the class-aware fight) // the Aberration at level 11 and the three waves behind it beat a carry-over Warden about two seeds in three (a balance note): a seed that wins
     classId: 'ironclad_warden',
     profile: { loop: 3, echoes: ['echo_ironclad_oath', 'echo_stone_hide_origin', 'echo_tyrant_jailer'], bestLevel: 17 },
     steps: [...axeRecovered, { talk: 'npc_hadda_ironvow', pick: ['truth'] }, done('q_day_of_teeth', 'told_truth'), holds({ echo: 'echo_day_of_teeth' }, 'the Day of Teeth was not granted')],
@@ -1491,7 +1493,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'told_monster',
     name: 'Loop 3: the axe from the Horde-echo; a monster (the scouts ride east)',
     classId: 'ironclad_warden',
-    seed: 'quest:teeth:monster',
+    seed: 'quest:teeth:monster:f', // U81b1: re-seeded (the class-aware fight)
     profile: { loop: 3, echoes: ['echo_ironclad_oath', 'echo_stone_hide_origin'], bestLevel: 17 },
     steps: [...axeRecovered, { talk: 'npc_hadda_ironvow', pick: ['monster'] }, done('q_day_of_teeth', 'told_monster'), holds({ not: { echo: 'echo_day_of_teeth' } }, 'the Day of Teeth was granted')],
   },
@@ -1501,7 +1503,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'silent',
     name: 'Loop 2: the Weaver route (Crystal kept, shards given), a Shard offered, nothing said',
     classId: CLASS,
-    seed: 'quest:choir:shard',
+    seed: 'quest:choir:shard:i', // U81b1: re-seeded (the class-aware fight)
     profile: { loop: 2, echoes: ['echo_crystal_location'], bestLevel: 17 },
     steps: [...weaverRouteToSanctum, ...choirHeard('shard', 'silent', 'silent')],
   },
@@ -1520,7 +1522,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'looked',
     name: 'Loop 3: the Eye from the Nexus; Sethe looks (the Choir knows); the Note of Closing',
     classId: 'ironclad_warden',
-    seed: 'quest:eye:look:a', // the Aberration at level 11 beats a carry-over Warden about one seed in two (a balance note): a seed that wins
+    seed: 'quest:eye:look:a:h', // U81b1: re-seeded (the class-aware fight) // the Aberration at level 11 beats a carry-over Warden about one seed in two (a balance note): a seed that wins
     profile: { loop: 3, echoes: ['echo_weaver_sign', 'echo_hollow_path', 'echo_heartstone_path', 'echo_litany_verse_1'], bestLevel: 17 },
     steps: [...eyeDecided('look', 'looked'), holds({ echo: 'echo_choir_knows' }, 'the Choir does not know')],
   },
@@ -1529,7 +1531,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'warned',
     name: 'Loop 3: the Eye from the Nexus; Nyx warned first; the Note of Closing',
     classId: 'ironclad_warden',
-    seed: 'quest:eye:warn:a:8', // as above; U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
+    seed: 'quest:eye:warn:a:8:g', // U81b1: re-seeded (the class-aware fight) // as above; U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 3, echoes: ['echo_weaver_sign', 'echo_hollow_path', 'echo_heartstone_path', 'echo_litany_verse_1'], bestLevel: 17 },
     steps: [...eyeDecided('warn', 'warned'), holds({ not: { echo: 'echo_choir_knows' } }, 'the Choir knows')],
   },
@@ -1707,7 +1709,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'agreed',
     name: 'Loop 2: the plan at the Hollow, agreed (the path to C)',
     classId: CLASS,
-    seed: 'quest:undo:agreed',
+    seed: 'quest:undo:agreed:g', // U81b1: re-seeded (the class-aware fight)
     profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nyx_bond'], bestLevel: 17 },
     steps: nyxPlanAnswered('agreed', 'agreed'),
   },
@@ -1793,7 +1795,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'stays',
     name: "Loop 3: the communion carried through; Dask stays until it's done",
     classId: CLASS,
-    seed: 'quest:instant:stay',
+    seed: 'quest:instant:stay:f', // U81b1: re-seeded (the class-aware fight)
     profile: {
       loop: 3,
       echoes: ['echo_flickering_man', 'echo_dask_bond', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_tyrant_jailer', 'echo_thirtieth_dawn', 'echo_seven_wayfinders', 'echo_tyrant_never_struck', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4', 'echo_litany_verse_5', 'echo_litany_verse_6', 'echo_litany_verse_7', 'echo_hallow_said_stop', 'echo_ritual_inevitable'],

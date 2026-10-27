@@ -75,6 +75,8 @@ export const PACIFIST = {
    * (D-110): 40 left a Warden 20 rounds to win a forced fight, and it ran past 60 on the economy pack; 20 leaves it 40.
    */
   guardRounds: 20,
+  /** U81b1: rounds of striking after `guardRounds` before a walled-in pacifist leaves a fight it cannot win anyway (D-144). */
+  strikeRounds: 10,
   /** Worth of a choice that starts a fight, and of starting a quest that needs a kill. */
   fightScore: -10,
   killQuestScore: -8,
@@ -145,6 +147,10 @@ function fight(env: Env): Action {
   const hold = legal.find((a) => a.type === 'companionCommand' && a.command === 'hold');
   if (hold !== undefined) return hold;
   if (flee !== undefined && !walledIn(env)) return flee;
+  // U81b1 (D-144): walled in, it stood and fought; a forced fight still on `strikeRounds` after the stall breaker is one it cannot
+  // win (the Null Mouth outheals its blows: 23 of U80's 31 pacifist stalls), so it leaves after all — fled, the group is gone
+  // until dawn (regroup) or for the loop (scatter), and the road it walls opens
+  if (flee !== undefined && combat.round >= PACIFIST.guardRounds + PACIFIST.strikeRounds) return flee;
 
   const me = playerOf(combat);
   const hits = incoming(env);

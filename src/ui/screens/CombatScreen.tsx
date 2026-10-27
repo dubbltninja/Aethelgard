@@ -18,6 +18,11 @@
 //
 // U73a (D-128): the stage band at the top (CombatStage: the place's painting, the heroes and the enemies as sprites, the
 // event-driven motion, sprite targeting in sync with the cards and ← / →). The cards stay below it for the numbers.
+//
+// U84a (D-147): the fight is one screen that never scrolls the page. Wide (a fine pointer, 760 px up): the stage across the
+// top with any banner floating over it, the cards beside the companion and the log, and the turn's controls as the
+// screen's last row — fixed-size tiles and buttons, so nothing above them can push them between turns. Phones and touch
+// screens: everything scrolls inside the screen and the controls ride in the pinned dock (U73's phone bar).
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { watchNow, type Action, type GameEvent, type GameState, type Stance } from '@engine/index';
 import type { Region } from '@schema/region';
@@ -28,6 +33,7 @@ import { breachOverlay } from '../art/breachOverlay';
 import { NO_CUES, stageCues, type StageCues } from '../art/stageMotion';
 import { useBackdrop } from '../art/useBackdrop';
 import { Button } from '../components/Button';
+import { CALLOUT_SLOT_ID } from '../components/Callouts';
 import { DockPortal } from '../components/DockPortal';
 import { Modal } from '../components/Modal';
 import { Meter } from '../components/StatusBar';
@@ -228,6 +234,8 @@ export function CombatView(p: CombatViewProps): ReactNode {
             {p.title}
           </h1>
           <TurnOrder entries={p.turns} round={p.round} />
+          {/* wide: the small game menu rides in the heading row, so the log column keeps its height (U84a) */}
+          {phone ? null : menuNav}
         </header>
         <div className="combat__body">
           {/* wide: the stage band runs across the top, over the cards and the log */}
@@ -269,7 +277,7 @@ export function CombatView(p: CombatViewProps): ReactNode {
               </>
             ) : null}
             {phone ? companion : null}
-            {phone || p.fallen !== null ? menuNav : null}
+            {phone ? menuNav : null}
             {phone ? (
               <aside className="combat__side" aria-label="Combat log">
                 {logPanel}
@@ -278,9 +286,10 @@ export function CombatView(p: CombatViewProps): ReactNode {
           </div>
           {phone ? null : (
             <aside className="combat__side" aria-label="Combat log">
+              {/* U84a: the hint's reserved place (Callouts renders into it) — the log gives way, the controls never move */}
+              <div id={CALLOUT_SLOT_ID} className="callout-slot" />
               {companion}
               {logPanel}
-              {p.fallen === null ? menuNav : null}
             </aside>
           )}
         </div>

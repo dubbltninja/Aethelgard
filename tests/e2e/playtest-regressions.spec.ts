@@ -11,9 +11,19 @@ test('ability effects can be inspected without spending a turn or resource, then
   if (await opener.count()) await g.press(opener);
   const tile = page.locator('li').filter({ has: page.locator('[data-tile="rgr_marked_shot"]') }).last();
   const before = await g.state();
-  await g.press(tile.locator('summary'));
-  await expect(tile.locator('.ability-effects p')).toBeVisible();
-  await expect(tile.locator('.ability-effects p')).toContainText(/Mark/);
+  if (g.mobile) {
+    // touch: the sheet's tiles each carry an Effects disclosure
+    await g.press(tile.locator('summary'));
+    await expect(tile.locator('.ability-effects p')).toBeVisible();
+    await expect(tile.locator('.ability-effects p')).toContainText(/Mark/);
+  } else {
+    // a desktop's fixed control row (U84a): pointing at or focusing a tile shows what it does in the reserved strip
+    await tile.locator('[data-tile]').focus();
+    await expect(tile.locator('.tile__info')).toBeVisible();
+    await expect(tile.locator('.tile__info')).toContainText(/Mark/);
+    await tile.hover();
+    await expect(tile.locator('.tile__info')).toBeVisible();
+  }
   expect(await g.state()).toEqual(before);
   await g.press(tile.getByRole('button', { name: /^2: Marked Shot/ }));
   await expect.poll(async () => (await g.state()).combat?.round ?? 0).toBeGreaterThan(before.combat?.round ?? 0);

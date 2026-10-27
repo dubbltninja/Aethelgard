@@ -1,9 +1,10 @@
 // The Explore screen (PLAN §6.3, DESIGN §16.1–16.3 `screen_explore`): the HUD; the place — region, name, level band,
-// its scene and its text (variants, what just happened here); who is here and what lies here; the ExitBar; the
-// ActionBar; the event log; and the map (docked on wide desktops, an overlay panel otherwise). It enables only what
-// the engine lists (`useLegal`), and every input is an Action through `store.dispatch`.
+// its scene and its text (variants, what just happened here); who is here and what lies here; the movement pad (U84a,
+// MovePad); the ActionBar; the event log; and the map (docked on wide desktops, an overlay panel otherwise). It enables
+// only what the engine lists (`useLegal`), and every input is an Action through `store.dispatch`. U84a (D-147): the
+// screen is exactly the viewport — its regions scroll, the page never does — in three layouts (`ExploreLayout`).
 //
-// Keys (DESIGN §16.4, PLAN §6.6): arrows focus the exit in their direction and Enter travels; on the map, arrows and
+// Keys (DESIGN §16.4, PLAN §6.6): arrows focus the pad's slot in their direction and Enter travels; on the map, arrows and
 // WASD choose a neighbour. T talks to the first person who will talk, R rests (Shift+R full rest), E takes everything,
 // 1–9 press the ActionBar in displayed order, H toggles the HUD detail, M opens the map (the Shell's panel keys).
 //

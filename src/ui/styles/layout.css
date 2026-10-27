@@ -97,7 +97,9 @@
   pointer-events: none;
 }
 
-.toasts > * {
+/* U84a: a toast's words let a click through to what lies under them (a panel's button); only its own buttons take one */
+.toasts > .toast-count,
+.toasts .toast__dismiss {
   pointer-events: auto;
 }
 

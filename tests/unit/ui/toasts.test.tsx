@@ -10,6 +10,7 @@ import { toastsFor, warningLine } from '@ui/components/toastModel';
 import {
   EMPTY_QUEUE,
   MAX_TOASTS,
+  PHONE_LIFETIME_SCALE,
   dismiss,
   enqueue,
   expire,
@@ -174,9 +175,33 @@ describe('Toasts view', () => {
     expect(renderToStaticMarkup(<Toasts notices={[]} onDismiss={() => undefined} />)).not.toContain('data-motion');
   });
 
-  test('a store notice lives 5 s, an error 12 s', () => {
+  test('a store notice lives 5 s, an error 12 s; a phone shortens both', () => {
     expect(noticeLifetime(notice)).toBe(5000);
     expect(noticeLifetime({ ...notice, tone: 'error' })).toBe(12_000);
+    expect(noticeLifetime(notice, PHONE_LIFETIME_SCALE)).toBe(3500);
+  });
+
+  test('U84a: one compact stack — the newest shows, the older fold into a count that unfolds them', () => {
+    const onToggle = mock(() => undefined);
+    const notices = [notice, { ...notice, id: 8, text: 'Sound muted.' }, { ...notice, id: 9, text: 'Sound on.' }];
+    const html = renderToStaticMarkup(<Toasts notices={notices} onDismiss={() => undefined} onToggleExpanded={onToggle} />);
+    expect(html.match(/toast--folded/g)).toHaveLength(2);
+    const tree = expand(Toasts({ notices, onDismiss: () => undefined, onToggleExpanded: onToggle }));
+    call(byName(tree, 'button', '2 more notices'), 'onClick');
+    expect(onToggle).toHaveBeenCalled();
+    expect(renderToStaticMarkup(<Toasts notices={notices} onDismiss={() => undefined} expanded />)).not.toContain('toast--folded');
+    expect(renderToStaticMarkup(<Toasts notices={[notice]} onDismiss={() => undefined} />)).not.toContain('toast-count');
+    // an error never folds away: it must be read
+    const withError = [{ ...notice, id: 5, text: 'Storage is full.', tone: 'error' as const }, notice];
+    expect(renderToStaticMarkup(<Toasts notices={withError} onDismiss={() => undefined} />)).not.toContain('toast--folded');
+    // placed by the Shell over the scene's corner
+    expect(renderToStaticMarkup(<Toasts notices={[notice]} onDismiss={() => undefined} placement={{ top: '10px' }} />)).toContain('data-anchored="true"');
+  });
+
+  test('U84a: a phone shortens an event toast too', () => {
+    const s = spec({ key: 'k', label: 'L', tone: 'info' });
+    expect(enqueue(EMPTY_QUEUE, s, 0, PHONE_LIFETIME_SCALE).items[0]?.expiresAt).toBe(3500);
+    expect(enqueue(EMPTY_QUEUE, s, 0).items[0]?.expiresAt).toBe(5000);
   });
 });
 

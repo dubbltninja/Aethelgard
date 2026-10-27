@@ -70,20 +70,34 @@
 }
 
 .combat__side {
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr);
   align-content: stretch;
 }
 
-.combat__side > .companion-card {
+/* the hint's reserved place (U84a): first in the column, so the log gives way to it and nothing else moves */
+.combat__side > .callout-slot {
   grid-row: 1;
 }
 
-.combat__side > .combat-log {
+.callout-slot .callout {
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 0;
+}
+
+.callout-slot .callout__actions {
+  grid-column: 1 / -1;
+}
+
+.combat__side > .companion-card {
   grid-row: 2;
 }
 
-.combat__side > .combat-menu {
+.combat__side > .combat-log {
   grid-row: 3;
+}
+
+.combat__side > .combat-menu {
+  grid-row: 4;
 }
 
 /* wide: the sprite on the stage is the figure, so the cards keep to their numbers */
@@ -199,6 +213,26 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-1) var(--space-4);
+}
+
+/* wide (U84a): the game menu in the heading row, after the turn order */
+.combat__head > .combat-menu {
+  align-self: center;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+}
+
+.combat__head > .combat-menu .btn {
+  min-height: var(--target-min);
+  padding-inline: var(--space-3);
+  font-size: var(--type-small);
+}
+
+.combat__head > .turn-order {
+  align-self: center;
 }
 
 .combat__kicker {

@@ -23,3 +23,15 @@ export function dangerAt(s: GameState, content: ContentPack, profile: Profile, l
   if (s.world.hordeActive || locationId === s.world.currentLocationId) return false;
   return pendingFights(s, content, profile, locationId).some((f) => !f.communion && f.level >= s.player.level + margin && (mode === 'visit' || !f.fleeable));
 }
+
+/**
+ * U82 (D-149 #1): levels the player must gain over the level it fell at before it walks back into that place or fight. U81b1
+ * waited for one level: 181 of 2,969 defeats were the same fight replayed one level up (the caster at the Pass's Moths).
+ */
+export const FALLEN_LEVELS = 2;
+
+/** Did the player fall at `id` too recently to go back (less than FALLEN_LEVELS levels ago)? */
+export const fellRecently = (fellAt: Readonly<Record<string, number>>, id: string, level: number): boolean => {
+  const at = fellAt[id];
+  return at !== undefined && level < at + FALLEN_LEVELS;
+};

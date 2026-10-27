@@ -57,7 +57,9 @@ import {
 import { idleRoam, MELEE, MELEE_BRANCHES } from './melee';
 import { classFight, classStat, classUnlockRank, type ClassFightCfg } from './classFight';
 import { acceptable, questTargets } from './questFollow';
-import { dangerAt } from './danger';
+import { dangerAt, fellRecently } from './danger';
+import { shop } from './shopping';
+export { FALLEN_LEVELS, fellRecently } from './danger';
 import type { BotMemory } from './types';
 
 // ---- notes -------------------------------------------------------------------------------------------------------------
@@ -149,8 +151,8 @@ export function track(n: Notes, s: GameState, events: readonly GameEvent[]): voi
 /** A place that has turned the bot back this many times in a loop (fleeing wanderers on every arrival) is given up for the loop. */
 export const BOUNCE_LIMIT = 4;
 
-/** Places the bot will not route through: where it fell at its current level, or that keeps turning it back. */
-export const shunned = (env: Env, id: string): boolean => (env.n.fellAt[id] ?? 0) >= env.s.player.level || (env.n.bounces[`${env.s.meta.runId}|${id}`] ?? 0) >= BOUNCE_LIMIT;
+/** Places the bot will not route through: where it fell less than FALLEN_LEVELS levels ago, or that keeps turning it back. */
+export const shunned = (env: Env, id: string): boolean => fellRecently(env.n.fellAt, id, env.s.player.level) || (env.n.bounces[`${env.s.meta.runId}|${id}`] ?? 0) >= BOUNCE_LIMIT;
 
 /** Everything a policy row reads. */
 export interface Env {
@@ -261,6 +263,8 @@ export interface TradeCfg {
   stock?: readonly { itemId: string; max: number }[];
   /** Upgrade the weapon at the forge (melee: yes). */
   upgrade: boolean;
+  /** U82 (D-149 #5): buy what it needs after the rows above — inns, patterns, forge work, shelf gear, mana (shopping.ts `shop`). */
+  shop?: boolean;
 }
 
 /** Sell materials/spare gear when poor, stock healing (and `stock`) when flush, upgrade the weapon with a margin. */
@@ -305,7 +309,7 @@ export function pickTrade(env: Env, cfg: TradeCfg): Action | undefined {
     const quote = up === undefined ? undefined : upgradeQuote(s, content, profile, weapon.uid);
     if (up !== undefined && quote !== undefined && typeof quote !== 'string' && gold >= quote.fee + cfg.upgradeMargin) return up;
   }
-  return undefined;
+  return cfg.shop === true ? shop(s, legal, content, profile) : undefined;
 }
 
 // ---- quests --------------------------------------------------------------------------------------------------------------------
@@ -706,8 +710,8 @@ export function fightWithFlight(env: Env, memory: BotMemory, fleeIf: (env: Env) 
   return classFight(s, legal, content, memory, cfg);
 }
 
-/** U81b1: the player fell in this place at this level (a reload stands next to it): this fight is left, not replayed. */
-export const fellHere = (env: Env): boolean => env.s.combat !== null && (env.n.fellAt[env.s.combat.locationId] ?? 0) >= env.s.player.level;
+/** U81b1: the player fell in this place (U82: less than FALLEN_LEVELS levels ago; a reload stands next to it): this fight is left, not replayed. */
+export const fellHere = (env: Env): boolean => env.s.combat !== null && fellRecently(env.n.fellAt, env.s.combat.locationId, env.s.player.level);
 
 /** The physical fighter's fight cfg (melee's heal threshold). */
 export const WEAPON_FIGHT: ClassFightCfg = { lean: 'weapon', healBelow: MELEE.healItemBelow };
@@ -738,6 +742,7 @@ export const MELEE_TRADE: TradeCfg = {
   healingStock: MELEE.healingStock,
   upgradeMargin: MELEE.upgradeMargin,
   upgrade: true,
+  shop: true,
 };
 
 /** `melee`'s rest rows (PLAN §7.2). */

@@ -21,7 +21,8 @@
 //              2 above the player's → the Apex when ready → otherwise pass time at the nearest rest spot (the clock runs out
 //              and the expiry Horde opens the portal). U81b2: with ≤ 10 dawns left (`apexDue`) the Apex, when ready, comes first.
 //   routing    never through a place whose band starts more than 2 above the player's level, nor one where the player
-//              fell at its current level or above (a death note survives the reload, so the same walk is not replayed);
+//              fell less than two levels ago (U82, FALLEN_LEVELS; a death note survives the reload, so the same walk is not
+//              replayed);
 //              a Horde lifts both (no fights start in one).
 import {
   APEX_FACE_IT,
@@ -62,7 +63,8 @@ import {
   type PathOptions,
 } from './shared';
 import { classFight, classStat, classUnlockRank, healRow } from './classFight';
-import { DANGER_MARGIN, dangerAt } from './danger';
+import { DANGER_MARGIN, dangerAt, fellRecently } from './danger';
+import { shop } from './shopping';
 import { acceptable, questErrand, questTargets } from './questFollow';
 import type { Bot, BotMemory } from './types';
 
@@ -320,7 +322,7 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
   if (takeAll !== undefined) return takeAll;
 
   // routing rules (see the header)
-  const fell = (id: string): boolean => (n.fellAt[id] ?? 0) >= level;
+  const fell = (id: string): boolean => fellRecently(n.fellAt, id, level); // U82: two levels on (FALLEN_LEVELS)
   // U81b1 (danger.ts): never through an unfleeable fight ≥ level + 4; never to a place with any such fight
   const tooHard = (id: string): boolean => (levelBand(content, id)?.min ?? 0) > level + MELEE.bandSlack || dangerAt(s, content, profile, id, 'pass');
   const opts: PathOptions = { avoid: (id) => fell(id) || tooHard(id) };
@@ -394,7 +396,7 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
   return (
     toBed ??
     allOf(legal, 'move').find((a) => opts.avoid?.(a.to) !== true) ??
-    allOf(legal, 'move').find((a) => (n.fellAt[a.to] ?? 0) < level && !dangerAt(s, content, profile, a.to, 'pass')) ??
+    allOf(legal, 'move').find((a) => !fell(a.to) && !dangerAt(s, content, profile, a.to, 'pass')) ??
     allOf(legal, 'move').find((a) => !dangerAt(s, content, profile, a.to, 'pass')) ??
     firstOf(legal, 'move') ??
     fallback(legal)
@@ -464,7 +466,7 @@ function pickTrade(s: GameState, legal: readonly Action[], content: ContentPack,
     const quote = up === undefined ? undefined : upgradeQuote(s, content, profile, weapon.uid);
     if (up !== undefined && quote !== undefined && typeof quote !== 'string' && gold >= quote.fee + MELEE.upgradeMargin) return up;
   }
-  return undefined;
+  return shop(s, legal, content, profile); // U82 (D-149 #5): buy what it needs (shopping.ts)
 }
 
 // ---- the bot -------------------------------------------------------------------------------------------------------------
@@ -483,7 +485,7 @@ export function meleeBot(): Bot {
       if (state.combat !== null) n.lastFightAt = state.combat.locationId;
       switch (state.mode) {
         case 'combat':
-          return pressOn(memory, state, legal, content, fight(state, legal, content, memory, (n.fellAt[state.combat?.locationId ?? ''] ?? 0) >= state.player.level));
+          return pressOn(memory, state, legal, content, fight(state, legal, content, memory, fellRecently(n.fellAt, state.combat?.locationId ?? '', state.player.level)));
         case 'dialogue':
           return talkThrough(state, legal, content, ctx.profile, n);
         case 'threshold':

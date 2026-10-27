@@ -2637,3 +2637,22 @@ owning unit (PLAN §9.1).
   explore and combat at 1280, 1440 and 1920, and panels as list + detail.
 - **Enforced by `layout.spec.ts`:** button boxes stay put (±1 px) across moves and turns, and the page doesn't scroll on
   phones. This is part of the planned fix work, pulled forward from U84 because Tim is playing now.
+
+### D-148 · U84a merged: a fixed movement pad, combat controls that never jump, one-screen layouts, 2026-10-27
+- **Pad:** `MovePad.tsx` replaces `ExitBar.tsx`: a 3×3 compass (N/W/E/S around a centre Look). Up and Down share the
+  top-left corner, In and Out the top-right, Path bottom-left, Portal bottom-right. Empty slots are always drawn (disabled,
+  "No way north"), so nothing reflows. On phones the pad lives in the pinned dock.
+- **Combat:** the turn's controls are the last, fixed row on desktop too; phase banners and the first-fight callout overlay
+  the stage; intent, status and ability reasons have reserved heights. Coarse pointers use the phone bar.
+- **Toasts:** one compact stack in a reserved corner with a "+N" count; shorter on phones. The combat key legend's duplicate
+  `I` is now Shift+I (REPORT U79 #9).
+- **Desktop from 1200 px:** a 3-column explore; combat with the stage across the top; panels as list + detail with
+  separate scrolling. No page scroll at 1280×800, 1440×900 or 1920×1080, nor at 390×844 and 390×664 (before: pages scrolled
+  up to 2,472 px).
+- **Gates:** `layout.spec.ts` (boxes ±1 px across 5 moves and 6 combat turns, no page scroll, toasts clear of HUD, map and
+  pad); full e2e 361 passed, 0 failed; 4,903 unit tests; JS 527.9 kB gzip.
+- **Deviations accepted:** WASD still only works on the map (arrows drive the pad); desktop ability tiles show effects in a
+  reserved info line instead of Effects disclosures; the key legend is hidden under 760 px.
+- **Still looks off → the fun reviews (U83/U85) and U84:** at 1280×800 the docked map gets short while a hint is up; the
+  landscape phone (844×390) is cramped and a hint squeezes the log; a wide fight against one weak enemy leaves empty space;
+  the Up/Down/In/Out corners are empty most of the time.

@@ -168,7 +168,10 @@ export const dialogues = [
         ],
       },
       { id: 'given', tags: ['legacy'], speaker: 'narrator', text: 'Ilyra cradles the crystal, whispering a prayer.', next: 'given_trust' },
-      { id: 'given_trust', tags: ['legacy'], speaker: 'narrator', text: "You gain the Remnants' trust.", next: 'end' },
+      // U84 (REPORT U79 #4): the scroll is offered as soon as its condition holds (the crystal quest done), not on a later talk
+      { id: 'given_trust', tags: ['legacy'], speaker: 'narrator', text: "You gain the Remnants' trust.", next: 'scroll_ask' },
+      { id: 'scroll_ask', tags: ['legacy'], speaker: 'narrator', text: 'Ilyra asks you to recover her lost scroll from the Sunken Archives. Accept?', choices: yesNo('q_lost_scroll', 'scroll_refused') },
+      { id: 'scroll_refused', tags: ['legacy'], speaker: 'narrator', text: 'Ilyra presses the request no further, but her concern lingers.', next: 'end' },
       { id: 'kept', tags: ['legacy'], speaker: 'narrator', text: 'You tuck the crystal away, its whispers now yours alone.', next: 'kept_stirs' },
       {
         id: 'kept_stirs',

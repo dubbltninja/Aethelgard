@@ -32,6 +32,7 @@ import type { CompanionId } from '../types/ids';
 import type { Profile } from '../types/profile';
 import type { GameState } from '../types/state';
 import {
+  autosave,
   chooseEnumerator as apexChooseEnumerator,
   chooseHandler as apexChooseHandler,
   currentLocation,
@@ -167,6 +168,8 @@ export function dialogueChooseHandler(ctx: StepCtx, a: ActionOf<'choose'>): void
   d.choicesTaken.push(takenKey(node.id, choice.id));
   if (choice.oncePerLoop) s.flags[choiceFlag(scene.id, choice.id)] = true;
   applyAll(choice.effects, ctx, { source: `choice:${choice.id}` });
+  // U84 (REPORT U79 #11, DESIGN §14.2): an outcome that sets a flag is a checkpoint (the shell writes it when the scene closes)
+  if (choice.effects.some((e) => 'setFlag' in e)) autosave(ctx, 'dialogueOutcome');
   if (settleDialogue(ctx, d)) return; // a fight, an ending, or another scene took over
   enterNode(ctx, choice.next);
 }

@@ -32,7 +32,7 @@ import {
   type Profile,
 } from '@engine/index';
 import type { Dir, Exit, Location } from '@schema/location';
-import { arrivalText } from '../screens/exploreModel';
+import { arrivalText, threatCue } from '../screens/exploreModel';
 
 type Pr = Readonly<Profile>;
 
@@ -61,6 +61,8 @@ export interface MapNode {
   /** An uncleared fixed group: its level band ("Lv 3–5"). */
   danger: string | null;
   boss: boolean;
+  /** U84: the band starts above the party's level, in words: "Dangerous (L8+)" / "Deadly (L12+)"; null where you stand. */
+  threat: string | null;
   unstable: boolean;
   /** Names of the active quests with an open objective that points at this place (D-107's quest rings). */
   quests: string[];
@@ -302,6 +304,7 @@ export function buildMap(s: GameState, content: ContentPack, profile: Pr): MapMo
       escape: isEscape,
       npc: (state === 'current' || state === 'visited') && npcsAt(s, content, profile, loc.id).length > 0,
       ...marks,
+      threat: state === 'current' ? null : threatCue(content, loc.id, s.player.level),
       unstable: dask && loc.temporallyUnstable,
       quests: hinted.get(loc.id) ?? [],
       rest: known && loc.rest !== undefined ? loc.rest.kind : null,
@@ -526,6 +529,7 @@ export function nodeLabel(node: MapNode, preview?: { cost: string | null } | nul
   if (node.escape) parts.push('the way out');
   if (node.infected) parts.push('infected');
   else if (node.forecast !== null) parts.push('the Horde will reach it');
+  if (node.threat !== null) parts.push(node.threat);
   if (node.boss) parts.push('a boss waits');
   else if (node.danger !== null) parts.push(`danger, ${node.danger}`);
   else if (node.cleared) parts.push('cleared');

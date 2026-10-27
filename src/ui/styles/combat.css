@@ -74,7 +74,8 @@
   align-content: stretch;
 }
 
-/* the hint's reserved place (U84a): first in the column, so the log gives way to it and nothing else moves */
+/* the hint's reserved place (U84a): first in the column, so the log gives way to it and nothing else moves (U84: on a short
+   screen the hint is one line, onboarding.css, so the log keeps its room) */
 .combat__side > .callout-slot {
   grid-row: 1;
 }
@@ -1614,4 +1615,10 @@
 .combat[data-layout="wide"] .combat__enemies > .enemy-card:only-child > .intent {
   grid-column: 2;
   align-self: start;
+}
+
+/* U84 (DESIGN §5.6): the Weaver's Blood price toggle; pressed, it reads "On · +25 %" in the blood colour (never colour alone) */
+.blood-toggle[aria-pressed='true'] {
+  border-color: var(--text-danger);
+  box-shadow: inset 0 0 0 1px var(--text-danger);
 }

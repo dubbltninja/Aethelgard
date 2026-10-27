@@ -80,6 +80,19 @@ describe("the first fight's forced intents (DESIGN §16.8)", () => {
     expect(run.events.some((e) => e.t === 'guarded')).toBe(true);
   });
 
+  test('U84 (REPORT U79 #3): the player acts first in round 1 of the taught fight, so Wail is read before it lands', () => {
+    const { s } = corridorFight(1);
+    const combat = s.combat!;
+    expect(combat.round).toBe(1);
+    expect(combat.turnOrder[combat.turnIndex]).toBe(combat.party[0]?.uid);
+    expect(combat.log.some((l) => /Wail/.test(l.text) && /Shade/.test(l.text))).toBe(false); // nothing has landed yet
+  });
+
+  test("U84: the Archway's Prowler waits for Loop 2, so Loop 1's first fight is the corridor Shade", () => {
+    const prowler = pack.locations['loc_crumbling_archway']?.encounters.find((e) => e.id === 'enc_archway_prowler');
+    expect(prowler?.when).toEqual({ loop: { min: 2 } });
+  });
+
   test('Loop 2: no forcing — the Shade opens with its pattern (Rake)', () => {
     const { s } = corridorFight(2);
     expect(shadeIntent(s)).toBe('shade_rake');

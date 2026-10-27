@@ -52,7 +52,7 @@ const LABELS: Readonly<Record<Dir, string>> = {
 };
 
 export function exitName(row: ExitRow): string {
-  const head = `${row.dirLabel}: ${row.name}`;
+  const head = `${row.dirLabel}: ${row.name}${row.threat == null ? '' : `, ${row.threat}`}`;
   if (row.state === 'locked') return `${head}, locked`;
   return `${head}, ${row.cost}${row.arrive === null ? '' : `, arrive ${row.arrive}`}${row.danger === null ? '' : `. ${row.danger}`}`;
 }
@@ -71,7 +71,8 @@ function PadButton({ row, half, onTravel, onInspect }: { row: ExitRow; half: boo
   return (
     <button
       type="button"
-      className={cx('pad__btn', half && 'pad__btn--half', locked && 'pad__btn--locked', row.danger !== null && 'pad__btn--danger', row.road && 'pad__btn--road')}
+      className={cx('pad__btn', half && 'pad__btn--half', locked && 'pad__btn--locked', row.danger !== null && 'pad__btn--danger', row.threat != null && 'pad__btn--threat', row.road && 'pad__btn--road')}
+      data-threat={row.threat ?? undefined}
       data-exit-dir={row.dir}
       data-exit-to={row.to}
       aria-label={exitName(row)}
@@ -97,7 +98,8 @@ function PadButton({ row, half, onTravel, onInspect }: { row: ExitRow; half: boo
           </span>
         )}
       </span>
-      <span className="pad__name">{row.name}</span>
+      {/* U84: the danger cue takes the name's line (the button never grows; the full name is in the title and the label) */}
+      <span className="pad__name">{row.threat == null ? row.name : <strong className="pad__threat">{row.threat}</strong>}</span>
       {locked ? (
         <span className="sr-only" id={reasonId}>
           {row.reason}

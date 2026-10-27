@@ -83,7 +83,7 @@ const crystalToIlyra = (shortcut: boolean): ScriptStep[] => [
 /** q_echo_crystal given, and verse I on the next talk. */
 const crystalGiven = (shortcut = false): ScriptStep[] => [
   ...crystalToIlyra(shortcut),
-  { talk: 'npc_ilyra', pick: ['give'] },
+  { talk: 'npc_ilyra', pick: ['give', 'no'] }, // U84 (REPORT U79 #4): the scroll is asked for in the same talk; taken on its own talk below
   done('q_echo_crystal', 'given'),
   { talk: 'npc_ilyra', pick: [] }, // scene_ilyra_crystal_deciphered
   holds({ echo: 'echo_litany_verse_1' }, 'verse I was not spoken on the next talk'),
@@ -353,7 +353,7 @@ const ilyraJoinsLoop3: ScriptStep[] = [
   { goto: 'loc_shattered_library' },
   takeAll,
   { goto: 'loc_whispering_ruins' },
-  { talk: 'npc_ilyra', pick: ['give'] },
+  { talk: 'npc_ilyra', pick: ['give', 'no'] }, // U84: the scroll's ask in the same talk, taken on its own talk below
   done('q_echo_crystal', 'given'),
   { talk: 'npc_ilyra', pick: [] }, // scene_ilyra_crystal_deciphered
   { talk: 'npc_ilyra', pick: ['yes'] }, // the scroll offer wins the tie
@@ -1440,7 +1440,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'given',
     name: 'the shards given (Loop 1, after the Outpost)',
     classId: CLASS,
-    seed: 'quest:shards:give:alt1', // the Hollow's Stalkers beat a level-7 melee ranger about one seed in five (a balance note): a seed that wins
+    seed: 'quest:shards:give:alt1:u84:1', // U84 re-seed: the wilds go quiet after a fight (DESIGN §10.1) // the Hollow's Stalkers beat a level-7 melee ranger about one seed in five (a balance note): a seed that wins
     steps: [...routeToOutpost, ...shardsGathered(), { talk: 'npc_nyx', pick: ['yes'] }, done('q_void_shards', 'given'), holds({ item: { id: 'item_shadow_kissed_dagger' } }, 'no Shadow-Kissed Dagger')],
   },
   {
@@ -1747,7 +1747,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'eighth_blank',
     name: 'Loop 3 → 4: the marks in the Gallery, the symptom on the Shore, the eighth frame at the Windward Stair',
     classId: CLASS,
-    seed: 'quest:marks',
+    seed: 'quest:marks:u84:1', // U84 re-seed: the wilds go quiet after a fight (DESIGN §10.1)
     profile: { loop: 3, echoes: ['echo_threshold', 'echo_flickering_man', 'echo_high_mark'], bestLevel: 17 },
     steps: [
       { loopEnd: 'portal' },
@@ -1795,7 +1795,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'stays',
     name: "Loop 3: the communion carried through; Dask stays until it's done",
     classId: CLASS,
-    seed: 'quest:instant:stay:f:b2a', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81b1: re-seeded (the class-aware fight)
+    seed: 'quest:instant:stay:f:b2a:u84:1', // U84 re-seed: the wilds go quiet after a fight (DESIGN §10.1) // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81b1: re-seeded (the class-aware fight)
     profile: {
       loop: 3,
       echoes: ['echo_flickering_man', 'echo_dask_bond', 'echo_tyrant_speaks', 'echo_apex_resonance', 'echo_tyrant_jailer', 'echo_thirtieth_dawn', 'echo_seven_wayfinders', 'echo_tyrant_never_struck', 'echo_litany_verse_2', 'echo_litany_verse_3', 'echo_litany_verse_4', 'echo_litany_verse_5', 'echo_litany_verse_6', 'echo_litany_verse_7', 'echo_hallow_said_stop', 'echo_ritual_inevitable'],
@@ -1942,7 +1942,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'done',
     name: 'Loop 2: the same without Borin\'s mark (the ember, verse IV; not the iron)',
     classId: CLASS,
-    seed: 'quest:bone:plain:b2a', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned);
+    seed: 'quest:bone:plain:b2a:u84:2', // U84 re-seed: the wilds go quiet after a fight (DESIGN §10.1) // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned);
     profile: { loop: 2, echoes: ['echo_ironclad_passwords', 'echo_nomad_signs'], bestLevel: 17 },
     steps: boneRoad(false),
   },
@@ -2076,7 +2076,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'dawn',
     name: "Loop 2 with the sign and Nyx's bond: her arc, the Heartstone exploited, her ask, the Apex and the hold's failing (ending C)",
     classId: CLASS,
-    seed: 'quest:dawn:c:4:u9', // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
+    seed: 'quest:dawn:c:4:u9:u84:35', // U84 re-seed: the wilds go quiet after a fight (DESIGN §10.1) // U81b2 re-seed (cooldowns, the Tyrant, the lethal fights retuned); // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 2, echoes: ['echo_crystal_location', 'echo_nyx_bond', 'echo_weaver_sign', 'echo_apex_resonance'], bestLevel: 20 },
     steps: weaversDawn,
   },
@@ -2176,7 +2176,7 @@ export const QUEST_SCRIPTS: readonly QuestScript[] = [
     outcome: 'remembered',
     name: 'Loop 2, a Shadow Weaver: the same, the Shard taken (no line, no +5)',
     classId: 'shadow_weaver',
-    seed: 'quest:class:weaver:take:37', // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
+    seed: 'quest:class:weaver:take:37:u84:38', // U84 re-seed: the wilds go quiet after a fight (DESIGN §10.1) // U81c re-seed: a flight now falls back and a quest-drop group regroups at dawn (D-143, D-144)
     profile: { loop: 2, bestLevel: 17 },
     steps: unlitThread('take'),
   },

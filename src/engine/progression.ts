@@ -176,6 +176,8 @@ export interface CostOptions {
   corruption?: number;
   /** Shadow Weaver Blood price: missing MP paid in HP (DESIGN §5.6). */
   bloodPrice?: { hpPerMp: number };
+  /** U84: pay the whole MP cost in blood (the action's `blood: true`), not only the missing part. */
+  payInBlood?: boolean;
 }
 
 export interface AbilityCost {
@@ -185,6 +187,8 @@ export interface AbilityCost {
   mpPaid: number;
   /** Total HP cost: % HP self-costs plus Blood price. */
   hp: number;
+  /** U84: the part of `hp` that is Blood price (MP paid in HP); > 0 makes the cast empowered (DESIGN §5.1). */
+  bloodHp: number;
   ok: boolean;
   /** 'Not enough MP' | 'Not enough blood' (the tile text, D-066 #5). */
   reason: string | null;
@@ -205,15 +209,20 @@ export function abilityCost(ability: Pick<Ability, 'id' | 'mp' | 'selfCost'>, ca
   const self = ability.selfCost;
   if (self?.hpPctMax) hp += Math.max(1, Math.floor(self.hpPctMax * caster.hpMax));
   if (self?.hpPctCur) hp += Math.max(1, Math.floor(self.hpPctCur * caster.hp));
-  const missing = Math.max(0, mp - caster.mp);
-  if (missing > 0 && !opts.bloodPrice) return { mp, mpPaid: 0, hp, ok: false, reason: 'Not enough MP' };
-  hp += missing * (opts.bloodPrice?.hpPerMp ?? 0);
-  if (hp > 0 && hp >= caster.hp) return { mp, mpPaid: 0, hp, ok: false, reason: 'Not enough blood' };
-  return { mp, mpPaid: mp - missing, hp, ok: true, reason: null };
+  if (opts.payInBlood) {
+    if (!opts.bloodPrice) return { mp, mpPaid: 0, hp, bloodHp: 0, ok: false, reason: 'You cannot pay in blood' };
+    if (mp <= 0) return { mp, mpPaid: 0, hp, bloodHp: 0, ok: false, reason: 'Nothing to pay in blood' };
+  }
+  const missing = opts.payInBlood ? mp : Math.max(0, mp - caster.mp);
+  if (missing > 0 && !opts.bloodPrice) return { mp, mpPaid: 0, hp, bloodHp: 0, ok: false, reason: 'Not enough MP' };
+  const bloodHp = missing * (opts.bloodPrice?.hpPerMp ?? 0);
+  hp += bloodHp;
+  if (hp > 0 && hp >= caster.hp) return { mp, mpPaid: 0, hp, bloodHp, ok: false, reason: 'Not enough blood' };
+  return { mp, mpPaid: mp - missing, hp, bloodHp, ok: true, reason: null };
 }
 
 /** `abilityCost` for the player out of combat (or with `caster` = the combat snapshot), with every modifier applied. */
-export function playerAbilityCost(s: GameState, content: ContentPack, abilityId: string, caster?: CostCaster): AbilityCost {
+export function playerAbilityCost(s: GameState, content: ContentPack, abilityId: string, caster?: CostCaster, payInBlood = false): AbilityCost {
   const ability = content.abilities[abilityId];
   if (!ability) throw new Error(`playerAbilityCost: unknown ability '${abilityId}'`);
   const player = s.player;
@@ -229,5 +238,6 @@ export function playerAbilityCost(s: GameState, content: ContentPack, abilityId:
   };
   if (s.world.heartstone === 'destroyed' && ability.damageType === 'ley') opts.mpMult = DESTROYED_HEARTSTONE_LEY_MP;
   if (cls?.resource.bloodPrice) opts.bloodPrice = cls.resource.bloodPrice;
+  if (payInBlood) opts.payInBlood = true;
   return abilityCost(ability, caster ?? player, opts);
 }

@@ -20,7 +20,10 @@ import {
   npcRows,
   placeModel,
   resolvedArt,
+  threatCue,
 } from '@ui/screens/exploreModel';
+import { buildMap, nodeLabel } from '@ui/panels/mapModel';
+import { exitName } from '@ui/components/MovePad';
 import { fixturePack } from '@tests/fixtures/miniContent';
 
 const content = fixturePack();
@@ -118,6 +121,43 @@ describe('exits (ExitBar)', () => {
     const road = rows.find((r) => r.road);
     expect(road).toMatchObject({ dir: 'path', label: 'the Aether Road, remembered', cost: 'No time passes', arrive: null });
     expect(rows.find((r) => r.to === 'loc_shattered_library')?.danger).toBe('⚠ −33% HP: the Horde is there');
+  });
+});
+
+describe('the danger cue (U84, D-149 #1)', () => {
+  const { state, profile } = started();
+  const bandMin = (id: string): number => {
+    const loc = content.locations[id]!;
+    return (loc.levelBand ?? content.regions[loc.regionId]?.levelBand)!.min;
+  };
+
+  test('threatCue: nothing within 1 level of the band, "Dangerous" 2–3 levels under it, "Deadly" 4 or more; never for a safe place (D-152)', () => {
+    const lib = 'loc_shattered_library';
+    const min = bandMin(lib);
+    expect(threatCue(content, lib, min)).toBeNull();
+    expect(threatCue(content, lib, min + 3)).toBeNull();
+    expect(threatCue(content, lib, min - 1)).toBeNull();
+    expect(threatCue(content, lib, min - 2)).toBe(`Dangerous (L${min}+)`);
+    expect(threatCue(content, lib, min - 3)).toBe(`Dangerous (L${min}+)`);
+    expect(threatCue(content, lib, min - 4)).toBe(`Deadly (L${min}+)`);
+    const safe = Object.values(content.locations).find((l) => l.safe);
+    if (safe !== undefined) expect(threatCue(content, safe.id, -50)).toBeNull();
+    expect(threatCue(content, 'nowhere', 1)).toBeNull();
+  });
+
+  test('the pad button and the map node carry it in their names, in words', () => {
+    const lib = 'loc_shattered_library';
+    const s = at(state, state.world.currentLocationId, (x) => void (x.player.level = bandMin(lib) - 4));
+    const row = exitRows(s, content, profile, legal(s, profile)).find((r) => r.to === lib)!;
+    expect(row.threat).toBe(`Deadly (L${bandMin(lib)}+)`);
+    expect(exitName(row)).toMatch(new RegExp(`^${escape(`North: Shattered Library, Deadly (L${bandMin(lib)}+), 1 watch`)}`));
+    const node = buildMap(s, content, profile).nodes.find((n) => n.id === lib)!;
+    expect(node.threat).toBe(row.threat);
+    expect(nodeLabel(node)).toContain(`Deadly (L${bandMin(lib)}+)`);
+    // where you stand carries none; at the band's level there is none
+    expect(buildMap(s, content, profile).nodes.find((n) => n.state === 'current')?.threat).toBeNull();
+    const even = at(state, state.world.currentLocationId, (x) => void (x.player.level = bandMin(lib)));
+    expect(exitRows(even, content, profile, legal(even, profile)).find((r) => r.to === lib)?.threat).toBeNull();
   });
 });
 

@@ -131,6 +131,11 @@ export function MapView({ model, selected, preview, route, docked = false, onNod
                       {node.name}
                     </span>
                   )}
+                  {node.threat === null ? null : (
+                    <span className="map-node__threat" aria-hidden="true" data-threat={node.threat.startsWith('Deadly') ? 'deadly' : 'dangerous'}>
+                      {node.threat}
+                    </span>
+                  )}
                   <span className="map-node__marks" aria-hidden="true">
                     {node.boss ? <Icon kind="crown" size={12} /> : node.danger !== null ? <Icon kind="danger" size={12} /> : node.cleared ? <Icon kind="check" size={12} /> : null}
                     {node.npc ? <Icon kind="npc" size={12} /> : null}

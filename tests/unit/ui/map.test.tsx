@@ -190,7 +190,7 @@ describe('routes and the travel preview (DESIGN §16.6)', () => {
     const n = node(map.nodes, 'loc_shattered_library')!;
     expect(nodeLabel(n, { cost: '1 watch · Dawn → Day' })).toBe('Shattered Library, visited, north, danger, Lv 2–3, 1 watch · Dawn → Day');
     expect(nodeLabel(node(map.nodes, 'loc_whispering_ruins')!)).toBe('Whispering Ruins, you are here, someone is here, camp');
-    expect(nodeLabel({ ...n, name: null, state: 'adjacent', danger: null, cleared: false, infected: true, escape: true, boss: false, npc: false, rest: null, merchant: true, unstable: true, dir: null })).toBe(
+    expect(nodeLabel({ ...n, name: null, state: 'adjacent', danger: null, cleared: false, infected: true, escape: true, boss: false, npc: false, rest: null, merchant: true, unstable: true, dir: null, threat: null })).toBe(
       'Unknown place, unexplored, the way out, infected, trader, time is loose here',
     );
     expect(nodeLabel({ ...n, boss: true })).toContain('a boss waits');
@@ -242,7 +242,7 @@ describe('MapView', () => {
     expect(nodes.map(nameOf)).toEqual([
       'Whispering Ruins, visited, south, someone is here, camp',
       'Shattered Library, you are here, danger, Lv 2–3',
-      'Unknown place, unexplored, east',
+      'Unknown place, unexplored, east', // D-152: a band 1 level above a Level 1 party carries no danger cue
     ]);
     const current = byName(tree, 'button', /you are here/);
     expect(current.props['aria-current']).toBe('location');

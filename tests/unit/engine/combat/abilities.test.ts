@@ -122,8 +122,8 @@ describe('availability (DESIGN §5.1, D-066 #5, D-074)', () => {
     expect(legalActions(at(29), content, profile).filter((a) => a.type === 'ability')).toEqual([lance]);
     const out = act(at(29), lance, HIT());
     expect(me(out.state)).toMatchObject({ hp: 1, mp: 0 });
-    // 3 + 1.3 × 12 = 18.6 − ward 1 = 17.6 → 18
-    expect(dealt(out.events)).toEqual([['wvr_void_lance', 18]]);
+    // 3 + 1.3 × 12 = 18.6, a Blood-priced cast ×1.25 (U84) = 23.25 − ward 1 = 22.25 → 22
+    expect(dealt(out.events)).toEqual([['wvr_void_lance', 22]]);
   });
 
   test("cooldowns count the caster's turns: the Amulet's bolt (1-turn cooldown, D-067.19) is out for exactly the next turn; its Ley hit consumes Rewind (interplay 9)", () => {

@@ -250,13 +250,18 @@ function targetOptions(combat: CombatState, caster: Combatant, ability: Ability)
  * What casting `ability` costs `caster` in a fight: the player's cost with every modifier (progression), or — while the
  * caster holds Breach Echo's free cast for the ability's branch — no MP at all (its % HP self-costs stay).
  */
-export function combatAbilityCost(s: GameState, content: ContentPack, caster: Combatant, ability: Ability): AbilityCost {
-  if (ability.branch !== undefined && hasTag(caster, `${FREE_CAST_TAG}${ability.branch}`)) return abilityCost({ id: ability.id, mp: 0, selfCost: ability.selfCost }, caster);
-  return playerAbilityCost(s, content, ability.id, caster);
+export function combatAbilityCost(s: GameState, content: ContentPack, caster: Combatant, ability: Ability, blood = false): AbilityCost {
+  if (ability.branch !== undefined && hasTag(caster, `${FREE_CAST_TAG}${ability.branch}`)) {
+    return abilityCost({ id: ability.id, mp: 0, selfCost: ability.selfCost }, caster, blood ? { payInBlood: true } : {});
+  }
+  return playerAbilityCost(s, content, ability.id, caster, blood);
 }
 
+/** U84 (DESIGN §5.1): a cast that pays any MP in blood is empowered — damage, healing and Shield ×1.25. */
+export const BLOOD_EMPOWER = 1.25;
+
 /** Why the player cannot use `abilityId` (at `targetUid`) on this turn of `combat`, or null. */
-export function combatAbilityProblem(s: GameState, content: ContentPack, combat: CombatState, abilityId: string, targetUid?: string): string | null {
+export function combatAbilityProblem(s: GameState, content: ContentPack, combat: CombatState, abilityId: string, targetUid?: string, blood = false): string | null {
   const ability = content.abilities[abilityId];
   if (!ability || !knownAbilities(s, content).includes(abilityId)) return `You do not know '${abilityId}'`;
   const player = playerOf(combat);
@@ -264,7 +269,7 @@ export function combatAbilityProblem(s: GameState, content: ContentPack, combat:
   const cd = combat.cooldowns[abilityId] ?? 0;
   if (cd > 0) return `${ability.name} is recharging (${cd})`;
   if (ABILITY_SCRIPTS[abilityId]?.bonusAction && bonusState(player) !== null) return `${ability.name} cannot follow itself`;
-  const cost = combatAbilityCost(s, content, player, ability);
+  const cost = combatAbilityCost(s, content, player, ability, blood);
   if (!cost.ok) return cost.reason ?? 'You cannot pay for that';
   const picked = pickTargets(combat, player, ability, targetUid);
   return typeof picked === 'string' ? picked : null;
@@ -285,8 +290,9 @@ export function combatAbilityActions(s: GameState, content: ContentPack, combat:
 }
 
 /** Why the player cannot use `abilityId` out of combat now (DESIGN §5.1 `field`), or null. */
-export function fieldAbilityProblem(s: GameState, content: ContentPack, abilityId: string, targetUid?: string): string | null {
+export function fieldAbilityProblem(s: GameState, content: ContentPack, abilityId: string, targetUid?: string, blood = false): string | null {
   if (targetUid !== undefined) return 'There is nothing to target outside combat';
+  if (blood) return 'Blood price is paid in a fight';
   const ability = content.abilities[abilityId];
   if (!ability || !knownAbilities(s, content).includes(abilityId)) return `You do not know '${abilityId}'`;
   if (ability.outOfCombat.length === 0 && hooksOf(ability.special)?.field === undefined) return `${ability.name} can only be used in a fight`;
@@ -303,7 +309,7 @@ export function fieldAbilityActions(s: GameState, content: ContentPack): ActionO
 /** An ability out of combat: its MP (and HP) cost, then its `outOfCombat` effects and its special's field hook. */
 export function useFieldAbility(ctx: StepCtx, action: ActionOf<'ability'>): void {
   const { s, content } = ctx;
-  const why = fieldAbilityProblem(s, content, action.abilityId, action.targetUid);
+  const why = fieldAbilityProblem(s, content, action.abilityId, action.targetUid, action.blood === true);
   if (why !== null) ctx.reject(why);
   const ability = content.abilities[action.abilityId] as Ability;
   const cost = playerAbilityCost(s, content, ability.id);
@@ -389,7 +395,7 @@ function strike(u: SpecialUse, ability: Ability, target: Combatant, base: HitSpe
     }
     let spec: HitSpec = { ...base };
     const mults = targetMults(u, ability, target, evalWhen);
-    if (mults.length > 0) spec.mults = mults;
+    if (mults.length > 0) spec.mults = [...(base.mults ?? []), ...mults];
     if (!power.perHitCrit && firstCrit !== null) spec = firstCrit ? { ...spec, guaranteedCrit: true } : { ...spec, critBonus: -1000 };
     if (script?.lastHitCrits && h === hits - 1) spec = { ...spec, guaranteedCrit: true }; // Final Verse
     if (hook) spec = hook(u, spec, target);
@@ -559,11 +565,13 @@ function grantBonusAction(combat: CombatState, caster: Combatant, ability: Abili
 }
 
 /** Resolves an ability already paid for (see the file header). `kind` is the hits' event kind ('item' for an item's). */
-export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState, caster: Combatant, ability: Ability, picked: Picked, hpPaid: number, kind: HitKind = 'ability'): void {
+export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState, caster: Combatant, ability: Ability, picked: Picked, hpPaid: number, kind: HitKind = 'ability', empower = 1): void {
   const script = ABILITY_SCRIPTS[ability.id] ?? {};
   const hooks = hooksOf(ability.special);
   const offensive = ability.target === 'enemy' || ability.target === 'all_enemies';
-  const spec = offensive ? abilitySpec(ability) : null;
+  const plain = offensive ? abilitySpec(ability) : null;
+  // U84: an empowered (Blood-priced) cast's hits carry a step-7 "blood price" multiplier; heals and Shields scale below
+  const spec = plain !== null && empower !== 1 ? { ...plain, mults: [...(plain.mults ?? []), { name: 'blood price', mult: empower }] } : plain;
   const u: SpecialUse = { ctx, combat, ops, user: caster, scope: 'ability', id: ability.id, kind, primary: picked.primary, recipients: picked.recipients, spec, struck: [], hpPaid, from: ctx.events.length, memo: {} };
   const evalWhen = whenOf(ctx, combat, caster);
   hooks?.before?.(u);
@@ -584,7 +592,8 @@ export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState
     for (const t of landed) applyCoats(ctx, combat, caster, t, ability.branch ?? null);
     if (ability.heal) {
       for (const t of supportTargets(combat, caster, ability, picked, ability.heal.target === 'party')) {
-        const r = resolveHeal(ctx, caster, t, healSpecOf(ctx, caster, ability.heal));
+        const hs = healSpecOf(ctx, caster, ability.heal);
+        const r = resolveHeal(ctx, caster, t, empower === 1 ? hs : { ...hs, base: hs.base * empower, coef: hs.coef * empower });
         t.hp += r.amount;
         if (r.amount > 0) ctx.emit({ t: 'healed', targetUid: t.uid, amount: r.amount, source: ability.id });
         combatLog(combat, `${t.name} recovers ${r.amount} HP.`, 'heal');
@@ -594,7 +603,8 @@ export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState
     if (share !== undefined) for (const t of sideOf(combat, caster)) healMaxHpShare(ctx, combat, caster, t, share, ability.id);
     if (ability.shield) {
       const { base, coef, stat, turns } = ability.shield;
-      for (const t of supportTargets(combat, caster, ability, picked, false)) applyStatus(ctx, combat, caster, t, STATUS.shield, { power: { base, coef, stat }, duration: turns });
+      const power = { base: base * empower, coef: coef * empower, stat };
+      for (const t of supportTargets(combat, caster, ability, picked, false)) applyStatus(ctx, combat, caster, t, STATUS.shield, { power, duration: turns });
     }
     const mine = picked.recipients.filter((c) => !offensive && isActive(c));
     for (const t of mine.length > 0 ? mine : [caster]) {
@@ -652,31 +662,34 @@ export function resolveAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState
  * The player's ability in a fight (the reducer checked `combatAbilityProblem`): pay (MP, then HP), start the cooldown,
  * count and announce it, resolve. (A trap springing and an item's ability call `resolveAbility` directly: free.)
  */
-export function castAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState, caster: Combatant, ability: Ability, picked: Picked): void {
+export function castAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState, caster: Combatant, ability: Ability, picked: Picked, blood = false): void {
   const { s, content } = ctx;
-  const cost = combatAbilityCost(s, content, caster, ability);
+  const cost = combatAbilityCost(s, content, caster, ability, blood);
   if (ability.branch !== undefined && removeTag(caster, `${FREE_CAST_TAG}${ability.branch}`)) combatLog(combat, `${ability.name} costs ${caster.name} no MP.`, 'info');
   caster.mp -= cost.mpPaid;
   if (cost.hp > 0) {
     caster.hp -= cost.hp;
     combatLog(combat, `${ability.name} takes ${cost.hp} HP from ${caster.name}.`, 'info');
   }
+  const empowered = cost.bloodHp > 0;
+  if (empowered) combatLog(combat, `Blood price: ${ability.name} is empowered.`, 'info');
   if (ability.cooldown > 0) setTimer(combat, caster, ability.id, ability.cooldown);
   s.counters.abilitiesUsed[ability.id] = (s.counters.abilitiesUsed[ability.id] ?? 0) + 1;
   ctx.emit({ t: 'abilityUsed', uid: caster.uid, abilityId: ability.id });
   combatLog(combat, `${caster.name} uses ${ability.name}.`, 'info');
-  resolveAbility(ops, ctx, combat, caster, ability, picked, cost.hp);
+  resolveAbility(ops, ctx, combat, caster, ability, picked, cost.hp, 'ability', empowered ? BLOOD_EMPOWER : 1);
   addTag(caster, `${USED_TAG}${ability.id}`); // after it resolves: "used earlier this fight" (Crescendo)
   if (caster.kind === 'player') noteLastAbility(caster, ability.id); // U34e: the Paradox Wisp's "your last spell"
 }
 
 /** `ability` in a fight: check, cast (the reducer ends the turn). */
 export function usePlayerAbility(ops: CombatOps, ctx: StepCtx, combat: CombatState, action: ActionOf<'ability'>): void {
-  const why = combatAbilityProblem(ctx.s, ctx.content, combat, action.abilityId, action.targetUid);
+  const blood = action.blood === true;
+  const why = combatAbilityProblem(ctx.s, ctx.content, combat, action.abilityId, action.targetUid, blood);
   if (why !== null) ctx.reject(why);
   const player = playerOf(combat);
   const ability = ctx.content.abilities[action.abilityId] as Ability;
-  castAbility(ops, ctx, combat, player, ability, pickTargets(combat, player, ability, action.targetUid) as Picked);
+  castAbility(ops, ctx, combat, player, ability, pickTargets(combat, player, ability, action.targetUid) as Picked, blood);
 }
 
 // ---- delayed hits (Doom Sigil) ------------------------------------------------------------------------------------------------

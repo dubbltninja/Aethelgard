@@ -20,7 +20,8 @@ import type {
 } from './state';
 
 /** `thresholdEntered`: U31 (C1 addition), DESIGN §14.2 "on entering the Threshold". */
-export type AutosaveReason = 'locationEntered' | 'combatEnded' | 'dayAdvanced' | 'questCompleted' | 'rest' | 'thresholdEntered';
+/** U84 (C1 addition): `dialogueOutcome` — a dialogue choice that set a flag (DESIGN §14.2; written when the scene closes). */
+export type AutosaveReason = 'locationEntered' | 'combatEnded' | 'dayAdvanced' | 'questCompleted' | 'rest' | 'thresholdEntered' | 'dialogueOutcome';
 
 export type GameEvent =
   | { t: 'actionRejected'; action: Action; reason: string }

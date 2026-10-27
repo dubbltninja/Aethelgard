@@ -471,8 +471,12 @@ export interface AbilityTileModel {
   tier: number | null;
   /** "6 Focus" / "4 Focus + 12 HP"; null when free. */
   cost: string | null;
-  /** The cost is paid in blood (DESIGN §16.5: red). */
+  /** The cost is paid in blood (DESIGN §16.5: red); with Blood price this cast is empowered (U84, DESIGN §5.6). */
   blood: boolean;
+  /** U84: the Blood price toggle applies to this tile (a class with Blood price, an MP cost): press it with `blood: true`. */
+  bloodable: boolean;
+  /** U84: this cast would pay MP in blood, so it is empowered (+25 %). */
+  empowered: boolean;
   cooldown: number;
   target: TileTarget;
   damageType: DamageType | null;
@@ -496,7 +500,7 @@ function tileReason(problem: string, mp: number, resource: string, cooldown: num
 }
 
 /** The tiles in displayed order: Attack, then the abilities by class branch (then gear-granted), each branch by tier. */
-export function abilityTiles(s: GameState, content: ContentPack, legal: Legal, target: string | null): AbilityTileModel[] {
+export function abilityTiles(s: GameState, content: ContentPack, legal: Legal, target: string | null, bloodOn = false): AbilityTileModel[] {
   const combat = s.combat;
   const cls = content.classes[s.player.classId];
   const resource = cls?.resource.name ?? 'MP';
@@ -516,6 +520,8 @@ export function abilityTiles(s: GameState, content: ContentPack, legal: Legal, t
       tier: null,
       cost: null,
       blood: false,
+      bloodable: false,
+      empowered: false,
       cooldown: 0,
       target: 'enemy',
       damageType: 'physical',
@@ -538,20 +544,26 @@ export function abilityTiles(s: GameState, content: ContentPack, legal: Legal, t
       const [bb, bt] = order(b);
       return ab - bb || at - bt;
     });
+  const canBleed = cls?.resource.bloodPrice !== undefined;
   known.forEach((ability, i) => {
     const kind = targetKind(ability);
-    const enabled =
-      kind === 'enemy'
+    const plainCost = combatAbilityCost(s, content, player, ability);
+    // U84 (DESIGN §5.6): with the Blood price toggle on, every tile with an MP cost is priced (and checked) in HP
+    const bloodable = canBleed && plainCost.mp > 0;
+    const bleed = bloodOn && bloodable;
+    const enabled = bleed
+      ? myTurn && combatAbilityProblem(s, content, combat, ability.id, kind === 'enemy' ? (target ?? undefined) : undefined, true) === null && (kind !== 'enemy' || target !== null)
+      : kind === 'enemy'
         ? target !== null && isLegal({ type: 'ability', abilityId: ability.id, targetUid: target })
         : kind === 'ally'
           ? legal.some((a) => a.type === 'ability' && a.abilityId === ability.id)
           : isLegal({ type: 'ability', abilityId: ability.id });
-    const cost = combatAbilityCost(s, content, player, ability);
+    const cost = bleed ? combatAbilityCost(s, content, player, ability, true) : plainCost;
     const cooldown = combat.cooldowns[ability.id] ?? 0;
     const parts: string[] = [];
-    if (cost.mp > 0) parts.push(`${cost.mp} ${resource}`);
+    if (cost.mpPaid > 0 || (cost.mp > 0 && cost.bloodHp === 0)) parts.push(`${cost.bloodHp > 0 ? cost.mpPaid : cost.mp} ${resource}`);
     if (cost.hp > 0) parts.push(`${cost.hp} HP`);
-    const problem = enabled ? null : myTurn ? combatAbilityProblem(s, content, combat, ability.id, kind === 'enemy' ? (target ?? undefined) : undefined) : 'Not your turn';
+    const problem = enabled ? null : myTurn ? combatAbilityProblem(s, content, combat, ability.id, kind === 'enemy' ? (target ?? undefined) : undefined, bleed) : 'Not your turn';
     const at = branches.findIndex((b) => b.id === ability.branch);
     tiles.push({
       id: ability.id,
@@ -564,6 +576,8 @@ export function abilityTiles(s: GameState, content: ContentPack, legal: Legal, t
       tier: ability.tier ?? null,
       cost: parts.length === 0 ? null : parts.join(' + '),
       blood: cost.hp > 0,
+      bloodable,
+      empowered: cost.bloodHp > 0,
       cooldown,
       target: kind,
       damageType: ability.damageType ?? null,
@@ -580,6 +594,7 @@ export function tileName(tile: AbilityTileModel, targetName: string | null): str
   const bits = [`${tile.key === null ? '' : `${tile.key}: `}${tile.name}`];
   if (tile.target === 'enemy' && targetName !== null && tile.enabled) bits.push(`at ${targetName}`);
   if (tile.cost !== null) bits.push(tile.cost);
+  if (tile.empowered && tile.enabled) bits.push('empowered by blood');
   if (tile.reason !== null) bits.push(tile.reason);
   return bits.join(', ');
 }

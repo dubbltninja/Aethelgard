@@ -17,7 +17,8 @@
 //   ability, companionCommand 'signature', item
 //             one per valid target; an omitted target takes the default (DESIGN §4.8: the first living enemy for an
 //             enemy ability or a thrown item, the companion if standing else the player for an ally ability); a heal
-//             is listed untargeted for the player, and naming the player is the same use.
+//             is listed untargeted for the player, and naming the player is the same use. An ability's `blood: true`
+//             (U84, the Weaver's Blood price paid by choice) is a modifier: never listed; `isLegal` answers.
 //   examine   listed only on request (`includeExamine`, PLAN §4.7).
 // Ids never name an Object.prototype member (content rule-06 reserves them): `step` rejects such a parameter up front.
 //
@@ -282,9 +283,9 @@ const ALIASED: { readonly [K in ActionType]?: (s: GameState, a: ActionOf<K>, con
   buy: (s, a, content, profile) => typeof checkBuy(s, content, profile, a) !== 'string',
   equip: (s, a, content, profile) => typeof checkEquip(s, content, profile, a) !== 'string',
   ability: (s, a, content) => {
-    if (s.mode !== 'combat') return fieldAbilityProblem(s, content, a.abilityId, a.targetUid) === null;
+    if (s.mode !== 'combat') return fieldAbilityProblem(s, content, a.abilityId, a.targetUid, a.blood === true) === null;
     const combat = playerTurnCombat(s);
-    return combat !== null && combatAbilityProblem(s, content, combat, a.abilityId, a.targetUid) === null;
+    return combat !== null && combatAbilityProblem(s, content, combat, a.abilityId, a.targetUid, a.blood === true) === null;
   },
   item: (s, a, content) => {
     const combat = playerTurnCombat(s);

@@ -204,9 +204,10 @@ export const quests = [
     availableWhen: { echo: 'echo_before_route' },
     stages: [
       {
-        // scene_caelum_errand_offer passes through it
+        // scene_caelum_errand_offer passes through it; a generic Accept passes through it too (D-146 ruling 2, U81b2)
         id: 'errand',
         tags: ['story'],
+        advanceWhen: { quest: { id: 'q_the_apprentices_errand', status: 'active' } },
         journal: "Caelum carries Master Thal's noon message to the Spire Yard. Walk with him.",
         onExit: caelumStage,
         next: 'cross',
@@ -248,9 +249,10 @@ export const quests = [
     },
     stages: [
       {
-        // scene_caelum_boy_offer passes through it
+        // scene_caelum_boy_offer passes through it; a generic Accept passes through it too (D-146 ruling 2, U81b2)
         id: 'asked',
         tags: ['story'],
+        advanceWhen: { quest: { id: 'q_a_boy_from_a_doomed_city', status: 'active' } },
         journal: 'Caelum remembers you between resets. He has asked what you know. Decide what to show him.',
         onExit: caelumStage,
         next: 'door',

@@ -10,7 +10,7 @@
 //              Flees only with the companion down, hp < 20 % and the fight fleeable. Never communes.
 //   dialogue   the Loop 1 Apex prompt: *Face it* when ready (level ≥ the strongest fight there − APEX_MARGIN), else
 //              *Not yet*; accepts every offered quest; picks choices by `questStart` > Ironclad rep > first, untaken first;
-//              the Heartstone (no effect schema yet: read from choice ids) is destroyed only by Day 10, else stabilized.
+//              the Heartstone: stabilized (D-146 ruling 1; SIM_HEARTSTONE=destroy destroys it by Day 10, =exploit exploits it).
 //   threshold  buys the cheapest Attunement while Resonance ≥ 10, equips up to 5, keeps the class, starts the next loop.
 //   explore    the portal when it opens; in a Horde, straight to the portal; stat points → STR; the cheapest Steel/Breaker
 //              ability it qualifies for (else the cheapest physical one); better gear on; everything on the ground taken;
@@ -84,6 +84,16 @@ export const MELEE = {
   thresholdKeepResonance: 10,
   attunementSlots: 5,
 } as const;
+
+/**
+ * The Heartstone choice of the `melee` and `caster` bots (D-146 ruling 1): Stabilize, the plain first-time player's choice,
+ * so DESIGN §19 #1 measures the Tyrant rather than a clock limit. `SIM_HEARTSTONE=destroy|exploit` in the environment (workers
+ * inherit it) plays the focused Destroy (by Day 10) or Exploit Loop 1 instead, for DESIGN §10.1's pacing check (U81b2).
+ */
+export const FOCUS_HEARTSTONE: 'stabilize' | 'destroy' | 'exploit' = ((): 'stabilize' | 'destroy' | 'exploit' => {
+  const v = typeof process === 'undefined' ? undefined : process.env['SIM_HEARTSTONE'];
+  return v === 'destroy' || v === 'exploit' ? v : 'stabilize';
+})();
 
 /** The Apex is "ready" when the player's level is at least the strongest creature there minus this (L11 vs the L14 Contained Tyrant: DESIGN §19 #19's lower sim level). */
 export const APEX_MARGIN = 3;
@@ -208,9 +218,11 @@ function pickChoice(s: GameState, choices: readonly Extract<Action, { type: 'cho
       if (c.effects.some((e) => 'questStart' in e)) v += 4;
       if (c.effects.some((e) => 'rep' in e && e.rep.faction === 'ironclad' && e.rep.delta > 0)) v += 2;
     }
-    // the Heartstone (D-017): destroy early, otherwise stabilize (REVIEW-DESIGN-PLAN F20); no effect schema yet
-    if (/destroy/.test(choiceId)) v += day <= MELEE.heartstoneDestroyByDay ? 3 : -3;
-    if (/stabili[sz]e/.test(choiceId)) v += day <= MELEE.heartstoneDestroyByDay ? 1 : 3;
+    // the Heartstone (D-017): Stabilize (D-146 ruling 1; `SIM_HEARTSTONE` plays Destroy by Day 10 or Exploit instead)
+    const flag = c?.effects.flatMap((e) => ('setFlag' in e && e.setFlag.startsWith('flag_heartstone_') ? [e.setFlag as string] : []))[0] ?? choiceId;
+    const hs = /destroy/.test(flag) ? 'destroy' : /exploit/.test(flag) ? 'exploit' : /stabili[sz]e/.test(flag) ? 'stabilize' : undefined;
+    const wanted = FOCUS_HEARTSTONE === 'destroy' && day > MELEE.heartstoneDestroyByDay ? 'stabilize' : FOCUS_HEARTSTONE;
+    if (hs !== undefined) v += hs === wanted ? 3 : -3;
     if (d !== null && node !== undefined && d.choicesTaken.includes(`${node.id}:${choiceId}`)) v -= 1;
     return v;
   };

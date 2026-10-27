@@ -35,7 +35,7 @@
 import { APEX_LOCATION_ID, sceneForNpc, type Action } from '@engine/index';
 import type { Ability } from '@schema/ability';
 import { classFight, healRow, type ClassFightCfg } from './classFight';
-import { APEX_MARGIN, MELEE } from './melee';
+import { APEX_MARGIN, FOCUS_HEARTSTONE, MELEE } from './melee';
 import {
   MELEE_REST,
   MELEE_TRADE,
@@ -105,14 +105,14 @@ const TRADE: TradeCfg = {
 
 const THRESHOLD: ThresholdCfg = { prefer: ['att_deep_well', 'att_quick_study'], modifiers: [], keepResonance: MELEE.thresholdKeepResonance, slots: MELEE.attunementSlots };
 
-const SOCIAL: SocialCfg = { talk: 'npc', heartstone: 'exploit', interact: true, gather: true };
+const SOCIAL: SocialCfg = { talk: 'npc', heartstone: FOCUS_HEARTSTONE, interact: true, gather: true };
 
 /** The factions whose quests the caster follows first (PLAN §7.2), and whose reputation it likes. */
 const LEAN = ['weavers', 'remnants'] as const;
 
 const DIALOGUE: DialogueCfg = {
   apexReady: (env) => rushing(env) || apexReadyBy(env, APEX_MARGIN),
-  heartstone: 'exploit',
+  heartstone: FOCUS_HEARTSTONE,
   factions: { weavers: 2, remnants: 2 },
   // the Echo Crystal: keep it (PLAN §7.2); no effect schema says "keep", so it is read from the choice id
   score: (choiceId) => (/(^|_)keep(_|$)/.test(choiceId) ? 3 : 0),

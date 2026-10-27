@@ -65,26 +65,36 @@ function useTargetMark(callout: CalloutDef | null): void {
 }
 
 /**
- * U84a (D-147): on a wide explore screen the hint floats over the foot of the place's scene band — art, not words or
- * controls — so neither the pad at the foot of the side column nor the actions move or hide under it. Elsewhere the
- * stylesheet places it (a fight: over the log column; a phone: in the dock, above the pinned controls). Null = the stylesheet.
+ * U84a (D-147): on a wide screen the hint floats where it hides neither words nor controls — in explore over the foot of
+ * the place's scene band (the pad and the actions never move or hide under it), in a fight over the top of the log column
+ * (the stage runs above it, the controls below). A phone keeps it in the dock, above the pinned controls. Null = the stylesheet.
  */
 function useCalloutPlacement(id: string | null): CSSProperties | null {
   const mode = useGame((s) => s.mode);
   const [style, setStyle] = useState<CSSProperties | null>(null);
   useLayoutEffect(() => {
     const wide = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 760px)').matches;
-    if (id === null || mode !== 'explore' || !wide) {
+    if (id === null || (mode !== 'explore' && mode !== 'combat') || !wide) {
       setStyle(null);
       return undefined;
     }
     const place = (): void => {
+      const inset = 8;
+      if (mode === 'combat') {
+        // a wide fight: over the top of the log column (the stage runs above it, the controls below)
+        const side = document.querySelector('.combat[data-layout="wide"] .combat__side')?.getBoundingClientRect();
+        setStyle(
+          side === undefined || side.width === 0
+            ? null
+            : { position: 'fixed', left: `${Math.round(side.left)}px`, right: 'auto', top: `${Math.round(side.top)}px`, bottom: 'auto', width: `${Math.round(side.width)}px` },
+        );
+        return;
+      }
       const r = document.querySelector('.explore .place__scene')?.getBoundingClientRect();
       if (r === undefined || r.width === 0) {
         setStyle(null);
         return;
       }
-      const inset = 8;
       setStyle({
         position: 'fixed',
         left: `${Math.round(r.left + inset)}px`,

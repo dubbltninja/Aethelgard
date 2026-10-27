@@ -212,6 +212,13 @@ export function CombatView(p: CombatViewProps): ReactNode {
         {communing ? null : <AbilityBar tiles={p.tiles} targetName={p.targetName} onUse={p.onTile} compact />}
       </div>
     );
+  // the stage band; a phase change or a boss's line shows over its top edge, so it never pushes the cards or the controls
+  const stageBand = (
+    <div className="combat__stagewrap" data-toast-anchor="">
+      {p.stage ?? null}
+      {banner}
+    </div>
+  );
   return (
     <RegionPalette regionId={p.regionId} region={p.region} className="screen screen--combat">
       <section className={p.stage == null ? 'combat' : 'combat combat--staged'} data-screen="combat" data-layout={phone ? 'phone' : 'wide'} aria-labelledby="combat-heading">
@@ -223,12 +230,10 @@ export function CombatView(p: CombatViewProps): ReactNode {
           <TurnOrder entries={p.turns} round={p.round} />
         </header>
         <div className="combat__body">
+          {/* wide: the stage band runs across the top, over the cards and the log */}
+          {phone ? null : stageBand}
           <div className="combat__main" data-scroll-region="combat">
-            {/* the stage band; a phase change or a boss's line shows over its top edge, so it never pushes the cards or the controls */}
-            <div className="combat__stagewrap" data-toast-anchor="">
-              {p.stage ?? null}
-              {banner}
-            </div>
+            {phone ? stageBand : null}
             <ul className="combat__enemies" aria-label="Enemies">
               {p.enemies.map((enemy) => (
                 <EnemyCard key={enemy.uid} enemy={enemy} reducedMotion={p.reducedMotion} hit={p.hits[enemy.uid] ?? null} onSelect={p.onSelectTarget} />

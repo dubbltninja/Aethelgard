@@ -250,6 +250,63 @@ for (const size of [
   });
 }
 
+// ---- desktops: one screen, the width used ----------------------------------------------------------------------------------
+
+for (const size of [
+  { width: 1280, height: 800 },
+  { width: 1440, height: 900 },
+  { width: 1920, height: 1080 },
+]) {
+  test.describe(`one screen on a desktop at ${size.width} × ${size.height}`, () => {
+    test.use({ viewport: size });
+    test.beforeEach(({}, info) => test.skip(mobile(info), 'desktops'));
+
+    test('explore, a boss fight and the big panels fit the screen; the columns use the width', async ({ page }, info) => {
+      const g = new GameDriver(page, info).watch();
+      await g.boot('loop1_emberforge', 'explore');
+      await g.tutorialsOff();
+      await expectNoPageScroll(page, 'explore');
+      // three columns from 1200 px: the place, then the map / who is here / the log, then the actions and the pad
+      await expect(page.locator('.explore[data-layout="triple"]')).toBeVisible();
+      const place = await boxOf(page.locator('.place__scene'));
+      const middle = await boxOf(page.locator('.explore__middle'));
+      const pad = await boxOf(page.getByRole('navigation', { name: 'Ways on' }));
+      expect(place.x + place.w, 'the scene is left of the middle column').toBeLessThanOrEqual(middle.x);
+      expect(middle.x + middle.w, 'the middle column is left of the pad').toBeLessThanOrEqual(pad.x);
+      // no big empty gutters: the screen's content spans nearly the whole width
+      const used = await page.locator('.explore').evaluate((el) => el.getBoundingClientRect().width);
+      expect(used / size.width, 'the explore screen uses the width').toBeGreaterThan(0.95);
+      // the words, the log and the actions scroll inside their own regions
+      for (const sel of ['[data-scroll-region="explore"]', '.explore__middle .event-log__list', '.explore__actions']) {
+        expect(await page.locator(sel).evaluate((el) => getComputedStyle(el).overflowY), sel).toMatch(/auto|scroll/);
+      }
+
+      // a panel uses the width too and scrolls inside itself
+      await page.locator('#place-heading').focus();
+      await page.keyboard.press('c');
+      const codex = g.dialog('Codex');
+      await expect(codex).toBeVisible();
+      const panel = await boxOf(codex);
+      expect(panel.w / size.width, 'the Codex uses the width').toBeGreaterThan(0.85);
+      expect(panel.y + panel.h).toBeLessThanOrEqual(size.height);
+      await expectNoPageScroll(page, 'the Codex');
+      await page.keyboard.press('Escape');
+
+      await g.boot('combat_bell_warden_p2', 'combat');
+      await g.tutorialsOff();
+      await expectNoPageScroll(page, 'a boss fight');
+      const stage = await boxOf(page.locator('.combat-stage'));
+      expect(stage.w / size.width, 'the stage runs across the top').toBeGreaterThan(0.9);
+      for (const part of [page.locator('.combat__enemies .intent__chip').first(), page.getByRole('meter', { name: 'The Bell-Warden HP' }), page.getByRole('button', { name: /^1: Attack/ })]) {
+        const b = await boxOf(part);
+        expect(b.y, 'on screen').toBeGreaterThanOrEqual(0);
+        expect(b.y + b.h, 'on screen').toBeLessThanOrEqual(size.height);
+      }
+      g.expectClean();
+    });
+  });
+}
+
 // ---- toasts ----------------------------------------------------------------------------------------------------------------
 
 const overlaps = (a: Box, b: Box): boolean => a.x < b.x + b.w - 0.5 && b.x < a.x + a.w - 0.5 && a.y < b.y + b.h - 0.5 && b.y < a.y + a.h - 0.5;

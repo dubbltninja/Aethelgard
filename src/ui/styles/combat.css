@@ -29,17 +29,28 @@
   gap: var(--space-3);
   height: 100%;
   min-height: 0;
-  max-width: 92rem;
+  max-width: 120rem;
   margin: 0 auto;
   padding: var(--space-3) var(--gutter);
 }
 
 .combat__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
-  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr) clamp(16rem, 26vw, 30rem);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3) var(--space-4);
   min-height: 0;
   min-width: 0;
+}
+
+/* wide: the stage across the top; the cards (left) and the companion, the log and the menu (right) under it */
+.combat__body > .combat__stagewrap {
+  grid-column: 1 / -1;
+}
+
+.combat__body > .combat__main,
+.combat__body > .combat__side {
+  grid-row: 2;
 }
 
 .combat__main,
@@ -115,7 +126,7 @@
 /* the controls: the player's panel (bars, statuses, Guard · Item · Flee) beside the ability grid */
 .combat__controls {
   display: grid;
-  grid-template-columns: minmax(16rem, 18rem) minmax(0, 1fr);
+  grid-template-columns: clamp(17rem, 18vw, 22rem) minmax(0, 1fr);
   align-items: start;
   gap: var(--space-3);
   min-width: 0;
@@ -143,6 +154,11 @@
 
 .combat[data-layout="phone"] .combat__body {
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.combat[data-layout="phone"] .combat__body > .combat__main {
+  grid-row: 1;
 }
 
 .combat[data-layout="phone"] .combat__main {
@@ -1371,6 +1387,7 @@
   overflow: hidden;
 }
 
+.combat__controls .combat-action > .tile__key,
 .combat__controls .combat-action > .icon {
   display: none;
 }

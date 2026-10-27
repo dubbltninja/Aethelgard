@@ -81,23 +81,30 @@ export interface ExploreViewProps {
   onTake: (uid: string) => void;
   logRef?: RefObject<HTMLOListElement | null>;
   /**
-   * U84a, where the pad goes: `phone` (under 760 px) — in the pinned dock under the thumb, with the actions and the log in the
-   * scroll region; `wide` (the default) — at the foot of the side column, under the map and the log, at a spot that depends
-   * only on the viewport.
+   * U84a, where things go (D-147):
+   *   - `phone` (under 760 px): the pad in the pinned dock under the thumb; the words, who is here, the actions and the log in
+   *     one scroll region;
+   *   - `wide` (760 px up; the default): the place and its actions on the left, the map, the log and the pad (at its foot)
+   *     on the right;
+   *   - `triple` (1200 px up, not short): three columns that use the width — the scene and the words; the map, who is here
+   *     and the log; the actions and, at the foot, the pad.
+   * The pad's spot depends only on the viewport, never on what a place says.
    */
   layout?: ExploreLayout;
 }
 
-export type ExploreLayout = 'phone' | 'wide';
+export type ExploreLayout = 'phone' | 'wide' | 'triple';
 
-/** U84a: the phone layout's media query (the 760 px breakpoint, DESIGN §16.1). */
+/** U84a: the layouts' media queries (the 760 px breakpoint, DESIGN §16.1; three columns once there is room for them). */
 export const EXPLORE_PHONE_QUERY = '(max-width: 759.98px)';
+export const EXPLORE_TRIPLE_QUERY = '(min-width: 1200px) and (min-height: 560px)';
 
 export function ExploreView(p: ExploreViewProps): ReactNode {
   const { place, hud } = p;
   const layout = p.layout ?? 'wide';
   const pad = <MovePad exits={p.exits} onTravel={p.onTravel} onInspect={p.onInspectExit} />;
   const actions = <ActionBar actions={p.actions} onRun={p.onAction} />;
+  const map = p.dockedMap === undefined || p.dockedMap === null ? null : <div className="explore__map">{p.dockedMap}</div>;
   const facts =
     place.facts.length === 0 ? null : (
       <ul className="place__facts" aria-label="About this place">
@@ -121,6 +128,48 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
       </ol>
     </section>
   );
+  const here =
+    p.npcs.length === 0 && p.items.length === 0 ? null : (
+      <section className="here" aria-labelledby="here-heading">
+        <h2 id="here-heading" className="section-heading">
+          Here
+        </h2>
+        <ul className="here__list">
+          {p.npcs.map((npc) => (
+            <li key={npc.id} className="here-chip here-chip--npc">
+              <Portrait npcId={npc.id} size="sm" fallback={<Icon kind="npc" size={18} />} />
+              <span className="here-chip__name">
+                {npc.name}
+                {npc.role === null ? null : <span className="here-chip__role"> · {npc.role}</span>}
+              </span>
+              {npc.canTalk ? (
+                <Button className="here-chip__do" onClick={() => p.onTalk(npc.id)}>
+                  Talk to {npc.name}
+                </Button>
+              ) : null}
+            </li>
+          ))}
+          {p.items.map((item) => (
+            <li key={item.uid} className="here-chip here-chip--item" data-rarity={item.rarity}>
+              <Icon kind="item" size={18} />
+              <span className="here-chip__name">
+                {item.name}
+                {item.qty > 1 ? ` × ${item.qty}` : ''}
+                {item.rarity === 'common' ? null : <span className="here-chip__role"> · {item.rarity}</span>}
+              </span>
+              {item.canTake ? (
+                <Button className="here-chip__do" onClick={() => p.onTake(item.uid)}>
+                  Take {item.name}
+                </Button>
+              ) : (
+                <span className="here-chip__note">Your pack is full</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  const triple = layout === 'triple';
   return (
     <RegionPalette regionId={place.regionId} region={p.region} className="screen screen--explore">
       <section className="explore" data-screen="explore" data-layout={layout} aria-labelledby="place-heading" data-infected={place.infected ? 'true' : undefined}>
@@ -139,7 +188,7 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
         <div className="place__scene" data-toast-anchor="">
           <Scene location={p.location} region={p.region} art={place.art} state={p.scene} reducedMotion={p.reducedMotion} seed={p.seed} backdrop={p.backdrop ?? null} />
         </div>
-        {/* the place's words and who and what is here (on a phone the actions and the log too) scroll here, never the page */}
+        {/* the place's words (and, as the layout has it, who is here, the actions and the log) scroll here, never the page */}
         <div className="explore__body" data-scroll-region="explore">
           {/* (on a phone the place's tags open its words, so the header stays one line) */}
           {layout === 'phone' ? facts : null}
@@ -153,56 +202,30 @@ export function ExploreView(p: ExploreViewProps): ReactNode {
               </ul>
             )}
           </div>
-          {p.npcs.length === 0 && p.items.length === 0 ? null : (
-            <section className="here" aria-labelledby="here-heading">
-              <h2 id="here-heading" className="section-heading">
-                Here
-              </h2>
-              <ul className="here__list">
-                {p.npcs.map((npc) => (
-                  <li key={npc.id} className="here-chip here-chip--npc">
-                    <Portrait npcId={npc.id} size="sm" fallback={<Icon kind="npc" size={18} />} />
-                    <span className="here-chip__name">
-                      {npc.name}
-                      {npc.role === null ? null : <span className="here-chip__role"> · {npc.role}</span>}
-                    </span>
-                    {npc.canTalk ? (
-                      <Button className="here-chip__do" onClick={() => p.onTalk(npc.id)}>
-                        Talk to {npc.name}
-                      </Button>
-                    ) : null}
-                  </li>
-                ))}
-                {p.items.map((item) => (
-                  <li key={item.uid} className="here-chip here-chip--item" data-rarity={item.rarity}>
-                    <Icon kind="item" size={18} />
-                    <span className="here-chip__name">
-                      {item.name}
-                      {item.qty > 1 ? ` × ${item.qty}` : ''}
-                      {item.rarity === 'common' ? null : <span className="here-chip__role"> · {item.rarity}</span>}
-                    </span>
-                    {item.canTake ? (
-                      <Button className="here-chip__do" onClick={() => p.onTake(item.uid)}>
-                        Take {item.name}
-                      </Button>
-                    ) : (
-                      <span className="here-chip__note">Your pack is full</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {actions}
+          {triple ? null : here}
+          {triple ? null : actions}
           {layout === 'phone' ? log : null}
         </div>
-        {layout === 'phone' ? null : (
+        {layout === 'wide' ? (
           <aside className="explore__side" aria-label="Map and log">
-            {p.dockedMap === undefined || p.dockedMap === null ? null : <div className="explore__map">{p.dockedMap}</div>}
+            {map}
             {log}
             <div className="explore__pad">{pad}</div>
           </aside>
-        )}
+        ) : null}
+        {triple ? (
+          <>
+            <aside className="explore__middle" aria-label="Map, who is here, and the log">
+              {map}
+              {here}
+              {log}
+            </aside>
+            <div className="explore__right">
+              <div className="explore__actions">{actions}</div>
+              <div className="explore__pad">{pad}</div>
+            </div>
+          </>
+        ) : null}
       </section>
       {/* on a phone the pad rides in the pinned dock (Shell), under the thumb, as the fight's action bar does */}
       {layout === 'phone' ? (
@@ -235,7 +258,8 @@ export function ExploreScreen(): ReactNode {
   const wide = useMediaQuery(DOCK_MAP_QUERY);
   const phone = useMediaQuery(EXPLORE_PHONE_QUERY);
   const short = useMediaQuery('(max-height: 559.98px)');
-  const layout: ExploreLayout = phone ? 'phone' : 'wide';
+  const triple = useMediaQuery(EXPLORE_TRIPLE_QUERY);
+  const layout: ExploreLayout = phone ? 'phone' : triple ? 'triple' : 'wide';
   const [hudDetail, setHudDetail] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const logRef = useRef<HTMLOListElement>(null);
@@ -353,7 +377,7 @@ export function ExploreScreen(): ReactNode {
         exits={model.exits}
         actions={model.actions}
         log={model.log}
-        dockedMap={wide && !short && shell.activePanel !== 'map' ? <MapPanel docked /> : null}
+        dockedMap={(wide || triple) && !short && shell.activePanel !== 'map' ? <MapPanel docked /> : null}
         layout={layout}
         onTravel={travel}
         onInspectExit={inspectExit}

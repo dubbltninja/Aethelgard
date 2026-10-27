@@ -129,6 +129,7 @@ Usage windows end mid-turn and kill in-flight work. Therefore:
 | U80 | 2,000-run balance batch → `BALANCE.md` — brief `briefs/u80.md` | Sonnet | ✅ 2c30985 (spot-reviewed) — 4,835 runs; 3/20 §19 rows pass; BALANCE.md; D-145 |
 | U81b1 | Fair bots (class-aware casting, Blood price, a real speedrunner, danger, pacifist stalls, quest following, scenario kits) + mid batch (D-145) — brief `briefs/u81b1.md` | Opus | ✅ 1d4e33e (spot-reviewed; resumed after a restart) — 0 soft-locks, 73/73 locations, deaths 1.6–3.8; D-146 |
 | U81b2 | Tune every DESIGN §19 row from BALANCE.md's after-U81b1 numbers — brief `briefs/u81b.md` | Opus | 🔄 running (4404) |
+| U84a | Stable layout: fixed movement pad, combat controls that never jump, phones without page-scrolling (Tim, D-147) — brief `briefs/u84a.md` | Opus | 🔄 running (4407) |
 | U75 | Region ambience, Threshold drone, Tyrant theme — brief `briefs/u75.md` | Sonnet | ✅ 23d0c9c (spot-reviewed) — 14 ambient beds, Threshold drone, Tyrant theme; 4524 tests; JS 520 kB; D-134 |
 | U70 | Onboarding callouts, Breach overlay/infection map layer, toasts, live-region phrasing — **C4 playable** — brief `briefs/u70.md` | Sonnet | ✅ 3394440 (spot-reviewed) — **C4 playable**; 4064 tests; full e2e 109 ✓; bundle 508 kB; D-121 |
 | U61 | Codex II: places, creatures, magic, items, loops + rewrite U51's Echo codex lines | ✦ Fable | ⏳ ready |

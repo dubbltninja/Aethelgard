@@ -2615,3 +2615,23 @@ owning unit (PLAN §9.1).
   - the speedrunner's best route reaches the Apex around Day 15 at L9–10 and loses the Tyrant there;
   - the ranger at the Tyrant (20% at L11, 10% at L13); the elf and the ranger with Brak (0%);
   - damage dominance: Piercing Arrow 47%, Lightning Bolt 42%, Flurry 41%.
+
+### D-147 · Tim's layout findings → U84a (a fixed movement pad, stable combat controls, phones without page-scrolling), 2026-10-26
+- Tim, playing on desktop and phone:
+  - **The movement buttons move between locations.** The exit row reflows, so the directions land in different places.
+    He wants an arrow-key style pad in a fixed position.
+  - **On desktop, combat's Attack and the other buttons jump between moves.**
+  - **On phones you scroll all over the page** to read and look at things; it doesn't feel put together.
+  - **The pinned bottom bar is perfect,** especially in combat.
+- **Ruling → U84a** (Opus, `docs/briefs/u84a.md`; it runs alongside U81b2, which doesn't touch `src/ui`):
+  - a fixed 3×3 compass pad, with every slot always present and fixed slots for up, down, in, out, portal and path; in the
+    phone's pinned dock during explore;
+  - the turn's controls in a fixed region (a dock on desktop too), with banners, callouts and toasts as overlays or in
+    reserved space, and reserved heights for variable text;
+  - phones: one screen per view, with text scrolling inside its own region and the page itself never scrolling in explore
+    or combat;
+  - toasts out of the way.
+  - It also folds in REPORT U79 #1 (toasts cover content), #2 (combat below the fold at 1280×800), #9 (a duplicate `I` key)
+    and D-139's toast notes.
+- **Enforced by `layout.spec.ts`:** button boxes stay put (±1 px) across moves and turns, and the page doesn't scroll on
+  phones. This is part of the planned fix work, pulled forward from U84 because Tim is playing now.

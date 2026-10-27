@@ -155,7 +155,7 @@ describe('main', () => {
 describe('report pieces', () => {
   const pack = fixturePack();
   const opts = parseArgs(['--seeds', '1', '--max-steps', '7', '--max-loops', '2', '--scenario', 'first_fight', '--on-fallen', 'stop', '--max-fallen', '4']);
-  const base = runLoop({ seed: 'r', classId: 'ranger', bot: meleeBot(), maxSteps: 60, stopAt: 'loop_end' }, pack);
+  const base = runLoop({ seed: 'r', classId: 'ranger', bot: meleeBot(), maxSteps: 600, stopAt: 'loop_end' }, pack); // U81b2: 600 (was 60): an idle bot now roams before the clock runs out
 
   test('runPack runs every bot × class × seed and reports each', () => {
     const seen: PackRun[] = [];

@@ -105,7 +105,7 @@ export const TRACE_SPECS: readonly TraceSpec[] = [
   { name: 'real-elf', pack: 'real', bot: 'melee', seed: 'u79:real:elf', classId: 'elf', maxSteps: 400, covers: 'a short Loop 1 as the Elf' },
   { name: 'real-warden', pack: 'real', bot: 'melee', seed: 'u79:real:warden', classId: 'ironclad_warden', maxSteps: 400, covers: 'a short Loop 1 as the Ironclad Warden' },
   { name: 'real-weaver', pack: 'real', bot: 'caster', seed: 'u79:real:weaver', classId: 'shadow_weaver', maxSteps: 400, covers: 'a short Loop 1 as the Shadow Weaver' },
-  { name: 'real-loop2', pack: 'real', bot: 'melee', seed: scenarioSeed('loop2_day1'), classId: 'ranger', scenario: 'loop2_day1', maxSteps: 400, covers: 'Loop 2 from its waking (the loop2_day1 scenario)' },
+  { name: 'real-loop2', pack: 'real', bot: 'melee', seed: scenarioSeed('loop2_day1'), classId: 'ranger', scenario: 'loop2_day1', maxSteps: 300, covers: 'Loop 2 from its waking (the loop2_day1 scenario)' }, // U81b2: 300 (was 400): Loop 2 now ends in a Horde fall before step 400
 ];
 
 /** The state and profile a trace starts from (the runner's own start, so recording and replaying agree). */

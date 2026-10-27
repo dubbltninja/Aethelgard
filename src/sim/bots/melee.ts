@@ -120,6 +120,8 @@ interface Notes {
   lastHere: string | null;
   lastLevel: number;
   lastFightAt: string | null;
+  /** U81b2: idle full rests since `idleRoam` last walked into a place the bot fell at. */
+  idleRests?: number;
 }
 
 function notes(memory: BotMemory): Notes {
@@ -139,6 +141,40 @@ function notes(memory: BotMemory): Notes {
   memory['melee'] = fresh;
   return fresh;
 }
+
+/**
+ * U81b2: a bot with nothing left in reach that has not faced the Apex walks to a neighbour (the wanderers there are its XP) instead
+ * of resting out the loop: a ranger that fell at the Outpost and on the Plateau at L6 rested there for 33 days, and an L11
+ * wizard that fell at the Sanctum for 23, every way on shut by death notes until a level up that resting never brings.
+ * Hurt (< 50 %), it rests.
+ */
+export function idleRoam(
+  s: GameState,
+  legal: readonly Action[],
+  content: ContentPack,
+  profile: Profile,
+  opts: PathOptions,
+  ready: boolean,
+  n: { idleRests?: number },
+): Action | undefined {
+  if (ready || s.mode !== 'explore' || healthFraction(s) < 0.5) return undefined;
+  const all = allOf(legal, 'move').filter((a) => !dangerAt(s, content, profile, a.to, 'pass'));
+  // a neighbour it does not avoid first; after IDLE_RESTS idle rests, one it avoids only for a fall there (the death notes
+  // are what shut it in)
+  const moves = all.filter((a) => opts.avoid?.(a.to) !== true);
+  const fellOnly = (n.idleRests ?? 0) >= IDLE_RESTS ? all.filter((a) => (levelBand(content, a.to)?.min ?? 0) <= s.player.level + MELEE.bandSlack) : [];
+  const pick = moves.length > 0 ? moves : fellOnly;
+  if (pick.length === 0) {
+    n.idleRests = (n.idleRests ?? 0) + 1; // the caller rests
+    return undefined;
+  }
+  if (moves.length === 0) n.idleRests = 0;
+  // a fixed order that still alternates (by the clock)
+  return pick[s.clock.ticks % pick.length];
+}
+
+/** U81b2: idle full rests before `idleRoam` walks back into a place the bot fell at. */
+export const IDLE_RESTS = 2;
 
 /** Reads the events since the last choice: where fights started, and where the player fell (a reload may follow). */
 function digest(n: Notes, events: readonly GameEvent[]): void {
@@ -348,6 +384,10 @@ function explore(s: GameState, legal: readonly Action[], content: ContentPack, p
     if (toApex !== undefined) return toApex;
   }
   const bed = legal.find((a) => a.type === 'rest' && a.kind === 'full') ?? firstOf(legal, 'rest') ?? firstOf(legal, 'wait');
+  // U81b2: nothing left in reach and the Apex not faced (not ready, or its road shut by death notes): roam for the wanderers'
+  // XP instead of resting out the loop
+  const roam = idleRoam(s, legal, content, profile, opts, n.apexFaced === s.meta.runId, n);
+  if (roam !== undefined) return roam;
   if (bed !== undefined) return bed;
   const toBed = bedStep(s, legal, content, profile, opts);
   // U81b1: a step that is not into a place it avoids first (a dead end whose only way out is where it fell walked it back in)

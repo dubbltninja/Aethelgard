@@ -678,7 +678,7 @@ Per class, the profile records `mastered: AbilityId[]` — every ability ever un
 | Region (D-015) | id | Band | Fodder HP range | Fodder ATK range |
 |---|---|---|---|---|
 | Silverwood Ruins | `region_silverwood_ruins` | 1–4 | 24–54 | 4–8 |
-| Mistwood & the Ironclad Reach | `region_mistwood_ironclad_reach` | 2–6 | 40–80 (elite 130) | 8–14 |
+| Mistwood & the Ironclad Reach | `region_mistwood_ironclad_reach` | 2–6 | 40–80 (elite 90: the Golem pair, U81b2/D-140, was 130) | 8–14 |
 | The Drowned Reach | `region_drowned_reach` | 4–8 | 60–95 | 10–15 |
 | The Voidscar | `region_voidscar` | 5–8 | 70–95 | 12–15 |
 | Aether-Kissed Highlands | `region_aether_kissed_highlands` | 6–10 | 72–110 | 13–17 |

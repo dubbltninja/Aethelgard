@@ -359,7 +359,7 @@ describe('melee bot: explore', () => {
     expect(pick(bot, questing, content, profile, memory)).toEqual({ type: 'move', to: LIBRARY }); // the hint
   });
 
-  test('stays out of places above its band and where it fell; passes the time at a bed', () => {
+  test('stays out of places above its band and where it fell; with nothing left, roams (U81b2) or passes the time at a bed', () => {
     const memory: BotMemory = {};
     const visited = (d: GameState): void => {
       d.player.apHalf = 0;
@@ -372,7 +372,11 @@ describe('melee bot: explore', () => {
     const atCamp = makeState({ patch: visited });
     const m2: BotMemory = {};
     pick(bot, atCamp, content, profile, m2); // talk to Ilyra
-    expect(pick(bot, atCamp, content, profile, m2)).toEqual({ type: 'rest', kind: 'full' });
+    // U81b2 (`idleRoam`): not ready for the Apex, it walks to a neighbour for the wanderers' XP instead of resting out the loop
+    expect(pick(bot, atCamp, content, profile, m2)).toEqual({ type: 'move', to: LIBRARY });
+    // hurt, it rests
+    const hurt = edit(atCamp, (d) => (d.player.hp = Math.floor(d.player.hpMax / 3)));
+    expect(pick(bot, hurt, content, profile, m2)).toEqual({ type: 'rest', kind: 'full' });
     // a death at the Library (the fight began there) is remembered across the reload: the unvisited Library is skipped
     const fresh = makeState({ patch: (d) => (d.player.apHalf = 0) });
     const m3: BotMemory = {};

@@ -582,7 +582,9 @@ describe('the creatures vs WORLD §6.3', () => {
   test('stats: HP · ATK · DEF armor/ward · AGI, with SP = ATK; the boss’s HP is 12 × (30 − 5 armor) = 300 (D-067.20)', () => {
     for (const c of parsedCreatures) {
       const w = worldCreature(c.id);
-      expect([c.id, c.stats]).toEqual([c.id, { hp: w.stats.hp, atk: w.stats.atk, sp: w.stats.atk, armor: w.stats.armor, ward: w.stats.ward, agi: w.stats.agi }]);
+      // U81b2 (D-110): the Reach's early fodder and its two elites hit 2 softer than WORLD's rows
+      const softer = ['cr_tide_clerk', 'cr_pale_diver', 'cr_brine_lamprey', 'cr_ledger_choir', 'cr_bell_ringer'].includes(c.id) ? 2 : 0;
+      expect([c.id, c.stats]).toEqual([c.id, { hp: w.stats.hp, atk: w.stats.atk - softer, sp: w.stats.atk - softer, armor: w.stats.armor, ward: w.stats.ward, agi: w.stats.agi }]);
     }
     expect(cr(WARDEN).stats).toEqual({ hp: 300, atk: 20, sp: 20, armor: 5, ward: 4, agi: 5 });
     expect(12 * (30 - cr(WARDEN).stats.armor)).toBe(300);

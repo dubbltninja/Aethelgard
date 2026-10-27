@@ -49,7 +49,7 @@ const tideClerk = {
   materialKin: 'drowned',
   role: 'fodder',
   level: 5,
-  stats: { hp: 70, atk: 12, sp: 12, armor: 2, ward: 2, agi: 5 },
+  stats: { hp: 70, atk: 10, sp: 10, armor: 2, ward: 2, agi: 5 }, // U81b2 (D-110): ATK/SP 12 -> 10
   tags: ['breach_born', 'drowned'],
   resistances: { fire: 'resist' },
   statusImmunities: ['status_poison'],
@@ -109,7 +109,7 @@ const paleDiver = {
   materialKin: 'drowned',
   role: 'fodder',
   level: 6,
-  stats: { hp: 80, atk: 14, sp: 14, armor: 1, ward: 3, agi: 7 },
+  stats: { hp: 80, atk: 12, sp: 12, armor: 1, ward: 3, agi: 7 }, // U81b2 (D-110): ATK/SP 14 -> 12
   tags: ['breach_born', 'drowned'],
   resistances: { fire: 'resist' },
   statusImmunities: ['status_poison'],
@@ -166,7 +166,7 @@ const brineLamprey = {
   materialKin: 'drowned',
   role: 'fodder',
   level: 5,
-  stats: { hp: 56, atk: 12, sp: 12, armor: 0, ward: 1, agi: 9 },
+  stats: { hp: 56, atk: 10, sp: 10, armor: 0, ward: 1, agi: 9 }, // U81b2 (D-110): ATK/SP 12 -> 10
   tags: ['breach_born', 'drowned', 'warden_add'],
   resistances: { fire: 'resist' },
   statusImmunities: ['status_poison'],
@@ -223,7 +223,7 @@ const ledgerChoir = {
   materialKin: 'drowned',
   role: 'elite',
   level: 7,
-  stats: { hp: 180, atk: 15, sp: 15, armor: 2, ward: 4, agi: 4 },
+  stats: { hp: 180, atk: 13, sp: 13, armor: 2, ward: 4, agi: 4 }, // U81b2 (D-110): ATK/SP 15 -> 13
   tags: ['breach_born', 'drowned'],
   resistances: { fire: 'resist' },
   statusImmunities: ['status_poison'],
@@ -284,7 +284,7 @@ const bellRinger = {
   materialKin: 'drowned',
   role: 'elite',
   level: 7,
-  stats: { hp: 180, atk: 15, sp: 15, armor: 4, ward: 2, agi: 3 },
+  stats: { hp: 180, atk: 13, sp: 13, armor: 4, ward: 2, agi: 3 }, // U81b2 (D-110): ATK/SP 15 -> 13
   tags: ['breach_born', 'drowned'],
   resistances: { void: 'weak', fire: 'resist' },
   statusImmunities: ['status_poison'],

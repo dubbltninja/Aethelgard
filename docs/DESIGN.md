@@ -679,7 +679,7 @@ Per class, the profile records `mastered: AbilityId[]` — every ability ever un
 |---|---|---|---|---|
 | Silverwood Ruins | `region_silverwood_ruins` | 1–4 | 24–54 | 4–8 |
 | Mistwood & the Ironclad Reach | `region_mistwood_ironclad_reach` | 2–6 | 40–80 (elite 90: the Golem pair, U81b2/D-140, was 130) | 8–14 |
-| The Drowned Reach | `region_drowned_reach` | 4–8 | 60–95 | 10–15 |
+| The Drowned Reach | `region_drowned_reach` | 4–8 | 60–95 | 10–15 (U81b2, D-110: the early fodder and the two elites sit at 10–13) |
 | The Voidscar | `region_voidscar` | 5–8 | 70–95 | 12–15 |
 | Aether-Kissed Highlands | `region_aether_kissed_highlands` | 6–10 | 72–110 | 13–17 |
 | The Ashen Steppe | `region_ashen_steppe` | 7–11 | 85–120 | 14–19 |

@@ -13,9 +13,12 @@ their own arcs, 12 regions and 73 places, turn-based fights with telegraphed int
 codex, and six endings plus the two loop closers. Everything runs client-side, with no server and no account. Your saves
 stay in your browser.
 
-<!-- U91 part 2: SCREENSHOTS. Regenerate docs/screenshots/{desktop,mobile}/*.webp from the current build (the @screens spec)
-     and put 3–4 of them here (suggested: explore, a fight, dialogue, a phone view). -->
-> **Screenshots:** *to be added after the final build (U91 part 2).*
+| | |
+|---|---|
+| ![Exploring the Whispering Ruins: the painted scene, the map, the actions and the compass pad](docs/screenshots/desktop/03-explore-whispering-ruins.webp) | ![A boss fight: the Bell-Warden's second phase, its intent, and the ability bar](docs/screenshots/desktop/06-boss-fight.webp) |
+| ![Dialogue with Ilyra, the first companion](docs/screenshots/desktop/07-dialogue.webp) | ![The first fight on a phone: the Shade's intent and the pinned action bar](docs/screenshots/mobile/05-first-fight.webp) |
+
+More views (title, class select, the codex, the Threshold, an ending) are in [`docs/screenshots/`](docs/screenshots/).
 
 ## Play
 
@@ -41,7 +44,7 @@ Everything works by mouse or touch. Press **?** in the game for the full key lis
 | Anywhere | **?** all keys · **Ctrl+S** save to the autosave slot · **Ctrl+L** saves · **Ctrl+M** mute · **Esc** close / back |
 | Panels | **I** inventory · **K** abilities · **Q** journal · **C** codex · **B** bestiary · **M** map · **L** loop timeline (in a fight, hold **Shift**) |
 | Exploring | **Arrow keys** move around the compass pad, **Enter** travels · **1–9** the place's actions · **E** take everything · **R** short rest · **Shift+R** full rest · **W A S D** move on the map when it has focus |
-| Combat | **1** attack · **2–9** abilities in the order shown · **G** guard · **F** flee · **I** use an item · **C** command your companion · **← / →** change target |
+| Combat | **1** attack · **2–9** abilities in the order shown · **G** guard · **F** flee · **I** use an item · **C** command your companion · **B** Blood price (Shadow Weaver) · **← / →** change target |
 | Dialogue | **1–9** pick an answer · **↑ / ↓** move between answers · **Enter** or **Space** continue |
 
 ## Develop
@@ -108,13 +111,14 @@ release.
 
 - **Some places hit harder than their level band says.** The Drowned Reach (levels 4–8) and the Aether-Kissed Highlands
   (5–8) are deadlier for their band than the Ashen Steppe next door (8 violations of the "difficulty rises steadily" target;
-  D-151). The game warns you before you walk somewhere above your level, so come back later if a road looks dangerous.
-  <!-- U91 part 2: confirm the wording against U84's danger cue ("Dangerous (L8+)" / "Deadly (L12+)"). -->
+  D-151). The compass pad and the map warn you in words: a road whose band starts 2–3 levels above you reads
+  "Dangerous (L8+)", and 4 or more reads "Deadly (L12+)". Come back later if a road looks dangerous.
 - **Gold piles up.** A thorough Loop 1 ends with about 900 gold and not much left to buy. Gold resets at the Threshold, so it
   costs nothing in later loops. A gold sink is on the list below.
-- **Fights against the Contained Tyrant vary in length by class.** At level 11 a Wizard takes about 10 rounds, while an Elf or
-  an Ironclad Warden takes about 25. Fights against the Unveiled Tyrant run about 21 rounds. The samples for the Unveiled
-  Tyrant and the regional bosses are small (D-149 #6).
+- **Fights against the Contained Tyrant vary in length by class.** At level 13 a Wizard takes 7–10 rounds, and an Elf
+  20–30. That comes from class damage, not a slow tail: making the last 15 % go faster saved about one round, so it was
+  reverted (D-152). Late in Phase 3, the Tyrant's *Remember* rewinds about 46 HP, which can feel like lost progress.
+  Fights against the Unveiled Tyrant run about 21 rounds, and the boss samples are small.
 - **Casters die more on the way in.** In the batch, 47 % of the caster bot's Loop 1s were death-free inside the level band,
   against a 55 % target (a small sample; D-151).
 - **One loop can't show you everything.** A full sweep of Loop 1 is about 124 trips, against a 30-day clock. That's
@@ -127,10 +131,16 @@ release.
   only in part (D-140).
 - The 1,000-run release batch replaced the planned 2,000, and the three fun reviews became one fun pass (D-150).
 
-<!-- U91 part 2: KNOWN ISSUES FROM U84. Add the fun pass's unfixed findings (REPORT.md, "U84 fun pass") and the status of
-     REPORT U79's open findings (#3–#6, #8, #10–#13) and D-148's layout leftovers once U84 merges. Remove any item above
-     that U84 fixed (e.g. Blood price usage). -->
-> **From the final fun pass:** *to be added once U84 merges (U91 part 2).*
+From the final fun pass (REPORT.md, "U84 fun pass"; D-152):
+
+- **The first fight opens under a pile of toasts.** Four queued notices ("Achievement: First Steps" and more) sit over the
+  stage as the Shade appears. On desktop, the first-fight hint also covers the combat log's only line.
+- **The class ability point is easy to miss.** A new character can walk into the first fight without a class ability if
+  the "ability point to spend" notice went unheeded. Open Abilities (**K**) before the Corridor.
+- **The Blood price isn't measured yet.** A Shadow Weaver can now pay any cost in HP for a cast that is 25 % stronger (the
+  toggle, or **B**). The bots don't use the toggle, so how often players will choose it is unmeasured (D-152).
+- **Developer scenarios only:** a `?scenario=pre_tyrant_*` run's summary says "The Heartstone: Intact" even though the
+  scenario took the Destroy path (REPORT U79 #10). Real runs are not affected.
 
 ## What's next
 

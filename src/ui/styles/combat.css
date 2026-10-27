@@ -106,7 +106,7 @@
 }
 
 .combat[data-layout="wide"] .combat-stage {
-  height: clamp(170px, 26vh, 300px);
+  height: clamp(170px, 28vh, 380px);
 }
 
 /* the log fills the side column and scrolls inside it */

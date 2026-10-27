@@ -308,14 +308,16 @@ describe('policy helpers', () => {
     expect(n.fellAt['loc_b']).toBe(3);
   });
 
-  test('shunned: a place where the player fell at this level, or that keeps bouncing it', () => {
-    const s = makeState({ level: 2 });
+  test('shunned: a place where the player fell less than two levels ago (U82), or that keeps bouncing it', () => {
+    const s = makeState({ level: 3 });
     const env = envOf(s);
-    env.n.fellAt['loc_a'] = 2;
+    env.n.fellAt['loc_a'] = 3;
     env.n.bounces[`${s.meta.runId}|loc_c`] = 4;
     expect(shunned(env, 'loc_a')).toBe(true);
     expect(shunned(env, 'loc_c')).toBe(true);
     expect(shunned(env, 'loc_b')).toBe(false);
+    env.n.fellAt['loc_a'] = 2; // one level since: still shunned (FALLEN_LEVELS = 2)
+    expect(shunned(env, 'loc_a')).toBe(true);
     env.n.fellAt['loc_a'] = 1;
     expect(shunned(env, 'loc_a')).toBe(false);
   });

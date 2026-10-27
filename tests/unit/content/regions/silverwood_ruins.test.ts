@@ -131,6 +131,8 @@ describe('the seven locations vs WORLD §3.1 blocks', () => {
           all: [{ location: 'loc_sunken_archives' }, { quest: { id: 'q_lost_scroll', status: 'active' } }, { not: { item: { id: 'item_scholars_lost_scroll' } } }],
         });
       }
+      // U82: Tamsin's Sworn gift (WORLD §9 "Sworn: item_archivists_circlet (gift, once per loop)") had no source; it lies at her stall
+      if (l.id === 'loc_silverwood_plaza') expected.add('item_archivists_circlet');
       expect([l.id, [...placed].sort()]).toEqual([l.id, [...expected].sort()]);
     }
     // the Amulet lies here on Day 1 of Loop 1 only (D-047); from Loop 2 it is a start item

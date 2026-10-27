@@ -183,7 +183,11 @@ export const locations = [
       // WORLD §11.3 `gate_herd_grave` (hearthring → herd_grave only): "the clan does not let strangers wake the Herd"
       { dir: 'south', to: 'loc_herd_grave', when: GRAVE_OPEN, lockedText: GRAVE_LOCKED },
     ],
-    items: [{ itemId: 'item_hearth_broth', count: 2 }],
+    items: [
+      { itemId: 'item_hearth_broth', count: 2 },
+      // U82 (WORLD §7, §9 Tessaly "Sworn: item_oathplate (gift, once per loop)"): authored with no source until now
+      { itemId: 'item_oathplate', when: { rep: { faction: 'ironclad', min: 60 } } },
+    ],
     // "none (settlement)"
     safe: true,
     npcs: ['npc_hadda_ironvow', 'npc_oma_varr', 'npc_tessaly_varr', 'npc_ketch'],

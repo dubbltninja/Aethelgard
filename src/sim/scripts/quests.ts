@@ -2189,7 +2189,7 @@ export const TRAINED_REST_BELOW = 0.75;
 /** With no bed here, drink the best healing draught carried under this share. */
 export const TRAINED_DRINK_BELOW = 0.5;
 /** `melee`'s trade rows, except that nothing is ever sold (a quest's materials — the Void Shards — stay in the pack). */
-export const TRAINED_TRADE: TradeCfg = { ...MELEE_TRADE, sellBelowGold: 0 };
+export const TRAINED_TRADE: TradeCfg = { ...MELEE_TRADE, sellBelowGold: 0, shop: false }; // U82: the proofs keep U81's shopping (no gear, no forge work)
 /** U81a (D-123): while the anchor is to be forged (`q_the_mending`, `q_iron_silence` active), no upgrade spends its ember ore. */
 const ANCHOR_QUESTS: readonly string[] = ['q_the_mending', 'q_iron_silence'];
 const tradeFor = (s: GameState): TradeCfg => (ANCHOR_QUESTS.some((q) => s.quests[q]?.status === 'active') ? { ...TRAINED_TRADE, upgrade: false } : TRAINED_TRADE);

@@ -15,6 +15,9 @@
 //               would. `onFallen: 'stop'` ends the run there instead; `maxFallen` caps the reloads per run;
 //   autosave    after a step that emits `autosaveCheckpoint`, where `canAutosave` allows it and the profile's
 //               `settings.autosave` is on, the shell keeps `serialize(state)` as the autosave slot.
+//   hand save   U82 (D-149 #1): at a checkpoint or a full rest that finds the player at ≥ 90 % HP the shell also keeps a
+//               save "by hand" (DESIGN §14.2's three manual slots); when the same autosave has ended in REPLAY_LIMIT FALLEN screens, the next
+//               reload takes that save instead, as a player stuck in a dead end at a few HP goes back to the last safe bed.
 // Run seeds: the run's `seed` is Loop 1's seed (`newGame`), and a fresh profile's id, so Loop 2+ seeds
 // (`${profileId}:${loop}`, PLAN §4.11) follow it too. The bot's seed is `${seed}:bot:${name}`.
 import {
@@ -90,6 +93,9 @@ export interface RunConfig {
 export interface FightRecord {
   encounterId: string;
   regionId: string;
+  /** U82: where the fight began and in which loop (DESIGN §19 #3/#9 inside the location's band, D-149). Absent in older batches. */
+  locationId?: string;
+  loop?: number;
   playerLevel: number;
   rounds: number;
   result: 'victory' | 'defeat' | 'fled';
@@ -219,6 +225,10 @@ export const DEFAULT_MAX_LOOPS = 3;
 export const DEFAULT_MAX_FALLEN = 25;
 export const DEFAULT_VALIDATE_EVERY = 50;
 export const LAST_ACTIONS = 20;
+/** U82: FALLEN screens on one autosave before the shell reloads the last hand save instead. */
+export const REPLAY_LIMIT = 2;
+/** U82: a full rest that leaves the player at this share of max HP or more is where the shell saves by hand. */
+export const HAND_SAVE_HP = 0.9;
 /** The name the shell gives the Wayfinder (the title's default). */
 export const SIM_PLAYER_NAME = 'Wayfinder';
 
@@ -345,6 +355,8 @@ export class Recorder {
     this.open = {
       encounterId,
       regionId: this.content.locations[at]?.regionId ?? '',
+      locationId: at,
+      loop: next.meta.loop,
       playerLevel: prev.player.level,
       taken: 0,
       dealt: 0,
@@ -513,6 +525,9 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
   let { state: s, profile } = startRun(cfg, classId, content);
 
   let autosave: SaveFile | null = canAutosave(s) ? serialize(s, profile, content, 'sim') : null;
+  /** U82: the last save "by hand" (after a full rest at a bed), and FALLEN screens since the autosave last changed. */
+  let handSave: SaveFile | null = null;
+  let fallsOnAutosave = 0;
   let steps = 0;
   let rejected = 0;
   let fallen = 0;
@@ -584,8 +599,14 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
     profile = out.profile;
     rec.observe(prev, s, out.events, action, steps);
 
-    if (out.events.some((e) => e.t === 'autosaveCheckpoint') && canAutosave(s) && profile.settings.autosave) {
+    const checkpoint = out.events.some((e) => e.t === 'autosaveCheckpoint') && canAutosave(s);
+    if (checkpoint && profile.settings.autosave) {
       autosave = serialize(s, profile, content, 'sim');
+      fallsOnAutosave = 0;
+    }
+    // U82: a player saves by hand where it stands healthy (a checkpoint or a full rest at ≥ 90 % HP)
+    if ((checkpoint || (action.type === 'rest' && action.kind === 'full' && canAutosave(s))) && s.player.hp >= HAND_SAVE_HP * s.player.hpMax) {
+      handSave = autosave !== null && checkpoint && profile.settings.autosave ? autosave : serialize(s, profile, content, 'sim');
     }
     if (validateEvery > 0 && steps % validateEvery === 0) {
       const parsed = GameStateSchema.safeParse(s);
@@ -632,6 +653,11 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
   /** The title screen: reload the autosave if there is one (after a FALLEN screen), else a new game. */
   const shellTitle = (): boolean => {
     if (autosave !== null && fallen > 0) {
+      // U82: the same autosave keeps ending on the FALLEN screen: back to the last safe bed instead
+      if (fallsOnAutosave >= REPLAY_LIMIT && handSave !== null && handSave !== autosave) {
+        autosave = handSave;
+        fallsOnAutosave = 0;
+      }
       const save = autosave;
       autosave = null; // a refused load falls back to a new game on the next pass
       const ok = play({ type: 'load', save }, false);
@@ -649,6 +675,7 @@ export function runLoop(cfg: RunConfig, content: ContentPack): RunResult {
     }
     if (isFallenScreen(s)) {
       fallen += 1;
+      fallsOnAutosave += 1;
       if (onFallen === 'stop' || fallen > maxFallen) {
         stopReason = 'fallen';
         break;

@@ -430,7 +430,10 @@ describe('melee bot: explore', () => {
     const buy = pick(bot, flush);
     expect(buy).toMatchObject({ type: 'buy', merchantId: 'npc_tamsin_reed' });
     expect(itemOf(flush, (buy as Extract<Action, { type: 'buy' }>).uid)?.itemId).toBe(TONIC); // 25 HP beats glow moss's 20
-    expect(pick(bot, arrive(100, [TONIC]))).not.toMatchObject({ type: 'buy' }); // three carried already
+    // three carried already: no more healing (U82: the gold may go on gear or mana instead, shopping.ts)
+    const stocked = arrive(100, [TONIC]);
+    const next = pick(bot, stocked);
+    expect(next.type === 'buy' ? healAmount(content, itemOf(stocked, next.uid)?.itemId ?? '') : 0).toBe(0);
     const poor = arrive(0, ['mat_shadow_ash', 'item_rusty_dagger']);
     const sell = pick(bot, poor);
     expect(sell).toMatchObject({ type: 'sell' });

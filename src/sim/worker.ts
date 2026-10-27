@@ -16,6 +16,7 @@ import type { BatchRun, Suite } from './metrics';
 import { resolveClass, runLoop, startRun, type RunConfig, type RunResult, type StopAt } from './runner';
 import { ScenarioDefeat, ScenarioUnavailable, type ScenarioId } from './scenarios';
 import { runEndingScript } from './scripts/run';
+import { QUEST_SCRIPTS, runQuestScript } from './scripts/quests';
 import type { EndingScript } from './scripts/types';
 
 export interface ScriptRef {
@@ -41,6 +42,8 @@ export interface Job {
   scenario?: ScenarioId;
   companionId?: string;
   script?: ScriptRef;
+  /** U82: a quest proof, by its index in scripts/quests.ts `QUEST_SCRIPTS` (suite 'script', bot 'pathBot'). */
+  quest?: { index: number };
   /** Re-run with recording and replay through `step`; compare the final state hashes (PLAN §7.4). */
   verify: boolean;
 }
@@ -139,6 +142,12 @@ export async function runJob(job: Job, cache: PackCache): Promise<JobOutcome> {
       const label = `${script.endingId}${script.name === undefined ? '' : `:${script.name}`}#${job.script.index}`;
       return { id: job.id, kind: 'run', result: proof.result, proof: { label, reached: proof.reached, detail: proof.detail } };
     }
+    if (job.quest !== undefined) {
+      const script = QUEST_SCRIPTS[job.quest.index];
+      if (script === undefined) return { id: job.id, kind: 'failed', message: `no quest proof #${job.quest.index}` };
+      const proof = runQuestScript(script, content);
+      return { id: job.id, kind: 'run', result: proof.result, proof: { label: `quest:${script.questId}:${script.outcome}#${job.quest.index}`, reached: proof.completed, detail: proof.detail } };
+    }
     const result = runLoop(configOf(job, false), content);
     if (!job.verify && !isBlocker(result)) return { id: job.id, kind: 'run', result };
     // a failure keeps its trace (replaying it is deterministic by construction); a sampled run is replayed to prove that
@@ -156,6 +165,7 @@ export async function runJob(job: Job, cache: PackCache): Promise<JobOutcome> {
 
 /** The repro command of a job (`npm run sim:replay -- …`; companion scenarios and scripts have no CLI form, so they say so). */
 export function reproOf(job: Job): string {
+  if (job.quest !== undefined) return `npm run sim -- quest ${QUEST_SCRIPTS[job.quest.index]?.questId ?? '?'} --verbose (proof #${job.quest.index})`;
   if (job.script !== undefined) return `runEndingScript(${job.script.module}#${job.script.export}[${job.script.index}]) on --pack ${job.pack}`;
   const parts = ['npm run sim:replay --', `--pack ${job.pack}`, `--bot ${job.bot}`, `--class ${job.classId}`, `--seed ${job.seed}`, `--stop-at ${job.stopAt}`, `--max-steps ${job.maxSteps}`, `--max-loops ${job.maxLoops}`];
   if (job.scenario !== undefined) parts.push(`--scenario ${job.scenario}`);

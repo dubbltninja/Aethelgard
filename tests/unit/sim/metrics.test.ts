@@ -110,17 +110,25 @@ describe('row 2: no ability dominates its class', () => {
 
 describe('row 3: difficulty is monotone across the bands', () => {
   const fights = (regionId: string, n: number, rounds: number, defeats = 0): ReturnType<typeof blankFight>[] =>
-    Array.from({ length: n }, (_, i) => blankFight({ regionId, rounds, result: i < defeats ? 'defeat' : 'victory' }));
+    // U82: row 3 is measured inside the band (D-149): the player stands at a level the region's band holds
+    Array.from({ length: n }, (_, i) => blankFight({ regionId, rounds, result: i < defeats ? 'defeat' : 'victory', playerLevel: story.regions[regionId]?.levelBand.min ?? 3 }));
   const run = (...groups: ReturnType<typeof blankFight>[][]): BatchRun[] => [batchRun(blankResult({ fights: groups.flat() }))];
 
   test('n/a with fewer than two bands that have enough fights', () => {
-    expect(row(compute(run(fights('region_silverwood_ruins', 9, 4))), 3).detail).toBe('n/a — needs fights in at least 2 level bands (5+ each; found 1)');
+    expect(row(compute(run(fights('region_silverwood_ruins', 9, 4))), 3).detail).toBe('n/a — needs in-band fights in at least 2 level bands (5+ each; found 1)');
     expect(row(compute(run(fights('region_silverwood_ruins', 9, 4), fights('region_glowlands_nexus', 2, 9))), 3).status).toBe('n/a');
     expect(row(compute(run([blankFight({ regionId: 'region_nowhere' })])), 3).status).toBe('n/a');
   });
   test('non-decreasing rounds and death rate pass', () => {
     const m = compute(run(fights('region_silverwood_ruins', 6, 4, 0), fights('region_mistwood_ironclad_reach', 6, 5, 1), fights('region_glowlands_nexus', 6, 9, 2)));
-    expect(row(m, 3)).toMatchObject({ status: 'pass', valueText: '0 violation(s)' });
+    expect(row(m, 3)).toMatchObject({ status: 'pass', valueText: '0 violation(s) in band' });
+  });
+  test('U82: fights outside the place\'s band do not count (a dip there is a band-entry death, D-149)', () => {
+    const under = (n: number, rounds: number, defeats: number): ReturnType<typeof blankFight>[] =>
+      Array.from({ length: n }, (_, i) => blankFight({ regionId: 'region_glowlands_nexus', rounds, result: i < defeats ? 'defeat' : 'victory', playerLevel: 3 }));
+    const m = compute(run(fights('region_silverwood_ruins', 6, 4, 0), fights('region_mistwood_ironclad_reach', 6, 5, 1), fights('region_glowlands_nexus', 6, 9, 2), under(12, 2, 0)));
+    expect(row(m, 3)).toMatchObject({ status: 'pass' });
+    expect(row(m, 3).detail).toContain('all fights: 2 violation(s)');
   });
   test('a dip in either is a violation', () => {
     const m = compute(run(fights('region_silverwood_ruins', 6, 6, 3), fights('region_glowlands_nexus', 6, 5, 0)));
@@ -179,6 +187,14 @@ describe('rows 5 and 6 and the coverage gate G4', () => {
     expect(row(m, 'G4')).toMatchObject({ status: 'fail' });
     expect(row(m, 'G4').detail).toContain('FAIL quests completed 1/7');
   });
+  test('U82: a by-design gap (reachability.ts BY_DESIGN) leaves the denominator while unreached, and is named', () => {
+    const leech = { ...(story.creatures[SHADE] as (typeof story.creatures)[string]), id: 'cr_hour_leech' as const };
+    const pack = { ...story, creatures: { ...story.creatures, cr_hour_leech: leech } };
+    const m = compute([batchRun(everything)], pack);
+    expect(row(m, 'G4').detail).toContain(`creatures killed ${idsOf(story.creatures).length}/${idsOf(story.creatures).length} (100%, ≥ 95%; by design: cr_hour_leech)`);
+    const killed = compute([batchRun({ ...everything, creaturesKilled: { ...everything.creaturesKilled, cr_hour_leech: 1 } })], pack);
+    expect(row(killed, 'G4').detail).toContain(`creatures killed ${idsOf(pack.creatures).length}/${idsOf(pack.creatures).length} (100%`);
+  });
   test('row 6 needs explorer runs; an empty pack has nothing to cover', () => {
     expect(row(compute([batchRun(blankResult({ bot: 'melee', locationsVisited: ids(story.locations) }))]), 6)).toMatchObject({ status: 'n/a', detail: 'n/a — needs explorer runs' });
     const empty = compute([batchRun(blankResult({ bot: 'explorer' }))], { ...story, quests: {}, locations: {} });
@@ -198,7 +214,10 @@ describe('rows 7 and G3: soft-locks', () => {
 });
 
 describe('row 8: fight length by band', () => {
-  const won = (enemies: string[], rounds: number, over: Partial<ReturnType<typeof blankFight>> = {}): ReturnType<typeof blankFight> => blankFight({ enemies, rounds, boss: enemies.some((e) => e === BELL || e === CONTAINED_TYRANT || e === UNVEILED_TYRANT), ...over });
+  // U82: fodder, elite and boss lengths are measured at level parity (D-149): the player stands at the strongest foe's level
+  const level = (enemies: string[]): number => Math.max(1, ...enemies.map((e) => story.creatures[e]?.level ?? 1));
+  const won = (enemies: string[], rounds: number, over: Partial<ReturnType<typeof blankFight>> = {}): ReturnType<typeof blankFight> =>
+    blankFight({ enemies, rounds, playerLevel: level(enemies), boss: enemies.some((e) => e === BELL || e === CONTAINED_TYRANT || e === UNVEILED_TYRANT), ...over });
   const fights = (...fs: ReturnType<typeof blankFight>[]): BatchRun[] => [batchRun(blankResult({ fights: fs }))];
 
   test('n/a without a finished fight; defeats, fled fights, communion and anomalies are not measured', () => {
@@ -212,13 +231,19 @@ describe('row 8: fight length by band', () => {
   test('a band out of range fails and the others are still reported; scenario fights count', () => {
     const m = compute([batchRun(blankResult({ fights: [won([SHADE], 9), won([SHADE, SHADE], 6)] })), batchRun(blankResult({ fights: [won([CONTAINED_TYRANT], 25)] }), { suite: 'scenario', scenario: 'pre_tyrant_l11_ranger' })]);
     expect(row(m, 8)).toMatchObject({ status: 'fail', value: 2 });
-    expect(row(m, 8).detail).toContain('FAIL fodder single 9 (3–5, n=1)');
+    expect(row(m, 8).detail).toContain('FAIL fodder single 9 (3–5, n=1');
     expect(row(m, 8).detail).toContain('FAIL Contained Tyrant 25');
+  });
+  test('U82: a fodder fight far over the foe is not at parity and does not count (DESIGN §6.6)', () => {
+    const m = compute(fights(won([SHADE], 4), won([SHADE], 1, { playerLevel: 9 }), won([SHADE], 1, { playerLevel: 9 })));
+    expect(row(m, 8).detail).toContain('fodder single 4 (3–5, n=1; every win 1, n=3)');
   });
 });
 
 describe('row 9: Loop 1 deaths by bot', () => {
-  const bot = (name: string, deaths: number[]): BatchRun[] => deaths.map((d, i) => batchRun(blankResult({ bot: name, seed: `s:${i}`, loops: [blankLoop({ deaths: d })] })));
+  // U82: each death is a Loop 1 defeat in a fight inside the place's band (row 9 counts those for melee, caster, explorer)
+  const bot = (name: string, deaths: number[]): BatchRun[] =>
+    deaths.map((d, i) => batchRun(blankResult({ bot: name, seed: `s:${i}`, loops: [blankLoop({ deaths: d })], fights: Array.from({ length: d }, () => blankFight({ loop: 1, result: 'defeat' })) })));
   test('n/a with no runs', () => {
     expect(row(compute([]), 9).status).toBe('n/a');
   });
@@ -232,6 +257,12 @@ describe('row 9: Loop 1 deaths by bot', () => {
     expect(row(m, 9).detail).toContain('FAIL melee mean 1.33, 33% zero-death');
     expect(row(m, 9).detail).toContain('FAIL explorer mean 3.00');
     expect(row(m, 9).detail).toContain('FAIL random mean 1.00');
+  });
+  test('U82: a death in a place above the player\'s band does not count for melee (every death is in the detail)', () => {
+    const out = blankFight({ loop: 1, result: 'defeat', regionId: 'region_glowlands_nexus', playerLevel: 3 });
+    const m = compute([batchRun(blankResult({ bot: 'melee', loops: [blankLoop({ deaths: 2 })], fights: [out, out] })), ...bot('caster', [0]), ...bot('explorer', [0]), ...bot('random', [3])]);
+    expect(row(m, 9).status).toBe('pass');
+    expect(row(m, 9).detail).toContain('melee mean 0.00, 100% zero-death (every death: 2.00, 0%)');
   });
   test('a run whose Loop 1 never ended counts all its deaths; deaths of a loop that did not start at 1 count none', () => {
     const m = compute([batchRun(blankResult({ bot: 'random', deaths: 4 })), batchRun(blankResult({ bot: 'random', deaths: 9, loops: [blankLoop({ loop: 2, deaths: 9 })] }))]);

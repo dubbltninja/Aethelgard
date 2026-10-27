@@ -21,6 +21,8 @@
 //                               src/sim/scripts/endings for `real` once it exists)
 //   --scenario-seeds <n>        seeds per scenario cell (default min(seeds, 10); 0 = no scenario sims)
 //   --determinism <n>           runs re-run and replayed (default 200; 0 = off)
+//   --quest-proofs on|off       U82: also play every quest proof of scripts/quests.ts (PLAN §7.8) as a script job, so the
+//                               coverage is the union of the runs and the proofs (default on for `real`, never on a fixture)
 //   --out <file>                the BALANCE.md to write (default docs/BALANCE.md)      --json <file>   the raw batch (no traces)
 //   --merge <json,json,…>       no play: combine `--json` batches (same pack and content) into one report, for a release batch
 //                               too long for one shell timeout; seeds, runs, determinism samples and durations are summed
@@ -38,6 +40,7 @@ import { UsageError, classesFor, expandPacks, loadPack } from './cli';
 import { computeMetrics, isBlockerRun, SCENARIO_COMMUNION, SCENARIO_PRE_TYRANT, type BatchRun, type DeterminismSummary, type Metrics, type Suite } from './metrics';
 import { renderBalance } from './report';
 import { resolveClass, runLoop, startRun } from './runner';
+import { QUEST_SCRIPTS } from './scripts/quests';
 import { batchRunOf, loadEndingScripts, PackCache, reproOf, runJob, type Job, type JobOutcome } from './worker';
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
@@ -60,6 +63,8 @@ export interface BatchConfig {
   scripts?: string[];
   scenarioSeeds?: number;
   determinism?: number;
+  /** U82: play the quest proofs of scripts/quests.ts on the `real` pack (default true). */
+  questProofs?: boolean;
   json?: string;
   /** `--json` files to combine instead of playing. */
   merge?: string[];
@@ -72,6 +77,8 @@ export const DEFAULT_SCENARIO_SEEDS = 10;
 /** Step caps of the scenario sims (a Tyrant fight plus the walk to the portal; the communion to its ending). */
 export const SCENARIO_MAX_STEPS = 2500;
 export const DEFAULT_OUT = 'docs/BALANCE.md';
+/** U82: a quest proof's step cap when its script names none (scripts/quests.ts `runQuestScript`). */
+export const DEFAULT_QUEST_PROOF_STEPS = 6000;
 
 /** A configuration with every default filled in. */
 export interface ResolvedConfig {
@@ -86,6 +93,8 @@ export interface ResolvedConfig {
   scripts: string[] | null;
   scenarioSeeds: number;
   determinism: number;
+  /** U82: the quest proofs run on the `real` pack. */
+  questProofs: boolean;
   out: string;
   json: string | undefined;
 }
@@ -154,6 +163,7 @@ export function resolveConfig(cfg: BatchConfig): ResolvedConfig {
     scripts: cfg.scripts ?? null,
     scenarioSeeds: Math.min(seeds.length, cfg.scenarioSeeds ?? DEFAULT_SCENARIO_SEEDS),
     determinism: cfg.determinism ?? DEFAULT_DETERMINISM,
+    questProofs: cfg.questProofs ?? true,
     out: cfg.out ?? DEFAULT_OUT,
     json: cfg.json,
   };
@@ -225,6 +235,13 @@ export async function jobsOf(spec: string, content: ContentPack, cfg: ResolvedCo
       jobs.push({ ...base, suite: 'script', seed: script.seed, classId: script.classId, bot: 'pathBot', stopAt: 'ending', maxSteps: cfg.maxSteps, script: { module: source.module, export: source.export, index } });
     });
   }
+  // U82: the quest proofs (PLAN §7.8: "the union of batch + scripts completes 100 %") are part of the batch, so the coverage
+  // rows read the same union the quest-proof test asserts
+  if (cfg.questProofs && spec === 'real') {
+    QUEST_SCRIPTS.forEach((script, index) => {
+      jobs.push({ ...base, suite: 'script', seed: script.seed, classId: script.classId, bot: 'pathBot', stopAt: 'max_steps', maxSteps: script.maxSteps ?? DEFAULT_QUEST_PROOF_STEPS, quest: { index } });
+    });
+  }
   return jobs;
 }
 
@@ -283,7 +300,7 @@ function gitSha(): string {
   }
 }
 
-const describe = (j: Job): string => [j.bot, j.classId, j.seed, j.scenario, j.companionId === undefined ? undefined : `+${j.companionId}`, j.script === undefined ? undefined : `script#${j.script.index}`].filter((x) => x !== undefined).join(' ');
+const describe = (j: Job): string => [j.bot, j.classId, j.seed, j.scenario, j.companionId === undefined ? undefined : `+${j.companionId}`, j.script === undefined ? undefined : `script#${j.script.index}`, j.quest === undefined ? undefined : `quest#${j.quest.index}`].filter((x) => x !== undefined).join(' ');
 
 export interface RunBatchHooks {
   /** Called as jobs finish. */
@@ -517,6 +534,10 @@ export function parseBatchArgs(argv: readonly string[]): BatchArgs {
         break;
       case '--merge':
         config.merge = list(value);
+        break;
+      case '--quest-proofs':
+        if (value !== 'on' && value !== 'off') throw new UsageError('--quest-proofs is on or off');
+        config.questProofs = value === 'on';
         break;
       default:
         throw new UsageError(`unknown option ${flag}`);

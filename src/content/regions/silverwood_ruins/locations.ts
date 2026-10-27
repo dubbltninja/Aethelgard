@@ -287,7 +287,11 @@ export const locations = [
     ],
     // WORLD: Loop 2+, 10 % per first visit. D-098 (U34d): the item's own `chance`, rolled at the loop's first entry (was
     // hidden at 100 % from Loop 2, D-091 gap 1).
-    items: [{ itemId: 'item_bell_shard', chance: 0.1, when: { loop: { min: 2 } } }],
+    items: [
+      { itemId: 'item_bell_shard', chance: 0.1, when: { loop: { min: 2 } } },
+      // U82 (WORLD §7, §9 Tamsin "Sworn: item_archivists_circlet (gift, once per loop)"): authored with no source until now
+      { itemId: 'item_archivists_circlet', when: { rep: { faction: 'remnants', min: 60 } } },
+    ],
     encounters: [
       // legacy: the Arcane Wisp (100 %, first visit)
       { id: 'enc_plaza_wisp', groups: [{ creatureId: 'cr_arcane_wisp' }], intro: "A knot of light lifts off the fountain's rim." },

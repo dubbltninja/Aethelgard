@@ -9,6 +9,7 @@ import { RESIST_MULT, type ContentPack } from '@engine/index';
 import { TRUE_ENDING_IDS } from '@schema/ending';
 import { DamageType } from '@schema/primitives';
 import { computeCoverage, coverageRatios, type Coverage } from './coverage';
+import { BY_DESIGN } from './reachability';
 import type { FightRecord, LoopRecord, RunResult } from './runner';
 import type { ScenarioId } from './scenarios';
 
@@ -254,6 +255,27 @@ const finished = (f: FightRecord): boolean => f.result !== 'fled';
 
 const key = (classId: string, bot: string): string => `${classId}:${bot}`;
 
+/** U82: the level band of the place a fight began (the location's own band, else its region's; DESIGN §19 #3/#9, D-149). */
+export function fightBandOf(content: ContentPack, f: Pick<FightRecord, 'locationId' | 'regionId'>): { min: number; max: number } | undefined {
+  const loc = f.locationId === undefined ? undefined : content.locations[f.locationId];
+  return loc?.levelBand ?? content.regions[loc?.regionId ?? f.regionId]?.levelBand;
+}
+
+/** U82 (D-149 ruling 1): the player's level was inside the band of the place it fought in. */
+export function inBand(content: ContentPack, f: Pick<FightRecord, 'locationId' | 'regionId' | 'playerLevel'>): boolean {
+  const band = fightBandOf(content, f);
+  return band !== undefined && f.playerLevel >= band.min && f.playerLevel <= band.max;
+}
+
+/** U82 (D-149 ruling 2, PLAN §7.5): levels between the player and the strongest foe that still count as parity (DESIGN §6.6). */
+export const PARITY_LEVELS = 1;
+
+/** U82: the player was within PARITY_LEVELS of the strongest foe of the fight. */
+export function atParity(content: ContentPack, f: Pick<FightRecord, 'enemies' | 'playerLevel'>): boolean {
+  const foe = Math.max(0, ...f.enemies.map((id) => content.creatures[id]?.level ?? 0));
+  return Math.abs(f.playerLevel - foe) <= PARITY_LEVELS;
+}
+
 // ---- target rows --------------------------------------------------------------------------------------------------------------------------
 
 /** One verdict inside a row: `ok` null = could not be measured, with `text` saying what it needs ("needs …"). */
@@ -367,10 +389,10 @@ function fightBand(f: FightRecord, content: ContentPack): FightBand | null {
   return null;
 }
 
-function difficultyRow(c: Ctx): TargetRow {
-  const threshold = 'median rounds and death rate non-decreasing in band order';
+/** The difficulty curve of `fights`: grouped by their region's band (MIN_REGION_FIGHTS+ each), in band order, and its violations. */
+function difficultyCurve(c: Ctx, fights: readonly FightRecord[]): { rows: { band: string; rounds: number; death: number; n: number }[]; violations: string[] } {
   const byBand = new Map<string, { lo: number; hi: number; fights: FightRecord[] }>();
-  for (const f of fightsOf(c, ['main'])) {
+  for (const f of fights) {
     const band = c.content.regions[f.regionId]?.levelBand;
     if (band === undefined) continue;
     const k = `${band.min}-${band.max}`;
@@ -379,11 +401,11 @@ function difficultyRow(c: Ctx): TargetRow {
     byBand.set(k, entry);
   }
   const bands = [...byBand.values()].filter((b) => b.fights.length >= MIN_REGION_FIGHTS).sort((a, b) => a.lo - b.lo || a.hi - b.hi);
-  if (bands.length < 2) return targetRow(3, 'Difficulty monotone across regions', threshold, [needs(`fights in at least 2 level bands (${MIN_REGION_FIGHTS}+ each; found ${bands.length})`)]);
   const rows = bands.map((b) => ({
     band: `${b.lo}-${b.hi}`,
     rounds: median(b.fights.filter(finished).map((f) => f.rounds)),
     death: ratio(b.fights.filter((f) => f.result === 'defeat').length, b.fights.length),
+    n: b.fights.length,
   }));
   const violations: string[] = [];
   for (let i = 1; i < rows.length; i++) {
@@ -392,10 +414,25 @@ function difficultyRow(c: Ctx): TargetRow {
     if (b.rounds < a.rounds) violations.push(`rounds fall ${a.band} ${num(a.rounds)} → ${b.band} ${num(b.rounds)}`);
     if (b.death < a.death) violations.push(`death rate falls ${a.band} ${pct0(a.death)} → ${b.band} ${pct0(b.death)}`);
   }
-  const curve = rows.map((r) => `${r.band}: ${num(r.rounds)} rounds, ${pct0(r.death)} deaths`).join('; ');
-  return targetRow(3, 'Difficulty monotone across regions', threshold, [ok(violations.length === 0, `${curve}${violations.length === 0 ? '' : ` — ${violations.join('; ')}`}`)], {
+  return { rows, violations };
+}
+
+/**
+ * Row 3. U82 (D-149 ruling 1): measured on the fights whose player stood inside the band of the place it fought in — a player
+ * who walks into the Drowned Reach at L3 should get hurt, and the curve is about the fights each band is for. The count over
+ * all fights stays in the detail.
+ */
+function difficultyRow(c: Ctx): TargetRow {
+  const threshold = "median rounds and death rate non-decreasing in band order (fights inside the place's level band)";
+  const main = fightsOf(c, ['main']);
+  const within = difficultyCurve(c, main.filter((f) => inBand(c.content, f)));
+  const all = difficultyCurve(c, main);
+  if (within.rows.length < 2) return targetRow(3, 'Difficulty monotone across regions', threshold, [needs(`in-band fights in at least 2 level bands (${MIN_REGION_FIGHTS}+ each; found ${within.rows.length})`)]);
+  const { rows, violations } = within;
+  const curve = rows.map((r) => `${r.band}: ${num(r.rounds)} rounds, ${pct0(r.death)} deaths (n=${r.n})`).join('; ');
+  return targetRow(3, 'Difficulty monotone across regions', threshold, [ok(violations.length === 0, `in band: ${curve}${violations.length === 0 ? '' : ` — ${violations.join('; ')}`}; all fights: ${all.violations.length} violation(s)`)], {
     value: violations.length,
-    valueText: `${violations.length} violation(s)`,
+    valueText: `${violations.length} violation(s) in band`,
   });
 }
 
@@ -441,38 +478,61 @@ function coverageRow(row: number, name: string, threshold: string, covered: numb
   });
 }
 
+/** U82: the fight-length bands measured at level parity (the two Tyrants are measured on every won fight, as before). */
+const PARITY_BANDS: ReadonlySet<FightBand> = new Set<FightBand>(['fodder1', 'fodderN', 'elite', 'boss']);
+
+/**
+ * Row 8. U82 (D-149 ruling 2, PLAN §7.5): fodder, elite and regional-boss fights are measured at level parity (the player within
+ * PARITY_LEVELS of the strongest foe), as DESIGN §6.6 intends ("a level-9 Wayfinder one-shots Wisps; that is the point"); the
+ * median over every won fight is in the detail.
+ */
 function fightLengthRow(c: Ctx): TargetRow {
-  const threshold = 'fodder 3–5/5–8, elite 6–9, boss 10–14, Contained Tyrant 12–18, Unveiled 14–20 rounds';
+  const threshold = `fodder 3–5/5–8, elite 6–9, boss 10–14 (at level parity, ±${PARITY_LEVELS}), Contained Tyrant 12–18, Unveiled 14–20 rounds`;
   const groups = new Map<FightBand, number[]>();
+  const everyWin = new Map<FightBand, number[]>();
   for (const f of fightsOf(c)) {
     if (f.result !== 'victory') continue;
     const band = fightBand(f, c.content);
-    if (band !== null) groups.set(band, [...(groups.get(band) ?? []), f.rounds]);
+    if (band === null) continue;
+    everyWin.set(band, [...(everyWin.get(band) ?? []), f.rounds]);
+    if (!PARITY_BANDS.has(band) || atParity(c.content, f)) groups.set(band, [...(groups.get(band) ?? []), f.rounds]);
   }
   const checks = FIGHT_LENGTH_BANDS.map((b): Check => {
     const rounds = groups.get(b.key) ?? [];
-    if (rounds.length === 0) return needs(`${b.label} fights won (none)`);
+    if (rounds.length === 0) return needs(`${b.label} fights won${PARITY_BANDS.has(b.key) ? ' at parity' : ''} (none)`);
     const m = median(rounds);
-    return ok(m >= b.lo && m <= b.hi, `${b.label} ${num(m)} (${b.lo}–${b.hi}, n=${rounds.length})`);
+    const all = everyWin.get(b.key) ?? [];
+    const overall = PARITY_BANDS.has(b.key) ? `; every win ${num(median(all))}, n=${all.length}` : '';
+    return ok(m >= b.lo && m <= b.hi, `${b.label} ${num(m)} (${b.lo}–${b.hi}, n=${rounds.length}${overall})`);
   });
   return targetRow(8, 'Fight length by band', threshold, checks, { value: failing(checks), valueText: `${failing(checks)} band(s) out of range` });
 }
 
+/** U82 (D-149 ruling 1): Loop 1 deaths in fights fought inside the place's level band (a defeat is a death or a FALLEN screen). */
+export const loop1DeathsInBand = (content: ContentPack, r: RunResult): number => r.fights.filter((f) => f.loop === 1 && f.result === 'defeat' && inBand(content, f)).length;
+
+/**
+ * Row 9. U82 (D-149 ruling 1): the melee, caster and explorer bots are measured on Loop 1 deaths in fights inside the place's
+ * level band (band-entry deaths are the player's risk, which U84's danger cue shows); every death is in the detail. The random
+ * bot's floor (≥ 3: it must die) stays on every death.
+ */
 function deathsRow(c: Ctx): TargetRow {
-  const threshold = 'melee/caster mean ≤ 1.0 and ≥ 55 % zero-death; explorer ≤ 1.5; random ≥ 3';
-  const stats = (bot: string): { n: number; mean: number; zero: number } => {
+  const threshold = 'Loop 1 deaths inside the band: melee/caster mean ≤ 1.0 and ≥ 55 % zero-death; explorer ≤ 1.5; random (every death) ≥ 3';
+  const stats = (bot: string, count: (r: RunResult) => number): { n: number; mean: number; zero: number } => {
     const rs = c.main.filter((r) => r.bot === bot);
-    const deaths = rs.map(loop1Deaths);
+    const deaths = rs.map(count);
     return { n: rs.length, mean: mean(deaths), zero: ratio(deaths.filter((d) => d === 0).length, deaths.length) };
   };
+  const banded = (r: RunResult): number => loop1DeathsInBand(c.content, r);
   const checks: Check[] = [];
   for (const bot of ['melee', 'caster']) {
-    const s = stats(bot);
-    checks.push(s.n === 0 ? needs(`${bot} runs`) : ok(s.mean <= 1 && s.zero >= 0.55, `${bot} mean ${s.mean.toFixed(2)}, ${pct0(s.zero)} zero-death`));
+    const s = stats(bot, banded);
+    const all = stats(bot, loop1Deaths);
+    checks.push(s.n === 0 ? needs(`${bot} runs`) : ok(s.mean <= 1 && s.zero >= 0.55, `${bot} mean ${s.mean.toFixed(2)}, ${pct0(s.zero)} zero-death (every death: ${all.mean.toFixed(2)}, ${pct0(all.zero)})`));
   }
-  const ex = stats('explorer');
-  checks.push(ex.n === 0 ? needs('explorer runs') : ok(ex.mean <= 1.5, `explorer mean ${ex.mean.toFixed(2)}`));
-  const rd = stats('random');
+  const ex = stats('explorer', banded);
+  checks.push(ex.n === 0 ? needs('explorer runs') : ok(ex.mean <= 1.5, `explorer mean ${ex.mean.toFixed(2)} (every death: ${stats('explorer', loop1Deaths).mean.toFixed(2)})`));
+  const rd = stats('random', loop1Deaths);
   checks.push(rd.n === 0 ? needs('random runs') : ok(rd.mean >= 3, `random mean ${rd.mean.toFixed(2)}`));
   return targetRow(9, 'Deaths per Loop 1 by bot', threshold, checks, { value: failing(checks), valueText: `${failing(checks)} bot(s) out of range` });
 }
@@ -770,14 +830,20 @@ function botsCompleteRow(c: Ctx): TargetRow {
 function coverageGateRow(c: Ctx): TargetRow {
   const threshold = 'quests, locations, endings 100 %; creatures killed ≥ 95 %; items obtained ≥ 90 %';
   const cov = c.coverage;
-  const part = (label: string, covered: number, total: number, need: number): Check =>
-    total === 0 ? needs(`${label} in the pack`) : ok(covered / total >= need, `${label} ${covered}/${total} (${pct0(covered / total)}, ≥ ${pct0(need)})`);
+  // U82: content the batch cannot reach by design (reachability.ts `BY_DESIGN`, each with its reason) leaves the denominator
+  // while it stays unreached, and is named; reached, it counts like everything else
+  const part = (label: string, kind: keyof typeof BY_DESIGN, covered: number, total: number, never: readonly string[], need: number): Check => {
+    const excused = never.filter((id) => BY_DESIGN[kind][id] !== undefined);
+    const of = total - excused.length;
+    if (of <= 0) return needs(`${label} in the pack`);
+    return ok(covered / of >= need, `${label} ${covered}/${of} (${pct0(covered / of)}, ≥ ${pct0(need)}${excused.length === 0 ? '' : `; by design: ${excused.join(', ')}`})`);
+  };
   const checks = [
-    part('quests completed', cov.quests.completed.length, cov.quests.total, 1),
-    part('locations visited', cov.locations.visited.length, cov.locations.total, 1),
-    part('endings and closers reached', cov.endings.reached.length, cov.endings.total, 1),
-    part('creatures killed', cov.creatures.killed.length, cov.creatures.total, 0.95),
-    part('items obtained', cov.items.obtained.length, cov.items.total, 0.9),
+    part('quests completed', 'quests', cov.quests.completed.length, cov.quests.total, [...cov.quests.neverStarted, ...cov.quests.startedNeverCompleted], 1),
+    part('locations visited', 'locations', cov.locations.visited.length, cov.locations.total, cov.locations.never, 1),
+    part('endings and closers reached', 'endings', cov.endings.reached.length, cov.endings.total, cov.endings.never, 1),
+    part('creatures killed', 'creatures', cov.creatures.killed.length, cov.creatures.total, cov.creatures.neverKilled, 0.95),
+    part('items obtained', 'items', cov.items.obtained.length, cov.items.total, cov.items.never, 0.9),
   ];
   return targetRow('G4', 'Coverage of content by sims', threshold, checks, { value: failing(checks), valueText: `${failing(checks)} kind(s) short` });
 }

@@ -371,6 +371,9 @@ describe('sources', () => {
       for (const npc of stock[r.id] ?? []) want.add(asSource(npc));
       for (const cr of drops[r.id] ?? []) want.add(asSource(cr));
       for (const loc of placed[r.id] ?? []) want.add(asSource(loc));
+      // U82: the two Sworn gifts WORLD §9 names had no source; they lie at the giver's place (reachability.test)
+      if (r.id === 'item_oathplate') want.add('loc:loc_hearthring');
+      if (r.id === 'item_archivists_circlet') want.add('loc:loc_silverwood_plaza');
       expect([r.id, [...gear(r.id).sources].sort()]).toEqual([r.id, [...want].sort()]);
     }
   });

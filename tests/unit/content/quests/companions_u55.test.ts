@@ -206,7 +206,7 @@ describe('the six arc quests (STORY §11.1, §11.4; DESIGN §6.2)', () => {
   });
 
   test('DESIGN §12.5 "personal quest stage completed +5": every stage pays +5 to its companion — on exit, or on entering an outcome', () => {
-    expect(S125).toContain('| personal quest stage completed | +5 |');
+    expect(S125).toContain('| personal quest stage completed | +5; '); // U81b2: +6 for Ilyra's and Brak's arcs only
     for (const q of arcQuests) {
       const who = q.companionId as string;
       for (const st of q.stages) {

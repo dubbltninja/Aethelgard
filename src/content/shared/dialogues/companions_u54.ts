@@ -42,7 +42,7 @@
 // `scene_ilyra_portal`'s `flag_ilyra_told` variant is U62's; Nyx's and Dask's side of anything is U55's.
 import type { Condition } from '@schema/condition';
 import type { DialogueSceneInput } from '@schema/dialogue';
-import { SALT } from '../quests/companions_u54';
+import { LOYALTY_STAGE, SALT } from '../quests/companions_u54';
 import { FROM_LOOP_2, NOT_IN_HORDE, SCENE_PRIORITY, echoLocked, loyaltyFor, type ChoiceInput, type NodeInput } from './common';
 
 // ---- Lines and conditions used more than once -------------------------------------------------------------------------------
@@ -751,7 +751,7 @@ export const dialogues = [
             text: 'Stay at the Ring. Live.',
             effects: [
               { setFlag: 'flag_brak_kept_away' },
-              { loyalty: { companion: 'brak', delta: 5 } },
+              { loyalty: { companion: 'brak', delta: LOYALTY_STAGE } },
               { rep: { faction: 'ironclad', delta: 10 } },
               { dismiss: 'brak' },
               { questAdvance: { quest: 'q_the_line_he_holds', stage: 'kept_away' } },
@@ -761,7 +761,7 @@ export const dialogues = [
           {
             id: 'come_anyway',
             text: 'Come anyway. See it.',
-            effects: [{ loyalty: { companion: 'brak', delta: 5 } }, { rep: { faction: 'ironclad', delta: 10 } }, { questAdvance: { quest: 'q_the_line_he_holds', stage: 'comes_anyway' } }],
+            effects: [{ loyalty: { companion: 'brak', delta: LOYALTY_STAGE } }, { rep: { faction: 'ironclad', delta: 10 } }, { questAdvance: { quest: 'q_the_line_he_holds', stage: 'comes_anyway' } }],
             next: 'see',
           },
           {
@@ -770,7 +770,7 @@ export const dialogues = [
             disabledWhen: { not: { quest: { id: 'q_blood_and_salt', stage: 'spoke' } } },
             disabledText: "(He would need his brother's salt, and his brother's word)",
             effects: [
-              { loyalty: { companion: 'brak', delta: 5 } },
+              { loyalty: { companion: 'brak', delta: LOYALTY_STAGE } },
               { rep: { faction: 'ironclad', delta: 10 } },
               { grantEcho: 'echo_brak_lives' },
               { questAdvance: { quest: 'q_the_line_he_holds', stage: 'holds_nexus' } },

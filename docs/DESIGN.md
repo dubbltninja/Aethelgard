@@ -1302,7 +1302,7 @@ Auto abilities use **cooldowns** in the companion's own turns instead of MP (D-0
 
 | Change | Amount |
 |---|---|
-| personal quest stage completed | +5 |
+| personal quest stage completed | +5; **+6 for Ilyra's and Brak's arcs** (U81b2, D-113: Ilyra's nine stages reached about 46 in a loop, short of Loyal 50 for ending E) |
 | camp conversation (max one per full rest, needs new content) | +2 |
 | choice aligned with their value (Ilyra: stabilize/give crystal; Brak: Ironclad quests, destroy; Nyx: keep crystal, give shards, exploit; Dask: spare the Tyrant; Mireya: cleanse, protect the Glowfen; Caelum: attempt the anchor) | +3 |
 | choice against their value | −10 (Dask: killing the Tyrant −30; Nyx: refusing shards −15) |
@@ -1442,7 +1442,7 @@ This is the **one canonical set** (D-066 #16); PLAN §4.9's zod schemas implemen
 2. **Ilyra believes you** (entry rule): `{ when: { all: [{ echo: "echo_ilyra_watchword" }, { loop: { min: 2 } }, { not: { flag: "flag_ilyra_told" } }] }, node: "watchword_greeting" }`.
 3. **Breach-door exit** (location exit condition): `{ all: [{ echo: "echo_litany_verse_1" }, { item: { id: "item_chronos_lens" } }, { loop: { min: 2 } }] }`.
 4. **Sethe's void resonance** (choice `when`, STORY §12 source): `{ all: [{ rep: { faction: "weavers", min: 20 } }, { quest: { id: "q_unlidded_eye", status: "completed" } }, { location: "loc_sanctum_of_threads" }] }` → effects `[{ grantEcho: "echo_void_resonance" }]`.
-5. **Brak stays away** (choice): `when: { all: [{ echo: "echo_brak_death" }, { quest: { id: "q_blighted_outpost", status: "completed" } }] }` → `[{ setFlag: "flag_brak_kept_away" }, { loyalty: { companion: "brak", delta: 5 } }, { rep: { faction: "ironclad", delta: 10 } }]`.
+5. **Brak stays away** (choice): `when: { all: [{ echo: "echo_brak_death" }, { quest: { id: "q_blighted_outpost", status: "completed" } }] }` → `[{ setFlag: "flag_brak_kept_away" }, { loyalty: { companion: "brak", delta: 6 } }, { rep: { faction: "ironclad", delta: 10 } }]`.
 6. **Corruption dialogue**: `{ corruption: { min: 3 } }` on Nyx's "You have read Maelis" node; ending E's `availableWhen` includes `{ any: [{ not: { corruption: { min: 6 } } }, { flag: "flag_corruption_cleansed" }] }`.
 7. **Apex gate** (D-048, exactly): Loop 1 `{ counter: { name: "quests_completed", min: 6 } }`; Loop 2+ `{ any: [{ counter: { name: "quests_completed", min: 6 } }, { echo: "echo_apex_resonance" }] }`. Since `echo_apex_resonance` is only granted on first reaching the Apex, the single data form `{ any: [...] }` is used in every loop.
 8. **Golem shortcut**: Blighted Outpost encounter `optionalWhen: { echo: "echo_stone_hide_origin" }` and a dialogue action `speak_warder_word` with effects `[{ setFlag: "flag_outpost_golems_stilled" }, { questAdvance: { quest: "q_blighted_outpost", stage: "cleared" } }]` — Pacifist's Vow relies on it.

@@ -16,7 +16,7 @@
     "mode": "explore",
     "locationId": "loc_mistwood_path"
   },
-  "finalStateHash": "7813bd97",
+  "finalStateHash": "92ce8cfa",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"elf","seed":"u79:real:elf"},
     {"type":"unlockAbility","abilityId":"elf_twin_strike"},

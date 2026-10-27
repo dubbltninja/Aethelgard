@@ -284,7 +284,7 @@ describe('the six arc quests (STORY §11.1, §11.4; DESIGN §6.2)', () => {
 
 describe('loyalty (DESIGN §12.5), reputation (STORY §11.4; DESIGN §11.2) and DESIGN §13.3 ex. 5', () => {
   test('§12.5 "personal quest stage completed +5": every stage that is not an outcome pays it on exit, except the Line’s decision, whose choices carry it', () => {
-    expect(DESIGN_SECTION('### 12.5 Loyalty', '### 12.6')).toContain(`| personal quest stage completed | +${LOYALTY_STAGE} |`);
+    expect(DESIGN_SECTION('### 12.5 Loyalty', '### 12.6')).toContain(`| personal quest stage completed | +5; **+${LOYALTY_STAGE} for Ilyra's and Brak's arcs** (U81b2, D-113`);
     for (const q of arcQuests) {
       for (const st of q.stages) {
         const expected = st.outcome !== undefined || (q.id === 'q_the_line_he_holds' && st.id === 'choose') ? [] : [{ loyalty: { companion: q.companionId, delta: LOYALTY_STAGE } }];

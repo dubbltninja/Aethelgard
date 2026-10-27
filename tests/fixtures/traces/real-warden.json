@@ -16,7 +16,7 @@
     "mode": "explore",
     "locationId": "loc_barren_peaks"
   },
-  "finalStateHash": "ec3fda7f",
+  "finalStateHash": "36499ee0",
   "trace": [
     {"type":"newGame","name":"Wayfinder","classId":"ironclad_warden","seed":"u79:real:warden"},
     {"type":"unlockAbility","abilityId":"wrd_crushing_blow"},

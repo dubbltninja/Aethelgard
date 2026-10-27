@@ -16,7 +16,7 @@
     "mode": "dialogue",
     "locationId": "loc_ironclad_camp"
   },
-  "finalStateHash": "5585df75",
+  "finalStateHash": "06e5f74b",
   "trace": [
     {"type":"unlockAbility","abilityId":"rgr_rend"},
     {"type":"talk","npcId":"npc_ilyra"},

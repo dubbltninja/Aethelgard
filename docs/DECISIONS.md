@@ -2633,5 +2633,7 @@ owning unit (PLAN §9.1).
   - toasts out of the way.
   - It also folds in REPORT U79 #1 (toasts cover content), #2 (combat below the fold at 1280×800), #9 (a duplicate `I` key)
     and D-139's toast notes.
+- **Added the same evening (Tim):** desktop gets the same no-page-scroll treatment and uses the width: multi-column
+  explore and combat at 1280, 1440 and 1920, and panels as list + detail.
 - **Enforced by `layout.spec.ts`:** button boxes stay put (±1 px) across moves and turns, and the page doesn't scroll on
   phones. This is part of the planned fix work, pulled forward from U84 because Tim is playing now.

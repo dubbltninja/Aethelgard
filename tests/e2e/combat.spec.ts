@@ -26,6 +26,27 @@ async function boot(page: Page, scenario: string): Promise<void> {
   await expect(page.locator('[data-screen="combat"]')).toBeVisible();
 }
 
+/**
+ * U81b2: solo, the Contained Tyrant's Fracture brings no Aberration (DESIGN §4.10). The fight is reshaped with one beside the
+ * Tyrant (as with a companion) through the e2e build's `?start=session` seam (src/main.tsx), so ← / → have two targets.
+ */
+async function withAberration(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    type Bag = Record<string, unknown>;
+    const game = (window as unknown as { __aethelgard: { state: unknown; store: { getProfile(): unknown } } }).__aethelgard;
+    const s = structuredClone(game.state) as Bag;
+    const c = s.combat as { enemies: Bag[]; turnOrder: string[]; intents: Record<string, Bag> };
+    const first = c.enemies[0] as Bag;
+    const intent = c.intents[first.uid as string];
+    c.enemies.push({ ...structuredClone(first), refId: 'cr_temporal_aberration', name: 'Temporal Aberration', uid: 'c90', level: 12, hp: 112, hpMax: 280, phase: 0, isAdd: true });
+    c.turnOrder.push('c90');
+    if (intent !== undefined) c.intents.c90 = { ...intent };
+    sessionStorage.setItem('aethelgard.e2e.start', JSON.stringify({ state: s, profile: game.store.getProfile() }));
+  });
+  await page.goto('./?start=session');
+  await expect(page.locator('[data-screen="combat"]')).toBeVisible();
+}
+
 const victory = (page: Page): Locator => page.getByRole('dialog', { name: 'Victory' });
 
 /** Acts until the summary dialog shows (a fresh Level 1 Wayfinder against one Corrupted Shade always wins). */
@@ -167,6 +188,7 @@ test.describe('combat', () => {
 
   test('a11y: names, roles, 44 px targets, no sideways scroll at 150 %, a visible focus ring', async ({ page }, info) => {
     await boot(page, 'combat_tyrant_contained_p2');
+    await withAberration(page);
     expect(await unnamedControls(page)).toEqual([]);
     expect(await smallTargets(page)).toEqual([]);
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);

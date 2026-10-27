@@ -783,3 +783,115 @@ Whether #1's bots should keep those choices is a lead decision before U81b2 tune
 8. **`communion_movement_2`**: no crash (0 errors in 392 scenario runs).
 
 Traces were re-recorded (`db61c91`): they are recorded by the policy bots, whose choices changed.
+
+<!-- U81b2 re-measure (hand-written, appended; the generated U80 report and the U81b1 section above are unchanged). -->
+# After U81b2: the numbers tuned, re-measured
+
+**1,036 runs** at `6ac0bca` (all U81b2 changes): 600 main runs (6 bots x 5 classes x 20 seeds, `balA` + `balB` as U81b1), 420
+pre-Tyrant / communion scenario runs (10 seeds per cell, **0 skipped**; U81b1 skipped 28), 16 ending-script runs. **0 engine
+errors, 0 soft-locks, 0 blockers; determinism 40/40.** Run in five foreground chunks (a sibling unit shared the 2 cores, so
+U81b1's 10-minute chunks no longer fit) and merged with `--merge`: `balA` and `balB` x {melee, caster, pacifist} and x
+{explorer, random, speedrunner}, then the scenario cells alone (`balB --bots melee,caster,pacifist --scenario-seeds 10
+--max-steps 1`, its 150 one-step main runs removed from the JSON before the merge, so the merged header's seed count reads 50).
+**Row #1 is measured as D-146 ruled:** the `melee` and `caster` bots take Stabilize (`SIM_HEARTSTONE=destroy|exploit` plays
+the focused routes). N is 20 per class and bot: every rate below is +-10-20 %.
+
+## §1.2 gates (U80 -> U81b1 -> U81b2)
+
+| Gate | U80 | After U81b1 | After U81b2 |
+| --- | --- | --- | --- |
+| Bots complete runs | FAIL: 458 of 4,000 stop early | FAIL: 16 of 600 | FAIL: 12 of 600 (FALLEN stops; 0 engine errors) |
+| Loop 1 Escape >= 60 % (melee or caster) | "PASS" (counted expiry portals) | FAIL: worst 0 % (honest count) | **PASS: worst class 75 %** (ranger) |
+| Zero soft-locks | FAIL: 33 | PASS: 0 | **PASS: 0** in 1,036 runs |
+| Coverage | quests 38/49, locations 59/73 | quests 41/49, locations 73/73 | quests 42/49, locations 73/73, endings 8/8, creatures 70/73, items 122/157 |
+| Determinism | 248/248 | 40/40 | 40/40 |
+
+## The DESIGN §19 rows (U80 -> U81b1 -> U81b2)
+
+| # | Target | U80 | After U81b1 | After U81b2 | |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Escape >= 60 % per class | 61 % ("pass") | worst 0 % | **elf 95, warden 95, ranger 75, weaver 95, wizard 100 %** (melee; caster 70-95 %) | pass |
+| 2 | no ability > 35 % | ambush 62.9 %, piercing 46.9 % | piercing 47.3, bolt 41.8, flurry 40.9 % | **piercing 34.3**, flurry 29.0, earthbreaker 26.3, bolt 25.8, void lance 22.7 % | pass |
+| 3 | monotone difficulty | 8 violations | 7 | 6 (Drowned 4-8: 11 % deaths; Veil 10-14: 20 %; Skyreach 12-15: 21 %) | ruling |
+| 4 | every ending | 6/6 | 6/6 | 6/6 | pass |
+| 5 | every quest | 38/49 | 41/49 | 42/49 (proofs 81/81) | coverage, not numbers |
+| 6 | every location | 59/73 | 73/73 | 73/73 | pass |
+| 7 | zero soft-locks | 33 | 0 | 0 | pass |
+| 8 | fight length | 2 / 4 / 9 / 9 / 13 | 2 / 4 / 8 / 8 / 13 | single **3**, pair 4, elite 8, boss 9, Contained 13, Unveiled 22 (n = 11) | ruling |
+| 9 | deaths per loop | melee 4.88, caster 6.73, explorer 10.38 | 1.56 / 3.79 / 3.14 | melee 2.25 (46 % zero-death), caster 5.01, explorer 2.97, random 7.33 | ruling |
+| 10 | loop duration | explorer 36 d / 670; speedrunner 33 d | 32 d / 802; 37 d | explorer 32 d / 792; speedrunner **21 d**; Loop 3+ 120.5 actions (ok) | ruling |
+| 11 | level at the Apex | explorer 14 | 15; speedrunner 10 | explorer 14.5; speedrunner 10 (ok) | ruling |
+| 12 | ability usage | 50/54/68/25/37 %; Blood price 0 % | 69/79/71/84/81 %; 2 % | ranger 72, warden 80, elf 72, wizard 85, weaver 81 %; Blood price 2 % | ruling |
+| 13 | 0-MP fights <= 15 % | 1 % | 1 % | 1 % | pass |
+| 14 | economy | gold 596.5 | 1,018 | 1,286 | ruling |
+| 15 | clock | explorer 6 %, speedrunner 58 % | 29 %, 56 % | explorer **15 %** (ok), speedrunner 12 % | ruling (speedrunner) |
+| 16 | resistance relevance | band 10 off | same | same (6 encounters) | thin |
+| 17 | companion value | 39 % | 32 % | 31 % | pass |
+| 18 | variance sanity | n/a | n/a | n/a | needs an engine hook |
+| 19 | Contained Tyrant | L11 solo 0-80 % | L11 solo 20-100 % | **L11 and L13 wins 100 % solo**, 80-100 % with Brak; L11 median rounds wizard 9, ranger 11.8, weaver 22, warden 24.5, elf 25.3; full runs 70 % wins in 13 rounds | ruling (rounds) |
+| 20 | Unveiled Tyrant | communion ok | communion 20/20 | communion 20/20; fight path 22 rounds (n = 11) | thin |
+
+**7 of 20 rows pass** (U80: 3; U81b1: 6, with #1 failing), #18 is unmeasurable, and the others carry the rulings below.
+
+## What U81b2 changed (DESIGN first, then data; each step re-measured on a focused batch, the commits say how)
+
+1. **The Contained Tyrant (#1, #19, D-101, D-138):** the Fracture brings **1 Aberration, none solo** (was 2 / 1), and its
+   Unraveling is **0.8·SP** (was 1.1; the Unveiled keeps 1.1). The snapshot's 4-line edit was split and measured: the adds
+   alone fixed the companion cells (24 -> 84 % at L11), the Unraveling fixed full-run deaths after round 12 for the slow classes
+   (focused Exploit Escape elf 33 -> 67 %). DESIGN §4.10 and §6.6 say so.
+2. **Damage dominance (#2):** Piercing Arrow, Lightning Bolt and Flurry carry a **1-turn cooldown** (DESIGN §5.1's own rule:
+   above 1.3U needs a cooldown or a condition). 44.7 / 39 / 41 % -> 34.3 / 25.8 / 29.0 %.
+3. **Lethal fights:** Pale Diver Hold Under 1.4 -> 1.1·ATK; Ledger Choir Amend 1.5 -> 0.9·ATK; the Pass's Moths 3 -> 2; Null
+   Mouth Gape 1.6 -> 1.2·SP; Starved Shadow Feed 1.5 -> 0.8·ATK; Barrow-Light Gather 1.0 -> 0.5·ATK (a soft-lock); the Drowned
+   Reach's Tide Clerk, Lamprey, Diver, Choir and Bell-Ringer ATK/SP -2 (D-110: L6 in the Reach 32 -> 24 % deaths).
+4. **The Golem pair (D-140):** 130 HP / ATK 14 / armor 6 -> **90 / 12 / 3**: the quest gate 11 -> 7 rounds, 4 % deaths; the
+   ordinary pair 14 -> 12 rounds, 48 -> 26 % deaths.
+5. **Vell's Umbra L16 -> L15** (D-137: the Eye's band 13 + 2); **Caelum's signature is *Skipped Beat*** (the Wizard keeps
+   *Stutter*). Both soft assertions in `balance.static` pass.
+6. **Ilyra's loyalty (D-113):** Ilyra's and Brak's arc stages pay **+6** (was +5): Ilyra's nine stages now reach about 55 in
+   one loop, past Loyal 50 for ending E without the bond Echo. The other four arcs keep +5 (DESIGN §12.5).
+7. **The generic Accept (D-146 ruling 2):** Caelum's two quests no longer strand (aa53778; `genericAccept.test`).
+8. **Bot fixes the numbers exposed (sim tooling, no engine change):** `apexDue` (with <= 10 dawns left a ready bot goes to the
+   Apex first: a Loop 1 took 124 travels where DESIGN §10.1 plans ~60, so bots expired at L13-15 without trying the Tyrant);
+   `GIVE_UP_ROUND` 45 (a fleeable fight is left even while striking); `idleRoam` (a bot with nothing in reach walks for the
+   wanderers' XP instead of resting out the loop: 8 of 90 Loop 1s were stuck at L6-7 for 30+ days behind their own death notes).
+   The melee and caster bots take Stabilize (D-146 ruling 1; the lead's snapshot).
+
+Not changed, on purpose: **D-017's clock costs** (a -8 / -4 trial raised focused Destroy/Exploit Escape only a little, and
+Borin's "Twenty dawns, not thirty" and STORY's five dawns are written to -10 / -5). Focused Loop 1s now (6 seeds, best of
+melee/caster): Destroy elf 50, warden 83, ranger 83, weaver 50, wizard 100 %; Exploit elf 67, warden 83, ranger 67, weaver 50,
+wizard 83 %. Ending C's Exploit route finishes on Day 24 of 25 (its proof was re-seeded).
+
+## Rulings asked for (rows not brought into target)
+
+- **#3, #9 (deaths, difficulty):** what remains is band-entry: bots enter places whose band starts up to 2 above them
+  (Drowned Reach at L3-5: 37 % deaths over 1,012 fights, L7-9: 8 %; the Veil's Orchard and Gallery at L6-10: 33 / 59 %;
+  Windward Kites at L11 in a 12-15 band: 32 %), and 181 of 2,969 defeats are identical FALLEN replays (69 the caster at the
+  Pass). Stat cuts there moved little (Veil: 88 -> 82 %); the martial kits deal 10-15 a round into those resistances. A lead
+  call: the bots' band slack (2) and FALLEN-loop memory, or the bands of those places.
+- **#8 (fight length):** at level parity (player within 1 of the strongest foe) fodder single is 3, pair/triple 7, elite 8:
+  in band. The overall medians count the 60 % of fodder fights fought 4+ levels over (DESIGN §6.6: "a level-9 Wayfinder
+  one-shots Wisps; that is the point"). Proposed: #8 measured at parity. Regional boss 9 (n = 140), Unveiled 22 (n = 11): thin.
+- **#10, #11 (duration, Apex level):** a thorough Loop 1 is ~124 travels on this map (DESIGN §10.1 assumed ~60), so the explorer
+  takes 32 days and levels to 14.5 on the way. Not a number fix; the clock is D-017's.
+- **#12 (ability usage, Blood price):** insensitive to the MP supply: MP growth cut 40-60 % for every class moved usage 2
+  points, travel MP regen 10 -> 3 % 1 point. Fights are 2-4 rounds, the pool covers them and in-fight generation (Focus,
+  Grit, regen) refills it; Blood price stays at 2 %. Needs a design decision on the resource model (e.g. the 2·MAG term of
+  max MP, per-fight generation), not the fewest numbers.
+- **#14 (economy):** end-of-Loop-1 gold 1,286 (n = 293): nothing to spend it on. Needs a sink (design), not prices.
+- **#15 (speedrunner expiry 12 %, target 0):** the speedrunner reaches the Apex around Day 15 at L10 and retries the Tyrant
+  after each level; the Tyrant now wins 100 % of scenario cells at L11, so this is the L9-10 gap (§19 #11's "speedrunner
+  >= 9") rather than the fight.
+- **#19 (Contained Tyrant rounds):** wins 100 % at L11 and L13 solo and 80-100 % with Brak; full runs 70 % in 13 rounds. The
+  L11 rounds follow class damage (wizard 9, ranger 12, weaver 22, warden 24.5, elf 25); a trial at 540 HP / armor 3 left the
+  elf at 27. Bringing every class into 12-18 is class damage work (elf and warden output), not the Tyrant.
+- **#16, #20:** thin samples (6 encounters; 11 fights). #18 needs an engine hook.
+- **D-137 placements:** the 9 pinned placements are WORLD's re-uses of low-level creatures in late places (easy XP, no measured
+  harm) and the Hourglass Crawler in the Exploited Depths (Loop 2+, not met in this batch). Proposed: keep them pinned.
+- **D-122:** the Cairns (1 % deaths) and Scriptorium Archivists (3 %) are fine; the Scriptorium Choir is 21 % deaths / 10
+  rounds at L7 (was 35 % / 12); Windward Kites as above.
+- **D-089, the Warden vs bosses:** best class at the Contained Tyrant in full runs (89 % wins) and at the quest Golems (100 %);
+  thin elsewhere (Ashmaw 1 of 4, Stormcrown 2 of 2). No change.
+- **D-109, the Nexus chain:** the Aberration 4 % deaths / 26 % flee at L11 (989 fights), the Crawlers 5 %: no wall in play.
+
+Traces were re-recorded in the commits that moved them (real-pack only; the fixture traces still replay).

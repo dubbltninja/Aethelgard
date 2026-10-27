@@ -1281,6 +1281,8 @@ const loop1Emberforge: Builder = (content, seed, opts) => {
   run.walkTo(EMBERFORGE_ID);
   run.edit((w) => {
     grantItem(w, content, 'mat_ember_ore', 5);
+    // U81b2: one Ley Resin, so the Ember Flask's recipe is ready whatever the walk dropped (the retuned fights changed its loot)
+    if (!w.s.player.inventory.some((i) => i.itemId === 'mat_ley_resin')) grantItem(w, content, 'mat_ley_resin', 1);
     w.s.player.gold = Math.max(w.s.player.gold, PANEL_GOLD);
   });
   restock(run);
@@ -1375,9 +1377,9 @@ export const SCENARIOS: Record<ScenarioId, ScenarioInfo & { build: Builder }> = 
     build: loop1Respite,
   },
   loop1_emberforge: {
-    summary: "Loop 1 at Borin's Emberforge (forge and free camp): Level 5 in Common gear, 600 gold, five Ember Ore.",
+    summary: "Loop 1 at Borin's Emberforge (forge and free camp): Level 5 in Common gear, 600 gold, five Ember Ore, a Ley Resin.",
     route: 'mixed',
-    constructed: "the level, potions, the band's best Common gear (granted, then worn by legal equips), points spent by play, 600 gold and five Ember Ore; the walk is played",
+    constructed: "the level, potions, the band's best Common gear (granted, then worn by legal equips), points spent by play, 600 gold, five Ember Ore and (U81b2) a Ley Resin if the walk dropped none; the walk is played",
     build: loop1Emberforge,
   },
 };
